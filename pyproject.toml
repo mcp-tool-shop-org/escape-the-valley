@@ -25,6 +25,7 @@ dependencies = [
     "typer>=0.9",
     "rich>=13.0",
     "httpx>=0.27",
+    "textual>=0.70",
 ]
 
 [project.scripts]

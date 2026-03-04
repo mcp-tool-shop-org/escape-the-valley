@@ -168,6 +168,14 @@ def self_check() -> None:
 
 
 @app.command()
+def tui() -> None:
+    """Launch the Textual UI (full-screen terminal app)."""
+    from .tui_app import LedgerTrailApp
+
+    LedgerTrailApp().run()
+
+
+@app.command()
 def version() -> None:
     """Show version."""
     console.print(f"Escape the Valley: Ledger Trail v{__version__}")
