@@ -40,7 +40,12 @@ try:
 
     _HAS_XRPL = True
 except ImportError:
-    pass
+
+    class Memo:  # type: ignore[no-redef]
+        """Stub for when xrpl-py is not installed."""
+
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
 
 
 # ── Result types ──────────────────────────────────────────────────
