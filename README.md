@@ -8,8 +8,8 @@
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/escape-the-valley/actions"><img src="https://github.com/mcp-tool-shop-org/escape-the-valley/workflows/CI/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/escape-the-valley/"><img src="https://img.shields.io/pypi/v/escape-the-valley" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
-  <img src="https://img.shields.io/badge/version-1.0.0-green" alt="Version">
   <a href="https://mcp-tool-shop-org.github.io/escape-the-valley/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
@@ -28,7 +28,7 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 ## Quick Start
 
 ```bash
-pip install -e ".[dev]"
+pip install escape-the-valley
 
 # Launch the full-screen TUI (recommended)
 trail tui --seed 42
