@@ -1,0 +1,6548 @@
+[
+  {
+    "id": "f1_001",
+    "title": "Shallow Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Drive the team through the ford",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2,
+          "wagon_condition": -1
+        }
+      },
+      {
+        "label": "Unload and wade supplies across",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "morale": -2,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour upstream for calmer waters",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "The river runs low but the mud pulls at the wheels with sullen persistence."
+  },
+  {
+    "id": "f1_002",
+    "title": "Swollen Crossing",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Attempt the ford despite the rush",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -3,
+          "wagon_condition": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Wait a day for the waters to fall",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -2,
+          "water": 3
+        }
+      }
+    ],
+    "narration_seed": "Recent rains have turned the gentle stream into a churning beast."
+  },
+  {
+    "id": "f1_003",
+    "title": "Fallen Bridge",
+    "tags": [
+      "river",
+      "bridge",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Attempt to ford nearby",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -4,
+          "animals_health": -2,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Repair a makeshift crossing with rope",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -3,
+          "time_days": 2,
+          "distance": 5,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The old bridge lies in ruins, timbers scattered by some past flood or force."
+  },
+  {
+    "id": "f1_004",
+    "title": "Mist over the River",
+    "tags": [
+      "river",
+      "ford",
+      "folklore",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford despite the thick mist",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": -2,
+          "time_days": 1,
+          "distance": 8
+        }
+      },
+      {
+        "label": "Investigate the strange lights in the mist",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour around the foggy bank",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Pale lights flicker across the river in the evening mist, though no voices carry on the wind."
+  },
+  {
+    "id": "f1_005",
+    "title": "Rapid Currents",
+    "tags": [
+      "river",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford straight through the current",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -3,
+          "time_days": 1,
+          "distance": 7
+        }
+      },
+      {
+        "label": "Detour to find a safer crossing",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Wait for the waters to recede",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible."
+  },
+  {
+    "id": "f1_006",
+    "title": "Narrow Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross the rickety bridge",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "time_days": 1,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ford below the bridge",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "water": -1
+        }
+      },
+      {
+        "label": "Repair the bridge planks",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The bridge sways in the breeze, planks missing like teeth in an old grin."
+  },
+  {
+    "id": "f1_007",
+    "title": "Icy Ford",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford with care on the ice",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -2,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Detour to lower ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Ice coats the stones at the crossing, each step a test of balance and nerve."
+  },
+  {
+    "id": "f1_008",
+    "title": "Flooded Path",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford the flooded stretch",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "wagon_condition": -3
+        }
+      },
+      {
+        "label": "Wait for the flood to ease",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 5,
+          "food": -2
+        }
+      },
+      {
+        "label": "Detour along the bank",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The path vanishes beneath brown water, the river claiming its due for the season."
+  },
+  {
+    "id": "f1_009",
+    "title": "Whispers by the Ford",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford while listening to the voices",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Ignore and push across quickly",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Wait until dawn",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Soft voices seem to rise from the river waters at nightfall, calling names long forgotten."
+  },
+  {
+    "id": "f1_010",
+    "title": "Beaver Dam Blockage",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford past the dam",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Repair path around the dam",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -1,
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A wall of branches blocks the usual ford, the river diverted with patient industry."
+  },
+  {
+    "id": "f1_011",
+    "title": "Ancient Stone Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Cross the ancient stones",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 7,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Ford beneath the bridge",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Investigate carvings on the bridge",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Moss-covered stones span the gap, older than any settler mark upon the land."
+  },
+  {
+    "id": "f1_012",
+    "title": "Night Crossing",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford by lantern light",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "oil": -1,
+          "morale": -2,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Wait for morning light",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Detour to known shallows",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Darkness hides the far bank, the water whispering secrets best left unheard."
+  },
+  {
+    "id": "f1_013",
+    "title": "Sudden Downpour",
+    "tags": [
+      "weather",
+      "rain",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Press on through the rain",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "wagon_condition": -1,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Seek shelter and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "firewood": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Repair the wagon cover first",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "parts": -1,
+          "cloth": -1
+        }
+      }
+    ],
+    "narration_seed": "The sky opens without warning, as if the clouds held a long grudge."
+  },
+  {
+    "id": "f1_014",
+    "title": "Thick Fog",
+    "tags": [
+      "weather",
+      "fog",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Travel slowly despite poor sight",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Rest until the fog lifts",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -1
+        }
+      }
+    ],
+    "narration_seed": "The mist swallows the trail ahead, turning familiar trees into strangers."
+  },
+  {
+    "id": "f1_015",
+    "title": "Blinding Snow",
+    "tags": [
+      "weather",
+      "snow"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push forward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 1,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Camp and wait out the storm",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "firewood": -3,
+          "morale": 0
+        }
+      }
+    ],
+    "narration_seed": "Snow falls thick, erasing the trail as if the valley wishes to keep its secrets."
+  },
+  {
+    "id": "f1_016",
+    "title": "Howling Winds",
+    "tags": [
+      "weather",
+      "wind"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Push through the gale",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 2,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Hunker down and repair gear",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "tools": -1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind carries voices that sound almost like words from long-forgotten travelers."
+  },
+  {
+    "id": "f1_017",
+    "title": "Persistent Rain",
+    "tags": [
+      "weather",
+      "rain",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Continue despite the wet",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "wagon_condition": -2,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Wait under canvas",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls steady as judgment, soaking every seam and hope alike."
+  },
+  {
+    "id": "f1_018",
+    "title": "Hail Storm",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Press on through hail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Seek cover and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Stones of ice batter the canvas, the sky pelting its displeasure."
+  },
+  {
+    "id": "f1_019",
+    "title": "Drought Heat",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel in the heat",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -3,
+          "morale": -2,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Rest in shade until dusk",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sun beats down without mercy, drying the earth and the spirit."
+  },
+  {
+    "id": "f1_020",
+    "title": "Lightning Strike Near",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Press on after the strike",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Wait for the storm to pass",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1,
+          "firewood": -1
+        }
+      }
+    ],
+    "narration_seed": "Lightning splits the sky nearby, the thunder a warning best heeded."
+  },
+  {
+    "id": "f1_021",
+    "title": "Early Frost",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel through the frost",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Build fire and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -2,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Frost rims the grass at dawn, the valley reminding all of winter's reach."
+  },
+  {
+    "id": "f1_022",
+    "title": "Gale Force Winds",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Push against the gale",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "distance": 2
+        }
+      },
+      {
+        "label": "Hunker and repair wagon",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -1,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Winds tear at the canvas as if seeking entry to the soul."
+  },
+  {
+    "id": "f1_023",
+    "title": "The Toll Man",
+    "tags": [
+      "human",
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the demanded coin",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "morale": -1,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Refuse and ford elsewhere",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Investigate his claim to the bridge",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A lone figure stands by the rickety bridge demanding passage fee in the old way."
+  },
+  {
+    "id": "f1_024",
+    "title": "Wandering Trader",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Trade for supplies",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": 4,
+          "ammo": 2,
+          "cloth": -2
+        }
+      },
+      {
+        "label": "Decline and continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The trader's wagon appears from the mist with goods that seem too well preserved."
+  },
+  {
+    "id": "f1_025",
+    "title": "Stranger with Rumors",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Listen to his tales and share food",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -1,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore and press on",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 3,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Investigate his claims of safe passage",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A lone wanderer shares stories of the trail ahead, some too strange to dismiss outright."
+  },
+  {
+    "id": "f1_026",
+    "title": "Bandit Toll",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the demanded toll",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "ammo": -1
+        }
+      },
+      {
+        "label": "Attempt to detour around them",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 1,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Masked figures block the path, hands out for a share of your provisions."
+  },
+  {
+    "id": "f1_027",
+    "title": "Ferryman's Demand",
+    "tags": [
+      "river",
+      "human",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the ferryman with supplies",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "time_days": 0,
+          "distance": 2
+        }
+      },
+      {
+        "label": "Ford the river yourself",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "animals_health": -1,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Decline and detour",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A grizzled ferryman poles his raft, naming a price in salt and cloth for passage."
+  },
+  {
+    "id": "f1_028",
+    "title": "Wandering Trapper",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Trade for furs and news",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -2,
+          "food": 4,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Ignore and continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      },
+      {
+        "label": "Ask about the path ahead",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A bearded trapper emerges from the woods, pelts draped over his shoulder, eyes wary."
+  },
+  {
+    "id": "f1_029",
+    "title": "Scam Artist Selling Fake Map",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for the map",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -3,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Decline the offer",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      },
+      {
+        "label": "Investigate his claims",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A smooth-tongued man offers a map for coin, his smile wider than the valley."
+  },
+  {
+    "id": "f1_030",
+    "title": "Helpful Hermit",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Accept his offered aid",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": 2,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Decline and continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 4
+        }
+      },
+      {
+        "label": "Investigate his isolated camp",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "An old hermit offers broth and words of the trail, his eyes holding more than he speaks."
+  },
+  {
+    "id": "f1_031",
+    "title": "Settler Caravan Camp",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Share camp and news",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -2,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass without stopping",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "Smoke rises from wagons drawn in circle, voices carrying on the evening air."
+  },
+  {
+    "id": "f1_032",
+    "title": "Rumor Monger",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Pay for the rumor",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -1,
+          "morale": 1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore the tales",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      },
+      {
+        "label": "Investigate the source",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "A ragged man spins tales of safe passes and haunted ridges for a scrap of bread."
+  },
+  {
+    "id": "f1_033",
+    "title": "Distant Lantern",
+    "tags": [
+      "folklore",
+      "night",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Investigate the swaying light",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Turn away and keep to the trail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A lantern moves between the black trees though no footfall accompanies it."
+  },
+  {
+    "id": "f1_034",
+    "title": "Game Tracks",
+    "tags": [
+      "forest",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Hunt along the tracks",
+        "intent_action": "HUNT",
+        "engine_effect_profile": {
+          "food": 4,
+          "time_days": 1,
+          "ammo": -1
+        }
+      },
+      {
+        "label": "Ignore and continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "Fresh prints cross the path, a promise of meat if the shot holds true."
+  },
+  {
+    "id": "f1_035",
+    "title": "Broken Wheel",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Repair the wheel on the spot",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -2,
+          "tools": -1,
+          "time_days": 2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Detour to easier ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "A spoke snaps with a crack like a rifle, halting the wagon mid-stride."
+  },
+  {
+    "id": "f1_036",
+    "title": "Worn Boots",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Repair the boots with cloth",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": 1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Press on despite the wear",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "boots": -1,
+          "morale": -1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The soles thin with every mile, each step a reminder of the miles yet to come."
+  },
+  {
+    "id": "f1_037",
+    "title": "Eerie Lights",
+    "tags": [
+      "folklore",
+      "forest"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Investigate the lights",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Keep moving past them",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 3,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Cold lights dance among the trunks, neither fire nor star, yet steady as judgment."
+  },
+  {
+    "id": "f1_038",
+    "title": "Spring at the Trailside",
+    "tags": [
+      "survival",
+      "water"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Rest and refill at the spring",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": 5,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Fill quickly and continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": 4,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "Clear water bubbles from the rock, a small mercy in the long valley."
+  },
+  {
+    "id": "f1_039",
+    "title": "Shadowed Follower",
+    "tags": [
+      "folklore",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Investigate the shadow",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3
+        }
+      },
+      {
+        "label": "Hurry onward without pause",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "A shape keeps pace at the edge of sight, gone when looked upon directly."
+  },
+  {
+    "id": "f1_040",
+    "title": "Final Ridge Pass",
+    "tags": [
+      "survival",
+      "mountain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push over the ridge",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 8,
+          "time_days": 1,
+          "morale": 2,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Rest before the climb",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1,
+          "firewood": -1
+        }
+      }
+    ],
+    "narration_seed": "The last rise stands before the open valley, the trail's end almost in sight."
+  },
+  {
+    "id": "f2_001",
+    "title": "Treacherous Bend Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Drive straight into the current",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Unload and ferry supplies by hand",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "morale": -2,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour along the high bank",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The river bends sharp here, pulling at the wheels like a thing with purpose."
+  },
+  {
+    "id": "f2_002",
+    "title": "Submerged Rocks",
+    "tags": [
+      "river",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford over the hidden stones",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -4,
+          "animals_health": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait until the sun reveals them",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 3,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Dark shapes shift beneath the surface, patient as old sins."
+  },
+  {
+    "id": "f2_003",
+    "title": "Collapsed Log Bridge",
+    "tags": [
+      "river",
+      "bridge",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Attempt the remaining span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ford below the ruins",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "rope": -2
+        }
+      },
+      {
+        "label": "Repair with cut timber",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 3,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The logs lie half in the water, as though the river grew tired of waiting."
+  },
+  {
+    "id": "f2_004",
+    "title": "Foggy Crossing Lights",
+    "tags": [
+      "river",
+      "ford",
+      "folklore",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford by the moving lights",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Investigate the glow on the far bank",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour until the mist clears",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Pale orbs drift above the water, silent as judgment."
+  },
+  {
+    "id": "f2_005",
+    "title": "Deep Pool Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford the deep channel",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -4,
+          "wagon_condition": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Build a raft for the load",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -3,
+          "time_days": 2,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The ford drops sudden and black, the bottom unseen."
+  },
+  {
+    "id": "f2_006",
+    "title": "Rope Bridge Remains",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross what hangs",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Ford the shallows beneath",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -1,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Repair the ropes",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -4,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "Frayed lines sway in the breeze, the planks long gone."
+  },
+  {
+    "id": "f2_007",
+    "title": "Frozen Surface Ford",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Test the ice with the team",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Detour to open water",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The river wears a thin white mask, cracking softly under weight."
+  },
+  {
+    "id": "f2_008",
+    "title": "Overflowed Banks",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford the overflow",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "wagon_condition": -3
+        }
+      },
+      {
+        "label": "Wait the waters out",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "water": 5,
+          "food": -2
+        }
+      },
+      {
+        "label": "Detour inland",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "Brown water spills across the trail, claiming the low ground."
+  },
+  {
+    "id": "f2_009",
+    "title": "River Voices at Dusk",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford while the voices call",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore and hurry across",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Wait until silence returns",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Names rise on the evening current, none of them yours."
+  },
+  {
+    "id": "f2_010",
+    "title": "Driftwood Jam",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford past the piled wood",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Clear a path with tools",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -1,
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Branches and trunks choke the ford like a barricade of the drowned."
+  },
+  {
+    "id": "f2_011",
+    "title": "Carved Stone Span",
+    "tags": [
+      "river",
+      "bridge",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Cross the marked stones",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 7,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Ford under the arch",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Study the old carvings",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Faces worn by rain watch from the stones above the water."
+  },
+  {
+    "id": "f2_012",
+    "title": "Moonlit River Ford",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford by moonlight alone",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "oil": -1,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for full light",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Detour to known ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Silver light lies on the water like spilled coin."
+  },
+  {
+    "id": "f2_013",
+    "title": "Sudden Squall",
+    "tags": [
+      "weather",
+      "rain",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push onward in the wind",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "wagon_condition": -1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Halt and lash the canvas",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "rope": -1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sky turns angry without ceremony."
+  },
+  {
+    "id": "f2_014",
+    "title": "Blanketing Mist",
+    "tags": [
+      "weather",
+      "fog",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Creep forward through the veil",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Rest until the air clears",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -1
+        }
+      }
+    ],
+    "narration_seed": "Trees become ghosts ten paces ahead."
+  },
+  {
+    "id": "f2_015",
+    "title": "Heavy Wet Snow",
+    "tags": [
+      "weather",
+      "snow"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Continue despite the fall",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 2,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Camp and kindle fire",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "firewood": -4
+        }
+      }
+    ],
+    "narration_seed": "Snow piles on the canvas like unpaid debts."
+  },
+  {
+    "id": "f2_016",
+    "title": "Keening Wind",
+    "tags": [
+      "weather",
+      "wind"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Lean into the gusts",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 3,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Hunker and mend rigging",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "rope": -1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind sings through the trees in a language best ignored."
+  },
+  {
+    "id": "f2_017",
+    "title": "Endless Drizzle",
+    "tags": [
+      "weather",
+      "rain",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Keep moving in the wet",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "wagon_condition": -2,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Pitch camp and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls without pause, as though the sky has forgotten how to stop."
+  },
+  {
+    "id": "f2_018",
+    "title": "Driving Sleet",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Press through the needles",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Find cover and endure",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Ice pricks the skin like accusations."
+  },
+  {
+    "id": "f2_019",
+    "title": "Relentless Sun",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel under the glare",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -4,
+          "morale": -2,
+          "time_days": 1,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Rest in the wagon shade",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sun stares down without mercy or blink."
+  },
+  {
+    "id": "f2_020",
+    "title": "Thunder Close By",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Move after the flash",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Shelter until quiet returns",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1,
+          "firewood": -1
+        }
+      }
+    ],
+    "narration_seed": "The ground shakes once, then holds its breath."
+  },
+  {
+    "id": "f2_021",
+    "title": "Killing Frost",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push on through the cold",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Build fire and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -3,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "White rime coats every blade of grass by dawn."
+  },
+  {
+    "id": "f2_022",
+    "title": "Rending Gale",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Fight the wind onward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "distance": 2
+        }
+      },
+      {
+        "label": "Secure the wagon and rest",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -1,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The gale tears at the canvas like a thing starved."
+  },
+  {
+    "id": "f2_023",
+    "title": "Bridge Keeper",
+    "tags": [
+      "human",
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the demanded toll",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Refuse and ford downstream",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Question his right",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "An old man sits by the planks, palm open for coin or kind."
+  },
+  {
+    "id": "f2_024",
+    "title": "Pack Peddler",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Trade goods for his wares",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "food": 5,
+          "ammo": 2
+        }
+      },
+      {
+        "label": "Decline his bundle",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "A bent figure offers needles and salt from a sack older than the trail."
+  },
+  {
+    "id": "f2_025",
+    "title": "Roadside Tale-Teller",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Share bread for his news",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -2,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass without word",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Press him on the path ahead",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The stranger speaks of safe fords that may or may not exist."
+  },
+  {
+    "id": "f2_026",
+    "title": "Masked Levies",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Surrender the asked portion",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -2,
+          "cloth": -2
+        }
+      },
+      {
+        "label": "Slip past through woods",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 2,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Figures step from the trees, faces hidden, hands steady."
+  },
+  {
+    "id": "f2_027",
+    "title": "Poleman at the Crossing",
+    "tags": [
+      "river",
+      "human",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for the raft passage",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "time_days": 0,
+          "distance": 1
+        }
+      },
+      {
+        "label": "Ford unaided",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Decline and walk upstream",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "A lean man poles his flatboat, naming his price in meal and powder."
+  },
+  {
+    "id": "f2_028",
+    "title": "Solitary Hunter",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Trade powder for meat",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -3,
+          "food": 6,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Continue without parley",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      },
+      {
+        "label": "Ask of the ridges ahead",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A man with a long rifle nods once, eyes measuring the wagon."
+  },
+  {
+    "id": "f2_029",
+    "title": "Map Seller",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Buy the folded paper",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -3,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Refuse the offer",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      },
+      {
+        "label": "Examine his markings",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The fellow unrolls a scrap, promising an easier way that smells of ink and lies."
+  },
+  {
+    "id": "f2_030",
+    "title": "Lonely Cabin Dweller",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Accept his offered meal",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": 3,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Decline and press forward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ask why he lives apart",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Smoke curls from a single chimney; the door opens before you knock."
+  },
+  {
+    "id": "f2_031",
+    "title": "Wagon Circle",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Join their fire for the night",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -3,
+          "morale": 4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass the camp in silence",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      }
+    ],
+    "narration_seed": "Lanterns glow within the circled wagons, voices low and careful."
+  },
+  {
+    "id": "f2_032",
+    "title": "Whispering Guide",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Pay for his whispered directions",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -1,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore his counsel",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      },
+      {
+        "label": "Press him for proof",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "A thin man offers secrets of the trail for a scrap of cloth."
+  },
+  {
+    "id": "f2_033",
+    "title": "Floating Lantern",
+    "tags": [
+      "folklore",
+      "night",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Follow the drifting light",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Keep to the marked trail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A lantern bobs along the river, no hand to hold it."
+  },
+  {
+    "id": "f2_034",
+    "title": "Deer Trail",
+    "tags": [
+      "forest",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Track the game",
+        "intent_action": "HUNT",
+        "engine_effect_profile": {
+          "food": 5,
+          "time_days": 1,
+          "ammo": -1
+        }
+      },
+      {
+        "label": "Stay on the wagon path",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "Hoof prints cut fresh across the mud, promising supper."
+  },
+  {
+    "id": "f2_035",
+    "title": "Axle Crack",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Mend the split wood",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -3,
+          "tools": -1,
+          "time_days": 2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Detour to level ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The axle groans once, then gives with a sound like breaking bone."
+  },
+  {
+    "id": "f2_036",
+    "title": "Threadbare Soles",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Patch the boots",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Walk as they are",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "boots": -2,
+          "morale": -2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Each step whispers of the miles already walked."
+  },
+  {
+    "id": "f2_037",
+    "title": "Cold Blue Flames",
+    "tags": [
+      "folklore",
+      "forest"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Approach the dancing lights",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Leave them behind",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 4,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Flames burn blue among the roots, giving no heat."
+  },
+  {
+    "id": "f2_038",
+    "title": "Hidden Spring",
+    "tags": [
+      "survival",
+      "water"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Halt and fill every vessel",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": 6,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Draw quickly and move",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": 5,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Water wells from stone, clear as new promises."
+  },
+  {
+    "id": "f2_039",
+    "title": "Silent Shadow",
+    "tags": [
+      "folklore",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Turn to face the shape",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -4
+        }
+      },
+      {
+        "label": "Walk faster without looking",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Something matches your pace just beyond the trees."
+  },
+  {
+    "id": "f2_040",
+    "title": "Last Rise",
+    "tags": [
+      "survival",
+      "mountain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Climb the final slope",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 9,
+          "time_days": 1,
+          "morale": 3,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Rest the team before ascent",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2,
+          "firewood": -2
+        }
+      }
+    ],
+    "narration_seed": "The ridge stands sharp against the sky, the valley falling away behind."
+  },
+  {
+    "id": "f3_001",
+    "title": "Slate Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross over the wet slate",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Detour to gravel bank",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Wait for drier conditions",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 2
+        }
+      }
+    ],
+    "narration_seed": "The rocks gleam slick as lies under the shallow water."
+  },
+  {
+    "id": "f3_002",
+    "title": "Abandoned Ferry",
+    "tags": [
+      "river",
+      "ford",
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Pole the old raft across",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "rope": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ford without the raft",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "animals_health": -3
+        }
+      },
+      {
+        "label": "Leave it and detour",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The ferry sits half-rotted at the landing, pole still in its place."
+  },
+  {
+    "id": "f3_003",
+    "title": "Stone Arch Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Cross the ancient arch",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -1,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Ford the stream below",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Study the weathered faces",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Faces long eroded stare down from the keystone."
+  },
+  {
+    "id": "f3_004",
+    "title": "Rapids at Dusk",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford before full dark",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for morning",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour upstream",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The water speaks louder as light fails."
+  },
+  {
+    "id": "f3_005",
+    "title": "Sinking Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push the wagon through",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -4,
+          "animals_health": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Unload and lighten the load",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "The riverbed gives way beneath the wheels like wet bread."
+  },
+  {
+    "id": "f3_006",
+    "title": "Rope and Plank Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Risk the swaying span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ford the gorge",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -2
+        }
+      },
+      {
+        "label": "Reinforce the ropes",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -2,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "The bridge moves with every step like a living thing."
+  },
+  {
+    "id": "f3_007",
+    "title": "Thin Ice Crossing",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Test the ice carefully",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Detour to open water",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "The ice groans a warning with every yard gained."
+  },
+  {
+    "id": "f3_008",
+    "title": "Flooded Lowlands",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford the shallows",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -2,
+          "wagon_condition": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for the waters to drop",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "water": 5,
+          "food": -2
+        }
+      }
+    ],
+    "narration_seed": "The trail has become part of the river."
+  },
+  {
+    "id": "f3_009",
+    "title": "Singing Ford",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford while the song rises",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore the sound",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Camp until silence",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "A low melody rises from the current as night falls."
+  },
+  {
+    "id": "f3_010",
+    "title": "Tangled Driftwood",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford around the jam",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Clear the obstruction",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "Trees lie piled like the bones of forgotten giants."
+  },
+  {
+    "id": "f3_011",
+    "title": "Mossy Covered Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Enter the dark span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 6,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ford beside it",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -1,
+          "animals_health": -1
+        }
+      }
+    ],
+    "narration_seed": "Moss hangs thick inside the covered bridge, swallowing sound."
+  },
+  {
+    "id": "f3_012",
+    "title": "Night River Glow",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford toward the glow",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "oil": -1,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Detour away from it",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "A faint green light moves beneath the black water."
+  },
+  {
+    "id": "f3_013",
+    "title": "Bitter Cold Wind",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push into the wind",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Hunker and build fire",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -3,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind cuts like a poorly honed blade."
+  },
+  {
+    "id": "f3_014",
+    "title": "Heavy Sleet",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Continue through the ice",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Seek shelter",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      }
+    ],
+    "narration_seed": "The sky throws needles instead of rain."
+  },
+  {
+    "id": "f3_015",
+    "title": "Thick Ground Fog",
+    "tags": [
+      "weather",
+      "fog",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Travel slow through the murk",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Rest until it burns off",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -1
+        }
+      }
+    ],
+    "narration_seed": "The world ends ten feet from the wagon."
+  },
+  {
+    "id": "f3_016",
+    "title": "Sudden Blizzard",
+    "tags": [
+      "weather",
+      "snow"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Press on regardless",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 1,
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Camp immediately",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "firewood": -4
+        }
+      }
+    ],
+    "narration_seed": "The snow comes sideways and angry."
+  },
+  {
+    "id": "f3_017",
+    "title": "Dry Scorching Day",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel in the heat",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -4,
+          "morale": -2,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Rest until evening",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      }
+    ],
+    "narration_seed": "The air shimmers above the trail like bad spirits."
+  },
+  {
+    "id": "f3_018",
+    "title": "Persistent Rain",
+    "tags": [
+      "weather",
+      "rain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Keep moving",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait it out",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls as though it has nowhere better to be."
+  },
+  {
+    "id": "f3_019",
+    "title": "Lightning Storm",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Move after each flash",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Shelter the animals",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Thunder rolls like judgment down the valley."
+  },
+  {
+    "id": "f3_020",
+    "title": "Early Morning Frost",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel despite the cold",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Warm by fire first",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -2,
+          "time_days": 1
+        }
+      }
+    ],
+    "narration_seed": "Frost makes the grass brittle underfoot."
+  },
+  {
+    "id": "f3_021",
+    "title": "Gusting North Wind",
+    "tags": [
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Lean into the gusts",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -3,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Secure and repair",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -1,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind carries the scent of snow yet to fall."
+  },
+  {
+    "id": "f3_022",
+    "title": "Toll Gate Man",
+    "tags": [
+      "human",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay his price",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Refuse and ford",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -1
+        }
+      },
+      {
+        "label": "Question his authority",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A man with a rusty musket stands before a fallen tree across the path."
+  },
+  {
+    "id": "f3_023",
+    "title": "Wandering Tinker",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Trade for repairs",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "parts": 2,
+          "cloth": -3
+        }
+      },
+      {
+        "label": "Decline his services",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "The tinker\u2019s bells announce him long before he appears."
+  },
+  {
+    "id": "f3_024",
+    "title": "Old Preacher",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Hear his warning",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "morale": 2,
+          "food": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass in silence",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "He speaks of lights that walk the ridges when no man should."
+  },
+  {
+    "id": "f3_025",
+    "title": "Desperate Family",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Share supplies",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "morale": 3
+        }
+      },
+      {
+        "label": "Offer no aid",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A woman and two children stand by the trail, eyes hollow."
+  },
+  {
+    "id": "f3_026",
+    "title": "Suspicious Surveyor",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Pay for his map",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ignore his claims",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      },
+      {
+        "label": "Question his markings",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "He offers a map that seems too neatly drawn."
+  },
+  {
+    "id": "f3_027",
+    "title": "Bandit Ambush",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay their toll",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -2,
+          "food": -2
+        }
+      },
+      {
+        "label": "Attempt to slip away",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3
+        }
+      }
+    ],
+    "narration_seed": "Figures step from the brush with steady hands."
+  },
+  {
+    "id": "f3_028",
+    "title": "Itinerant Blacksmith",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Hire him for repairs",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "parts": 3,
+          "tools": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Decline",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The ring of hammer on anvil carries far through the trees."
+  },
+  {
+    "id": "f3_029",
+    "title": "Pilgrim with Tales",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Listen to his stories",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -1,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Continue on",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "He speaks of a lantern that walks without bearer."
+  },
+  {
+    "id": "f3_030",
+    "title": "Claim Staker",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for passage rights",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Force passage",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "A man with stakes and string bars the narrow trail."
+  },
+  {
+    "id": "f3_031",
+    "title": "Lonely Trapper",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Trade powder for pelts",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -3,
+          "food": 4
+        }
+      },
+      {
+        "label": "Ask about the trail",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      }
+    ],
+    "narration_seed": "He smells of smoke and old blood."
+  },
+  {
+    "id": "f3_032",
+    "title": "Floating Lantern",
+    "tags": [
+      "folklore",
+      "night"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Follow the light",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Keep to the path",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "A lantern drifts between the trees with no hand to guide it."
+  },
+  {
+    "id": "f3_033",
+    "title": "Fresh Game Sign",
+    "tags": [
+      "survival",
+      "forest"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Hunt the tracks",
+        "intent_action": "HUNT",
+        "engine_effect_profile": {
+          "food": 5,
+          "ammo": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Stay on trail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "The prints are fresh and deep in the soft earth."
+  },
+  {
+    "id": "f3_034",
+    "title": "Split Axle",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Repair on the spot",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -3,
+          "tools": -1,
+          "time_days": 2
+        }
+      },
+      {
+        "label": "Detour to flat ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "The wood cracks with a sound like breaking trust."
+  },
+  {
+    "id": "f3_035",
+    "title": "Worn Boot Leather",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Patch the boots",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Walk through the pain",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "boots": -2,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "The soles have grown thin as paper."
+  },
+  {
+    "id": "f3_036",
+    "title": "Blue Marsh Lights",
+    "tags": [
+      "folklore",
+      "swamp"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Investigate the lights",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Avoid the marsh",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "Cold flames dance above the bog, beckoning."
+  },
+  {
+    "id": "f3_037",
+    "title": "Clear Mountain Spring",
+    "tags": [
+      "survival",
+      "water"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Stop and fill barrels",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": 6,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Fill and move on",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": 4,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "Water tastes of stone and snowmelt."
+  },
+  {
+    "id": "f3_038",
+    "title": "Shadow at Tree Line",
+    "tags": [
+      "folklore",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Investigate the figure",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Hurry past",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "A shape stands just within the treeline, perfectly still."
+  },
+  {
+    "id": "f3_039",
+    "title": "Abandoned Campsite",
+    "tags": [
+      "survival",
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Search the site",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": 2
+        }
+      },
+      {
+        "label": "Leave it untouched",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "Cold ashes and a single boot remain."
+  },
+  {
+    "id": "f3_040",
+    "title": "Final Pass",
+    "tags": [
+      "survival",
+      "mountain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Climb the pass",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 8,
+          "time_days": 1,
+          "morale": 3,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Rest the team",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2,
+          "firewood": -1
+        }
+      }
+    ],
+    "narration_seed": "The last high ridge stands between you and the open lands beyond."
+  },
+  {
+    "id": "f4_041",
+    "title": "Slippery Clay Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Drive the wagon through the clay",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Unload and carry across",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "morale": -3,
+          "food": -2
+        }
+      },
+      {
+        "label": "Detour to rocky ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "The clay grips the wheels like wet hands that do not wish to let go."
+  },
+  {
+    "id": "f4_042",
+    "title": "Rotted Plank Bridge",
+    "tags": [
+      "river",
+      "bridge",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross the sagging planks",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -4,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Ford the water below",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "rope": -1
+        }
+      },
+      {
+        "label": "Patch the worst gaps",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Each plank groans a separate complaint as the wheels roll over."
+  },
+  {
+    "id": "f4_043",
+    "title": "Mist-Shrouded Ford",
+    "tags": [
+      "river",
+      "ford",
+      "weather",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford through the white mist",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -2,
+          "time_days": 1,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Wait for the sun",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "water": 2
+        }
+      },
+      {
+        "label": "Detour along the ridge",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "Shapes move in the mist that vanish when you stare."
+  },
+  {
+    "id": "f4_044",
+    "title": "Swift Spring Runoff",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford the cold rush",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for the flow to ease",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 5,
+          "food": -2
+        }
+      }
+    ],
+    "narration_seed": "The river runs high and angry with winter\u2019s melt."
+  },
+  {
+    "id": "f4_045",
+    "title": "Broken Stone Span",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Attempt the broken arch",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ford downstream",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "distance": 3
+        }
+      },
+      {
+        "label": "Study the old break",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The stones lie where they fell years ago."
+  },
+  {
+    "id": "f4_046",
+    "title": "Night Voices on the Water",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford while the voices speak",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore and cross quick",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Camp until dawn",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "The river murmurs names you almost remember."
+  },
+  {
+    "id": "f4_047",
+    "title": "Beaver-Flooded Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford past the dam",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Clear a narrow channel",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -1,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "The beavers have claimed the crossing for their own quiet empire."
+  },
+  {
+    "id": "f4_048",
+    "title": "Iron Chain Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross the chained span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 5,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ford the shallows",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2
+        }
+      },
+      {
+        "label": "Test the chains first",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Old chains rattle like bones in the wind."
+  },
+  {
+    "id": "f4_049",
+    "title": "Rising Waters at Dusk",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford before full dark",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait the night",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour higher ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The water climbs the banks as the light dies."
+  },
+  {
+    "id": "f4_050",
+    "title": "Submerged Log Jam",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford around the tangle",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Hack a passage",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "Logs lie crossed like a deliberate snare."
+  },
+  {
+    "id": "f4_051",
+    "title": "Blinding Whiteout",
+    "tags": [
+      "weather",
+      "snow",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Push through the white",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 1,
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Camp and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "firewood": -4,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The world is nothing but wind and white."
+  },
+  {
+    "id": "f4_052",
+    "title": "Relentless Heat Haze",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel in the haze",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -4,
+          "morale": -3,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Rest until evening",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      }
+    ],
+    "narration_seed": "The air itself shimmers with malice."
+  },
+  {
+    "id": "f4_053",
+    "title": "Driving Rain",
+    "tags": [
+      "weather",
+      "rain",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Keep moving",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Hunker under canvas",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 5,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls like it has a personal grudge."
+  },
+  {
+    "id": "f4_054",
+    "title": "Sudden Hail",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Press on",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Find cover",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sky throws stones without warning."
+  },
+  {
+    "id": "f4_055",
+    "title": "Keening North Wind",
+    "tags": [
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Lean into it",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -3,
+          "distance": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Secure the load",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -1,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind carries sounds that are not quite voices."
+  },
+  {
+    "id": "f4_056",
+    "title": "Thick Evening Fog",
+    "tags": [
+      "weather",
+      "fog",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Creep forward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Rest until clear",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -1
+        }
+      }
+    ],
+    "narration_seed": "The trail disappears ten paces ahead."
+  },
+  {
+    "id": "f4_057",
+    "title": "Lightning on the Ridge",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Move after the strike",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Shelter the team",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sky splits open and the ground answers."
+  },
+  {
+    "id": "f4_058",
+    "title": "Heavy Frost at Dawn",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel through the cold",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Warm by fire",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -2,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Every blade of grass is edged in white."
+  },
+  {
+    "id": "f4_059",
+    "title": "Dry Dust Storm",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push through the dust",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -3,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait it out",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The wind carries the valley\u2019s old skin."
+  },
+  {
+    "id": "f4_060",
+    "title": "Persistent Drizzle",
+    "tags": [
+      "weather",
+      "rain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Continue anyway",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "morale": -2,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Pitch camp",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 3,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls without beginning or end."
+  },
+  {
+    "id": "f4_061",
+    "title": "Toll Taker at the Narrows",
+    "tags": [
+      "human",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the toll",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ford instead",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -1
+        }
+      },
+      {
+        "label": "Question his claim",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "A single man with a musket guards the only dry crossing."
+  },
+  {
+    "id": "f4_062",
+    "title": "Wandering Peddler",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Trade for his goods",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -3,
+          "food": 5,
+          "ammo": 2
+        }
+      },
+      {
+        "label": "Decline and move on",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "His wagon appears from nowhere, bells ringing softly."
+  },
+  {
+    "id": "f4_063",
+    "title": "Ragged Preacher",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Listen to his words",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -1,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass without pause",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "He speaks of lanterns that walk alone at night."
+  },
+  {
+    "id": "f4_064",
+    "title": "Desperate Settlers",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Share what you can",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "morale": 3
+        }
+      },
+      {
+        "label": "Offer nothing",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "Eyes hollow, hands outstretched beside the trail."
+  },
+  {
+    "id": "f4_065",
+    "title": "Map Hawker",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Buy the map",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Refuse",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      },
+      {
+        "label": "Examine it closely",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The ink still smells fresh on paper that looks ancient."
+  },
+  {
+    "id": "f4_066",
+    "title": "Masked Road Guard",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay their price",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -2,
+          "cloth": -2
+        }
+      },
+      {
+        "label": "Slip into the woods",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "They step out quiet as smoke."
+  },
+  {
+    "id": "f4_067",
+    "title": "Ferryman\u2019s Raft",
+    "tags": [
+      "river",
+      "human",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for passage",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "distance": 1
+        }
+      },
+      {
+        "label": "Ford yourself",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Walk upstream",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "He poles the raft and names his price in meal and powder."
+  },
+  {
+    "id": "f4_068",
+    "title": "Solitary Trapper",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Trade for meat",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -3,
+          "food": 6,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Ask about the ridges",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Continue without word",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      }
+    ],
+    "narration_seed": "He smells of smoke and old blood."
+  },
+  {
+    "id": "f4_069",
+    "title": "Claim Jumper",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for right of way",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Force past",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Stakes and string bar the narrow path."
+  },
+  {
+    "id": "f4_070",
+    "title": "Wagon Circle Camp",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Join their fire",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -3,
+          "morale": 4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass in silence",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      }
+    ],
+    "narration_seed": "Lanterns glow within the circled wagons."
+  },
+  {
+    "id": "f4_071",
+    "title": "Drifting Lantern",
+    "tags": [
+      "folklore",
+      "night",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Follow the light",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Keep to the trail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The lantern moves between the trees with no hand."
+  },
+  {
+    "id": "f4_072",
+    "title": "Fresh Elk Tracks",
+    "tags": [
+      "forest",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Hunt the sign",
+        "intent_action": "HUNT",
+        "engine_effect_profile": {
+          "food": 6,
+          "ammo": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Stay on path",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "The prints cut deep and fresh."
+  },
+  {
+    "id": "f4_073",
+    "title": "Cracked Axle",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Mend it here",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -3,
+          "tools": -1,
+          "time_days": 2
+        }
+      },
+      {
+        "label": "Detour to level ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The wood gives with a sound like breaking bone."
+  },
+  {
+    "id": "f4_074",
+    "title": "Worn Soles",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Patch the boots",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Walk as they are",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "boots": -2,
+          "morale": -2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Each step whispers of the road already walked."
+  },
+  {
+    "id": "f4_075",
+    "title": "Cold Blue Lights",
+    "tags": [
+      "folklore",
+      "forest"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Approach the flames",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Leave them be",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 4,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "Blue flames burn among the roots and give no heat."
+  },
+  {
+    "id": "f4_076",
+    "title": "Hidden Spring",
+    "tags": [
+      "survival",
+      "water"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Fill every vessel",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": 6,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Fill quick and go",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": 5,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "Water tastes of stone and clean snow."
+  },
+  {
+    "id": "f4_077",
+    "title": "Silent Follower",
+    "tags": [
+      "folklore",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Turn and face it",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -4
+        }
+      },
+      {
+        "label": "Walk faster",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "Something keeps pace just beyond the trees."
+  },
+  {
+    "id": "f4_078",
+    "title": "Abandoned Fire Pit",
+    "tags": [
+      "survival",
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Search the ashes",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": 2
+        }
+      },
+      {
+        "label": "Leave untouched",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "Cold ashes and one lone boot."
+  },
+  {
+    "id": "f4_079",
+    "title": "Last High Pass",
+    "tags": [
+      "survival",
+      "mountain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Climb the ridge",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 9,
+          "time_days": 1,
+          "morale": 3,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Rest the animals",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2,
+          "firewood": -2
+        }
+      }
+    ],
+    "narration_seed": "The final rise stands sharp against the sky."
+  },
+  {
+    "id": "f4_080",
+    "title": "Whispering Toll Man",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Pay his whispered price",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -1,
+          "morale": 1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Ignore and push past",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Ask his true name",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      }
+    ],
+    "narration_seed": "He stands in the road and speaks so low the wind almost steals the words."
+  },
+  {
+    "id": "f5_081",
+    "title": "Gravel Bar Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Drive across the gravel",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Unload and wade",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "morale": -2,
+          "food": -1
+        }
+      },
+      {
+        "label": "Detour to firmer bank",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The gravel shifts under the wheels like loose promises."
+  },
+  {
+    "id": "f5_082",
+    "title": "Half-Sunk Bridge",
+    "tags": [
+      "river",
+      "bridge",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Cross the remaining span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ford beside the ruins",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "rope": -2
+        }
+      },
+      {
+        "label": "Patch the gaps",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Water laps at the broken timbers as though tasting them."
+  },
+  {
+    "id": "f5_083",
+    "title": "Will-o\u2019-the-Wisp Ford",
+    "tags": [
+      "river",
+      "ford",
+      "folklore",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford toward the lights",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Wait for the lights to fade",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "water": 2
+        }
+      },
+      {
+        "label": "Detour around the marshy edge",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 3,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "Small flames dance above the water, leading nowhere."
+  },
+  {
+    "id": "f5_084",
+    "title": "Snowmelt Surge",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford the rushing water",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -3,
+          "wagon_condition": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for the surge to pass",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 6,
+          "food": -2
+        }
+      }
+    ],
+    "narration_seed": "The river runs thick with winter\u2019s last anger."
+  },
+  {
+    "id": "f5_085",
+    "title": "Moss-Hidden Arch",
+    "tags": [
+      "river",
+      "bridge",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Cross the mossy stones",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 6,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Ford under the arch",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Read the faint marks",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Moss has written its own slow story across the stones."
+  },
+  {
+    "id": "f5_086",
+    "title": "Whispers from the Depths",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Ford while listening",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Cross without pause",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": 1
+        }
+      },
+      {
+        "label": "Camp until quiet",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "The current carries fragments of old conversations."
+  },
+  {
+    "id": "f5_087",
+    "title": "Otter-Dammed Ford",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford past the dam",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Break a narrow gap",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -1,
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "Small hands have built a stubborn wall across the trail."
+  },
+  {
+    "id": "f5_088",
+    "title": "Rusted Iron Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Cross the iron span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 5,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Ford the shallows",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -2
+        }
+      },
+      {
+        "label": "Test the rust first",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The iron groans like an old man remembering better days."
+  },
+  {
+    "id": "f5_089",
+    "title": "Evening Flood Rise",
+    "tags": [
+      "river",
+      "ford",
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Ford before dark",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait until morning",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 4,
+          "food": -1
+        }
+      },
+      {
+        "label": "Climb to higher ground",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The banks drink deep as the light fails."
+  },
+  {
+    "id": "f5_090",
+    "title": "Tangled Root Jam",
+    "tags": [
+      "river",
+      "ford",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Ford around the roots",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Clear the obstruction",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "tools": -2,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "Roots twist through the water like fingers reaching up."
+  },
+  {
+    "id": "f5_091",
+    "title": "Narrow Rope Bridge",
+    "tags": [
+      "river",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Risk the rope span",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -2,
+          "distance": 6
+        }
+      },
+      {
+        "label": "Ford below",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "animals_health": -2
+        }
+      },
+      {
+        "label": "Reinforce the lines",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -3,
+          "time_days": 2
+        }
+      }
+    ],
+    "narration_seed": "The ropes sway like a hanged man\u2019s last breath."
+  },
+  {
+    "id": "f5_092",
+    "title": "Moonlit Silver Ford",
+    "tags": [
+      "river",
+      "ford",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Ford by moonlight",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "oil": -1,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait for dawn",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Detour to known stones",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "The water shines like spilled mercury under the moon."
+  },
+  {
+    "id": "f5_093",
+    "title": "Biting Sleet Storm",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push through the ice",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Find shelter",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sky throws frozen needles without mercy."
+  },
+  {
+    "id": "f5_094",
+    "title": "Thick Dawn Mist",
+    "tags": [
+      "weather",
+      "fog",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Creep forward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 2,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Rest until it lifts",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "food": -1
+        }
+      }
+    ],
+    "narration_seed": "The world ends at the edge of the wagon tongue."
+  },
+  {
+    "id": "f5_095",
+    "title": "Scorching Dry Wind",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel in the blast",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -4,
+          "morale": -3,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Wait for evening",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      }
+    ],
+    "narration_seed": "The wind steals moisture from bone and barrel alike."
+  },
+  {
+    "id": "f5_096",
+    "title": "Steady All-Day Rain",
+    "tags": [
+      "weather",
+      "rain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Keep moving",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -2,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pitch camp",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 5,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls as though it has forgotten any other purpose."
+  },
+  {
+    "id": "f5_097",
+    "title": "Sudden Thunderclap",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Move after the roar",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Shelter the team",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The sky cracks once and waits for an answer."
+  },
+  {
+    "id": "f5_098",
+    "title": "Killing Frost",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Travel through the white",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "time_days": 1,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Kindle a fire",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "firewood": -3,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Every leaf and blade stands rigid in the cold."
+  },
+  {
+    "id": "f5_099",
+    "title": "Howling Gale",
+    "tags": [
+      "weather"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Lean into the wind",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -3,
+          "distance": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Secure and repair",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "rope": -1,
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The gale sings through the rigging like lost souls."
+  },
+  {
+    "id": "f5_100",
+    "title": "Heavy Wet Snow",
+    "tags": [
+      "weather",
+      "snow"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Press onward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 2,
+          "morale": -3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Camp and wait",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "firewood": -4
+        }
+      }
+    ],
+    "narration_seed": "Snow piles on the canvas like unpaid wages."
+  },
+  {
+    "id": "f5_101",
+    "title": "Blinding Dust Devil",
+    "tags": [
+      "weather",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Push through the swirl",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": -3,
+          "morale": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Wait it out",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The dust dances like it has somewhere better to be."
+  },
+  {
+    "id": "f5_102",
+    "title": "Persistent Drizzle",
+    "tags": [
+      "weather",
+      "rain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Continue",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "wagon_condition": -1,
+          "morale": -2,
+          "distance": 4
+        }
+      },
+      {
+        "label": "Hunker down",
+        "intent_action": "WAIT",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "water": 3,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "Rain falls without beginning and without end."
+  },
+  {
+    "id": "f5_103",
+    "title": "Silent Toll Collector",
+    "tags": [
+      "human",
+      "bridge"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay the toll",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -3,
+          "time_days": 1,
+          "distance": 5
+        }
+      },
+      {
+        "label": "Ford instead",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "animals_health": -2,
+          "wagon_condition": -1
+        }
+      },
+      {
+        "label": "Question his right",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "He stands with open palm and closed mouth."
+  },
+  {
+    "id": "f5_104",
+    "title": "Wandering Cobbler",
+    "tags": [
+      "human",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Trade for boot repairs",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "boots": 3
+        }
+      },
+      {
+        "label": "Decline",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "His pack clinks with nails and thread older than the trail."
+  },
+  {
+    "id": "f5_105",
+    "title": "Fevered Pilgrim",
+    "tags": [
+      "human",
+      "folklore"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Share water and listen",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": -2,
+          "morale": 3,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass quietly",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "He speaks of lanterns that walk without bearers."
+  },
+  {
+    "id": "f5_106",
+    "title": "Hungry Family",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Give what you can spare",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "morale": 3
+        }
+      },
+      {
+        "label": "Offer nothing",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "Small hands reach out beside the rutted path."
+  },
+  {
+    "id": "f5_107",
+    "title": "Ink-Fresh Map Seller",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Buy the map",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": -1
+        }
+      },
+      {
+        "label": "Refuse",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      },
+      {
+        "label": "Study the markings",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 1
+        }
+      }
+    ],
+    "narration_seed": "The paper still smells of fresh ink."
+  },
+  {
+    "id": "f5_108",
+    "title": "Masked Waylayers",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay their demand",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -2,
+          "food": -2
+        }
+      },
+      {
+        "label": "Slip into the trees",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -3,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "They appear without sound or warning."
+  },
+  {
+    "id": "f5_109",
+    "title": "Raft Poler",
+    "tags": [
+      "river",
+      "human",
+      "ford"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for the raft",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "food": -4,
+          "distance": 1
+        }
+      },
+      {
+        "label": "Ford unaided",
+        "intent_action": "FORD",
+        "engine_effect_profile": {
+          "wagon_condition": -3,
+          "morale": -2
+        }
+      },
+      {
+        "label": "Walk upstream",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "He poles slowly and names his price in salt and lead."
+  },
+  {
+    "id": "f5_110",
+    "title": "Rifleman Trapper",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Trade powder for meat",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "ammo": -3,
+          "food": 6,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Ask about the ridges",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2
+        }
+      },
+      {
+        "label": "Pass without word",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      }
+    ],
+    "narration_seed": "His eyes measure the wagon before he speaks."
+  },
+  {
+    "id": "f5_111",
+    "title": "Staked Claim Man",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Pay for passage",
+        "intent_action": "PAY",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Force through",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "morale": -2,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "String and stakes bar the narrow way."
+  },
+  {
+    "id": "f5_112",
+    "title": "Campfire Circle",
+    "tags": [
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Join for the night",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "food": -3,
+          "morale": 4,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Pass in silence",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 7
+        }
+      }
+    ],
+    "narration_seed": "Voices carry low from the circled wagons."
+  },
+  {
+    "id": "f5_113",
+    "title": "Fresh Bear Sign",
+    "tags": [
+      "forest",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Hunt the tracks",
+        "intent_action": "HUNT",
+        "engine_effect_profile": {
+          "food": 7,
+          "ammo": -2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Stay on the trail",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "The prints are wide and deep in the soft earth."
+  },
+  {
+    "id": "f5_114",
+    "title": "Snapped Tongue",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Repair the break",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "parts": -3,
+          "tools": -1,
+          "time_days": 2
+        }
+      },
+      {
+        "label": "Detour gently",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "distance": 4
+        }
+      }
+    ],
+    "narration_seed": "The wagon tongue cracks like a dry bone."
+  },
+  {
+    "id": "f5_115",
+    "title": "Frayed Harness Leather",
+    "tags": [
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Mend the straps",
+        "intent_action": "REPAIR",
+        "engine_effect_profile": {
+          "cloth": -2,
+          "morale": 1,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Push onward",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "animals_health": -1,
+          "morale": -1,
+          "distance": 3
+        }
+      }
+    ],
+    "narration_seed": "The leather whispers with every step."
+  },
+  {
+    "id": "f5_116",
+    "title": "Green Marsh Flames",
+    "tags": [
+      "folklore",
+      "swamp"
+    ],
+    "preconditions": [],
+    "weirdness_band": 3,
+    "choices": [
+      {
+        "label": "Approach the lights",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "morale": -3,
+          "time_days": 1,
+          "oil": -1
+        }
+      },
+      {
+        "label": "Avoid the bog",
+        "intent_action": "DETOUR",
+        "engine_effect_profile": {
+          "time_days": 2,
+          "distance": 5
+        }
+      }
+    ],
+    "narration_seed": "Cold green flames hover above the water."
+  },
+  {
+    "id": "f5_117",
+    "title": "Rock Spring",
+    "tags": [
+      "survival",
+      "water"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Fill every barrel",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "water": 6,
+          "morale": 2,
+          "time_days": 1
+        }
+      },
+      {
+        "label": "Draw and go",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "water": 4,
+          "distance": 2
+        }
+      }
+    ],
+    "narration_seed": "Water tastes of deep stone and clean snow."
+  },
+  {
+    "id": "f5_118",
+    "title": "Still Shadow",
+    "tags": [
+      "folklore",
+      "survival"
+    ],
+    "preconditions": [],
+    "weirdness_band": 2,
+    "choices": [
+      {
+        "label": "Turn to face it",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -4
+        }
+      },
+      {
+        "label": "Walk faster",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6,
+          "morale": -2
+        }
+      }
+    ],
+    "narration_seed": "A shape waits just inside the treeline."
+  },
+  {
+    "id": "f5_119",
+    "title": "Cold Ashes",
+    "tags": [
+      "survival",
+      "human"
+    ],
+    "preconditions": [],
+    "weirdness_band": 1,
+    "choices": [
+      {
+        "label": "Search the site",
+        "intent_action": "INVESTIGATE",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": -1,
+          "food": 2
+        }
+      },
+      {
+        "label": "Leave it be",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 6
+        }
+      }
+    ],
+    "narration_seed": "One boot remains beside the dead fire."
+  },
+  {
+    "id": "f5_120",
+    "title": "Final Ridge",
+    "tags": [
+      "survival",
+      "mountain"
+    ],
+    "preconditions": [],
+    "weirdness_band": 0,
+    "choices": [
+      {
+        "label": "Climb the last rise",
+        "intent_action": "TRAVEL",
+        "engine_effect_profile": {
+          "distance": 9,
+          "time_days": 1,
+          "morale": 3,
+          "animals_health": -1
+        }
+      },
+      {
+        "label": "Rest the team",
+        "intent_action": "REST",
+        "engine_effect_profile": {
+          "time_days": 1,
+          "morale": 2,
+          "firewood": -2
+        }
+      }
+    ],
+    "narration_seed": "The ridge cuts sharp against the open sky beyond."
+  }
+]

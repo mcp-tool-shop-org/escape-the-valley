@@ -69,3 +69,72 @@ Screen {
   padding: 1 2;
   overflow-y: auto;
 }
+
+#ledger_menu {
+  display: none;
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+#nudge {
+  display: none;
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #605a30;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+#enable_flow {
+  display: none;
+  width: 50%;
+  height: auto;
+  max-height: 50%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+#wallet_info {
+  display: none;
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+#learn_more {
+  display: none;
+  width: 60%;
+  height: 70%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+#parcel_notice {
+  display: none;
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #604030;
+  background: #0f1620;
+  overflow-y: auto;
+}

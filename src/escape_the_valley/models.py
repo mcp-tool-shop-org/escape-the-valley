@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from .backpack_models import BackpackState
+
 
 class Pace(StrEnum):
     SLOW = "slow"
@@ -72,12 +74,45 @@ class TwistModifier(StrEnum):
     GOOD_HUNTING = "good_hunting"
 
 
+class Doctrine(StrEnum):
+    TRAVEL_LIGHT = "travel_light"
+    CAREFUL_HANDS = "careful_hands"
+    NO_DEBTS = "no_debts"
+
+
+class Taboo(StrEnum):
+    NEVER_NIGHT = "never_night"
+    NEVER_RIVER = "never_river"
+    LEAVE_NOTHING = "leave_nothing"
+
+
+# Doctrine mechanical modifiers — keyed by Doctrine.value
+DOCTRINE_MODIFIERS: dict[str, dict[str, float]] = {
+    "travel_light": {
+        "consumption_mult": 0.80,
+        "breakdown_bonus": 0.05,
+        "hunt_bonus": 0.10,
+    },
+    "careful_hands": {
+        "repair_mult": 1.5,
+        "distance_penalty": 1,
+        "maintenance_bonus": 1,
+    },
+    "no_debts": {
+        "morale_floor": 20,
+        "capacity_mult": 0.85,
+        "trade_bonus": 0.15,
+    },
+}
+
+
 @dataclass
 class PartyMember:
     name: str
     health: int = 100  # 0-100
     condition: Condition = Condition.HEALTHY
     traits: list[Trait] = field(default_factory=list)
+    death_cause: str = ""  # canonical cause when health <= 0
 
     def is_alive(self) -> bool:
         return self.health > 0
@@ -113,25 +148,65 @@ class WagonState:
 
 @dataclass
 class SuppliesState:
-    food: int = 50
-    water: int = 50
-    meds: int = 5
-    ammo: int = 20
-    parts: int = 3
+    """Dict-backed supply storage with backward-compat properties."""
+
+    items: dict[str, int] = field(default_factory=dict)
+
+    def get(self, key: str) -> int:
+        return self.items.get(key, 0)
+
+    def set(self, key: str, val: int) -> None:
+        self.items[key] = max(0, val)
 
     def apply_delta(self, delta: dict[str, int]) -> None:
         for key, val in delta.items():
-            current = getattr(self, key, 0)
-            setattr(self, key, max(0, current + val))
+            current = self.items.get(key, 0)
+            self.items[key] = max(0, current + val)
 
     def to_dict(self) -> dict[str, int]:
-        return {
-            "food": self.food,
-            "water": self.water,
-            "meds": self.meds,
-            "ammo": self.ammo,
-            "parts": self.parts,
-        }
+        return dict(self.items)
+
+    # ── Backward-compat properties for the original 5 resources ──
+
+    @property
+    def food(self) -> int:
+        return self.items.get("food", 0)
+
+    @food.setter
+    def food(self, val: int) -> None:
+        self.items["food"] = max(0, val)
+
+    @property
+    def water(self) -> int:
+        return self.items.get("water", 0)
+
+    @water.setter
+    def water(self, val: int) -> None:
+        self.items["water"] = max(0, val)
+
+    @property
+    def meds(self) -> int:
+        return self.items.get("meds", 0)
+
+    @meds.setter
+    def meds(self, val: int) -> None:
+        self.items["meds"] = max(0, val)
+
+    @property
+    def ammo(self) -> int:
+        return self.items.get("ammo", 0)
+
+    @ammo.setter
+    def ammo(self, val: int) -> None:
+        self.items["ammo"] = max(0, val)
+
+    @property
+    def parts(self) -> int:
+        return self.items.get("parts", 0)
+
+    @parts.setter
+    def parts(self, val: int) -> None:
+        self.items["parts"] = max(0, val)
 
 
 @dataclass
@@ -145,6 +220,7 @@ class MapNode:
     is_town: bool = False
     connections: list[str] = field(default_factory=list)  # node_ids
     distance_to: dict[str, int] = field(default_factory=dict)  # node_id -> distance
+    cache_supplies: dict[str, int] | None = None  # one-time supply pickup
 
 
 @dataclass
@@ -158,6 +234,23 @@ class JournalEntry:
     outcome: str
     deltas: dict[str, int] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
+
+
+@dataclass
+class MemoryCard:
+    """Structured memory for GM narrative continuity."""
+
+    id: str
+    kind: str  # npc|omen|place|rumor|event_callback|wound|crisis|landmark|promise
+    title: str
+    text: str
+    tags: list[str] = field(default_factory=list)
+    day_created: int = 1
+    day_last_seen: int = 1
+    entities: list[str] = field(default_factory=list)
+    salience: float = 0.5  # 0-1 (engine=0.7, gm=0.5)
+    cooldown_until: int = 0
+    source: str = "engine"  # "engine" | "gm"
 
 
 @dataclass
@@ -188,6 +281,31 @@ class RunState:
 
     # RNG state tracking for determinism
     rng_counter: int = 0
+
+    # Variety guard — last N event tag families (for cooldown)
+    recent_event_tags: list[str] = field(default_factory=list)
+
+    # GM memory system
+    memory_cards: list[MemoryCard] = field(default_factory=list)
+    resource_crises_seen: list[str] = field(default_factory=list)
+
+    # Run identity — doctrine + taboo
+    doctrine: str = ""
+    taboo: str = ""
+
+    # Escape valve state
+    rationing_steps: int = 0
+    escape_valve_cooldown: int = 0
+
+    # Maintenance window (Phase 4 Balance)
+    last_action: str = ""
+    maintained_turns_remaining: int = 0
+
+    # Ledger Backpack (Phase 2 — optional XRPL inventory)
+    backpack: BackpackState = field(default_factory=BackpackState)
+
+    # Warning callout presentation level
+    callout_level: str = "verbose"  # "verbose" or "minimal"
 
     @staticmethod
     def generate_run_id(seed: int) -> str:

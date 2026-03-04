@@ -25,3 +25,7 @@ coverage.xml
 
 # Ruff
 .ruff_cache/
+site/.astro/
+node_modules/
+site/dist/
+.polyglot-cache.json

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from .models import (
+    DOCTRINE_MODIFIERS,
     Biome,
     Condition,
+    Doctrine,
     GMProfile,
     MapNode,
     PartyMember,
@@ -12,12 +14,14 @@ from .models import (
     RunState,
     SeededRNG,
     SuppliesState,
+    Taboo,
     TimeOfDay,
     Trait,
     TwistModifier,
     WagonState,
     Weather,
 )
+from .resources import DEFAULT_SUPPLIES
 
 # Names for party members
 FIRST_NAMES = [
@@ -110,7 +114,46 @@ def generate_map(rng: SeededRNG, num_nodes: int = 25) -> list[MapNode]:
             nodes[i].connections.append(nodes[i + 2].node_id)
             nodes[i].distance_to[nodes[i + 2].node_id] = branch_dist
 
+    _place_caches(rng, nodes)
     return nodes
+
+
+def _place_caches(
+    rng: SeededRNG, nodes: list[MapNode], count: int = 2,
+) -> None:
+    """Place supply caches on non-town nodes, biased toward high-hazard.
+
+    Caches reward risk — they appear on dangerous nodes, not free lunch.
+    """
+    eligible = [n for n in nodes[1:-1] if not n.is_town]
+    if len(eligible) < count:
+        count = len(eligible)
+    if count <= 0:
+        return
+
+    # Weight by hazard — higher hazard = more likely to get a cache
+    weights = [float(n.hazard + 1) for n in eligible]
+    cache_nodes: list[MapNode] = []
+    for _ in range(count):
+        if not eligible:
+            break
+        pick = rng.weighted_choice(eligible, weights)
+        idx = eligible.index(pick)
+        cache_nodes.append(pick)
+        eligible.pop(idx)
+        weights.pop(idx)
+
+    cache_templates = [
+        {"food": 6, "water": 5},
+        {"parts": 1, "cloth": 2},
+        {"food": 4, "meds": 1, "ammo": 3},
+        {"water": 6, "salt": 2},
+        {"food": 5, "parts": 1, "rope": 1},
+    ]
+
+    for node in cache_nodes:
+        template = rng.choice(cache_templates)
+        node.cache_supplies = dict(template)
 
 
 def generate_weather(rng: SeededRNG, biome: Biome, day: int) -> Weather:
@@ -194,6 +237,10 @@ def create_new_run(
     party = generate_party(rng)
     twists = pick_twists(rng)
 
+    # Assign doctrine + taboo from seed
+    doctrine = rng.choice(list(Doctrine))
+    taboo = rng.choice(list(Taboo))
+
     # First connection distance
     first_dist = nodes[0].distance_to.get(nodes[1].node_id, 15) if len(nodes) > 1 else 0
 
@@ -202,6 +249,12 @@ def create_new_run(
     for node in nodes[:-1]:
         if node.connections:
             total += node.distance_to.get(node.connections[0], 15)
+
+    # Apply doctrine modifiers at creation time
+    wagon = WagonState()
+    mods = DOCTRINE_MODIFIERS.get(doctrine.value, {})
+    if "capacity_mult" in mods:
+        wagon.capacity = int(wagon.capacity * mods["capacity_mult"])
 
     run = RunState(
         run_id=RunState.generate_run_id(seed),
@@ -218,9 +271,11 @@ def create_new_run(
         gm_profile=gm_profile,
         twists=twists,
         party=party,
-        wagon=WagonState(),
-        supplies=SuppliesState(),
+        wagon=wagon,
+        supplies=SuppliesState(items=dict(DEFAULT_SUPPLIES)),
         map_nodes=nodes,
         rng_counter=rng.counter,
+        doctrine=doctrine.value,
+        taboo=taboo.value,
     )
     return run

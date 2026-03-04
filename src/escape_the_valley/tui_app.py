@@ -50,9 +50,7 @@ class FrameState:
     wagon: str = ""
     party_summary: str = ""
 
-    supplies: dict[str, int] = field(default_factory=lambda: {
-        "FOOD": 0, "WATR": 0, "MEDS": 0, "AMMO": 0, "PART": 0,
-    })
+    supplies: dict[str, int] = field(default_factory=dict)
 
     # Center column
     route_ascii: str = ""
@@ -70,6 +68,9 @@ class FrameState:
     # Journal
     journal: list[str] = field(default_factory=list)
 
+    # Ledger Backpack
+    backpack_status: str = ""
+
 
 # ── Widgets ─────────────────────────────────────────────────────────
 
@@ -85,13 +86,33 @@ class StatusPanel(Static):
             s.party_summary,
             s.wagon,
         ]
+        if s.backpack_status:
+            lines.append("")
+            lines.append(s.backpack_status)
         self.update("\n".join(lines))
 
 
 class SuppliesPanel(Static):
+    # Display keys that belong to the GEAR category (for visual grouping)
+    _GEAR_KEYS = {"PART", "ROPE", "TOOL", "BOOT"}
+
     def update_from(self, s: FrameState) -> None:
-        items = [f"{k}: {v}" for k, v in s.supplies.items()]
-        self.update("[b]Supplies[/b]\n" + "\n".join(items))
+        consumables = []
+        gear = []
+        for k, v in s.supplies.items():
+            line = f"{k}: {v}"
+            if k in self._GEAR_KEYS:
+                gear.append(line)
+            else:
+                consumables.append(line)
+
+        body = "[b]Supplies[/b]\n"
+        if consumables:
+            body += "\n".join(consumables)
+        if gear:
+            body += "\n\u2500\u2500\u2500\n"
+            body += "\n".join(gear)
+        self.update(body)
 
 
 class MapPanel(Static):
@@ -154,6 +175,8 @@ Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
 \u2022 1\u20134 Choose option (A\u2013D)
 \u2022 J Toggle journal drawer
+\u2022 L Toggle ledger menu
+\u2022 V Toggle voice narration
 \u2022 q Quit
 
 The engine decides outcomes. The GM narrates.
@@ -175,6 +198,8 @@ class LedgerTrailApp(App):
         Binding("q", "quit", "Quit"),
         Binding("question_mark", "toggle_help", "Help"),
         Binding("shift+j", "toggle_journal", "Journal"),
+        Binding("l", "toggle_ledger", "Ledger"),
+        Binding("v", "toggle_voice", "Voice"),
         Binding("t", "intent('TRAVEL')", "Travel"),
         Binding("r", "intent('REST')", "Rest"),
         Binding("h", "intent('HUNT')", "Hunt"),
@@ -187,17 +212,26 @@ class LedgerTrailApp(App):
 
     show_help: reactive[bool] = reactive(False)
     show_journal: reactive[bool] = reactive(False)
+    show_ledger: reactive[bool] = reactive(False)
+    show_nudge: reactive[bool] = reactive(False)
+    show_enable_flow: reactive[bool] = reactive(False)
+    show_wallet_info: reactive[bool] = reactive(False)
+    show_learn_more: reactive[bool] = reactive(False)
 
     def __init__(
         self,
         engine=None,
         *,
         demo: bool = False,
+        voice_config=None,
     ) -> None:
         super().__init__()
         self._engine = engine
         self._demo = demo
         self._frame = FrameState()
+        self._voice_config = voice_config
+        self._voice_bridge = None
+        self._voice_enabled = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -222,11 +256,33 @@ class LedgerTrailApp(App):
             yield HelpOverlay(id="help")
             yield JournalDrawer(id="journal")
 
+            from .backpack_ui import (
+                EnableFlowOverlay,
+                LearnMoreOverlay,
+                LedgerMenuOverlay,
+                NudgeOverlay,
+                WalletInfoOverlay,
+            )
+
+            yield LedgerMenuOverlay(id="ledger_menu")
+            yield NudgeOverlay(id="nudge")
+            yield EnableFlowOverlay(id="enable_flow")
+            yield WalletInfoOverlay(id="wallet_info")
+            yield LearnMoreOverlay(id="learn_more")
+
         yield Footer()
 
     def on_mount(self) -> None:
         if self._engine:
             self._sync_frame()
+
+        # Initialize voice bridge if configured
+        if self._voice_config and self._voice_config.enabled:
+            from .voice import VoiceBridge
+
+            self._voice_bridge = VoiceBridge(self._voice_config)
+            self._voice_enabled = self._voice_bridge.start()
+
         self._render_all()
 
     def _sync_frame(self) -> None:
@@ -247,6 +303,51 @@ class LedgerTrailApp(App):
 
         self.query_one("#help").display = self.show_help
         self.query_one("#journal").display = self.show_journal
+        self.query_one("#ledger_menu").display = self.show_ledger
+        self.query_one("#nudge").display = self.show_nudge
+        self.query_one("#enable_flow").display = self.show_enable_flow
+        self.query_one("#wallet_info").display = self.show_wallet_info
+        self.query_one("#learn_more").display = self.show_learn_more
+
+    def _after_step(self) -> None:
+        """Sync frame, render, optionally narrate, and check nudge."""
+        self._sync_frame()
+        self._render_all()
+
+        # Nudge: show once at first town if backpack not enabled/dismissed
+        if self._engine:
+            bp = self._engine.state.backpack
+            if (
+                not bp.enabled
+                and not bp.nudge_dismissed
+                and not bp.nudge_shown
+            ):
+                # Check if we just arrived at a town
+                cur = None
+                for n in self._engine.state.map_nodes:
+                    if n.node_id == self._engine.state.location_id:
+                        cur = n
+                        break
+                if cur and cur.is_town:
+                    bp.nudge_shown = True
+                    self.show_nudge = True
+                    self._render_all()
+
+        if self._voice_enabled and self._voice_bridge:
+            from .narration import extract_narration
+
+            events = extract_narration(
+                self._engine.msgs,
+                self._engine.phase.value,
+                warnings=self._frame.warnings,
+            )
+            for event in events:
+                self._voice_bridge.enqueue(event)
+
+    def on_unmount(self) -> None:
+        """Clean shutdown of voice worker."""
+        if self._voice_bridge:
+            self._voice_bridge.stop()
 
     def action_toggle_help(self) -> None:
         self.show_help = not self.show_help
@@ -255,6 +356,25 @@ class LedgerTrailApp(App):
     def action_toggle_journal(self) -> None:
         self.show_journal = not self.show_journal
         self._render_all()
+
+    def action_toggle_voice(self) -> None:
+        """Toggle voice narration on/off."""
+        if self._voice_bridge is None:
+            from .voice import VoiceBridge, VoiceConfig
+
+            config = self._voice_config or VoiceConfig(enabled=True)
+            config.enabled = True
+            self._voice_bridge = VoiceBridge(config)
+            self._voice_enabled = self._voice_bridge.start()
+            if not self._voice_enabled:
+                self.notify("Voice not available")
+                return
+            self.notify("Voice ON")
+            return
+
+        new_state = self._voice_bridge.toggle()
+        self._voice_enabled = new_state
+        self.notify("Voice ON" if new_state else "Voice OFF")
 
     def action_choose(self, choice_id: str) -> None:
         """Send CHOOSE intent to the engine."""
@@ -268,8 +388,7 @@ class LedgerTrailApp(App):
             choice_id=choice_id,
         )
         self._engine.step(intent)
-        self._sync_frame()
-        self._render_all()
+        self._after_step()
 
     def action_intent(self, intent_str: str) -> None:
         """Map hotkeys t/r/h/p to engine intents."""
@@ -282,7 +401,6 @@ class LedgerTrailApp(App):
         if self._engine.phase in (
             GamePhase.EVENT, GamePhase.ROUTE,
         ):
-            # Map t/r/h/p to A/B/C/D when in choice mode
             mapping = {
                 "TRAVEL": "A",
                 "REST": "B",
@@ -307,8 +425,189 @@ class LedgerTrailApp(App):
 
         intent = PlayerIntent(action=action)
         self._engine.step(intent)
+        self._after_step()
+
+    # ── Ledger Backpack actions ────────────────────────────────────
+
+    def action_toggle_ledger(self) -> None:
+        """Toggle the ledger menu overlay."""
+        self._close_all_overlays()
+        self.show_ledger = not self.show_ledger
+        if self.show_ledger and self._engine:
+            from .backpack_ui import LedgerMenuOverlay
+
+            self.query_one(
+                "#ledger_menu", LedgerMenuOverlay,
+            ).update_from_state(self._engine.state.backpack.enabled)
+        self._render_all()
+
+    def action_ledger_enable(self) -> None:
+        """Start the backpack enable flow."""
+        if not self._engine:
+            return
+
+        self._close_all_overlays()
+        self.show_enable_flow = True
+        self._render_all()
+
+        from .backpack_ui import EnableFlowOverlay
+
+        overlay = self.query_one("#enable_flow", EnableFlowOverlay)
+        overlay.show_progress()
+
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.enable(self._engine.state)
+        mgr.close()
+
+        if result.success:
+            overlay.show_success(result.wallet_address)
+            self.notify("Ledger Backpack enabled")
+        else:
+            overlay.show_failure(result.message)
+
         self._sync_frame()
         self._render_all()
+
+    def action_ledger_disable(self) -> None:
+        """Disable the backpack."""
+        if not self._engine:
+            return
+
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        mgr.disable(self._engine.state)
+
+        self._close_all_overlays()
+        self._sync_frame()
+        self._render_all()
+        self.notify("Ledger Backpack disabled")
+
+    def action_ledger_settle(self) -> None:
+        """Manual settlement."""
+        if not self._engine:
+            return
+
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        cur = None
+        for n in self._engine.state.map_nodes:
+            if n.node_id == self._engine.state.location_id:
+                cur = n
+                break
+        location = cur.name if cur else "Unknown"
+        result = mgr.settle(self._engine.state, location)
+        mgr.close()
+
+        self.notify(result.message)
+        self._sync_frame()
+        self._render_all()
+
+    def action_wallet_info(self) -> None:
+        """Show wallet info overlay."""
+        if not self._engine:
+            return
+
+        from .backpack import BackpackManager
+        from .backpack_ui import WalletInfoOverlay
+
+        mgr = BackpackManager()
+        info = mgr.wallet_info(self._engine.state)
+
+        self._close_all_overlays()
+        self.show_wallet_info = True
+        self.query_one(
+            "#wallet_info", WalletInfoOverlay,
+        ).update_from_info(info)
+        self._render_all()
+
+    def action_learn_more(self) -> None:
+        """Show learn more overlay."""
+        self._close_all_overlays()
+        self.show_learn_more = True
+        self._render_all()
+
+    def action_nudge_dismiss(self) -> None:
+        """Dismiss the nudge — never show again."""
+        if self._engine:
+            self._engine.state.backpack.nudge_dismissed = True
+        self.show_nudge = False
+        self._render_all()
+
+    def action_close_overlay(self) -> None:
+        """Close any open overlay."""
+        self._close_all_overlays()
+        self._render_all()
+
+    def _close_all_overlays(self) -> None:
+        """Close all backpack overlays."""
+        self.show_ledger = False
+        self.show_nudge = False
+        self.show_enable_flow = False
+        self.show_wallet_info = False
+        self.show_learn_more = False
+
+    def on_key(self, event) -> None:
+        """Handle overlay keys and voice interrupt."""
+        key = event.key
+
+        # Escape closes any overlay
+        if key == "escape":
+            if any([
+                self.show_ledger, self.show_nudge,
+                self.show_enable_flow, self.show_wallet_info,
+                self.show_learn_more, self.show_help,
+            ]):
+                self._close_all_overlays()
+                self.show_help = False
+                self._render_all()
+                event.prevent_default()
+                return
+
+        # Ledger menu keys (when menu is visible)
+        if self.show_ledger:
+            if key == "e":
+                self.action_ledger_enable()
+                event.prevent_default()
+                return
+            if key == "d":
+                self.action_ledger_disable()
+                event.prevent_default()
+                return
+            if key == "w":
+                self.action_wallet_info()
+                event.prevent_default()
+                return
+            if key == "s":
+                self.action_ledger_settle()
+                event.prevent_default()
+                return
+
+        # Nudge keys
+        if self.show_nudge:
+            if key == "e":
+                self.show_nudge = False
+                self.action_ledger_enable()
+                event.prevent_default()
+                return
+            if key == "n":
+                self.action_nudge_dismiss()
+                event.prevent_default()
+                return
+
+        # Learn more from nudge or ledger
+        if self.show_nudge or self.show_ledger:
+            if key == "l":
+                self.action_learn_more()
+                event.prevent_default()
+                return
+
+        # Voice interrupt
+        if self._voice_enabled and self._voice_bridge:
+            self._voice_bridge.interrupt()
 
 
 if __name__ == "__main__":

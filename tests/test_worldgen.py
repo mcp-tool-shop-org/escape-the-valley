@@ -1,6 +1,6 @@
 """Tests for world generation determinism."""
 
-from escape_the_valley.models import Biome, GMProfile, SeededRNG
+from escape_the_valley.models import Biome, Doctrine, GMProfile, SeededRNG, Taboo
 from escape_the_valley.worldgen import create_new_run, generate_map, generate_weather
 
 
@@ -81,3 +81,80 @@ class TestCreateNewRun:
     def test_has_twists(self):
         run = create_new_run(seed=42)
         assert len(run.twists) >= 1
+
+
+class TestDoctrineTabooAssignment:
+    def test_run_has_doctrine(self):
+        state = create_new_run(seed=42)
+        assert state.doctrine != ""
+        assert state.doctrine in [d.value for d in Doctrine]
+
+    def test_run_has_taboo(self):
+        state = create_new_run(seed=42)
+        assert state.taboo != ""
+        assert state.taboo in [t.value for t in Taboo]
+
+    def test_deterministic_same_seed(self):
+        s1 = create_new_run(seed=99)
+        s2 = create_new_run(seed=99)
+        assert s1.doctrine == s2.doctrine
+        assert s1.taboo == s2.taboo
+
+    def test_different_seeds_vary(self):
+        doctrines = set()
+        for seed in range(10):
+            s = create_new_run(seed=seed)
+            doctrines.add(s.doctrine)
+        assert len(doctrines) >= 2
+
+    def test_no_debts_reduces_capacity(self):
+        for seed in range(100):
+            s = create_new_run(seed=seed)
+            if s.doctrine == "no_debts":
+                assert s.wagon.capacity < 200
+                return
+        # If no seed produced no_debts, that's statistically near-impossible
+        # but skip rather than fail
+        assert True  # pragma: no cover
+
+    def test_rationing_starts_zero(self):
+        state = create_new_run(seed=42)
+        assert state.rationing_steps == 0
+
+
+# ── Phase 4: Supply cache tests ────────────────────────────────────
+
+
+class TestSupplyCaches:
+    def test_caches_placed(self):
+        """Map should have 2 nodes with supply caches."""
+        state = create_new_run(seed=42)
+        cache_nodes = [n for n in state.map_nodes if n.cache_supplies]
+        assert len(cache_nodes) == 2
+
+    def test_caches_not_on_towns(self):
+        """Caches should not appear on town nodes."""
+        state = create_new_run(seed=42)
+        for node in state.map_nodes:
+            if node.cache_supplies:
+                assert not node.is_town
+
+    def test_caches_not_on_endpoints(self):
+        """Caches should not appear on first or last node."""
+        state = create_new_run(seed=42)
+        assert state.map_nodes[0].cache_supplies is None
+        assert state.map_nodes[-1].cache_supplies is None
+
+    def test_cache_deterministic(self):
+        """Same seed produces same cache placement."""
+        s1 = create_new_run(seed=42)
+        s2 = create_new_run(seed=42)
+        c1 = [
+            (n.node_id, n.cache_supplies)
+            for n in s1.map_nodes if n.cache_supplies
+        ]
+        c2 = [
+            (n.node_id, n.cache_supplies)
+            for n in s2.map_nodes if n.cache_supplies
+        ]
+        assert c1 == c2

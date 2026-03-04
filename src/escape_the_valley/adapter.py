@@ -7,6 +7,9 @@ strings so the TUI just displays them.
 from __future__ import annotations
 
 from .intent import GamePhase
+from .ledger import build_trail_ledger, build_xrpl_postcard
+from .physics import can_abandon_cargo, can_desperate_repair, can_hard_ration
+from .resources import RESOURCE_CATALOG, ResourceCategory
 from .step_engine import StepEngine
 from .tui_app import Choice, FrameState
 
@@ -45,14 +48,8 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         f"Party: {alive} \u2022 Sick: {sick} \u2022 Injured: {injured}"
     )
 
-    # Supplies
-    supplies = {
-        "FOOD": s.supplies.food,
-        "WATR": s.supplies.water,
-        "MEDS": s.supplies.meds,
-        "AMMO": s.supplies.ammo,
-        "PART": s.supplies.parts,
-    }
+    # Supplies — grouped by category from catalog
+    supplies = _build_supplies(s)
 
     # Route ASCII
     route_ascii = _build_route_ascii(s, cur_node, dest_node)
@@ -84,23 +81,8 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         else:
             party_detail.append(f"{m.name} \u2014 dead")
 
-    # Warnings
-    warnings = []
-    if s.supplies.food < 10:
-        warnings.append(f"Low FOOD ({s.supplies.food})")
-    if s.supplies.water < 10:
-        warnings.append(f"Low WATR ({s.supplies.water})")
-    if s.supplies.meds == 0:
-        warnings.append("No MEDS remaining")
-    if s.supplies.parts == 0:
-        warnings.append("No PART remaining")
-    if s.wagon.condition < 30:
-        warnings.append(
-            f"Wagon critical ({s.wagon.condition}%)"
-        )
-    for m in s.party.members:
-        if m.is_alive() and m.condition.value == "sick":
-            warnings.append(f"{m.name} is sick")
+    # Warnings — driven by ResourceDef.warning_low
+    warnings = _build_warnings(s)
 
     # Choices — depends on phase
     prompt_title, prompt_text, choices = _build_prompt(engine)
@@ -111,6 +93,12 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         journal.append(
             f"Day {j.day} \u2014 {j.scene_title}: {j.choice_made}"
         )
+
+    # Backpack status line
+    from .backpack import BackpackManager
+
+    bp_mgr = BackpackManager()
+    backpack_status = bp_mgr.status_line(s)
 
     return FrameState(
         day=s.day,
@@ -130,6 +118,7 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         prompt_text=prompt_text,
         choices=choices,
         journal=journal,
+        backpack_status=backpack_status,
     )
 
 
@@ -164,25 +153,42 @@ def _build_prompt(engine: StepEngine):
         return ("Fork in the road", "Which way?", choices)
 
     if engine.phase == GamePhase.GAME_OVER:
-        if engine.state.victory:
-            return ("Victory!", "You escaped the valley.", [])
-        return (
-            "Game Over",
-            engine.state.cause_of_death or "The journey ends.",
-            [],
-        )
+        if engine.state.backpack.enabled and engine.state.backpack.settlements:
+            ledger = build_xrpl_postcard(engine.state)
+        else:
+            ledger = build_trail_ledger(engine.state)
+        title = "Victory!" if engine.state.victory else "Game Over"
+        return (title, "\n".join(ledger), [])
 
-    # CAMP — standard actions
-    return (
-        "Camp",
-        "What will you do?",
-        [
-            Choice("A", "Travel", "Consumes supplies", "Food/Water"),
-            Choice("B", "Rest", "Heals party", "Food/Water"),
-            Choice("C", "Hunt", "Needs ammo", "Ammo"),
-            Choice("D", "Repair", "Needs parts", "Parts"),
-        ],
-    )
+    # CAMP — standard actions + conditional escape valves
+    choices = [
+        Choice("A", "Travel", "Consumes supplies", "Food/Water"),
+        Choice("B", "Rest", "Heals party", "Food/Water"),
+        Choice("C", "Hunt", "Needs ammo", "Ammo"),
+        Choice("D", "Repair", "Needs parts", "Parts"),
+    ]
+
+    s = engine.state
+    valve_key = ord("E")  # E, F, G
+    if can_abandon_cargo(s):
+        choices.append(Choice(
+            chr(valve_key), "Abandon Cargo",
+            "Wagon badly damaged", "Drops cargo, +25 wagon, -morale",
+        ))
+        valve_key += 1
+    if can_desperate_repair(s):
+        choices.append(Choice(
+            chr(valve_key), "Desperate Repair",
+            "No parts, wagon failing", "50% success, risk injury",
+        ))
+        valve_key += 1
+    if can_hard_ration(s):
+        choices.append(Choice(
+            chr(valve_key), "Hard Ration",
+            "Food critical", "Half rations 2 days, -morale, -health",
+        ))
+
+    return ("Camp", "What will you do?", choices)
 
 
 def _build_route_ascii(s, cur_node, dest_node) -> str:
@@ -249,3 +255,67 @@ def _node_by_id(state, node_id):
         if node.node_id == node_id:
             return node
     return None
+
+
+def _build_supplies(s) -> dict[str, int]:
+    """Build supplies dict grouped by category from resource catalog."""
+    result: dict[str, int] = {}
+    # Consumables first, then gear
+    for cat in (ResourceCategory.CONSUMABLE, ResourceCategory.GEAR):
+        for rdef in RESOURCE_CATALOG.values():
+            if rdef.category == cat:
+                result[rdef.display] = s.supplies.get(rdef.key)
+    return result
+
+
+def _build_warnings(s) -> list[str]:
+    """Generate warnings from resource catalog thresholds + game state."""
+    warnings: list[str] = []
+    cliff_keys: set[str] = set()  # skip standard warning if cliff-edge fired
+    alive = s.party.alive_count
+
+    # ── Cliff-edge warnings (last-safe-moment) ──
+    if alive > 0:
+        if 0 < s.supplies.food <= alive * 2:
+            warnings.append(
+                "Food for one day. After that, the hunger starts."
+            )
+            cliff_keys.add("food")
+        if 0 < s.supplies.water <= alive * 2:
+            warnings.append(
+                "Water for one day. The valley does not forgive thirst."
+            )
+            cliff_keys.add("water")
+
+    if 0 < s.wagon.condition <= 15:
+        if s.supplies.parts <= 0:
+            warnings.append(
+                "Wagon barely holds. One more break and you walk."
+            )
+        else:
+            warnings.append("Wagon on its last legs.")
+        cliff_keys.add("_wagon")
+
+    if s.supplies.parts == 0 and s.wagon.condition < 50:
+        warnings.append(
+            "No spare parts. Next breakdown could end everything."
+        )
+        cliff_keys.add("parts")
+
+    # ── Standard warnings (skipped in minimal mode) ──
+    if getattr(s, "callout_level", "verbose") != "minimal":
+        for rdef in RESOURCE_CATALOG.values():
+            if rdef.key in cliff_keys:
+                continue
+            val = s.supplies.get(rdef.key)
+            if rdef.warning_low > 0 and val <= rdef.warning_low:
+                if val == 0:
+                    warnings.append(f"No {rdef.display} remaining")
+                else:
+                    warnings.append(f"Low {rdef.display} ({val})")
+        if "_wagon" not in cliff_keys and s.wagon.condition < 30:
+            warnings.append(f"Wagon critical ({s.wagon.condition}%)")
+        for m in s.party.members:
+            if m.is_alive() and m.condition.value == "sick":
+                warnings.append(f"{m.name} is sick")
+    return warnings

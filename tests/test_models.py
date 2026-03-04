@@ -41,21 +41,45 @@ class TestSeededRNG:
 
 class TestSuppliesState:
     def test_apply_delta(self):
-        s = SuppliesState(food=50, water=50, meds=5, ammo=20, parts=3)
+        s = SuppliesState(items={"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3})
         s.apply_delta({"food": -10, "water": -5, "meds": 2})
         assert s.food == 40
         assert s.water == 45
         assert s.meds == 7
 
     def test_no_negative(self):
-        s = SuppliesState(food=5)
+        s = SuppliesState(items={"food": 5})
         s.apply_delta({"food": -100})
         assert s.food == 0
 
     def test_to_dict(self):
-        s = SuppliesState(food=10, water=20, meds=3, ammo=5, parts=1)
+        s = SuppliesState(items={"food": 10, "water": 20, "meds": 3, "ammo": 5, "parts": 1})
         d = s.to_dict()
         assert d == {"food": 10, "water": 20, "meds": 3, "ammo": 5, "parts": 1}
+
+    def test_get_set(self):
+        s = SuppliesState(items={"food": 10})
+        assert s.get("food") == 10
+        assert s.get("rope") == 0
+        s.set("rope", 3)
+        assert s.get("rope") == 3
+
+    def test_property_setters(self):
+        s = SuppliesState()
+        s.food = 42
+        assert s.food == 42
+        assert s.get("food") == 42
+
+    def test_new_resources_present(self):
+        from escape_the_valley.worldgen import create_new_run
+        state = create_new_run(seed=42)
+        assert state.supplies.get("firewood") > 0
+        assert state.supplies.get("salt") > 0
+        assert state.supplies.get("rope") > 0
+        assert state.supplies.get("tools") > 0
+        assert state.supplies.get("lantern_oil") > 0
+        assert state.supplies.get("cloth") > 0
+        assert state.supplies.get("boots") > 0
 
 
 class TestPartyState:

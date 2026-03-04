@@ -20,6 +20,16 @@ from .events import (
 )
 from .gm import GMClient, GMConfig
 from .intent import GamePhase, IntentAction, PlayerIntent
+from .memory import build_gm_brief
+from .memory_emitters import (
+    check_resource_crises,
+    emit_arrival_card,
+    emit_escape_valve_card,
+    emit_event_card,
+    emit_health_cards,
+    emit_wagon_card,
+    validate_gm_cards,
+)
 from .models import (
     JournalEntry,
     Pace,
@@ -28,14 +38,23 @@ from .models import (
     TimeOfDay,
 )
 from .physics import (
+    abandon_cargo,
     apply_breakdown,
     attempt_hunt,
     attempt_repair,
+    can_abandon_cargo,
+    can_desperate_repair,
+    can_hard_ration,
     check_breakdown,
     check_game_over,
     check_health_effects,
+    check_night_travel_danger,
+    check_spoilage,
     compute_daily_consumption,
     compute_travel_distance,
+    desperate_repair,
+    determine_cause_of_death,
+    hard_ration,
     rest_day,
     update_morale,
 )
@@ -96,6 +115,16 @@ class StepEngine:
         self.gm = GMClient(gm_config or GMConfig())
         self.phase = GamePhase.CAMP
         self.msgs = StepMessages()
+
+        # Diagnostics counters
+        self.diagnostics: dict[str, int] = {
+            "wagon_breakdowns": 0,
+            "events_high_sev": 0,
+            "events_total": 0,
+            "maintenance_windows": 0,
+            "caches_found": 0,
+            "escape_valves_used": 0,
+        }
 
         # Pending state for multi-step flows
         self._pending_event: EventSkeleton | None = None
@@ -158,8 +187,24 @@ class StepEngine:
             self._do_repair()
         elif intent.action == IntentAction.CHANGE_PACE:
             self._do_change_pace(intent.pace)
+        elif intent.action == IntentAction.ABANDON_CARGO:
+            self._do_abandon_cargo()
+        elif intent.action == IntentAction.DESPERATE_REPAIR:
+            self._do_desperate_repair()
+        elif intent.action == IntentAction.HARD_RATION:
+            self._do_hard_ration()
 
     def _do_travel(self) -> None:
+        self.state.last_action = "TRAVEL"
+
+        # Decrement maintenance window
+        if self.state.maintained_turns_remaining > 0:
+            self.state.maintained_turns_remaining -= 1
+
+        # Decrement escape valve cooldown
+        if self.state.escape_valve_cooldown > 0:
+            self.state.escape_valve_cooldown -= 1
+
         # Check if at a fork first
         node = _find_node(self.state)
         if (
@@ -181,8 +226,16 @@ class StepEngine:
         self.state.distance_traveled += distance
 
         # Consume
-        consumption = compute_daily_consumption(self.state)
+        consumption = compute_daily_consumption(
+            self.state, is_travel=True,
+        )
         self.state.supplies.apply_delta(consumption)
+
+        # Decrement rationing countdown
+        if self.state.rationing_steps > 0:
+            self.state.rationing_steps -= 1
+            if self.state.rationing_steps <= 0:
+                self.msgs.lines.append("Rationing has ended.")
 
         # Arrival check
         if self.state.distance_remaining <= 0:
@@ -196,10 +249,21 @@ class StepEngine:
         # Advance time
         self._advance_time()
 
+        # Spoilage check
+        spoilage = check_spoilage(self.state, self.rng)
+        if spoilage:
+            self.state.supplies.apply_delta(spoilage)
+            loss = abs(spoilage.get("food", 0))
+            self.msgs.lines.append(
+                f"Food spoiled! Lost {loss} food (no salt)."
+            )
+
         # Breakdown
         breakdown = check_breakdown(self.state, self.rng)
         if breakdown:
+            self.diagnostics["wagon_breakdowns"] += 1
             damage = breakdown["wagon_damage"]
+            had_parts = self.state.supplies.parts > 0
             deltas = apply_breakdown(self.state, damage)
             if deltas:
                 self.msgs.lines.append(
@@ -209,6 +273,18 @@ class StepEngine:
                 self.msgs.lines.append(
                     f"Wagon breakdown! No parts. Damage: {damage}"
                 )
+            emit_wagon_card(self.state, damage, had_parts)
+
+        # Night travel danger (no lantern oil)
+        night_danger = check_night_travel_danger(
+            self.state, self.rng,
+        )
+        if night_danger:
+            damage = night_danger["wagon_damage"]
+            apply_breakdown(self.state, damage)
+            self.msgs.lines.append(
+                f"Dark travel mishap! Wagon damage: {damage}"
+            )
 
         # Health effects
         effects = check_health_effects(self.state, self.rng)
@@ -223,6 +299,10 @@ class StepEngine:
                 self.msgs.lines.append(
                     f"{eff['member']} is recovering."
                 )
+        emit_health_cards(self.state, effects)
+
+        # Resource crisis check after consumption
+        check_resource_crises(self.state)
 
         # Random event (~60% chance)
         self._maybe_trigger_event()
@@ -231,6 +311,23 @@ class StepEngine:
         update_morale(self.state)
 
     def _do_rest(self) -> None:
+        # Maintenance window: rest after repair
+        if self.state.last_action == "REPAIR":
+            from .models import DOCTRINE_MODIFIERS
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            duration = 2 + int(doc_mods.get("maintenance_bonus", 0))
+            self.state.maintained_turns_remaining = duration
+            self.diagnostics["maintenance_windows"] += 1
+            # Maintenance costs extra water (thorough work)
+            self.state.supplies.water = max(
+                0, self.state.supplies.water - 3,
+            )
+            self.msgs.lines.append(
+                "Maintenance window: the wagon rides steady. "
+                "(-3 water)"
+            )
+        self.state.last_action = "REST"
+
         consumption = compute_daily_consumption(self.state)
         self.state.supplies.apply_delta(consumption)
 
@@ -247,6 +344,7 @@ class StepEngine:
         update_morale(self.state)
 
     def _do_hunt(self) -> None:
+        self.state.last_action = "HUNT"
         if self.state.supplies.ammo <= 0:
             self.msgs.lines.append("No ammunition for hunting.")
             return
@@ -283,6 +381,23 @@ class StepEngine:
             )
             return
 
+        # Maintenance window: repair after rest
+        if self.state.last_action == "REST":
+            from .models import DOCTRINE_MODIFIERS
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            duration = 2 + int(doc_mods.get("maintenance_bonus", 0))
+            self.state.maintained_turns_remaining = duration
+            self.diagnostics["maintenance_windows"] += 1
+            # Maintenance costs extra water (thorough work)
+            self.state.supplies.water = max(
+                0, self.state.supplies.water - 3,
+            )
+            self.msgs.lines.append(
+                "Maintenance window: the wagon rides steady. "
+                "(-3 water)"
+            )
+        self.state.last_action = "REPAIR"
+
         deltas = attempt_repair(self.state)
         self.state.supplies.apply_delta(deltas)
         self.msgs.lines.append(
@@ -310,6 +425,86 @@ class StepEngine:
         self.state.wagon.pace = new_pace
         self.msgs.lines.append(f"Pace set to {new_pace.value}.")
 
+    # ── Escape valve handlers ────────────────────────────────────────
+
+    def _do_abandon_cargo(self) -> None:
+        self.state.last_action = "ABANDON_CARGO"
+        if not can_abandon_cargo(self.state):
+            self.msgs.lines.append(
+                "Wagon is not damaged enough to justify "
+                "abandoning cargo."
+            )
+            return
+
+        self.diagnostics["escape_valves_used"] += 1
+        self.state.escape_valve_cooldown = 3
+        result = abandon_cargo(self.state)
+        dropped = result.get("dropped", {})
+        dropped_items = [
+            f"-{abs(v)} {k}" for k, v in dropped.items() if v < 0
+        ]
+        self.msgs.lines.append(
+            "Abandoned cargo to lighten the wagon. "
+            f"Wagon +{result.get('wagon_repair', 25)}. "
+            f"Dropped: {', '.join(dropped_items) or 'nothing'}. "
+            "Morale fell."
+        )
+        emit_escape_valve_card(
+            self.state, "abandon_cargo",
+            "Abandoned cargo to save the wagon.",
+        )
+
+    def _do_desperate_repair(self) -> None:
+        self.state.last_action = "DESPERATE_REPAIR"
+        if not can_desperate_repair(self.state):
+            self.msgs.lines.append(
+                "Desperate repair requires a badly damaged wagon "
+                "and no spare parts."
+            )
+            return
+
+        self.diagnostics["escape_valves_used"] += 1
+        self.state.escape_valve_cooldown = 3
+        result = desperate_repair(self.state, self.rng)
+        if result.get("success"):
+            self.msgs.lines.append(
+                f"Desperate repair succeeded! "
+                f"Wagon +{result.get('wagon_delta', 15)}."
+            )
+        else:
+            injured = result.get("injured", "someone")
+            self.msgs.lines.append(
+                f"Desperate repair failed! "
+                f"Wagon {result.get('wagon_delta', -10)}. "
+                f"{injured} was injured in the attempt."
+            )
+        detail = (
+            "Repair succeeded." if result.get("success")
+            else f"Repair failed. {result.get('injured', 'Someone')} injured."
+        )
+        emit_escape_valve_card(self.state, "desperate_repair", detail)
+
+    def _do_hard_ration(self) -> None:
+        self.state.last_action = "HARD_RATION"
+        if not can_hard_ration(self.state):
+            self.msgs.lines.append(
+                "Cannot ration further right now."
+            )
+            return
+
+        self.diagnostics["escape_valves_used"] += 1
+        self.state.escape_valve_cooldown = 3
+        hard_ration(self.state)
+        self.msgs.lines.append(
+            "Hard rationing imposed for 2 days. "
+            "Food and water consumption halved. "
+            "Morale -10, everyone weakened."
+        )
+        emit_escape_valve_card(
+            self.state, "hard_ration",
+            "Hard rationing imposed — half rations for 2 days.",
+        )
+
     # ── EVENT phase ─────────────────────────────────────────────────
 
     def _maybe_trigger_event(self) -> None:
@@ -321,6 +516,10 @@ class StepEngine:
         event = select_event(
             self.state, self.rng, self.event_library,
         )
+        self.diagnostics["events_total"] += 1
+        if event.severity == "high":
+            self.diagnostics["events_high_sev"] += 1
+
         node = _find_node(self.state)
         weather = (
             generate_weather(self.rng, node.biome, self.state.day)
@@ -332,8 +531,9 @@ class StepEngine:
         scene = None
         if self.gm.config.enabled:
             weather_str = weather.value if weather else "unknown"
+            brief = build_gm_brief(self.state)
             scene = self.gm.generate_scene(
-                self.state, event, weather_str,
+                self.state, event, weather_str, brief=brief,
             )
 
         # Build choices from GM or fallback
@@ -406,6 +606,8 @@ class StepEngine:
         outcome_title = ""
 
         scene = self._pending_event_scene
+        brief = build_gm_brief(self.state) if self.gm.config.enabled else None
+        gm_out = None
         if self.gm.config.enabled and scene:
             outcome_facts = {
                 "Supplies delta": outcome.supplies_delta,
@@ -422,6 +624,7 @@ class StepEngine:
                 choice_id,
                 choice_label,
                 outcome_facts,
+                brief=brief,
             )
             if gm_out:
                 outcome_narration = gm_out.outcome_narration
@@ -451,6 +654,26 @@ class StepEngine:
             deltas=outcome.supplies_delta,
             tags=event.tags,
         ))
+
+        # Memory emitters — engine cards from event
+        emit_event_card(self.state, event)
+
+        # Validate GM-proposed memory cards
+        if scene and hasattr(scene, "memory_proposals"):
+            from .memory import add_card
+            for card in validate_gm_cards(
+                self.state, scene.memory_proposals,
+            ):
+                add_card(self.state, card)
+        if gm_out and hasattr(gm_out, "memory_proposals"):
+            from .memory import add_card
+            for card in validate_gm_cards(
+                self.state, gm_out.memory_proposals,
+            ):
+                add_card(self.state, card)
+
+        # Check resource crises after outcome applied
+        check_resource_crises(self.state)
 
         # Clear pending, back to camp
         self._pending_event = None
@@ -522,10 +745,55 @@ class StepEngine:
         self.state.distance_remaining = 0
         self.msgs.lines.append(f"Arrived at {dest.name}!")
 
-        if dest.is_town:
-            self.msgs.lines.append(
-                "This is a settlement. Supplies may be available."
+        # Water refill at nodes with water sources
+        if dest.water_available:
+            old_water = self.state.supplies.water
+            refill = min(20, 50 - old_water)  # Up to 20, capped at 50
+            if refill > 0:
+                self.state.supplies.water += refill
+                self.msgs.lines.append(
+                    f"Found water. +{refill} water."
+                )
+
+        # Supply cache pickup (one-time)
+        if dest.cache_supplies:
+            cache = dest.cache_supplies
+            self.state.supplies.apply_delta(cache)
+            cache_items = ", ".join(
+                f"+{v} {k}" for k, v in cache.items()
             )
+            self.msgs.lines.append(
+                f"Found a supply cache! {cache_items}"
+            )
+            self.diagnostics["caches_found"] += 1
+            dest.cache_supplies = None  # consumed
+
+        # Emit arrival memory card for towns
+        emit_arrival_card(self.state, dest)
+
+        if dest.is_town:
+            # Town trade: morale-gated + doctrine-boosted
+            from .models import DOCTRINE_MODIFIERS
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            trade_chance = 0.30 + doc_mods.get("trade_bonus", 0)
+            if (
+                self.state.party.morale > 60
+                and self.rng.random() < trade_chance
+            ):
+                food_offer = self.rng.randint(3, 9)
+                self.state.supplies.food += food_offer
+                self.msgs.lines.append(
+                    f"Traded at the settlement. +{food_offer} food."
+                )
+            else:
+                self.msgs.lines.append(
+                    "This is a settlement. Supplies may be available."
+                )
+
+            # Ledger Backpack: settle checkpoint at towns
+            if self.state.backpack.enabled:
+                self._settle_checkpoint(dest)
+                self._check_parcels(dest)
 
         # Set up next leg
         if dest.connections:
@@ -536,6 +804,40 @@ class StepEngine:
                     dest.distance_to.get(next_id, 15)
                 )
             # Multi-connection → ROUTE phase on next travel
+
+    def _settle_checkpoint(self, dest) -> None:
+        """Settle Ledger Backpack at a town checkpoint."""
+        try:
+            from .backpack import BackpackManager
+
+            mgr = BackpackManager()
+            result = mgr.settle(self.state, dest.name)
+            if result.success and result.txids:
+                self.msgs.lines.append(result.message)
+            elif not result.success and result.message:
+                self.msgs.lines.append(result.message)
+            mgr.close()
+        except Exception:
+            pass  # graceful degradation — game continues
+
+    def _check_parcels(self, dest) -> None:
+        """Check for incoming parcels at a town."""
+        try:
+            from .backpack import BackpackManager
+
+            mgr = BackpackManager()
+            parcels = mgr.check_parcels(self.state)
+            for parcel in parcels:
+                sender_short = parcel.sender[:8] + "..."
+                contents = ", ".join(
+                    f"{v} {k}" for k, v in parcel.contents.items()
+                )
+                self.msgs.lines.append(
+                    f"A parcel arrived from {sender_short}: {contents}"
+                )
+            mgr.close()
+        except Exception:
+            pass  # graceful degradation
 
     def _advance_time(self) -> None:
         times = list(TimeOfDay)
@@ -555,9 +857,12 @@ class StepEngine:
                 self.state.game_over = True
                 self.msgs.lines.append("You made it! Victory!")
             else:
-                self.state.cause_of_death = result
+                cause = determine_cause_of_death(self.state)
+                self.state.cause_of_death = cause
                 self.state.game_over = True
-                self.msgs.lines.append(f"The journey ends: {result}")
+                self.msgs.lines.append(
+                    f"The journey ends. Cause: {cause}."
+                )
             self.phase = GamePhase.GAME_OVER
 
     def _save(self) -> None:

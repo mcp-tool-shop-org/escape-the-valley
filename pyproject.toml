@@ -37,6 +37,12 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
 ]
+voice = [
+    "voice-soundboard>=2.5",
+]
+xrpl = [
+    "xrpl-py>=3.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/escape_the_valley"]

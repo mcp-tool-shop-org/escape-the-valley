@@ -75,3 +75,21 @@ class TestToneLint:
 
     def test_case_insensitive(self):
         assert _tone_check("That was a total MEME of a situation") is False
+
+    def test_punchline_plot_twist_rejected(self):
+        assert _tone_check("Plot twist: the bridge collapsed anyway.") is False
+
+    def test_punchline_spoiler_alert_rejected(self):
+        assert _tone_check("Spoiler alert, nobody survives.") is False
+
+    def test_punchline_wait_for_it_rejected(self):
+        assert _tone_check("The mule stops. Wait for it. Then bolts.") is False
+
+    def test_gallows_humor_passes(self):
+        assert _tone_check(
+            "The river accepts your offering and returns it with interest."
+        ) is True
+
+    def test_expanded_banned_words(self):
+        assert _tone_check("That was literally the worst crossing") is False
+        assert _tone_check("Basically, everyone died") is False

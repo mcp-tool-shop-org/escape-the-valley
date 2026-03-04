@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import httpx
 
 from .events import EventSkeleton
+from .memory import GMBrief, format_brief_for_prompt
 from .models import GMProfile, RunState
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,8 @@ PROFILE_HEADERS = {
         "feel larger than they should. Folklore is subtle: uncanny "
         "but never cartoonish. Keep language period-appropriate. "
         "No modern slang. Choices must be practical tradeoffs. "
-        "Never grant free resources; the engine decides outcomes."
+        "Never grant free resources; the engine decides outcomes. "
+        "Occasional wry observations permitted. Not jokes\u2014observations."
     ),
     GMProfile.LANTERN: (
         'You are "The Lantern-Bearer," a serious but uncanny '
@@ -40,7 +42,15 @@ PROFILE_HEADERS = {
         "explainable. Never grant free resources; the engine "
         "decides outcomes. Choices must remain practical tradeoffs "
         "even when the scene is strange. If uncanny tokens remain, "
-        "you may introduce one strong uncanny detail."
+        "you may introduce one strong uncanny detail. "
+        "HUMOR RULE: At least one line should be wryly funny\u2014"
+        "deadpan observations, dark irony, or absurd situations "
+        "played straight. The funniest line is usually the situation "
+        "itself, not a quip. Never crack jokes. Never use modern "
+        "punchline structure. If in doubt, let the river or the "
+        "weather deliver the comedy. "
+        'Example: "The river accepts your confidence and returns it as noise." '
+        'Example: "The mule regards the bridge with more sense than any of you."'
     ),
 }
 
@@ -50,16 +60,26 @@ SCENE_SCHEMA = """{
   "choices": [{"id":"A","label":"string",
     "intent":{"action":"...","style":"CAUTIOUS|NEUTRAL|BOLD",
     "notes":"string"},"risk_hint":"string","cost_hint":"string"}],
-  "tags": ["string"], "gm_aside": "string"
+  "tags": ["string"], "gm_aside": "string",
+  "memory_proposals": [{"kind":"npc|omen|place|rumor|promise",
+    "title":"string (max 40 chars)", "text":"string (max 300 chars)",
+    "tags":["string"], "entities":["string"]}]
 }"""
 
 OUTCOME_SCHEMA = """{
   "scene_id": "string", "outcome_title": "string",
-  "outcome_narration": "string", "callout": "string", "oregon_nod": "string"
+  "outcome_narration": "string", "callout": "string", "oregon_nod": "string",
+  "memory_proposals": [{"kind":"npc|omen|place|rumor|promise",
+    "title":"string (max 40 chars)", "text":"string (max 300 chars)",
+    "tags":["string"], "entities":["string"]}]
 }"""
 
 # Modern slang ban list for tone lint
-BANNED_WORDS = {"bro", "lol", "meme", "vibes", "yeet", "sus", "goat", "cap", "slay", "lowkey"}
+BANNED_WORDS = {
+    "bro", "lol", "meme", "vibes", "yeet", "sus", "goat", "cap",
+    "slay", "lowkey", "literally", "basically", "bruh", "oof",
+    "ngl", "tbh", "fr", "bestie", "rizz",
+}
 
 
 @dataclass
@@ -86,6 +106,7 @@ class SceneResponse:
     tags: list[str]
     gm_aside: str
     raw_json: dict
+    memory_proposals: list[dict]
 
     @classmethod
     def from_dict(cls, data: dict) -> SceneResponse:
@@ -99,6 +120,7 @@ class SceneResponse:
             tags=data.get("tags", []),
             gm_aside=data.get("gm_aside", ""),
             raw_json=data,
+            memory_proposals=data.get("memory_proposals", []),
         )
 
 
@@ -109,6 +131,7 @@ class OutcomeResponse:
     outcome_narration: str
     callout: str
     oregon_nod: str
+    memory_proposals: list[dict]
 
     @classmethod
     def from_dict(cls, data: dict) -> OutcomeResponse:
@@ -118,6 +141,7 @@ class OutcomeResponse:
             outcome_narration=data.get("outcome_narration", ""),
             callout=data.get("callout", ""),
             oregon_nod=data.get("oregon_nod", ""),
+            memory_proposals=data.get("memory_proposals", []),
         )
 
 
@@ -143,6 +167,7 @@ class GMClient:
         state: RunState,
         event: EventSkeleton,
         weather_str: str,
+        brief: GMBrief | None = None,
     ) -> SceneResponse | None:
         """Generate a scene narration from the GM. Returns None on failure."""
         if not self.config.enabled:
@@ -158,9 +183,8 @@ class GMClient:
         )
 
         supplies = state.supplies
-        supplies_summary = (
-            f"food:{supplies.food} water:{supplies.water} meds:{supplies.meds} "
-            f"ammo:{supplies.ammo} parts:{supplies.parts}"
+        supplies_summary = " ".join(
+            f"{k}:{v}" for k, v in supplies.to_dict().items() if v > 0
         )
 
         wagon_summary = (
@@ -195,12 +219,22 @@ class GMClient:
             f"   event_type={event.category.value}\n"
             f"   severity={event.severity}\n"
             f"   tags={','.join(event.tags)}\n\n"
-            f"REQUIREMENTS:\n"
-            f"- Write 2-4 choices with clear tradeoffs.\n"
-            f"- Keep narration concise (3-7 sentences).\n"
-            f"- Keep choices grounded; no magic solutions.\n"
-            f"- Do NOT grant or remove supplies. The engine decides deltas.\n"
-            f"- Use period-appropriate language (no modern slang).\n"
+        )
+
+        # Inject GM brief if available
+        if brief:
+            user_prompt += f"{format_brief_for_prompt(brief)}\n\n"
+
+        user_prompt += (
+            "REQUIREMENTS:\n"
+            "- Write 2-4 choices with clear tradeoffs.\n"
+            "- Keep narration concise (3-7 sentences).\n"
+            "- Keep choices grounded; no magic solutions.\n"
+            "- Do NOT grant or remove supplies. The engine decides deltas.\n"
+            "- Use period-appropriate language (no modern slang).\n"
+            "- Optionally propose up to 2 memory_proposals (NPCs, omens, places, "
+            "rumors, or promises worth remembering). Keep titles under 40 chars, "
+            "text under 300 chars. Do NOT reference supply quantities.\n"
         )
 
         if event.gm_aside:
@@ -216,6 +250,7 @@ class GMClient:
         choice_id: str,
         choice_label: str,
         outcome_facts: dict,
+        brief: GMBrief | None = None,
     ) -> OutcomeResponse | None:
         """Generate outcome narration. Returns None on failure."""
         if not self.config.enabled:
@@ -238,11 +273,17 @@ class GMClient:
         for key, val in outcome_facts.items():
             user_prompt += f"- {key}: {val}\n"
 
+        # Inject GM brief if available
+        if brief:
+            user_prompt += f"\n{format_brief_for_prompt(brief)}\n"
+
         user_prompt += (
             "\nREQUIREMENTS:\n"
             "- Outcome narration: 4-10 sentences, grounded and specific.\n"
             "- Include sensory detail.\n"
             "- Add a single-sentence callout summarizing the practical result.\n"
+            "- Optionally propose up to 2 memory_proposals (NPCs, omens, "
+            "places, rumors, or promises). Do NOT reference supply quantities.\n"
         )
 
         return self._request_outcome(system_prompt, user_prompt)
@@ -358,13 +399,28 @@ def _validate_scene(data: dict) -> bool:
     return True
 
 
+_PUNCHLINE_PATTERNS = [
+    r"(?i)\bplot twist\b",
+    r"(?i)\bspoiler alert\b",
+    r"(?i)\bwait for it\b",
+    r"(?i)\bnot gonna lie\b",
+    r"(?i)\bi mean\b.*\bright\?",
+]
+
+
 def _tone_check(text: str) -> bool:
-    """Light tone lint — reject if modern slang detected."""
-    words = set(text.lower().split())
+    """Light tone lint — reject if modern slang or punchline structure detected."""
+    import re
+
+    words = {w.strip(".,!?;:\"'()") for w in text.lower().split()}
     violations = words & BANNED_WORDS
     if violations:
         logger.warning("Tone violation: %s", violations)
         return False
+    for pattern in _PUNCHLINE_PATTERNS:
+        if re.search(pattern, text):
+            logger.warning("Punchline pattern detected: %s", pattern)
+            return False
     return True
 
 

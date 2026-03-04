@@ -35,6 +35,10 @@ def new(
     weirdness: int = typer.Option(2, "--weirdness", "-w", help="Weirdness level 0-3"),
     gm_off: bool = typer.Option(False, "--gm-off", help="Disable Ollama GM (deterministic only)"),
     model: str = typer.Option("llama3.2", "--model", "-m", help="Ollama model name"),
+    callouts: str = typer.Option(
+        "verbose", "--callouts",
+        help="Warning detail: verbose or minimal",
+    ),
 ) -> None:
     """Start a new run."""
     show_title_screen()
@@ -50,6 +54,10 @@ def new(
         raise typer.Exit(1) from None
 
     weirdness = max(0, min(3, weirdness))
+    callouts = callouts.lower()
+    if callouts not in ("verbose", "minimal"):
+        console.print("[red]--callouts must be 'verbose' or 'minimal'[/red]")
+        raise typer.Exit(1)
 
     # Check for existing save
     if has_save():
@@ -58,6 +66,7 @@ def new(
 
     # Create new run
     state = create_new_run(seed=seed, gm_profile=gm_profile, weirdness_level=weirdness)
+    state.callout_level = callouts
 
     console.print(f"  Run ID: [bold]{state.run_id}[/bold]")
     console.print(f"  Seed: [bold]{state.seed}[/bold]")
@@ -181,6 +190,17 @@ def tui(
     model: str = typer.Option(
         "llama3.2", "--model", "-m", help="Ollama model name",
     ),
+    voice: bool = typer.Option(
+        False, "--voice", help="Enable voice narration",
+    ),
+    voice_pace: str = typer.Option(
+        "normal", "--voice-pace",
+        help="Voice pacing: fast, normal, slow",
+    ),
+    callouts: str = typer.Option(
+        "verbose", "--callouts",
+        help="Warning detail: verbose or minimal",
+    ),
 ) -> None:
     """Launch the full-screen Textual UI."""
     from .gm import GMConfig
@@ -204,6 +224,11 @@ def tui(
     else:
         state = create_new_run(seed=seed)
 
+    # Apply callout level
+    callouts = callouts.lower()
+    if callouts in ("verbose", "minimal"):
+        state.callout_level = callouts
+
     gm_config = GMConfig(
         host=os.environ.get(
             "OLLAMA_HOST", "http://localhost:11434",
@@ -212,14 +237,270 @@ def tui(
         enabled=not gm_off,
     )
 
+    # Voice config (optional)
+    voice_config = None
+    if voice:
+        from .voice import VoiceConfig, VoicePace
+
+        try:
+            pace = VoicePace(voice_pace.lower())
+        except ValueError:
+            console.print(
+                f"[red]Unknown voice pace: {voice_pace}. "
+                "Use fast, normal, or slow.[/red]"
+            )
+            raise typer.Exit(1) from None
+
+        voice_config = VoiceConfig(
+            enabled=True,
+            pace=pace,
+            profile=state.gm_profile.value,
+        )
+
     engine = StepEngine(state, gm_config)
-    LedgerTrailApp(engine=engine).run()
+    LedgerTrailApp(engine=engine, voice_config=voice_config).run()
 
 
 @app.command()
 def version() -> None:
     """Show version."""
     console.print(f"Escape the Valley: Ledger Trail v{__version__}")
+
+
+# ── Ledger subcommands ──────────────────────────────────────────
+
+ledger_app = typer.Typer(name="ledger", help="Ledger Backpack commands")
+app.add_typer(ledger_app)
+
+
+@ledger_app.command(name="status")
+def ledger_status() -> None:
+    """Show backpack status."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    from .backpack import BackpackManager
+
+    mgr = BackpackManager()
+    console.print(mgr.status_line(state))
+
+    if state.backpack.enabled:
+        info = mgr.wallet_info(state)
+        console.print(f"  Address: {info.get('address_short', '?')}")
+        console.print(f"  Settlements: {info.get('settlements', 0)}")
+        console.print(f"  Pending: {info.get('pending', 0)}")
+
+
+@ledger_app.command(name="enable")
+def ledger_enable() -> None:
+    """Enable the Ledger Backpack."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if state.backpack.enabled:
+        console.print("[yellow]Backpack already enabled.[/yellow]")
+        raise typer.Exit(0)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    mgr = BackpackManager()
+    console.print("Enabling Ledger Backpack on XRPL Testnet...")
+    result = mgr.enable(state)
+    mgr.close()
+
+    if result.success:
+        save_game(state)
+        console.print(f"[green]{result.message}[/green]")
+        console.print(f"  Wallet: {result.wallet_address}")
+    else:
+        console.print(f"[red]{result.message}[/red]")
+        raise typer.Exit(1)
+
+
+@ledger_app.command(name="disable")
+def ledger_disable() -> None:
+    """Disable the Ledger Backpack."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if not state.backpack.enabled:
+        console.print("[yellow]Backpack already disabled.[/yellow]")
+        raise typer.Exit(0)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    mgr = BackpackManager()
+    mgr.disable(state)
+    save_game(state)
+    console.print("Ledger Backpack disabled. Wallet kept for re-enable.")
+
+
+@ledger_app.command(name="settle")
+def ledger_settle() -> None:
+    """Manually settle a checkpoint."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if not state.backpack.enabled:
+        console.print("[yellow]Backpack not enabled.[/yellow]")
+        raise typer.Exit(1)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    # Find current location name
+    location = "Unknown"
+    for n in state.map_nodes:
+        if n.node_id == state.location_id:
+            location = n.name
+            break
+
+    mgr = BackpackManager()
+    result = mgr.settle(state, location)
+    mgr.close()
+
+    if result.success:
+        save_game(state)
+        console.print(f"[green]{result.message}[/green]")
+    else:
+        console.print(f"[red]{result.message}[/red]")
+
+
+@ledger_app.command(name="reconcile")
+def ledger_reconcile() -> None:
+    """Retry all pending settlements from network failures."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if not state.backpack.enabled:
+        console.print("[yellow]Backpack not enabled.[/yellow]")
+        raise typer.Exit(1)
+
+    pending_count = len(state.backpack.pending_settlements)
+    if pending_count == 0:
+        console.print("[green]Nothing to reconcile. All checkpoints settled.[/green]")
+        raise typer.Exit(0)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    console.print(f"Retrying {pending_count} pending settlement(s)...")
+    mgr = BackpackManager()
+    mgr._retry_pending(state)
+    mgr.close()
+
+    remaining = len(state.backpack.pending_settlements)
+    settled = pending_count - remaining
+    save_game(state)
+
+    if remaining == 0:
+        console.print(f"[green]Reconciled {settled} checkpoint(s). All clear.[/green]")
+    else:
+        console.print(
+            f"[yellow]Settled {settled}, {remaining} still pending. "
+            f"Network may be down — try again later.[/yellow]"
+        )
+
+
+@ledger_app.command(name="wallet")
+def ledger_wallet() -> None:
+    """Show wallet info."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    from .backpack import BackpackManager
+
+    mgr = BackpackManager()
+    info = mgr.wallet_info(state)
+
+    if info.get("status") == "No wallet":
+        console.print("[dim]No wallet. Enable backpack first.[/dim]")
+        raise typer.Exit(0)
+
+    console.print(f"  Address: {info.get('address', '?')}")
+    console.print(f"  Issuer: {info.get('issuer', '?')}")
+    console.print(f"  Trust lines: {'Yes' if info.get('trust_lines') else 'No'}")
+    console.print(f"  Settlements: {info.get('settlements', 0)}")
+    console.print(f"  Pending: {info.get('pending', 0)}")
+
+    balances = info.get("balances", {})
+    if balances:
+        console.print("  Balances:")
+        for code, amount in balances.items():
+            console.print(f"    {code}: {amount}")
+
+
+# ── Parcel subcommands ──────────────────────────────────────────
+
+parcel_app = typer.Typer(name="parcel", help="Parcel commands")
+app.add_typer(parcel_app)
+
+
+@parcel_app.command(name="list")
+def parcel_list() -> None:
+    """List received parcels."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if not state.backpack.parcels:
+        console.print("[dim]No parcels received.[/dim]")
+        return
+
+    for p in state.backpack.parcels:
+        status = "accepted" if p.accepted else "pending"
+        contents = ", ".join(f"{v} {k}" for k, v in p.contents.items())
+        sender_short = p.sender[:8] + "..." if len(p.sender) > 12 else p.sender
+        console.print(
+            f"  [{status}] From {sender_short}: {contents} "
+            f"(day {p.day_received})"
+        )
+
+
+@parcel_app.command(name="accept")
+def parcel_accept(
+    parcel_id: str = typer.Argument(help="Parcel ID to accept"),
+) -> None:
+    """Accept a pending parcel."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    parcel = None
+    for p in state.backpack.parcels:
+        if p.parcel_id == parcel_id and not p.accepted:
+            parcel = p
+            break
+
+    if parcel is None:
+        console.print("[red]Parcel not found or already accepted.[/red]")
+        raise typer.Exit(1)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    mgr = BackpackManager()
+    mgr.accept_parcel(parcel, state)
+    save_game(state)
+
+    contents = ", ".join(f"+{v} {k}" for k, v in parcel.contents.items())
+    console.print(f"[green]Parcel accepted: {contents}[/green]")
 
 
 if __name__ == "__main__":

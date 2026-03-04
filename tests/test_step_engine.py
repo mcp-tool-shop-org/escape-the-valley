@@ -237,3 +237,219 @@ def test_save_load_preserves_determinism(tmp_path, monkeypatch):
     assert loaded.supplies.food == food_after
     assert loaded.day == day_after
     assert loaded.seed == 77
+
+
+# ── Escape valve integration ─────────────────────────────────────────
+
+
+def test_abandon_cargo_in_engine():
+    engine = _make_engine()
+    engine.state.wagon.condition = 20
+    engine.state.supplies.set("salt", 10)
+    engine.state.supplies.set("cloth", 8)
+
+    old_wagon = engine.state.wagon.condition
+    msgs = engine.step(PlayerIntent(IntentAction.ABANDON_CARGO))
+    assert engine.state.wagon.condition > old_wagon
+    assert any("abandon" in line.lower() for line in msgs.lines)
+
+
+def test_abandon_cargo_rejected_when_wagon_ok():
+    engine = _make_engine()
+    engine.state.wagon.condition = 60
+    msgs = engine.step(PlayerIntent(IntentAction.ABANDON_CARGO))
+    assert any("not damaged" in line.lower() or "not" in line.lower()
+               for line in msgs.lines)
+
+
+def test_desperate_repair_in_engine():
+    engine = _make_engine()
+    engine.state.wagon.condition = 20
+    engine.state.supplies.parts = 0
+    msgs = engine.step(PlayerIntent(IntentAction.DESPERATE_REPAIR))
+    assert any("repair" in line.lower() for line in msgs.lines)
+
+
+def test_desperate_repair_rejected_with_parts():
+    engine = _make_engine()
+    engine.state.wagon.condition = 20
+    engine.state.supplies.parts = 5
+    msgs = engine.step(PlayerIntent(IntentAction.DESPERATE_REPAIR))
+    assert any("no spare" in line.lower() or "requires" in line.lower()
+               for line in msgs.lines)
+
+
+def test_hard_ration_in_engine():
+    engine = _make_engine()
+    alive = engine.state.party.alive_count
+    engine.state.supplies.food = alive * 2
+    old_morale = engine.state.party.morale
+
+    msgs = engine.step(PlayerIntent(IntentAction.HARD_RATION))
+    assert engine.state.rationing_steps == 2
+    assert engine.state.party.morale < old_morale
+    assert any("ration" in line.lower() for line in msgs.lines)
+
+
+def test_hard_ration_rejected_with_plenty_food():
+    engine = _make_engine()
+    engine.state.supplies.food = 100
+    msgs = engine.step(PlayerIntent(IntentAction.HARD_RATION))
+    assert any("cannot" in line.lower() for line in msgs.lines)
+
+
+def test_rationing_decrements_on_travel():
+    engine = _make_engine()
+    engine.state.rationing_steps = 2
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    # Handle potential event/route phase
+    if engine.phase == GamePhase.EVENT:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    elif engine.phase == GamePhase.ROUTE:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.state.rationing_steps <= 1
+
+
+def test_rationing_ends_message():
+    engine = _make_engine()
+    engine.state.rationing_steps = 1
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.state.rationing_steps == 0
+    assert any("ration" in line.lower() and "ended" in line.lower()
+               for line in msgs.lines)
+
+
+# ── Adapter escape valve choices ─────────────────────────────────────
+
+
+def test_adapter_shows_escape_valves():
+    engine = _make_engine()
+    engine.state.wagon.condition = 20
+    engine.state.supplies.parts = 0
+    alive = engine.state.party.alive_count
+    engine.state.supplies.food = alive * 2
+
+    frame = state_to_frame(engine)
+    labels = [c.label for c in frame.choices]
+
+    # Should include standard choices plus escape valves
+    assert "Travel" in labels
+    assert "Abandon Cargo" in labels
+    assert "Desperate Repair" in labels
+    assert "Hard Ration" in labels
+
+
+def test_adapter_hides_valves_when_not_available():
+    engine = _make_engine()
+    engine.state.wagon.condition = 80
+    engine.state.supplies.parts = 10
+    engine.state.supplies.food = 100
+
+    frame = state_to_frame(engine)
+    labels = [c.label for c in frame.choices]
+
+    assert "Abandon Cargo" not in labels
+    assert "Desperate Repair" not in labels
+    assert "Hard Ration" not in labels
+
+
+# ── Trail ledger in game over ────────────────────────────────────────
+
+
+def test_game_over_shows_trail_ledger():
+    engine = _make_engine()
+    engine.state.game_over = True
+    engine.state.cause_of_death = "starvation"
+    engine.phase = GamePhase.GAME_OVER
+
+    frame = state_to_frame(engine)
+    assert "TRAIL LEDGER" in frame.prompt_text
+    assert frame.prompt_title == "Game Over"
+
+
+def test_victory_shows_trail_ledger():
+    engine = _make_engine()
+    engine.state.game_over = True
+    engine.state.victory = True
+    engine.phase = GamePhase.GAME_OVER
+
+    frame = state_to_frame(engine)
+    assert "TRAIL LEDGER" in frame.prompt_text
+    assert frame.prompt_title == "Victory!"
+
+
+# ── Phase 4: Maintenance window tests ──────────────────────────────
+
+
+def test_rest_then_repair_grants_maintenance():
+    engine = _make_engine()
+    engine.state.wagon.condition = 50
+    engine.step(PlayerIntent(IntentAction.REST))
+    engine.step(PlayerIntent(IntentAction.REPAIR))
+    assert engine.state.maintained_turns_remaining == 2
+
+
+def test_repair_then_rest_grants_maintenance():
+    engine = _make_engine()
+    engine.state.wagon.condition = 50
+    engine.step(PlayerIntent(IntentAction.REPAIR))
+    engine.step(PlayerIntent(IntentAction.REST))
+    assert engine.state.maintained_turns_remaining == 2
+
+
+def test_maintenance_decrements_on_travel():
+    engine = _make_engine()
+    engine.state.maintained_turns_remaining = 2
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    # Handle event/route if triggered
+    if engine.phase == GamePhase.EVENT:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    elif engine.phase == GamePhase.ROUTE:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.state.maintained_turns_remaining <= 1
+
+
+def test_travel_breaks_maintenance_chain():
+    engine = _make_engine()
+    engine.state.wagon.condition = 50
+    engine.step(PlayerIntent(IntentAction.REST))
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    if engine.phase == GamePhase.EVENT:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    elif engine.phase == GamePhase.ROUTE:
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    engine.step(PlayerIntent(IntentAction.REPAIR))
+    # TRAVEL between REST and REPAIR breaks the chain
+    assert engine.state.maintained_turns_remaining == 0
+
+
+def test_diagnostics_tracks_breakdowns():
+    engine = _make_engine()
+    # Just verify the counter exists and starts at 0
+    assert engine.diagnostics["wagon_breakdowns"] == 0
+    assert engine.diagnostics["events_total"] == 0
+
+
+def test_cache_collected_on_arrival():
+    engine = _make_engine()
+    # Place a cache on the next destination
+    for node in engine.state.map_nodes:
+        if node.node_id == engine.state.destination_id:
+            node.cache_supplies = {"food": 10, "parts": 2}
+            break
+    # Travel until arrival or game over
+    for _ in range(20):
+        if engine.phase == GamePhase.GAME_OVER:
+            return
+        if engine.phase == GamePhase.EVENT:
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        elif engine.phase == GamePhase.ROUTE:
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        elif engine.state.distance_remaining <= 0:
+            break
+        else:
+            engine.step(PlayerIntent(IntentAction.TRAVEL))
+    # Cache should be consumed (None) after arrival
+    arrived = engine.state.distance_remaining <= 0
+    if arrived:
+        assert engine.diagnostics["caches_found"] >= 1

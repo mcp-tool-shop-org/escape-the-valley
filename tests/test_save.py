@@ -62,3 +62,52 @@ class TestSaveLoad:
         with tempfile.TemporaryDirectory() as tmpdir:
             loaded = load_game(Path(tmpdir))
             assert loaded is None
+
+    def test_roundtrip_doctrine_taboo(self):
+        state = create_new_run(seed=42)
+        # Ensure we have values to roundtrip
+        assert state.doctrine != ""
+        assert state.taboo != ""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+
+            assert loaded.doctrine == state.doctrine
+            assert loaded.taboo == state.taboo
+            assert loaded.rationing_steps == state.rationing_steps
+
+    def test_roundtrip_rationing_steps(self):
+        state = create_new_run(seed=42)
+        state.rationing_steps = 2
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+
+            assert loaded.rationing_steps == 2
+
+    def test_backward_compat_missing_doctrine(self):
+        """Old saves without doctrine/taboo should load with defaults."""
+        state = create_new_run(seed=42)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            # Manually strip the new fields from the JSON
+            import json
+            save_path = base / ".trail" / "run.json"
+            data = json.loads(save_path.read_text(encoding="utf-8"))
+            data.pop("doctrine", None)
+            data.pop("taboo", None)
+            data.pop("rationing_steps", None)
+            save_path.write_text(
+                json.dumps(data, indent=2), encoding="utf-8",
+            )
+
+            loaded = load_game(base)
+            assert loaded.doctrine == ""
+            assert loaded.taboo == ""
+            assert loaded.rationing_steps == 0
