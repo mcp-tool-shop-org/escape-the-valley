@@ -168,11 +168,52 @@ def self_check() -> None:
 
 
 @app.command()
-def tui() -> None:
-    """Launch the Textual UI (full-screen terminal app)."""
+def tui(
+    seed: int | None = typer.Option(
+        None, "--seed", "-s", help="RNG seed for new run",
+    ),
+    resume: bool = typer.Option(
+        False, "--continue", help="Resume saved game",
+    ),
+    gm_off: bool = typer.Option(
+        False, "--gm-off", help="Disable Ollama GM",
+    ),
+    model: str = typer.Option(
+        "llama3.2", "--model", "-m", help="Ollama model name",
+    ),
+) -> None:
+    """Launch the full-screen Textual UI."""
+    from .gm import GMConfig
+    from .step_engine import StepEngine
     from .tui_app import LedgerTrailApp
 
-    LedgerTrailApp().run()
+    if resume:
+        state = load_game()
+        if state is None:
+            console.print(
+                "[red]No saved game. "
+                "Use 'trail tui' to start new.[/red]"
+            )
+            raise typer.Exit(1)
+        if state.game_over:
+            console.print(
+                "[yellow]Run is over. "
+                "Use 'trail tui' for a new one.[/yellow]"
+            )
+            raise typer.Exit(0)
+    else:
+        state = create_new_run(seed=seed)
+
+    gm_config = GMConfig(
+        host=os.environ.get(
+            "OLLAMA_HOST", "http://localhost:11434",
+        ),
+        model=model,
+        enabled=not gm_off,
+    )
+
+    engine = StepEngine(state, gm_config)
+    LedgerTrailApp(engine=engine).run()
 
 
 @app.command()

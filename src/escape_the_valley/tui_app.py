@@ -1,13 +1,14 @@
-"""Escape the Valley: Ledger Trail — Textual UI scaffold.
+"""Escape the Valley: Ledger Trail — Textual TUI.
 
 Run:
-    trail tui
+    trail tui           # new game, GM off
+    trail tui --continue # resume saved game
     # or: python -m escape_the_valley.tui_app
 
 Keys:
     t travel | r rest | h hunt | p repair
     1-4 choose option
-    j/k scroll narration | J toggle journal drawer
+    J toggle journal drawer
     ? help | q quit
 """
 
@@ -37,77 +38,37 @@ class Choice:
 
 @dataclass
 class FrameState:
-    """Renderable snapshot the engine hands to the UI. No engine internals."""
+    """Renderable snapshot. No engine internals leak into this."""
 
     # Left column
-    day: int = 3
-    location: str = "Old Switchback"
-    next_stop: str = "Grey Ford"
-    weather: str = "Fog, cold wind"
-    biome: str = "Forest"
+    day: int = 1
+    location: str = ""
+    next_stop: str = ""
+    weather: str = ""
+    biome: str = ""
     pace: str = "Steady"
-    wagon: str = "Wagon: 71% \u2022 Animals: 82%"
-    party_summary: str = "Party: 4 \u2022 Sick: 1 \u2022 Injured: 0"
+    wagon: str = ""
+    party_summary: str = ""
 
     supplies: dict[str, int] = field(default_factory=lambda: {
-        "FOOD": 38,
-        "WATR": 41,
-        "MEDS": 5,
-        "AMMO": 18,
-        "PART": 2,
+        "FOOD": 0, "WATR": 0, "MEDS": 0, "AMMO": 0, "PART": 0,
     })
 
     # Center column
-    route_ascii: str = (
-        "  [You]\n"
-        "    |\n"
-        " Old Switchback\n"
-        "    |\n"
-        "  Grey Ford (next)\n"
-        "    |\n"
-        "  Split Pines\n"
-        "   / \\\n"
-        " East Ridge   Hollow Market\n"
-    )
-    narration: str = (
-        "Fog settles in layers between the trees. The trail is "
-        "familiar for a moment\u2014then it isn\u2019t. Your boots find old "
-        "ruts, and the wagon follows as if it remembers.\n\n"
-        "Somewhere ahead, water moves over stone. The sound "
-        "carries oddly, as though the forest is listening for "
-        "a second note."
-    )
+    route_ascii: str = ""
+    narration: str = ""
 
     # Right column
-    party_detail: list[str] = field(default_factory=lambda: [
-        "Mara \u2014 83% (tired)",
-        "Oren \u2014 76% (sick)",
-        "Ilya \u2014 91% (well)",
-        "Jun  \u2014 88% (well)",
-    ])
-    warnings: list[str] = field(default_factory=lambda: [
-        "Low PART (2) \u2014 repairs limited",
-        "Oren is sick \u2014 consider rest",
-    ])
+    party_detail: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
-    # Bottom bar (event / choices)
-    prompt_title: str = "At camp"
-    prompt_text: str = "Night fog thickens. What do you do?"
-    choices: list[Choice] = field(default_factory=lambda: [
-        Choice("A", "Travel", "Risk mishap in fog", "More WATR"),
-        Choice("B", "Rest", "Safer, costs time", "FOOD/WATR"),
-        Choice("C", "Hunt", "May fail or injure", "Costs AMMO"),
-        Choice("D", "Repair", "May restore wagon", "Costs PART"),
-    ])
+    # Bottom bar
+    prompt_title: str = "Camp"
+    prompt_text: str = "What will you do?"
+    choices: list[Choice] = field(default_factory=list)
 
-    # Journal (full log)
-    journal: list[str] = field(default_factory=lambda: [
-        "Day 3 \u2014 Fog rolled in after dusk. The fire struggled.",
-        "A bell rang once in the trees. No one admitted to "
-        "carrying it.",
-        "You decided to wait for morning. The horses did not "
-        "settle.",
-    ])
+    # Journal
+    journal: list[str] = field(default_factory=list)
 
 
 # ── Widgets ─────────────────────────────────────────────────────────
@@ -164,7 +125,9 @@ class EventBar(Static):
             if c.cost_hint:
                 hints.append(f"cost: {c.cost_hint}")
             hint_txt = f"  ({'; '.join(hints)})" if hints else ""
-            choice_lines.append(f"[b]{c.id}[/b]) {c.label}{hint_txt}")
+            choice_lines.append(
+                f"[b]{c.id}[/b]) {c.label}{hint_txt}"
+            )
 
         text = (
             f"[b]{s.prompt_title}[/b]\n"
@@ -190,14 +153,10 @@ HELP_TEXT = """\
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
 \u2022 1\u20134 Choose option (A\u2013D)
-\u2022 j/k Scroll narration (when focused)
 \u2022 J Toggle journal drawer
 \u2022 q Quit
 
-Notes:
-\u2022 This is a UI scaffold with fake state.
-\u2022 The engine will later supply FrameState snapshots.
-\u2022 The table (engine) decides outcomes; the GM narrates.
+The engine decides outcomes. The GM narrates.
 """
 
 
@@ -229,33 +188,36 @@ class LedgerTrailApp(App):
     show_help: reactive[bool] = reactive(False)
     show_journal: reactive[bool] = reactive(False)
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        engine=None,
+        *,
+        demo: bool = False,
+    ) -> None:
         super().__init__()
+        self._engine = engine
+        self._demo = demo
         self._frame = FrameState()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
 
         with Grid(id="main"):
-            # Left column
             with Vertical(id="left"):
                 yield StatusPanel(id="status")
                 yield Rule()
                 yield SuppliesPanel(id="supplies")
 
-            # Center column
             with Vertical(id="center"):
                 yield MapPanel(id="map")
                 yield Rule()
                 yield NarrationPanel(id="narration")
 
-            # Right column
             with Vertical(id="right"):
                 yield PartyPanel(id="party")
 
         yield EventBar(id="eventbar")
 
-        # Overlays / drawers
         with Container(id="overlays"):
             yield HelpOverlay(id="help")
             yield JournalDrawer(id="journal")
@@ -263,7 +225,15 @@ class LedgerTrailApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        if self._engine:
+            self._sync_frame()
         self._render_all()
+
+    def _sync_frame(self) -> None:
+        """Pull a fresh FrameState from the engine."""
+        from .adapter import state_to_frame
+
+        self._frame = state_to_frame(self._engine)
 
     def _render_all(self) -> None:
         s = self._frame
@@ -287,74 +257,58 @@ class LedgerTrailApp(App):
         self._render_all()
 
     def action_choose(self, choice_id: str) -> None:
-        """Fake state mutations to prove UI wiring. Replace with
-        engine.step(intent) later."""
-        s = self._frame
+        """Send CHOOSE intent to the engine."""
+        if not self._engine:
+            return
 
-        label = next(
-            (c.label for c in s.choices if c.id == choice_id),
-            choice_id,
+        from .intent import IntentAction, PlayerIntent
+
+        intent = PlayerIntent(
+            action=IntentAction.CHOOSE,
+            choice_id=choice_id,
         )
-        s.journal.append(f"Chose {choice_id}: {label}")
-
-        if choice_id == "A":
-            s.day += 1
-            s.narration = (
-                "You move into the fog. The world narrows to "
-                "lantern-light and hoof-sound."
-            )
-            s.supplies["WATR"] = max(0, s.supplies["WATR"] - 2)
-            s.supplies["FOOD"] = max(0, s.supplies["FOOD"] - 1)
-            s.prompt_title = "On the trail"
-            s.prompt_text = (
-                "The road bends. Something watches from "
-                "the treeline."
-            )
-        elif choice_id == "B":
-            s.day += 1
-            s.narration = (
-                "You rest. The sick one breathes easier. "
-                "The fog does not."
-            )
-            s.supplies["WATR"] = max(0, s.supplies["WATR"] - 1)
-            s.supplies["FOOD"] = max(0, s.supplies["FOOD"] - 1)
-            s.prompt_title = "Morning camp"
-            s.prompt_text = (
-                "Ash in the firepit. Quiet woods. "
-                "Decisions remain."
-            )
-        elif choice_id == "C":
-            s.narration = (
-                "You hunt the margins of the dark. "
-                "The forest gives, but not freely."
-            )
-            s.supplies["AMMO"] = max(0, s.supplies["AMMO"] - 1)
-            s.supplies["FOOD"] += 2
-            s.prompt_title = "After hunting"
-            s.prompt_text = "You return with meat and questions."
-        elif choice_id == "D":
-            s.narration = (
-                "You work the axle by lantern-light. "
-                "Metal complains, then settles."
-            )
-            if s.supplies["PART"] > 0:
-                s.supplies["PART"] -= 1
-            s.prompt_title = "Repairs"
-            s.prompt_text = "The wagon holds\u2014for now."
-
+        self._engine.step(intent)
+        self._sync_frame()
         self._render_all()
 
-    def action_intent(self, intent: str) -> None:
-        """Map hotkeys t/r/h/p to choice IDs."""
-        mapping = {
-            "TRAVEL": "A",
-            "REST": "B",
-            "HUNT": "C",
-            "REPAIR": "D",
+    def action_intent(self, intent_str: str) -> None:
+        """Map hotkeys t/r/h/p to engine intents."""
+        if not self._engine:
+            return
+
+        from .intent import GamePhase, IntentAction, PlayerIntent
+
+        # If in EVENT or ROUTE phase, only CHOOSE is valid
+        if self._engine.phase in (
+            GamePhase.EVENT, GamePhase.ROUTE,
+        ):
+            # Map t/r/h/p to A/B/C/D when in choice mode
+            mapping = {
+                "TRAVEL": "A",
+                "REST": "B",
+                "HUNT": "C",
+                "REPAIR": "D",
+            }
+            cid = mapping.get(intent_str)
+            if cid:
+                self.action_choose(cid)
+            return
+
+        # CAMP phase — direct intent
+        action_map = {
+            "TRAVEL": IntentAction.TRAVEL,
+            "REST": IntentAction.REST,
+            "HUNT": IntentAction.HUNT,
+            "REPAIR": IntentAction.REPAIR,
         }
-        cid = mapping.get(intent)
-        if cid:
-            self.action_choose(cid)
+        action = action_map.get(intent_str)
+        if not action:
+            return
+
+        intent = PlayerIntent(action=action)
+        self._engine.step(intent)
+        self._sync_frame()
+        self._render_all()
 
 
 if __name__ == "__main__":
