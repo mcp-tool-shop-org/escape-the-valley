@@ -14,7 +14,7 @@ export const config: SiteConfig = {
     headlineAccent: 'Ledger Trail.',
     description: 'Lead a party through procedurally generated wilderness. Manage food, water, wagon condition, and morale. An AI Game Master narrates your journey. An optional XRPL ledger tracks your supplies on-chain.',
     primaryCta: { href: '#quickstart', label: 'Get started' },
-    secondaryCta: { href: '#features', label: 'Learn more' },
+    secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
       { label: 'Install', code: 'pip install -e ".[dev]"' },
       { label: 'Play', code: 'trail tui --seed 42' },
