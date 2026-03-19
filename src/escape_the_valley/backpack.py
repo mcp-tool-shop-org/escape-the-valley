@@ -443,12 +443,6 @@ class BackpackManager:
         Deducts supplies locally. The recipient discovers the parcel
         via check_parcels() at their next town.
         """
-        if not _HAS_XRPL:
-            return SendResult(
-                success=False,
-                message="xrpl-py is not installed.",
-            )
-
         bp = state.backpack
         if not bp.enabled or not bp.wallet_address:
             return SendResult(
@@ -456,6 +450,7 @@ class BackpackManager:
                 message="Ledger Backpack is not enabled.",
             )
 
+        # Input validation (no xrpl-py needed)
         if supply not in XRPL_TOKEN_MAP:
             valid = ", ".join(sorted(XRPL_TOKEN_MAP.keys()))
             return SendResult(
@@ -475,6 +470,13 @@ class BackpackManager:
 
         if recipient == bp.wallet_address:
             return SendResult(success=False, message="Cannot send to yourself.")
+
+        # XRPL required for actual send
+        if not _HAS_XRPL:
+            return SendResult(
+                success=False,
+                message="xrpl-py is not installed.",
+            )
 
         # Build memo and send XRP micropayment (12 drops = minimum)
         memo_text = f"PARCEL|RUN:{state.run_id}|DAY:{state.day}|{supply}:{amount}"
