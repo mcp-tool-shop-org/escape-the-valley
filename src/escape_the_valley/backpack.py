@@ -19,6 +19,7 @@ from .backpack_models import (
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
     ParcelRecord,
+    SentParcelRecord,
     SettlementRecord,
 )
 
@@ -33,7 +34,7 @@ _HAS_XRPL = False
 try:
     from xrpl.clients import JsonRpcClient
     from xrpl.models.amounts import IssuedCurrencyAmount
-    from xrpl.models.requests import AccountLines
+    from xrpl.models.requests import AccountLines, AccountTx
     from xrpl.models.transactions import Memo, Payment, TrustSet
     from xrpl.transaction import submit_and_wait
     from xrpl.wallet import Wallet, generate_faucet_wallet
@@ -66,6 +67,13 @@ class SettlementResult:
     record: SettlementRecord | None = None
 
 
+@dataclass
+class SendResult:
+    success: bool
+    message: str
+    txid: str = ""
+
+
 # ── Helpers ───────────────────────────────────────────────────────
 
 
@@ -94,6 +102,51 @@ def _shorten_address(addr: str) -> str:
     if len(addr) <= 10:
         return addr
     return f"{addr[:4]}...{addr[-4:]}"
+
+
+def _hex_decode(hex_str: str) -> str:
+    """Decode a hex string from XRPL memo fields."""
+    return bytes.fromhex(hex_str).decode("utf-8")
+
+
+def _build_parcel_memo(run_id: str, day: int, supply: str, amount: int) -> list:
+    """Build XRPL memo list for a parcel send transaction."""
+    memo_text = f"PARCEL|RUN:{run_id}|DAY:{day}|{supply}:{amount}"
+    return [Memo(
+        memo_data=_hex_encode(memo_text),
+        memo_type=_hex_encode("text/plain"),
+    )]
+
+
+def _decode_parcel_memo(memo_hex: str) -> dict | None:
+    """Decode a PARCEL memo from hex. Returns {supply, amount} or None."""
+    try:
+        text = _hex_decode(memo_hex)
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+    if not text.startswith("PARCEL|"):
+        return None
+
+    parts = text.split("|")
+    # Expected: PARCEL|RUN:<id>|DAY:<n>|<supply>:<amount>
+    if len(parts) < 4:
+        return None
+
+    supply_part = parts[-1]
+    if ":" not in supply_part:
+        return None
+
+    supply, _, amount_str = supply_part.partition(":")
+    try:
+        amount = int(amount_str)
+    except ValueError:
+        return None
+
+    if supply not in XRPL_TOKEN_MAP:
+        return None
+
+    return {"supply": supply, "amount": amount}
 
 
 # ── BackpackManager ──────────────────────────────────────────────
@@ -378,52 +431,160 @@ class BackpackManager:
 
         bp.pending_settlements = still_pending
 
+    def send_parcel(
+        self,
+        state: RunState,
+        recipient: str,
+        supply: str,
+        amount: int,
+    ) -> SendResult:
+        """Send a parcel to another traveler via XRP micropayment + memo.
+
+        Deducts supplies locally. The recipient discovers the parcel
+        via check_parcels() at their next town.
+        """
+        if not _HAS_XRPL:
+            return SendResult(
+                success=False,
+                message="xrpl-py is not installed.",
+            )
+
+        bp = state.backpack
+        if not bp.enabled or not bp.wallet_address:
+            return SendResult(
+                success=False,
+                message="Ledger Backpack is not enabled.",
+            )
+
+        if supply not in XRPL_TOKEN_MAP:
+            valid = ", ".join(sorted(XRPL_TOKEN_MAP.keys()))
+            return SendResult(
+                success=False,
+                message=f"Unknown supply '{supply}'. Valid: {valid}",
+            )
+
+        if amount <= 0:
+            return SendResult(success=False, message="Amount must be positive.")
+
+        current = state.supplies.get(supply)
+        if current < amount:
+            return SendResult(
+                success=False,
+                message=f"Not enough {supply} (have {current}, need {amount}).",
+            )
+
+        if recipient == bp.wallet_address:
+            return SendResult(success=False, message="Cannot send to yourself.")
+
+        # Build memo and send XRP micropayment (12 drops = minimum)
+        memo_text = f"PARCEL|RUN:{state.run_id}|DAY:{state.day}|{supply}:{amount}"
+        memos = _build_parcel_memo(state.run_id, state.day, supply, amount)
+
+        try:
+            client = self._get_client()
+            player = Wallet.from_seed(bp.wallet_secret)
+
+            tx = Payment(
+                account=player.address,
+                destination=recipient,
+                amount="12",  # 12 drops — minimum XRP payment
+                memos=memos,
+            )
+            resp = submit_and_wait(tx, client, player)
+            txid = resp.result.get("hash", "")
+
+            # Deduct supplies
+            state.supplies.set(supply, current - amount)
+
+            # Record outgoing parcel
+            record = SentParcelRecord(
+                recipient=recipient,
+                supply=supply,
+                amount=amount,
+                txid=txid,
+                day_sent=state.day,
+                memo=memo_text,
+            )
+            bp.sent_parcels.append(record)
+
+            short_addr = _shorten_address(recipient)
+            return SendResult(
+                success=True,
+                message=(
+                    f"Sent {amount} {supply} to {short_addr}. "
+                    f"Receipt: {txid[:12]}..."
+                ),
+                txid=txid,
+            )
+
+        except Exception as e:
+            log.warning("Parcel send to %s failed: %s", recipient, e)
+            return SendResult(
+                success=False,
+                message=(
+                    "The ledger is quiet. Couldn't send the parcel right now. "
+                    "Your supplies are unchanged."
+                ),
+            )
+
     def check_parcels(self, state: RunState) -> list[ParcelRecord]:
-        """Check for incoming token parcels from other travelers."""
+        """Check for incoming parcels via account_tx memo scanning.
+
+        Looks for XRP payments with PARCEL| memo prefix. Each unique
+        tx hash becomes a parcel that can be accepted or refused.
+        """
         bp = state.backpack
         if not _HAS_XRPL or not bp.enabled or not bp.wallet_address:
             return []
 
         try:
             client = self._get_client()
-            resp = client.request(AccountLines(
+            resp = client.request(AccountTx(
                 account=bp.wallet_address,
+                limit=50,
             ))
 
-            # Look for balances from non-issuer addresses
             new_parcels: list[ParcelRecord] = []
-            known_ids = {p.parcel_id for p in bp.parcels}
+            known_txids = {p.txid for p in bp.parcels if p.txid}
 
-            for line in resp.result.get("lines", []):
-                peer = line.get("account", "")
-                if peer == bp.issuer_address:
-                    continue  # Skip issuer lines — those are game inventory
+            for tx_entry in resp.result.get("transactions", []):
+                tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
+                meta = tx_entry.get("meta", {})
 
-                balance = float(line.get("balance", "0"))
-                currency = line.get("currency", "")
-
-                if balance <= 0:
+                # Only incoming XRP payments
+                if tx.get("TransactionType") != "Payment":
+                    continue
+                if tx.get("Destination") != bp.wallet_address:
                     continue
 
-                # Map XRPL code back to game key
-                game_key = None
-                for key, (code, _) in XRPL_TOKEN_MAP.items():
-                    if code == currency:
-                        game_key = key
-                        break
-
-                if game_key is None:
+                sender = tx.get("Account", "")
+                if not sender or sender == bp.wallet_address:
                     continue
 
-                parcel_id = f"{peer}:{currency}:{int(balance)}"
-                if parcel_id in known_ids:
+                tx_hash = tx.get("hash", tx_entry.get("hash", ""))
+                if not tx_hash or tx_hash in known_txids:
+                    continue
+
+                # Check for PARCEL memo
+                memos = tx.get("Memos", [])
+                if not memos:
+                    continue
+
+                memo_data = memos[0].get("Memo", {}).get("MemoData", "")
+                parsed = _decode_parcel_memo(memo_data)
+                if parsed is None:
+                    continue
+
+                # Verify transaction succeeded
+                result_code = meta.get("TransactionResult", "")
+                if result_code != "tesSUCCESS":
                     continue
 
                 parcel = ParcelRecord(
-                    parcel_id=parcel_id,
-                    sender=peer,
-                    contents={game_key: int(balance)},
-                    txid="",
+                    parcel_id=tx_hash,
+                    sender=sender,
+                    contents={parsed["supply"]: parsed["amount"]},
+                    txid=tx_hash,
                     accepted=False,
                     day_received=state.day,
                 )
@@ -446,6 +607,14 @@ class BackpackManager:
             state.supplies.set(key, current + capped_amount)
 
         parcel.accepted = True
+        return True
+
+    def refuse_parcel(self, parcel: ParcelRecord) -> bool:
+        """Refuse a parcel. Marks it refused without applying supplies."""
+        if parcel.accepted:
+            return False
+        parcel.accepted = False
+        parcel.parcel_id = f"refused:{parcel.parcel_id}"
         return True
 
     def disable(self, state: RunState) -> None:

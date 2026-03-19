@@ -141,6 +141,53 @@ class TestSaveLoad:
             loaded = load_game(base)
             assert loaded is None
 
+    def test_roundtrip_sent_parcels(self):
+        """Sent parcels should survive save/load roundtrip."""
+        from escape_the_valley.backpack_models import SentParcelRecord
+
+        state = create_new_run(seed=42)
+        state.backpack.sent_parcels.append(SentParcelRecord(
+            recipient="rRecipient12345",
+            supply="food",
+            amount=10,
+            txid="ABCDEF123456",
+            day_sent=3,
+            memo="PARCEL|RUN:test|DAY:3|food:10",
+        ))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+
+            assert loaded is not None
+            assert len(loaded.backpack.sent_parcels) == 1
+            sp = loaded.backpack.sent_parcels[0]
+            assert sp.recipient == "rRecipient12345"
+            assert sp.supply == "food"
+            assert sp.amount == 10
+            assert sp.txid == "ABCDEF123456"
+            assert sp.day_sent == 3
+
+    def test_backward_compat_no_sent_parcels(self):
+        """Old saves without sent_parcels should load with empty list."""
+        state = create_new_run(seed=42)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            # Strip sent_parcels from the saved JSON
+            save_path = base / SAVE_DIR / SAVE_FILE
+            data = json.loads(save_path.read_text(encoding="utf-8"))
+            data.get("backpack", {}).pop("sent_parcels", None)
+            save_path.write_text(
+                json.dumps(data, indent=2), encoding="utf-8",
+            )
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.sent_parcels == []
+
     def test_backward_compat_missing_doctrine(self):
         """Old saves without doctrine/taboo should load with defaults."""
         state = create_new_run(seed=42)

@@ -9,6 +9,7 @@ from .backpack_models import (
     BackpackState,
     ParcelRecord,
     PermitRecord,
+    SentParcelRecord,
     SettlementRecord,
 )
 from .models import (
@@ -337,6 +338,17 @@ def _backpack_to_dict(bp: BackpackState) -> dict:
             }
             for p in bp.parcels
         ],
+        "sent_parcels": [
+            {
+                "recipient": sp.recipient,
+                "supply": sp.supply,
+                "amount": sp.amount,
+                "txid": sp.txid,
+                "day_sent": sp.day_sent,
+                "memo": sp.memo,
+            }
+            for sp in bp.sent_parcels
+        ],
         "permits": [
             {
                 "permit_id": p.permit_id,
@@ -400,6 +412,17 @@ def _load_backpack(data: dict) -> BackpackState:
                 day_received=p.get("day_received", 0),
             )
             for p in data.get("parcels", [])
+        ],
+        sent_parcels=[
+            SentParcelRecord(
+                recipient=sp.get("recipient", ""),
+                supply=sp.get("supply", ""),
+                amount=sp.get("amount", 0),
+                txid=sp.get("txid", ""),
+                day_sent=sp.get("day_sent", 0),
+                memo=sp.get("memo", ""),
+            )
+            for sp in data.get("sent_parcels", [])
         ],
         permits=[
             PermitRecord(

@@ -26,6 +26,7 @@ Supplies are receipted at town checkpoints.
 Parcels may arrive from other travelers.
 
   [b]W[/b]) Wallet info
+  [b]P[/b]) Send parcel to traveler
   [b]S[/b]) Settle now
   [b]D[/b]) Disable Backpack
   [b]Esc[/b]) Close
@@ -198,3 +199,52 @@ class LearnMoreOverlay(Static):
 
     def on_mount(self) -> None:
         self.update(LEARN_TEXT)
+
+
+# ── Send Parcel Overlay ────────────────────────────────────────
+
+SEND_PARCEL_TEXT = """\
+[b]Send Parcel[/b]
+
+Send supplies to another traveler's wallet.
+They'll find your parcel at their next town.
+
+Supply types: food, water, meds, ammo, parts
+
+Current supplies:
+{supplies_text}
+
+Enter command in the format:
+  [b]<address> <supply> <amount>[/b]
+
+Type [b]cancel[/b] to go back.
+"""
+
+SEND_PARCEL_SUCCESS_TEXT = """\
+[b]Parcel sent![/b]
+
+{message}
+
+Press [b]Esc[/b] to continue.
+"""
+
+SEND_PARCEL_FAILURE_TEXT = """\
+[b]Send failed[/b]
+
+{message}
+
+Press [b]Esc[/b] to try again.
+"""
+
+
+class SendParcelOverlay(Static):
+    """Parcel send flow display."""
+
+    def show_form(self, supplies_text: str) -> None:
+        self.update(SEND_PARCEL_TEXT.format(supplies_text=supplies_text))
+
+    def show_success(self, message: str) -> None:
+        self.update(SEND_PARCEL_SUCCESS_TEXT.format(message=message))
+
+    def show_failure(self, message: str) -> None:
+        self.update(SEND_PARCEL_FAILURE_TEXT.format(message=message))

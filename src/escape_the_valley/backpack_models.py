@@ -35,6 +35,18 @@ class ParcelRecord:
 
 
 @dataclass
+class SentParcelRecord:
+    """An outgoing parcel sent to another traveler via XRP + memo."""
+
+    recipient: str = ""
+    supply: str = ""  # game key (e.g. "food")
+    amount: int = 0
+    txid: str = ""
+    day_sent: int = 0
+    memo: str = ""
+
+
+@dataclass
 class PermitRecord:
     """A one-time clutch tool earned from a hard choice."""
 
@@ -66,6 +78,9 @@ class BackpackState:
 
     # Parcels from other travelers
     parcels: list[ParcelRecord] = field(default_factory=list)
+
+    # Outgoing parcels sent to other travelers
+    sent_parcels: list[SentParcelRecord] = field(default_factory=list)
 
     # Permits (clutch tools)
     permits: list[PermitRecord] = field(default_factory=list)

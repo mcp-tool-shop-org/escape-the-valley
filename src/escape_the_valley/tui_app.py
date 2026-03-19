@@ -217,6 +217,8 @@ class LedgerTrailApp(App):
     show_enable_flow: reactive[bool] = reactive(False)
     show_wallet_info: reactive[bool] = reactive(False)
     show_learn_more: reactive[bool] = reactive(False)
+    show_send_parcel: reactive[bool] = reactive(False)
+    show_parcel_notify: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -261,6 +263,8 @@ class LedgerTrailApp(App):
                 LearnMoreOverlay,
                 LedgerMenuOverlay,
                 NudgeOverlay,
+                ParcelNotification,
+                SendParcelOverlay,
                 WalletInfoOverlay,
             )
 
@@ -269,6 +273,8 @@ class LedgerTrailApp(App):
             yield EnableFlowOverlay(id="enable_flow")
             yield WalletInfoOverlay(id="wallet_info")
             yield LearnMoreOverlay(id="learn_more")
+            yield SendParcelOverlay(id="send_parcel")
+            yield ParcelNotification(id="parcel_notify")
 
         yield Footer()
 
@@ -308,6 +314,8 @@ class LedgerTrailApp(App):
         self.query_one("#enable_flow").display = self.show_enable_flow
         self.query_one("#wallet_info").display = self.show_wallet_info
         self.query_one("#learn_more").display = self.show_learn_more
+        self.query_one("#send_parcel").display = self.show_send_parcel
+        self.query_one("#parcel_notify").display = self.show_parcel_notify
 
     def _after_step(self) -> None:
         """Sync frame, render, optionally narrate, and check nudge."""
@@ -524,6 +532,79 @@ class LedgerTrailApp(App):
         ).update_from_info(info)
         self._render_all()
 
+    def action_send_parcel(self) -> None:
+        """Show the send parcel overlay with wallet + supply info."""
+        if not self._engine:
+            return
+
+        bp = self._engine.state.backpack
+        if not bp.enabled:
+            self.notify("Enable backpack first (L → E)")
+            return
+
+        from .backpack_models import XRPL_TOKEN_MAP
+        from .backpack_ui import SendParcelOverlay
+
+        supplies = self._engine.state.supplies
+        supply_lines = []
+        for key in sorted(XRPL_TOKEN_MAP.keys()):
+            amount = supplies.get(key)
+            supply_lines.append(f"  {key}: {amount}")
+
+        self._close_all_overlays()
+        self.show_send_parcel = True
+        self.query_one(
+            "#send_parcel", SendParcelOverlay,
+        ).show_form("\n".join(supply_lines))
+        self._render_all()
+
+    def action_show_parcel(self, parcel) -> None:
+        """Show a parcel notification for accept/refuse."""
+        from .backpack_ui import ParcelNotification
+
+        contents = ", ".join(
+            f"{v} {k}" for k, v in parcel.contents.items()
+        )
+        self._close_all_overlays()
+        self.show_parcel_notify = True
+        self._current_parcel = parcel
+        self.query_one(
+            "#parcel_notify", ParcelNotification,
+        ).show_parcel(parcel.sender, contents)
+        self._render_all()
+
+    def action_accept_parcel(self) -> None:
+        """Accept the currently shown parcel."""
+        if not self._engine or not hasattr(self, "_current_parcel"):
+            return
+
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        mgr.accept_parcel(self._current_parcel, self._engine.state)
+
+        contents = ", ".join(
+            f"+{v} {k}" for k, v in self._current_parcel.contents.items()
+        )
+        self.notify(f"Parcel accepted: {contents}")
+        self._close_all_overlays()
+        self._sync_frame()
+        self._render_all()
+
+    def action_refuse_parcel(self) -> None:
+        """Refuse the currently shown parcel."""
+        if not self._engine or not hasattr(self, "_current_parcel"):
+            return
+
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        mgr.refuse_parcel(self._current_parcel)
+
+        self.notify("Parcel refused")
+        self._close_all_overlays()
+        self._render_all()
+
     def action_learn_more(self) -> None:
         """Show learn more overlay."""
         self._close_all_overlays()
@@ -549,6 +630,8 @@ class LedgerTrailApp(App):
         self.show_enable_flow = False
         self.show_wallet_info = False
         self.show_learn_more = False
+        self.show_send_parcel = False
+        self.show_parcel_notify = False
 
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
@@ -560,10 +643,22 @@ class LedgerTrailApp(App):
                 self.show_ledger, self.show_nudge,
                 self.show_enable_flow, self.show_wallet_info,
                 self.show_learn_more, self.show_help,
+                self.show_send_parcel, self.show_parcel_notify,
             ]):
                 self._close_all_overlays()
                 self.show_help = False
                 self._render_all()
+                event.prevent_default()
+                return
+
+        # Parcel notification keys
+        if self.show_parcel_notify:
+            if key == "a":
+                self.action_accept_parcel()
+                event.prevent_default()
+                return
+            if key == "r":
+                self.action_refuse_parcel()
                 event.prevent_default()
                 return
 
@@ -579,6 +674,10 @@ class LedgerTrailApp(App):
                 return
             if key == "w":
                 self.action_wallet_info()
+                event.prevent_default()
+                return
+            if key == "p":
+                self.action_send_parcel()
                 event.prevent_default()
                 return
             if key == "s":

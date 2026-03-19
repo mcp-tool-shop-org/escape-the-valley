@@ -450,6 +450,38 @@ parcel_app = typer.Typer(name="parcel", help="Parcel commands")
 app.add_typer(parcel_app)
 
 
+@parcel_app.command(name="send")
+def parcel_send(
+    address: str = typer.Argument(help="Recipient XRPL wallet address"),
+    supply: str = typer.Argument(help="Supply type: food, water, meds, ammo, parts"),
+    amount: int = typer.Argument(help="Amount to send"),
+) -> None:
+    """Send supplies to another traveler via XRPL."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    if not state.backpack.enabled:
+        console.print("[red]Ledger Backpack not enabled. Run: trail ledger enable[/red]")
+        raise typer.Exit(1)
+
+    from .backpack import BackpackManager
+    from .save import save_game
+
+    mgr = BackpackManager()
+    console.print(f"Sending {amount} {supply} to {address[:8]}...")
+    result = mgr.send_parcel(state, address, supply.lower(), amount)
+    mgr.close()
+
+    if result.success:
+        save_game(state)
+        console.print(f"[green]{result.message}[/green]")
+    else:
+        console.print(f"[red]{result.message}[/red]")
+        raise typer.Exit(1)
+
+
 @parcel_app.command(name="list")
 def parcel_list() -> None:
     """List received parcels."""
@@ -463,7 +495,13 @@ def parcel_list() -> None:
         return
 
     for p in state.backpack.parcels:
-        status = "accepted" if p.accepted else "pending"
+        refused = p.parcel_id.startswith("refused:")
+        if p.accepted:
+            status = "accepted"
+        elif refused:
+            status = "refused"
+        else:
+            status = "pending"
         contents = ", ".join(f"{v} {k}" for k, v in p.contents.items())
         sender_short = p.sender[:8] + "..." if len(p.sender) > 12 else p.sender
         console.print(
@@ -501,6 +539,55 @@ def parcel_accept(
 
     contents = ", ".join(f"+{v} {k}" for k, v in parcel.contents.items())
     console.print(f"[green]Parcel accepted: {contents}[/green]")
+
+
+@parcel_app.command(name="sent")
+def parcel_sent() -> None:
+    """List parcels you've sent to other travelers."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    sent = state.backpack.sent_parcels
+    if not sent:
+        console.print("[dim]No parcels sent yet.[/dim]")
+        return
+
+    for sp in sent:
+        addr_short = sp.recipient[:8] + "..." if len(sp.recipient) > 12 else sp.recipient
+        txid_short = sp.txid[:12] + "..." if sp.txid else "pending"
+        console.print(
+            f"  To {addr_short}: {sp.amount} {sp.supply} "
+            f"(day {sp.day_sent}) [{txid_short}]"
+        )
+
+
+# ── Wallet subcommands ────────────────────────────────────────
+
+wallet_app = typer.Typer(name="wallet", help="Wallet commands")
+app.add_typer(wallet_app)
+
+
+@wallet_app.command(name="share")
+def wallet_share() -> None:
+    """Print your wallet address for trading with other travelers."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    addr = state.backpack.wallet_address
+    if not addr:
+        console.print("[red]No wallet. Enable backpack first: trail ledger enable[/red]")
+        raise typer.Exit(1)
+
+    console.print()
+    console.print("[bold]Your Trail Address[/bold]")
+    console.print(f"  {addr}")
+    console.print()
+    console.print("[dim]Share this with another traveler so they can send you supplies.[/dim]")
+    console.print(f"[dim]They run: trail parcel send {addr} food 10[/dim]")
 
 
 if __name__ == "__main__":

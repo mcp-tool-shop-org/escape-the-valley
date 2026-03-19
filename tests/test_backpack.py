@@ -4,6 +4,9 @@
 from escape_the_valley.backpack import (
     BackpackManager,
     _build_memo,
+    _build_parcel_memo,
+    _decode_parcel_memo,
+    _hex_decode,
     _hex_encode,
     _shorten_address,
 )
@@ -166,6 +169,162 @@ class TestSettleNoXrpl:
             result = mgr.enable(state)
             assert result.success is False
             assert "xrpl" in result.message.lower()
+
+
+class TestParcelMemo:
+    def test_hex_roundtrip(self):
+        original = "PARCEL|RUN:abc|DAY:5|food:10"
+        encoded = _hex_encode(original)
+        decoded = _hex_decode(encoded)
+        assert decoded == original
+
+    def test_build_parcel_memo(self):
+        memos = _build_parcel_memo("run1", 5, "food", 10)
+        assert len(memos) == 1
+        assert memos[0].memo_data is not None
+
+    def test_decode_parcel_memo_valid(self):
+        memo_text = "PARCEL|RUN:abc|DAY:5|food:10"
+        hex_data = _hex_encode(memo_text)
+        result = _decode_parcel_memo(hex_data)
+        assert result is not None
+        assert result["supply"] == "food"
+        assert result["amount"] == 10
+
+    def test_decode_parcel_memo_all_supplies(self):
+        for supply in ("food", "water", "meds", "ammo", "parts"):
+            memo_text = f"PARCEL|RUN:x|DAY:1|{supply}:5"
+            result = _decode_parcel_memo(_hex_encode(memo_text))
+            assert result is not None
+            assert result["supply"] == supply
+
+    def test_decode_parcel_memo_not_parcel(self):
+        memo_text = "TRAIL|RUN:abc|DAY:5|DELTA:FOD+3"
+        result = _decode_parcel_memo(_hex_encode(memo_text))
+        assert result is None
+
+    def test_decode_parcel_memo_invalid_supply(self):
+        memo_text = "PARCEL|RUN:abc|DAY:5|gold:10"
+        result = _decode_parcel_memo(_hex_encode(memo_text))
+        assert result is None
+
+    def test_decode_parcel_memo_invalid_hex(self):
+        result = _decode_parcel_memo("ZZZZ")
+        assert result is None
+
+    def test_decode_parcel_memo_empty(self):
+        result = _decode_parcel_memo("")
+        assert result is None
+
+
+class TestSendParcelValidation:
+    """Test send_parcel input validation (no XRPL needed)."""
+
+    def test_send_not_enabled(self):
+        state = _make_state()
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 5)
+        assert result.success is False
+
+    def test_send_invalid_supply(self):
+        state = _make_state()
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rSender"
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "gold", 5)
+        assert result.success is False
+        assert "Unknown supply" in result.message
+
+    def test_send_zero_amount(self):
+        state = _make_state()
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rSender"
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 0)
+        assert result.success is False
+        assert "positive" in result.message.lower()
+
+    def test_send_negative_amount(self):
+        state = _make_state()
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rSender"
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", -5)
+        assert result.success is False
+
+    def test_send_insufficient_supplies(self):
+        state = _make_state()
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rSender"
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 999)
+        assert result.success is False
+        assert "Not enough" in result.message
+
+    def test_send_to_self(self):
+        state = _make_state()
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rSelfAddress"
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rSelfAddress", "food", 5)
+        assert result.success is False
+        assert "yourself" in result.message.lower()
+
+    def test_send_without_xrpl(self):
+        """Send should fail gracefully if xrpl-py not installed."""
+        mgr = BackpackManager()
+        if not mgr.available:
+            state = _make_state()
+            state.backpack.enabled = True
+            state.backpack.wallet_address = "rSender"
+            result = mgr.send_parcel(state, "rRecipient", "food", 5)
+            assert result.success is False
+            assert "xrpl" in result.message.lower()
+
+
+class TestRefuseParcel:
+    def test_refuse_marks_parcel(self):
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        parcel = ParcelRecord(
+            parcel_id="tx123",
+            sender="rSender",
+            contents={"food": 5},
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        result = mgr.refuse_parcel(parcel)
+        assert result is True
+        assert parcel.parcel_id.startswith("refused:")
+
+    def test_refuse_already_accepted(self):
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        parcel = ParcelRecord(
+            parcel_id="tx123",
+            sender="rSender",
+            contents={"food": 5},
+            accepted=True,
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        result = mgr.refuse_parcel(parcel)
+        assert result is False
+
+    def test_refuse_does_not_apply_supplies(self):
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        state = _make_state()
+        original_food = state.supplies.food
+        parcel = ParcelRecord(
+            parcel_id="tx123",
+            sender="rSender",
+            contents={"food": 10},
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        mgr.refuse_parcel(parcel)
+        assert state.supplies.food == original_food
 
 
 class TestSettleDeltaComputation:
