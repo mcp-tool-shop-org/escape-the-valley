@@ -61,8 +61,15 @@ def load_game(base_path: Path | None = None) -> RunState | None:
     if not save_path.exists():
         return None
 
-    data = json.loads(save_path.read_text(encoding="utf-8"))
-    return _dict_to_state(data)
+    try:
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+    try:
+        return _dict_to_state(data)
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def has_save(base_path: Path | None = None) -> bool:

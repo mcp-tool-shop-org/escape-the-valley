@@ -86,6 +86,8 @@ BANNED_WORDS = {
 class GMConfig:
     host: str = "http://localhost:11434"
     model: str = "llama3.2"
+    # 30s allows for first-load model warm-up on slower hardware.
+    # Health checks (cli.py self_check) use a shorter 5s timeout.
     timeout: float = 30.0
     max_retries: int = 1
     enabled: bool = True

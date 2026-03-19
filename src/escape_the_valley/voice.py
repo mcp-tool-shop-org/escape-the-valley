@@ -257,8 +257,11 @@ class VoiceBridge:
                 | winsound.SND_ASYNC
                 | winsound.SND_NODEFAULT,
             )
-            # Poll for completion or interrupt
+            # Poll for completion or interrupt (hard timeout: 60s)
+            deadline = _time.monotonic() + 60.0
             while self._playing.is_set() and not self._stop.is_set():
+                if _time.monotonic() >= deadline:
+                    break
                 _time.sleep(0.05)
             winsound.PlaySound(None, winsound.SND_PURGE)
         else:

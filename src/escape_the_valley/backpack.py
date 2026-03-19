@@ -372,7 +372,8 @@ class BackpackManager:
                 record.timestamp = datetime.now(UTC).isoformat()
                 bp.settlements.append(record)
 
-            except Exception:
+            except Exception as e:
+                log.warning("Retry settlement day %d failed: %s", record.day, e)
                 still_pending.append(record)
 
         bp.pending_settlements = still_pending

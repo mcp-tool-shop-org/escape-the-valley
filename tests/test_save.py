@@ -1,10 +1,11 @@
 """Tests for save/load roundtrip."""
 
+import json
 import tempfile
 from pathlib import Path
 
 from escape_the_valley.models import GMProfile, JournalEntry
-from escape_the_valley.save import load_game, save_game
+from escape_the_valley.save import SAVE_DIR, SAVE_FILE, load_game, save_game
 from escape_the_valley.worldgen import create_new_run
 
 
@@ -88,6 +89,57 @@ class TestSaveLoad:
             loaded = load_game(base)
 
             assert loaded.rationing_steps == 2
+
+    def test_corrupted_json_returns_none(self):
+        """Corrupted save file should return None, not crash."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_dir = base / SAVE_DIR
+            save_dir.mkdir()
+            save_path = save_dir / SAVE_FILE
+            save_path.write_text("{invalid json!!", encoding="utf-8")
+
+            loaded = load_game(base)
+            assert loaded is None
+
+    def test_truncated_json_returns_none(self):
+        """Truncated save file should return None, not crash."""
+        state = create_new_run(seed=42)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            # Truncate the save file mid-JSON
+            save_path = base / SAVE_DIR / SAVE_FILE
+            content = save_path.read_text(encoding="utf-8")
+            save_path.write_text(content[: len(content) // 2], encoding="utf-8")
+
+            loaded = load_game(base)
+            assert loaded is None
+
+    def test_empty_file_returns_none(self):
+        """Empty save file should return None, not crash."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_dir = base / SAVE_DIR
+            save_dir.mkdir()
+            (save_dir / SAVE_FILE).write_text("", encoding="utf-8")
+
+            loaded = load_game(base)
+            assert loaded is None
+
+    def test_wrong_structure_returns_none(self):
+        """Valid JSON but wrong structure should return None, not crash."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_dir = base / SAVE_DIR
+            save_dir.mkdir()
+            (save_dir / SAVE_FILE).write_text(
+                json.dumps({"not": "a game state"}), encoding="utf-8",
+            )
+
+            loaded = load_game(base)
+            assert loaded is None
 
     def test_backward_compat_missing_doctrine(self):
         """Old saves without doctrine/taboo should load with defaults."""
