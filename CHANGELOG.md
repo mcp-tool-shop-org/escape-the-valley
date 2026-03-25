@@ -2,6 +2,13 @@
 
 All notable changes to Escape the Valley are documented here.
 
+## [1.0.1] - 2026-03-25
+
+### Added
+- `--version` / `-V` flag on root CLI (Typer callback)
+- `trail stats` command — run summary with `--json` output (party, distance, wagon, journal, outcome)
+- 7 new tests (347 total)
+
 ## [1.0.0] - 2026-03-04
 
 ### Added

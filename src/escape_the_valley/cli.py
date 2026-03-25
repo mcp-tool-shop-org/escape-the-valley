@@ -15,12 +15,29 @@ from .save import has_save, load_game
 from .ui import show_journal, show_status, show_title_screen
 from .worldgen import create_new_run
 
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"trail {__version__}")
+        raise typer.Exit()
+
+
 app = typer.Typer(
     name="trail",
     help="Escape the Valley: Ledger Trail — Oregon Trail-style survival game",
     no_args_is_help=True,
 )
 console = Console()
+
+
+@app.callback(invoke_without_command=True)
+def main_callback(
+    _version: bool = typer.Option(
+        False, "--version", "-V", callback=_version_callback, is_eager=True,
+        help="Show version and exit.",
+    ),
+) -> None:
+    """Escape the Valley: Ledger Trail — Oregon Trail-style survival game."""
 
 
 @app.command()
@@ -265,6 +282,72 @@ def tui(
 def version() -> None:
     """Show version."""
     console.print(f"Escape the Valley: Ledger Trail v{__version__}")
+
+
+@app.command()
+def stats(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Show run statistics from the current save."""
+    state = load_game()
+    if state is None:
+        console.print("[dim]No saved game found.[/dim]")
+        raise typer.Exit(0)
+
+    alive = state.party.alive_count
+    total = len(state.party.members)
+    journal_count = len(state.journal)
+    events_seen = len(state.recent_event_tags)
+    memories = len(state.memory_cards)
+    twists = len(state.twists)
+
+    data = {
+        "run_id": state.run_id,
+        "seed": state.seed,
+        "day": state.day,
+        "time_of_day": (
+            state.time_of_day.value
+            if hasattr(state.time_of_day, "value")
+            else str(state.time_of_day)
+        ),
+        "party_alive": alive,
+        "party_total": total,
+        "distance_traveled": state.distance_traveled,
+        "distance_remaining": state.distance_remaining,
+        "total_distance": state.total_distance,
+        "game_over": state.game_over,
+        "victory": state.victory,
+        "gm_profile": (
+            state.gm_profile.value
+            if hasattr(state.gm_profile, "value")
+            else str(state.gm_profile)
+        ),
+        "journal_entries": journal_count,
+        "events_seen": events_seen,
+        "memory_cards": memories,
+        "twists": twists,
+        "wagon_condition": state.wagon.condition,
+    }
+
+    if json_output:
+        import json
+        console.print(json.dumps(data, indent=2))
+    else:
+        console.print("[bold]Run Statistics[/bold]\n")
+        console.print(f"  Run:       {state.run_id} (seed {state.seed})")
+        console.print(f"  Day:       {data['day']} ({data['time_of_day']})")
+        console.print(f"  Party:     {alive}/{total} alive")
+        pct = (state.distance_traveled / state.total_distance * 100) if state.total_distance else 0
+        console.print(f"  Distance:  {state.distance_traveled}/{state.total_distance} ({pct:.0f}%)")
+        console.print(f"  Wagon:     {state.wagon.condition}% condition")
+        console.print(f"  GM:        {data['gm_profile']}")
+        console.print(f"  Journal:   {journal_count} entries")
+        console.print(f"  Memories:  {memories} cards")
+        console.print(f"  Twists:    {twists}")
+        if state.game_over:
+            outcome = "Victory!" if state.victory else f"Defeated: {state.cause_of_death}"
+            console.print(f"  Outcome:   {outcome}")
+        console.print()
 
 
 # ── Ledger subcommands ──────────────────────────────────────────

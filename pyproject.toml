@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "escape-the-valley"
-version = "1.0.0"
+version = "1.0.1"
 description = "Oregon Trail-style survival game powered by Ollama GM with XRPL ledger-backed inventory"
 readme = "README.md"
 license = "MIT"
