@@ -43,11 +43,18 @@ The `--seed` flag makes the run reproducible — same seed, same world, same eve
 # With AI narration (requires Ollama running locally)
 trail tui --seed 42 --voice
 
+# With a specific Ollama model
+trail tui --seed 42 --model mistral
+
 # Without AI narration (pure deterministic mode)
 trail tui --seed 42 --gm-off
 
 # Resume a saved game
 trail tui --continue
+
+# Classic CLI mode (no full-screen TUI)
+trail new --seed 42
+trail play
 ```
 
 ## What you'll see

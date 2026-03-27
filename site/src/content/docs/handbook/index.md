@@ -9,12 +9,13 @@ Welcome to the Escape the Valley handbook. This is the complete guide to survivi
 
 ## What's inside
 
-- **[Getting Started](/escape-the-valley/handbook/getting-started/)** — Install, launch, and play your first game
-- **[Survival Guide](/escape-the-valley/handbook/survival-guide/)** — Hard-won tips from players who made it out
-- **[Game Mechanics](/escape-the-valley/handbook/mechanics/)** — Actions, physics, events, doctrines, and escape valves
-- **[GM Profiles](/escape-the-valley/handbook/gm-profiles/)** — The three AI narrators and how they shape the story
-- **[XRPL Ledger](/escape-the-valley/handbook/xrpl-ledger/)** — On-chain supply tracking with the Ledger Backpack
-- **[Commands](/escape-the-valley/handbook/commands/)** — Full CLI reference
+- **[Getting Started](/escape-the-valley/handbook/getting-started/)** -- Install, launch, and play your first game
+- **[Survival Guide](/escape-the-valley/handbook/survival-guide/)** -- Hard-won tips from players who made it out
+- **[Game Mechanics](/escape-the-valley/handbook/mechanics/)** -- Actions, physics, events, doctrines, and escape valves
+- **[GM Profiles](/escape-the-valley/handbook/gm-profiles/)** -- The three AI narrators and how they shape the story
+- **[XRPL Ledger](/escape-the-valley/handbook/xrpl-ledger/)** -- On-chain supply tracking with the Ledger Backpack
+- **[Commands](/escape-the-valley/handbook/commands/)** -- Full CLI reference
+- **[Beginners](/escape-the-valley/handbook/beginners/)** -- First-timer walkthrough with worked examples
 
 ## About the game
 

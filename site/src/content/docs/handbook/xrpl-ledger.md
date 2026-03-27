@@ -48,15 +48,26 @@ trail ledger reconcile
 
 ## Parcels
 
-Other players can send you supply parcels on the XRPL Testnet:
+Players can trade supplies with each other on the XRPL Testnet:
 
 ```bash
+# Share your address so others can send you supplies
+trail wallet share
+
+# Send supplies to another traveler
+trail parcel send <address> food 10
+
 # List received parcels
 trail parcel list
 
 # Accept a pending parcel
 trail parcel accept <id>
+
+# See what you've sent
+trail parcel sent
 ```
+
+Parcels arrive as pending and must be explicitly accepted before supplies are added to your inventory. You can also refuse parcels.
 
 ## Requirements
 

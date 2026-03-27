@@ -39,8 +39,14 @@ trail tui --continue
 # With AI narration (requires Ollama running locally)
 trail tui --seed 42 --voice
 
+# With voice pacing control
+trail tui --seed 42 --voice --voice-pace slow
+
 # Without AI narration (deterministic mode)
 trail tui --seed 42 --gm-off
+
+# Use a specific Ollama model
+trail tui --seed 42 --model mistral
 ```
 
 ## How to Play
@@ -74,6 +80,16 @@ The AI narrator shapes the tone, not the mechanics. All three profiles play the 
 
 Set with `--gm-profile`: `trail tui --gm-profile lantern`
 
+## Supplies
+
+The game tracks 12 resource types across two categories:
+
+**Consumables:** food, water, firewood, meds, salt, ammo, lantern oil, cloth
+
+**Gear:** parts, rope, tools, boots
+
+The 5 core supplies (food, water, meds, ammo, parts) are the most critical. Extended supplies like firewood, salt, lantern oil, and cloth add depth: firewood fuels night camps, salt prevents food spoilage, lantern oil enables safer night travel, and cloth patches gear and wagon cover.
+
 ## Ledger Backpack (Optional)
 
 The Ledger Backpack tracks your 5 core supplies (food, water, meds, ammo, parts) as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can verify.
@@ -105,8 +121,12 @@ Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 | `trail ledger settle` | Manually settle a checkpoint |
 | `trail ledger reconcile` | Retry failed settlements |
 | `trail ledger wallet` | Show wallet details |
+| `trail stats` | Show run statistics (supports `--json`) |
+| `trail parcel send <addr> <supply> <amount>` | Send supplies to another traveler |
 | `trail parcel list` | List received parcels |
 | `trail parcel accept <id>` | Accept a pending parcel |
+| `trail parcel sent` | List parcels you have sent |
+| `trail wallet share` | Print your wallet address for trading |
 
 ## Warning Callouts
 

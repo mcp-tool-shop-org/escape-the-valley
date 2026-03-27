@@ -48,6 +48,36 @@ trail tui --seed 42 --gm-profile chronicler
 trail tui --seed 42 --gm-profile lantern
 ```
 
+## Weirdness level
+
+The `--weirdness` flag (0-3) controls how much folklore and uncanny content the GM injects. Higher values unlock more strange details. The default is 2. Each run starts with 2 uncanny tokens that the GM can spend on strong uncanny moments.
+
+```bash
+# Maximum folklore (Lantern-Bearer recommended)
+trail new --seed 42 --gm-profile lantern --weirdness 3
+
+# Minimal folklore
+trail new --seed 42 --weirdness 0
+```
+
+## Choosing a model
+
+The `--model` flag selects which Ollama model generates narration. The default is `llama3.2`. Larger models produce richer text but are slower:
+
+```bash
+trail tui --seed 42 --model mistral
+```
+
+## Voice narration
+
+Enable spoken narration with `--voice`. Each GM profile maps to a different voice and pacing style. Control playback speed with `--voice-pace`:
+
+```bash
+trail tui --seed 42 --voice --voice-pace slow
+```
+
+Voice pacing options: `fast`, `normal` (default), `slow`. Requires the `voice-soundboard` package. Audio plays in the background and can be interrupted with any key press.
+
 ## Disabling the GM
 
 Run without AI narration entirely:
@@ -56,8 +86,8 @@ Run without AI narration entirely:
 trail tui --seed 42 --gm-off
 ```
 
-The game plays identically — you just won't get narrative text between events. Useful for speed runs or systems without Ollama.
+The game plays identically -- you just see fallback text instead of GM narration. Useful for speed runs or systems without Ollama.
 
 ## Requirements
 
-The GM requires [Ollama](https://ollama.com/) running locally. No API keys, no cloud calls, no cost. The game auto-detects whether Ollama is available and falls back gracefully if it isn't.
+The GM requires [Ollama](https://ollama.com/) running locally. No API keys, no cloud calls, no cost. The game auto-detects whether Ollama is available and falls back gracefully if it isn't. The default 30-second timeout allows for first-load model warm-up on slower hardware.
