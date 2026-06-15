@@ -307,3 +307,151 @@ class TestShowOutcomeRobustness:
         out = capsys.readouterr().out
         assert "food" in out
         assert "water" in out
+
+
+# ── cli-tui-B-01: escape valves are reachable ───────────────────────
+
+
+class TestEscapeValveReachability:
+    """The conditional valves E/F/G must be both shown AND pickable.
+
+    Before the fix the adapter rendered them but no key dispatched them, so a
+    player in a death spiral could see 'Abandon Cargo' and never choose it.
+    """
+
+    def _spiral_state(self, seed=11):
+        """A state where all three valve gates are open."""
+        from escape_the_valley.intent import GamePhase
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=seed)
+        state.wagon.condition = 10          # < 30
+        state.supplies.parts = 0            # no parts
+        alive = state.party.alive_count
+        state.supplies.food = max(0, alive * 3 - 1)  # food critical
+        state.rationing_steps = 0
+        state.escape_valve_cooldown = 0
+        engine = StepEngine(state, GMConfig(enabled=False))
+        engine.phase = GamePhase.CAMP
+        return state, engine
+
+    def test_all_three_valves_offered(self):
+        from escape_the_valley.adapter import camp_choices
+
+        state, _ = self._spiral_state()
+        ids = [cid for cid, *_ in camp_choices(state)]
+        assert ids == ["A", "B", "C", "D", "E", "F", "G"]
+
+    def test_valve_letters_map_to_intents(self):
+        from escape_the_valley.adapter import camp_choice_intent
+        from escape_the_valley.intent import IntentAction
+
+        state, _ = self._spiral_state()
+        assert camp_choice_intent(state, "E") == IntentAction.ABANDON_CARGO
+        assert camp_choice_intent(state, "F") == IntentAction.DESPERATE_REPAIR
+        assert camp_choice_intent(state, "G") == IntentAction.HARD_RATION
+
+    def test_unavailable_valve_maps_to_none(self):
+        """When a gate is closed, its letter resolves to nothing (ignored)."""
+        from escape_the_valley.adapter import camp_choice_intent
+
+        state = create_new_run(seed=11)  # healthy: no valves open
+        assert camp_choice_intent(state, "E") is None
+        assert camp_choice_intent(state, "F") is None
+        assert camp_choice_intent(state, "G") is None
+
+    def test_letters_shift_when_only_some_valves_open(self):
+        """Only hard-ration open -> it takes the first valve slot, 'E'."""
+        from escape_the_valley.adapter import camp_choice_intent
+        from escape_the_valley.intent import IntentAction
+
+        state = create_new_run(seed=11)
+        # Healthy wagon (no abandon/desperate), but food critical -> ration.
+        alive = state.party.alive_count
+        state.supplies.food = max(0, alive * 3 - 1)
+        state.rationing_steps = 0
+        state.escape_valve_cooldown = 0
+        assert camp_choice_intent(state, "E") == IntentAction.HARD_RATION
+        assert camp_choice_intent(state, "F") is None
+
+    def test_action_choose_dispatches_valve(self, tmp_path, monkeypatch):
+        """action_choose('E') actually steps the engine via the valve intent."""
+        monkeypatch.chdir(tmp_path)
+        state, engine = self._spiral_state()
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+
+        captured = {}
+        real_step = engine.step
+
+        def _spy(intent):
+            captured["action"] = intent.action
+            return real_step(intent)
+
+        engine.step = _spy
+        app.action_choose("E")
+
+        from escape_the_valley.intent import IntentAction
+
+        assert captured.get("action") == IntentAction.ABANDON_CARGO
+
+
+# ── gm-B-02 / ENG-B-05 consumer: degraded GM signal in the frame ────
+
+
+class TestDegradedGmSignal:
+    """The engine's degraded-narration flag must reach the FrameState."""
+
+    def test_frame_carries_degraded_flag(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        engine.msgs.gm_degraded = True
+        engine.msgs.gm_degraded_reason = "ollama unreachable"
+        frame = state_to_frame(engine)
+        assert frame.gm_degraded is True
+        assert frame.gm_degraded_reason == "ollama unreachable"
+
+    def test_frame_clean_when_not_degraded(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.gm_degraded is False
+
+    def test_eventbar_renders_fallback_notice(self):
+        from escape_the_valley.tui_app import EventBar, FrameState
+
+        bar = EventBar()
+        rendered = {}
+        bar.update = lambda txt: rendered.setdefault("text", txt)
+        bar.update_from(FrameState(gm_degraded=True))
+        assert "engine fallback" in rendered["text"]
+
+    def test_eventbar_no_notice_when_healthy(self):
+        from escape_the_valley.tui_app import EventBar, FrameState
+
+        bar = EventBar()
+        rendered = {}
+        bar.update = lambda txt: rendered.setdefault("text", txt)
+        bar.update_from(FrameState(gm_degraded=False))
+        assert "engine fallback" not in rendered["text"]
+
+    def test_eventbar_busy_state(self):
+        """A worker in flight shows the thinking state, not the choices."""
+        from escape_the_valley.tui_app import Choice, EventBar, FrameState
+
+        bar = EventBar()
+        rendered = {}
+        bar.update = lambda txt: rendered.setdefault("text", txt)
+        frame = FrameState(choices=[Choice("A", "Travel")])
+        bar.update_from(frame, busy=True)
+        assert "thinking" in rendered["text"].lower()
+        assert "Travel" not in rendered["text"]

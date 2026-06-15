@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
@@ -25,7 +26,10 @@ from textual.widgets import Footer, Header, Markdown, Rule, Static
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
-ChoiceId = Literal["A", "B", "C", "D"]
+# A-D are the base camp actions; E/F/G are the conditional escape valves
+# (Abandon Cargo / Desperate Repair / Hard Ration). They are reachable now
+# (cli-tui-B-01).
+ChoiceId = Literal["A", "B", "C", "D", "E", "F", "G"]
 
 
 @dataclass
@@ -70,6 +74,13 @@ class FrameState:
 
     # Ledger Backpack
     backpack_status: str = ""
+
+    # GM narration health (ENG-B-05 / gm-B-02 consumer). When the GM was asked
+    # for narration but fell back to the engine's deterministic voice, the UI
+    # shows a subtle, non-nagging signal so a degraded GM reads differently
+    # from an intentionally terse one.
+    gm_degraded: bool = False
+    gm_degraded_reason: str = ""
 
 
 # ── Widgets ─────────────────────────────────────────────────────────
@@ -137,7 +148,17 @@ class PartyPanel(Static):
 class EventBar(Static):
     """Bottom prompt + choices."""
 
-    def update_from(self, s: FrameState) -> None:
+    def update_from(self, s: FrameState, *, busy: bool = False) -> None:
+        if busy:
+            # cli-tui-B-02: a step/ledger call is in flight on a worker thread.
+            # Show a visible loading state so the UI never looks frozen, and
+            # make it plain that input is paused.
+            self.update(
+                "[b]The storyteller is thinking...[/b]\n"
+                "[dim]Working \u2014 keys are paused for a moment.[/dim]"
+            )
+            return
+
         choice_lines = []
         for c in s.choices:
             hints = []
@@ -150,12 +171,39 @@ class EventBar(Static):
                 f"[b]{c.id}[/b]) {c.label}{hint_txt}"
             )
 
+        # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
+        # choices (so the conditional valves E/F/G are named), and the
+        # persistent hint is now complete \u2014 every always-available key,
+        # including ledger, voice, and quit.
+        choice_letters = ", ".join(c.id for c in s.choices) if s.choices else ""
+        pick_hint = (
+            f"Choose {choice_letters} (number keys also work). "
+            if choice_letters
+            else ""
+        )
+        hint_line = (
+            f"[i]{pick_hint}Actions: t/r/h/p. "
+            "L ledger \u2022 V voice \u2022 J journal \u2022 ? help \u2022 q quit[/i]"
+        )
+
+        # gm-B-02 / ENG-B-05 consumer: a single subtle footer line when the GM
+        # fell back to the engine's own voice. Not a popup, not repeated per
+        # choice \u2014 just enough that a degraded GM reads differently from a
+        # deliberately terse one. Never nags.
+        degraded_line = ""
+        if s.gm_degraded:
+            degraded_line = (
+                "\n[dim]\u2022 Narration: engine fallback "
+                "(the storyteller is quiet)[/dim]"
+            )
+
+        body = "\n".join(choice_lines)
         text = (
             f"[b]{s.prompt_title}[/b]\n"
             f"{s.prompt_text}\n\n"
-            + "\n".join(choice_lines)
-            + "\n\n[i]Choose 1\u20134. Actions: t/r/h/p. "
-            "Journal: J. Help: ?[/i]"
+            + body
+            + f"\n\n{hint_line}"
+            + degraded_line
         )
         self.update(text)
 
@@ -173,7 +221,9 @@ HELP_TEXT = """\
 
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
-\u2022 1\u20134 Choose option (A\u2013D)
+\u2022 1\u20137 Choose option (A\u2013G); letters a\u2013g also work
+\u2022 E/F/G are last-resort moves (Abandon Cargo, Desperate
+  Repair, Hard Ration) \u2014 they appear only when things are dire
 \u2022 J Toggle journal drawer
 \u2022 L Toggle ledger menu
 \u2022 V Toggle voice narration
@@ -208,6 +258,12 @@ class LedgerTrailApp(App):
         Binding("2", "choose('B')", "B"),
         Binding("3", "choose('C')", "C"),
         Binding("4", "choose('D')", "D"),
+        # cli-tui-B-01: the escape valves are reachable. 5/6/7 map to the
+        # conditional E/F/G choices; e/f/g are handled in on_key (so they don't
+        # collide with the ledger/nudge overlay letters) when no overlay is up.
+        Binding("5", "choose('E')", "E"),
+        Binding("6", "choose('F')", "F"),
+        Binding("7", "choose('G')", "G"),
     ]
 
     show_help: reactive[bool] = reactive(False)
@@ -234,6 +290,10 @@ class LedgerTrailApp(App):
         self._voice_config = voice_config
         self._voice_bridge = None
         self._voice_enabled = False
+        # cli-tui-B-02: True while a blocking step()/ledger call runs on a
+        # worker thread. Gameplay + ledger hotkeys are ignored while in flight
+        # so queued keypresses don't pile up and double-step the engine.
+        self._in_flight = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -316,7 +376,9 @@ class LedgerTrailApp(App):
         self.query_one("#map", MapPanel).update_from(s)
         self.query_one("#narration", NarrationPanel).update_from(s)
         self.query_one("#party", PartyPanel).update_from(s)
-        self.query_one("#eventbar", EventBar).update_from(s)
+        # cli-tui-B-02: while a worker is running, the event bar shows a
+        # loading state instead of the choices.
+        self.query_one("#eventbar", EventBar).update_from(s, busy=self._in_flight)
         self.query_one("#journal", JournalDrawer).update_from(s)
 
         self.query_one("#help").display = self.show_help
@@ -397,22 +459,35 @@ class LedgerTrailApp(App):
         self.notify("Voice ON" if new_state else "Voice OFF")
 
     def action_choose(self, choice_id: str) -> None:
-        """Send CHOOSE intent to the engine."""
-        if not self._engine:
+        """Resolve a visible choice (A-G) to an intent and step the engine.
+
+        In CAMP phase, the conditional escape valves E/F/G map to their own
+        IntentActions via the shared camp_choices() table (cli-tui-B-01); a
+        valve letter the gate hasn't opened resolves to nothing and is
+        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .intent import IntentAction, PlayerIntent
+        from .intent import GamePhase, IntentAction, PlayerIntent
 
-        intent = PlayerIntent(
-            action=IntentAction.CHOOSE,
-            choice_id=choice_id,
-        )
-        self._engine.step(intent)
-        self._after_step()
+        if self._engine.phase == GamePhase.CAMP:
+            from .adapter import camp_choice_intent
+
+            action = camp_choice_intent(self._engine.state, choice_id)
+            if action is None:
+                return
+            intent = PlayerIntent(action=action)
+        else:
+            intent = PlayerIntent(
+                action=IntentAction.CHOOSE,
+                choice_id=choice_id,
+            )
+        self._run_step(intent)
 
     def action_intent(self, intent_str: str) -> None:
         """Map hotkeys t/r/h/p to engine intents."""
-        if not self._engine:
+        if not self._engine or self._in_flight:
             return
 
         from .intent import GamePhase, IntentAction, PlayerIntent
@@ -443,8 +518,52 @@ class LedgerTrailApp(App):
         if not action:
             return
 
-        intent = PlayerIntent(action=action)
+        self._run_step(PlayerIntent(action=action))
+
+    # ── Worker-driven stepping (cli-tui-B-02) ──────────────────────
+
+    def _run_step(self, intent) -> None:
+        """Dispatch one engine step onto a worker thread.
+
+        step() can block for tens of seconds on a GM/network call. Running it
+        on the Textual UI thread froze the whole interface (cli-tui-B-02).
+        Here we flip into a visible 'thinking' state, ignore further hotkeys,
+        and hand the blocking call to a thread worker. The GM-off path is
+        identical in behavior — it just returns fast.
+        """
+        # If there is no live App event loop (unit tests calling the action
+        # directly), run synchronously so existing call sites keep working.
+        if not self._has_worker_runtime():
+            self._engine.step(intent)
+            self._after_step()
+            return
+
+        self._in_flight = True
+        self._render_all()
+        self._step_worker(intent)
+
+    def _has_worker_runtime(self) -> bool:
+        """True only when a real Textual event loop is driving this App.
+
+        Unit tests build the App without run()/run_test() and call actions
+        directly; in that case run_worker/call_from_thread have no loop to
+        target, so we fall back to a synchronous step.
+        """
+        try:
+            return bool(self.is_running)
+        except Exception:
+            return False
+
+    @work(thread=True, exclusive=True, group="step")
+    def _step_worker(self, intent) -> None:
+        """Thread worker: the actual blocking engine step + frame sync."""
         self._engine.step(intent)
+        # Marshal all widget/state mutations back onto the UI thread.
+        self.call_from_thread(self._finish_step)
+
+    def _finish_step(self) -> None:
+        """UI-thread completion: clear busy state, sync, render, narrate."""
+        self._in_flight = False
         self._after_step()
 
     # ── Ledger Backpack actions ────────────────────────────────────
@@ -660,6 +779,20 @@ class LedgerTrailApp(App):
         """Handle overlay keys and voice interrupt."""
         key = event.key
 
+        # cli-tui-B-02: while a step/ledger worker is running, swallow the
+        # on_key-routed gameplay/overlay letters so queued keypresses can't
+        # pile up and double-act. Escape (to close an overlay) still works.
+        if self._in_flight and key != "escape":
+            no_overlay = not any([
+                self.show_ledger, self.show_nudge,
+                self.show_enable_flow, self.show_wallet_info,
+                self.show_learn_more, self.show_help,
+                self.show_send_parcel, self.show_parcel_notify,
+            ])
+            if no_overlay and key in ("e", "f", "g"):
+                event.prevent_default()
+                return
+
         # Escape closes any overlay
         if key == "escape":
             if any([
@@ -726,6 +859,20 @@ class LedgerTrailApp(App):
                 self.action_learn_more()
                 event.prevent_default()
                 return
+
+        # cli-tui-B-01: e/f/g pick the conditional escape valves when no
+        # overlay is open. (5/6/7 are bound globally; the letters are routed
+        # here so they don't collide with the ledger/nudge overlay letters.)
+        no_overlay = not any([
+            self.show_ledger, self.show_nudge,
+            self.show_enable_flow, self.show_wallet_info,
+            self.show_learn_more, self.show_help,
+            self.show_send_parcel, self.show_parcel_notify,
+        ])
+        if no_overlay and key in ("e", "f", "g"):
+            self.action_choose(key.upper())
+            event.prevent_default()
+            return
 
         # Voice interrupt
         if self._voice_enabled and self._voice_bridge:

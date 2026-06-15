@@ -6,12 +6,63 @@ strings so the TUI just displays them.
 
 from __future__ import annotations
 
-from .intent import GamePhase
+from .intent import GamePhase, IntentAction
 from .ledger import build_trail_ledger, build_xrpl_postcard
 from .physics import can_abandon_cargo, can_desperate_repair, can_hard_ration
 from .resources import RESOURCE_CATALOG, ResourceCategory
 from .step_engine import StepEngine
 from .tui_app import Choice, FrameState
+
+
+def camp_choices(state):
+    """Single source of truth for the CAMP-phase choice menu.
+
+    Returns an ordered list of (choice_id, IntentAction, label, risk, cost).
+    The four base actions (A-D) are always present; the escape valves
+    (E/F/G) appear only when their physics gate opens. Both the adapter's
+    display (``_build_prompt``) and the TUI's dispatch (``action_choose``)
+    read this list, so the dynamic letter -> intent mapping can never drift
+    between what the player sees and what the key does (cli-tui-B-01).
+    """
+    menu = [
+        ("A", IntentAction.TRAVEL, "Travel",
+         "Consumes supplies", "Food/Water"),
+        ("B", IntentAction.REST, "Rest", "Heals party", "Food/Water"),
+        ("C", IntentAction.HUNT, "Hunt", "Needs ammo", "Ammo"),
+        ("D", IntentAction.REPAIR, "Repair", "Needs parts", "Parts"),
+    ]
+    valve_key = ord("E")  # E, F, G — assigned in a fixed gate order
+    if can_abandon_cargo(state):
+        menu.append((
+            chr(valve_key), IntentAction.ABANDON_CARGO, "Abandon Cargo",
+            "Wagon badly damaged", "Drops cargo, +25 wagon, -morale",
+        ))
+        valve_key += 1
+    if can_desperate_repair(state):
+        menu.append((
+            chr(valve_key), IntentAction.DESPERATE_REPAIR, "Desperate Repair",
+            "No parts, wagon failing", "50% success, risk injury",
+        ))
+        valve_key += 1
+    if can_hard_ration(state):
+        menu.append((
+            chr(valve_key), IntentAction.HARD_RATION, "Hard Ration",
+            "Food critical", "Half rations 2 days, -morale, -health",
+        ))
+    return menu
+
+
+def camp_choice_intent(state, choice_id: str) -> IntentAction | None:
+    """Map a CAMP-phase choice letter to its IntentAction, or None.
+
+    Used by the TUI to dispatch the conditional escape valves (E/F/G) that
+    were previously unreachable — a player in a death spiral could see the
+    valve in the menu but had no key bound to pick it (cli-tui-B-01).
+    """
+    for cid, action, *_ in camp_choices(state):
+        if cid == choice_id:
+            return action
+    return None
 
 
 def state_to_frame(engine: StepEngine) -> FrameState:
@@ -119,6 +170,10 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         choices=choices,
         journal=journal,
         backpack_status=backpack_status,
+        # ENG-B-05 / gm-B-02 consumer: carry the engine's degraded-narration
+        # signal into the frame so the UI can show a subtle fallback notice.
+        gm_degraded=msgs.gm_degraded,
+        gm_degraded_reason=msgs.gm_degraded_reason,
     )
 
 
@@ -160,33 +215,12 @@ def _build_prompt(engine: StepEngine):
         title = "Victory!" if engine.state.victory else "Game Over"
         return (title, "\n".join(ledger), [])
 
-    # CAMP — standard actions + conditional escape valves
+    # CAMP — standard actions + conditional escape valves, from the shared
+    # camp_choices() source of truth so display and dispatch never diverge.
     choices = [
-        Choice("A", "Travel", "Consumes supplies", "Food/Water"),
-        Choice("B", "Rest", "Heals party", "Food/Water"),
-        Choice("C", "Hunt", "Needs ammo", "Ammo"),
-        Choice("D", "Repair", "Needs parts", "Parts"),
+        Choice(cid, label, risk, cost)
+        for cid, _action, label, risk, cost in camp_choices(engine.state)
     ]
-
-    s = engine.state
-    valve_key = ord("E")  # E, F, G
-    if can_abandon_cargo(s):
-        choices.append(Choice(
-            chr(valve_key), "Abandon Cargo",
-            "Wagon badly damaged", "Drops cargo, +25 wagon, -morale",
-        ))
-        valve_key += 1
-    if can_desperate_repair(s):
-        choices.append(Choice(
-            chr(valve_key), "Desperate Repair",
-            "No parts, wagon failing", "50% success, risk injury",
-        ))
-        valve_key += 1
-    if can_hard_ration(s):
-        choices.append(Choice(
-            chr(valve_key), "Hard Ration",
-            "Food critical", "Half rations 2 days, -morale, -health",
-        ))
 
     return ("Camp", "What will you do?", choices)
 
