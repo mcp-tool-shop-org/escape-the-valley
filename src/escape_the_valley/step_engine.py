@@ -1097,6 +1097,41 @@ class StepEngine:
             self.state.ending = ending
             self.msgs.ending = ending
 
+    def finalize_run(self, reason: str = "timeout") -> EndingResult:
+        """Resolve a run that ended without a clean GAME_OVER transition.
+
+        A driver loop that breaks at ``max_steps`` (the proof harness, a UI that
+        caps turns, an abandoned session) leaves the run live: ``_check_game_over``
+        never fired, so ``state.ending`` stays None. This grades the ending the
+        same way a clean terminal would — pure, RNG-free, deterministic — so no
+        run is ever left without an EndingResult.
+
+        Idempotent: if the run already transitioned to GAME_OVER (victory or
+        death), the existing graded ending is returned unchanged. Otherwise the
+        run is marked over with a sensible incomplete cause, graded to the 'lost'
+        tier (the valley was never reached), and the ending is stored on state.
+        Never raises and never returns None — a timeout still ends honestly.
+        """
+        if self.state.ending is not None:
+            return self.state.ending
+
+        if not self.state.game_over and self.phase != GamePhase.GAME_OVER:
+            # The run was abandoned mid-trail. It is not a victory and not a
+            # clean death — record an honest incomplete cause and grade it.
+            self.state.game_over = True
+            if not self.state.cause_of_death:
+                self.state.cause_of_death = (
+                    "Wagon failure"
+                    if self.state.wagon.condition <= 0
+                    and self.state.supplies.parts <= 0
+                    else "The trail"
+                )
+            self.phase = GamePhase.GAME_OVER
+
+        ending = compute_ending(self.state)
+        self.state.ending = ending
+        return ending
+
     def _save(self) -> None:
         self.state.rng_counter = self.rng.counter
         self.state.rng_state = self.rng.getstate()
@@ -1203,7 +1238,13 @@ def compute_ending(state: RunState) -> EndingResult:
 
     Pure and RNG-free: the tier and facts are a deterministic function of the
     party, the clock, distance, taboo, and uncanny tokens already on ``state``.
-    Called once when the engine transitions to GAME_OVER (victory or death).
+    Called once when the engine transitions to GAME_OVER (victory or death),
+    and by ``StepEngine.finalize_run`` for a timeout/abandon terminal.
+
+    Always returns a well-defined EndingResult — never None. A run that ended
+    without reaching the valley (a death, a timeout, an abandon) grades to the
+    'lost' tier, so a driver that caps turns still resolves to a sensible
+    ending rather than leaving ``state.ending`` unset.
     """
     members = state.party.members
     party_size = len(members)

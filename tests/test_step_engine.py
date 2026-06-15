@@ -1231,6 +1231,56 @@ def test_engine_populates_ending_on_death():
         assert msgs.ending is engine.state.ending
 
 
+def test_finalize_run_yields_ending_on_timeout():
+    """A run that hits a max_steps/timeout terminal without a clean game-over
+    still resolves to a non-None EndingResult via finalize_run()."""
+    engine = _make_engine(seed=42)
+    max_steps = 5
+
+    # Drive a short, capped loop the way a proof harness / turn-capped UI does:
+    # break at max_steps without ever waiting for a clean GAME_OVER.
+    for _ in range(max_steps):
+        if engine.phase == GamePhase.GAME_OVER:
+            break
+        if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        else:
+            engine.step(PlayerIntent(IntentAction.REST))
+
+    # The run is still live (no victory, no death) — the historical gap.
+    assert engine.state.victory is False
+
+    ending = engine.finalize_run(reason="timeout")
+
+    # The timeout terminal now resolves to a sensible, non-None ending.
+    assert ending is not None
+    assert engine.state.ending is ending
+    assert ending.tier == "lost"
+    assert ending.facts["victory"] is False
+    assert engine.phase == GamePhase.GAME_OVER
+    assert engine.state.game_over is True
+    assert engine.state.cause_of_death != ""
+
+
+def test_finalize_run_is_idempotent_and_preserves_clean_ending():
+    """finalize_run() never clobbers a clean victory/death ending; it returns
+    the already-graded one and is safe to call more than once."""
+    engine = _make_engine(seed=42)
+    engine.state.location_id = engine.state.map_nodes[-1].node_id
+    engine.state.distance_remaining = 0
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert engine.phase == GamePhase.GAME_OVER
+    clean_ending = engine.state.ending
+    assert clean_ending is not None
+
+    # Finalizing an already-terminal run returns the same graded ending.
+    again = engine.finalize_run()
+    assert again is clean_ending
+    assert engine.finalize_run() is clean_ending
+    assert engine.state.victory is True
+
+
 def test_par_days_floor_and_scaling():
     from escape_the_valley.step_engine import compute_par_days
 
