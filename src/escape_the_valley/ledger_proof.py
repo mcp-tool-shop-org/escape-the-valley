@@ -273,6 +273,9 @@ def report_to_dict(report: ReconcileReport) -> dict:
         "memo_local_ok": report.memo_local_ok,
         "onchain_memo_ok": report.onchain_memo_ok,
         "passed": report.passed,
+        # ledger-B06: distinguishes "unsettled checkpoints, re-run later" from a
+        # genuine drift FAIL so a consumer (cli-tui) can label it honestly.
+        "inconclusive": _is_inconclusive(report),
         "notes": report.notes,
         "resources": [
             {
@@ -297,12 +300,45 @@ def _memo_verdict(report: ReconcileReport) -> str:
     return "ok" if report.onchain_memo_ok else "FAILED"
 
 
+def _is_inconclusive(report: ReconcileReport) -> bool:
+    """True when the ONLY reason the proof did not pass is unsettled checkpoints.
+
+    ledger-B06: a proof can fail to PASS for two very different reasons. A real
+    DRIFT — a balance or conservation or memo mismatch — is an ANDON failure and
+    must read FAIL. But if every resource reconciles, the memo verifies, and the
+    sole blocker is ``pending_count > 0`` (checkpoints the engine could not
+    settle because the testnet was unreachable), that is not drift — it is an
+    incomplete reconciliation. Distinguishing them keeps the proof honest: it
+    never green-washes drift, and it never cries "FAIL" over a transient outage.
+    """
+    if report.passed:
+        return False
+    resources_ok = all(r.ok for r in report.resources)
+    return resources_ok and report.memo_ok and report.pending_count > 0
+
+
 def report_to_markdown(report: ReconcileReport) -> str:
-    """Render a human-readable reconciliation report."""
-    verdict = "PASS" if report.passed else "FAIL"
+    """Render a human-readable reconciliation report.
+
+    Banner (ledger-B06): an INCONCLUSIVE verdict is shown when the only blocker
+    is unsettled checkpoints (testnet unreachable). A genuine drift still reads
+    FAIL — ANDON is preserved.
+    """
+    inconclusive = _is_inconclusive(report)
+    verdict = "INCONCLUSIVE" if inconclusive else ("PASS" if report.passed else "FAIL")
     lines = [
         f"# Ledger Reconciliation Proof — {verdict}",
         "",
+    ]
+    if inconclusive:
+        lines += [
+            f"> **INCONCLUSIVE — {report.pending_count} checkpoint(s) could not "
+            f"settle (testnet unreachable). Re-run when the ledger is healthy. "
+            f"This is NOT a drift failure:** every reconciled resource balanced "
+            f"and the memo verified; only unsettled checkpoints remain.",
+            "",
+        ]
+    lines += [
         f"- **Run:** `{report.run_id}`  (seed `{report.seed}`)",
         f"- **Player:** `{report.player_address}`",
         f"- **Issuer (Trail Authority):** `{report.issuer_address}`",

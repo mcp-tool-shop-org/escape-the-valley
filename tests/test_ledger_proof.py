@@ -187,6 +187,62 @@ def test_pending_settlement_fails():
     assert report.pending_count == 1
 
 
+# ── ledger-B06: INCONCLUSIVE vs FAIL banner ───────────────────────────
+
+
+def test_markdown_inconclusive_when_only_pending():
+    """ledger-B06: balances+memo all OK, sole blocker is unsettled checkpoints —
+    render INCONCLUSIVE, not FAIL. This is a transient testnet outage, not drift.
+    """
+    pending = [SettlementRecord(day=12, location="Town C",
+                                deltas={"water": -4}, status="pending")]
+    report = _reconcile(pending=pending, onchain_memos=_onchain_ok())
+    assert report.passed is False  # ANDON: not a PASS
+    md = report_to_markdown(report)
+    assert "INCONCLUSIVE" in md
+    assert "FAIL" not in md.split("\n", 1)[0]  # title line is not FAIL
+    assert "NOT a drift failure" in md
+    assert "re-run" in md.lower()
+
+
+def test_markdown_real_drift_still_fails_not_inconclusive():
+    """A genuine balance mismatch must read FAIL even if a pending also exists —
+    ANDON is preserved; drift is never relabeled INCONCLUSIVE."""
+    pending = [SettlementRecord(day=12, location="Town C",
+                                deltas={"water": -4}, status="pending")]
+    tampered = dict(LEDGER_OK, FOD=40)  # real drift
+    report = _reconcile(
+        ledger_balances=tampered, pending=pending,
+        onchain_memos=_onchain_ok(),
+    )
+    assert report.passed is False
+    md = report_to_markdown(report)
+    assert "INCONCLUSIVE" not in md
+    assert "FAIL" in md.split("\n", 1)[0]
+
+
+def test_clean_pass_markdown_is_pass_not_inconclusive():
+    """No pending + all OK → PASS, never INCONCLUSIVE."""
+    report = _reconcile(onchain_memos=_onchain_ok())
+    assert report.passed is True
+    md = report_to_markdown(report)
+    assert "PASS" in md.split("\n", 1)[0]
+    assert "INCONCLUSIVE" not in md
+
+
+def test_dict_inconclusive_flag():
+    """ledger-B06: the machine-readable dict carries the inconclusive flag."""
+    pending = [SettlementRecord(day=12, location="Town C",
+                                deltas={"water": -4}, status="pending")]
+    report = _reconcile(pending=pending, onchain_memos=_onchain_ok())
+    data = report_to_dict(report)
+    assert data["inconclusive"] is True
+    assert data["passed"] is False
+
+    clean = report_to_dict(_reconcile(onchain_memos=_onchain_ok()))
+    assert clean["inconclusive"] is False
+
+
 def test_missing_ledger_balance_fails():
     partial = {k: v for k, v in LEDGER_OK.items() if k != "MED"}
     report = _reconcile(ledger_balances=partial)
