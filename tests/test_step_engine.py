@@ -1028,3 +1028,234 @@ def test_gm_connect_error_turn_completes_with_journal_and_fallback(monkeypatch):
     last = engine.state.journal[-1]
     assert last.choice_made.startswith("A:")
     engine.gm.close()
+
+
+# ── EC-04: graded endings (EndingResult) ─────────────────────────────
+#
+# compute_ending grades the run's shape from existing state only (no new
+# economy, no RNG): tier in {triumphant, weathered, pyrrhic, lost}, plus a facts
+# dict and a deterministic headline. It is computed once on the GAME_OVER
+# transition and exposed on both state.ending and StepMessages.ending so GM +
+# cli-tui can consume it.
+
+
+def _victory_state(seed=42, days=18):
+    """A victory state: party at the final node, distance 0, GM-off."""
+    state = create_new_run(seed=seed)
+    # Snap to the final node, journey complete.
+    state.location_id = state.map_nodes[-1].node_id
+    state.distance_remaining = 0
+    state.distance_traveled = state.total_distance
+    state.day = days
+    return state
+
+
+def test_triumphant_all_survivors_on_time():
+    from escape_the_valley.step_engine import compute_ending, compute_par_days
+
+    state = _victory_state(days=5)
+    state.victory = True
+    state.taboo = ""  # vacuously kept
+    # All four start alive.
+    assert state.party.alive_count == 4
+    # Well within par.
+    assert state.day <= compute_par_days(state.total_distance)
+
+    ending = compute_ending(state)
+    assert ending.tier == "triumphant"
+    assert ending.facts["survivors"] == 4
+    assert ending.facts["party_size"] == 4
+    assert ending.facts["taboo_kept"] is True
+    assert ending.headline
+
+
+def test_weathered_all_survive_but_slow():
+    from escape_the_valley.step_engine import compute_ending, compute_par_days
+
+    state = _victory_state()
+    state.victory = True
+    state.taboo = ""
+    par = compute_par_days(state.total_distance)
+    state.day = par + 10  # late but everyone made it
+
+    ending = compute_ending(state)
+    assert ending.tier == "weathered"
+    assert ending.facts["survivors"] == 4
+    assert ending.facts["days"] > ending.facts["par_days"]
+
+
+def test_pyrrhic_one_survivor_finish():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = _victory_state(days=5)
+    state.victory = True
+    state.taboo = ""
+    # Kill three of four — a single survivor reaches the valley.
+    for m in state.party.members[1:]:
+        m.health = 0
+        m.death_cause = "Dehydration"
+
+    ending = compute_ending(state)
+    assert ending.tier == "pyrrhic"
+    assert ending.facts["survivors"] == 1
+    assert ending.facts["party_size"] == 4
+    assert ending.facts["deaths_by_cause"].get("Dehydration") == 3
+
+
+def test_pyrrhic_when_taboo_broken_despite_full_survival():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = _victory_state(days=5)
+    state.victory = True
+    # leave_nothing taboo, but a member is dead → vow broken.
+    state.taboo = "leave_nothing"
+    state.party.members[0].health = 0
+    state.party.members[0].death_cause = "Injury"
+
+    ending = compute_ending(state)
+    # Survivors < party_size AND taboo broken — still pyrrhic.
+    assert ending.tier == "pyrrhic"
+    assert ending.facts["taboo_kept"] is False
+
+
+def test_lost_total_loss():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = create_new_run(seed=42)
+    state.victory = False
+    state.cause_of_death = "Starvation"
+    for m in state.party.members:
+        m.health = 0
+        m.death_cause = "Starvation"
+
+    ending = compute_ending(state)
+    assert ending.tier == "lost"
+    assert ending.facts["survivors"] == 0
+    assert ending.facts["victory"] is False
+    assert ending.facts["deaths_by_cause"].get("Starvation") == 4
+
+
+def test_distinct_tiers_have_distinct_facts():
+    """The three headline scenarios yield three different tiers and different
+    survivor counts — the ending genuinely discriminates outcomes."""
+    from escape_the_valley.step_engine import compute_ending
+
+    # All four survive, on time → triumphant.
+    s_win = _victory_state(days=5)
+    s_win.victory = True
+    s_win.taboo = ""
+    e_win = compute_ending(s_win)
+
+    # One survivor → pyrrhic.
+    s_one = _victory_state(days=5)
+    s_one.victory = True
+    s_one.taboo = ""
+    for m in s_one.party.members[1:]:
+        m.health = 0
+        m.death_cause = "Disease"
+    e_one = compute_ending(s_one)
+
+    # Total loss → lost.
+    s_lost = create_new_run(seed=42)
+    s_lost.victory = False
+    for m in s_lost.party.members:
+        m.health = 0
+        m.death_cause = "Exposure"
+    e_lost = compute_ending(s_lost)
+
+    tiers = {e_win.tier, e_one.tier, e_lost.tier}
+    assert tiers == {"triumphant", "pyrrhic", "lost"}
+    survivors = {
+        e_win.facts["survivors"],
+        e_one.facts["survivors"],
+        e_lost.facts["survivors"],
+    }
+    assert survivors == {4, 1, 0}
+
+
+def test_compute_ending_is_deterministic_under_fixed_seed():
+    """With GM off, the same seed + same lethal mutation yields a byte-identical
+    EndingResult (no RNG in the grading)."""
+    from escape_the_valley.step_engine import compute_ending
+
+    def build():
+        s = _victory_state(seed=123, days=7)
+        s.victory = True
+        s.taboo = "never_river"
+        return compute_ending(s)
+
+    a = build()
+    b = build()
+    assert a.tier == b.tier
+    assert a.headline == b.headline
+    assert a.facts == b.facts
+
+
+def test_engine_populates_ending_on_victory():
+    """The engine computes the ending exactly when it transitions to GAME_OVER,
+    exposing it on both state.ending and the step's messages."""
+    engine = _make_engine(seed=42)
+    engine.state.location_id = engine.state.map_nodes[-1].node_id
+    engine.state.distance_remaining = 0
+    # Trigger the terminal check via a step in CAMP.
+    msgs = engine.step(PlayerIntent(IntentAction.REST))
+
+    assert engine.phase == GamePhase.GAME_OVER
+    assert engine.state.victory is True
+    assert engine.state.ending is not None
+    assert msgs.ending is not None
+    assert engine.state.ending is msgs.ending
+    assert engine.state.ending.tier in (
+        "triumphant", "weathered", "pyrrhic",
+    )
+    assert engine.state.ending.facts["victory"] is True
+
+
+def test_engine_populates_ending_on_death():
+    """A death game-over also produces a graded ('lost') ending on state+msgs."""
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("food", 0)
+    engine.state.supplies.set("water", 0)
+    for m in engine.state.party.members:
+        m.health = 1
+    # One travel should wipe the party via dehydration/starvation.
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+        msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    if engine.phase == GamePhase.GAME_OVER:
+        assert engine.state.ending is not None
+        assert engine.state.ending.tier == "lost"
+        assert engine.state.ending.facts["victory"] is False
+        # The terminal step's messages carry the ending for the UI.
+        assert msgs.ending is engine.state.ending
+
+
+def test_par_days_floor_and_scaling():
+    from escape_the_valley.step_engine import compute_par_days
+
+    # Floored for tiny/zero journeys.
+    assert compute_par_days(0) == 8
+    assert compute_par_days(4) == 8
+    # Scales with distance (ceil division by 4) above the floor.
+    assert compute_par_days(120) == 30
+    assert compute_par_days(121) == 31
+
+
+def test_taboo_kept_never_river_reads_journal():
+    """never_river is broken only on positive journal evidence of a ford."""
+    from escape_the_valley.models import JournalEntry
+    from escape_the_valley.step_engine import _taboo_kept
+
+    state = create_new_run(seed=42)
+    state.taboo = "never_river"
+    # No journal yet → kept by default.
+    assert _taboo_kept(state) is True
+
+    state.journal.append(JournalEntry(
+        day=2, location="Ford", event_id="f1_005",
+        scene_title="Rapid Currents", narration="",
+        choice_made="A: Ford straight through the current",
+        outcome="", tags=["river", "ford"],
+    ))
+    assert _taboo_kept(state) is False

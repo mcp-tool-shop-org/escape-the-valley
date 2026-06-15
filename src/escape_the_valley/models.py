@@ -237,6 +237,35 @@ class JournalEntry:
 
 
 @dataclass
+class EndingResult:
+    """A graded ending, computed once at game-over from existing state.
+
+    EC-04: there used to be exactly one ending (reach the final node => VICTORY).
+    This dataclass grades the journey's *shape* — how many made it, how long it
+    took against par, whether the run's taboo held, how much of the uncanny was
+    left unspent — so the GM can narrate, and cli-tui render, an ending that
+    reflects what actually happened.
+
+    The grading reads ONLY state that already exists at game-over (party, day,
+    distance, taboo, uncanny tokens, per-member death causes). It introduces no
+    new economy and draws no RNG, so with the GM off the ending is fully
+    deterministic for a given seed + intent sequence.
+
+    Tiers (worst -> best):
+      - 'lost'        — no one reached the valley (a death game-over).
+      - 'pyrrhic'     — the valley was reached, but at heavy cost (deaths, or the
+                        taboo broken).
+      - 'weathered'   — everyone survived, but the crossing was slow or scarred.
+      - 'triumphant'  — the whole party reached the valley intact, on or ahead of
+                        par, taboo held.
+    """
+
+    tier: str
+    facts: dict[str, Any] = field(default_factory=dict)
+    headline: str = ""
+
+
+@dataclass
 class MemoryCard:
     """Structured memory for GM narrative continuity."""
 
@@ -272,6 +301,11 @@ class RunState:
     game_over: bool = False
     victory: bool = False
     cause_of_death: str = ""
+    # EC-04: the graded ending, computed once when the run transitions to
+    # GAME_OVER. None while the run is live. GM + cli-tui read this to narrate
+    # and render the end screen. Not serialized by save.py (it is recomputed
+    # deterministically from the rest of state on load if needed).
+    ending: EndingResult | None = None
 
     party: PartyState = field(default_factory=PartyState)
     wagon: WagonState = field(default_factory=WagonState)
