@@ -257,6 +257,191 @@ class _FakeVoiceBridge:
         pass
 
 
+class _RecordingNarration:
+    """Stand-in for NarrationPanel capturing stream_reset/append calls."""
+
+    def __init__(self):
+        self.reset_count = 0
+        self.text = ""
+
+    def stream_reset(self):
+        self.reset_count += 1
+        self.text = ""
+
+    def stream_append(self, delta):
+        self.text += delta
+
+
+class _RecordingEventBar:
+    def __init__(self):
+        self.last = None
+
+    def update_from(self, frame, *, busy=False, streaming=False):
+        self.last = {"busy": busy, "streaming": streaming}
+
+
+class TestStreamingRender:
+    """gm-feat-01: a streamed scene renders progressively.
+
+    The GM scene/outcome narration arrives token-by-token on a worker thread;
+    each delta is marshalled to the UI thread and appended to the narration
+    panel so the player watches the storyteller write. We drive a fake on_token
+    here (no live GM, no network) and assert the panel grows and the first
+    token leaves the 'thinking' state behind.
+    """
+
+    def _app(self):
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        return app
+
+    def test_tokens_grow_the_narration_panel(self):
+        app = self._app()
+        narr = _RecordingNarration()
+        bar = _RecordingEventBar()
+
+        def _query(sel, *a, **k):
+            return narr if "narration" in sel else bar
+
+        app.query_one = _query
+
+        # First token: opens a fresh buffer and flips streaming on.
+        assert app._streaming is False
+        app._apply_narration_token("The ")
+        assert app._streaming is True
+        assert narr.reset_count == 1
+        assert narr.text == "The "
+
+        # Subsequent tokens append without re-resetting.
+        app._apply_narration_token("river ")
+        app._apply_narration_token("waits.")
+        assert narr.reset_count == 1
+        assert narr.text == "The river waits."
+
+    def test_first_token_switches_busy_state_to_writing(self):
+        app = self._app()
+        narr = _RecordingNarration()
+        bar = _RecordingEventBar()
+
+        def _query(sel, *a, **k):
+            return narr if "narration" in sel else bar
+
+        app.query_one = _query
+        app._apply_narration_token("Smoke on the ridge.")
+        # The event bar was repainted in the streaming ('writing') state.
+        assert bar.last == {"busy": True, "streaming": True}
+
+    def test_worker_callback_marshals_to_ui_thread(self):
+        """_on_narration_token hands the delta to call_from_thread (thread-safe)."""
+        app = self._app()
+        marshalled = []
+        app.call_from_thread = lambda fn, *a: marshalled.append((fn, a))
+
+        app._on_narration_token("a delta")
+        assert len(marshalled) == 1
+        fn, args = marshalled[0]
+        assert fn == app._apply_narration_token
+        assert args == ("a delta",)
+
+    def test_empty_delta_is_ignored(self):
+        app = self._app()
+        called = []
+        app.call_from_thread = lambda fn, *a: called.append(1)
+        app._on_narration_token("")
+        assert called == []
+
+    def test_arm_stream_wraps_gm_and_injects_sink(self):
+        """Arming installs a wrapper that threads on_token into the GM call."""
+        app = self._app()
+
+        captured = {}
+        gm = app._engine.gm
+
+        def _fake_scene(*a, on_token=None, **k):
+            captured["scene_on_token"] = on_token
+            return None
+
+        def _fake_outcome(*a, on_token=None, **k):
+            captured["outcome_on_token"] = on_token
+            return None
+
+        gm.generate_scene = _fake_scene
+        gm.generate_outcome = _fake_outcome
+
+        app._arm_stream()
+        # The live sink is the app's token callback.
+        assert app._token_sink == app._on_narration_token
+
+        # Calling through the wrapper forwards the sink the engine never passes.
+        app._engine.gm.generate_scene(app._engine.state, None, "clear")
+        app._engine.gm.generate_outcome(
+            app._engine.state, None, "t", "A", "label", {},
+        )
+        assert captured["scene_on_token"] == app._on_narration_token
+        assert captured["outcome_on_token"] == app._on_narration_token
+
+    def test_gm_off_path_does_not_stream(self):
+        """With no live loop the step runs synchronously and never streams."""
+        app = self._app()
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+        # No live runtime → synchronous fallback, _arm_stream never reached.
+        assert app._has_worker_runtime() is False
+        app.action_intent("TRAVEL")
+        assert app._streaming is False
+        assert app._token_sink is None
+
+
+class TestStreamingPilot:
+    """gm-feat-01 live exercise: streaming deltas marshalled from a worker
+    thread under a live Textual loop land in the real NarrationPanel.
+
+    A travel step is driven through the actual worker path (proving the GM
+    wrapper is armed and the busy gate holds), then the streaming callback is
+    fed from inside a thread worker — the true cross-thread path — and the real
+    panel is asserted to carry the streamed prose.
+    """
+
+    def test_worker_path_arms_stream_and_completes(self):
+        async def scenario():
+            app = _make_app(seed=7)  # GM off
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("t")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                # The travel step ran through the worker; the GM wrapper is
+                # installed and we are no longer in flight.
+                assert app._gm_wrapped is True
+                assert app._in_flight is False
+
+        asyncio.run(scenario())
+
+    def test_streamed_delta_from_worker_reaches_real_panel(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app._streaming = False
+
+                # Feed the streaming callback from inside a real thread worker —
+                # the genuine cross-thread path on_token uses (call_from_thread).
+                def _feed():
+                    app._on_narration_token("Cold ")
+                    app._on_narration_token("morning.")
+
+                app.run_worker(_feed, thread=True)
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                panel = app.query_one("#narration", NarrationPanel)
+                assert getattr(panel, "_stream_text", "") == "Cold morning."
+                assert app._streaming is True
+
+        asyncio.run(scenario())
+
+
 class TestVoiceRuntimeFailureConsumer:
     """gm-B-06 consumer: when the voice bridge self-disables on a runtime audio
     failure, the TUI must tell the player ONCE and stop claiming voice is on.

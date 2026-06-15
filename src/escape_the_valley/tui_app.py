@@ -135,6 +135,21 @@ class NarrationPanel(Markdown):
     def update_from(self, s: FrameState) -> None:
         self.update(s.narration)
 
+    # gm-feat-01: progressive streaming. While a GM scene/outcome narration
+    # arrives token-by-token on the worker thread, the app marshals each delta
+    # onto the UI thread and feeds it here so the player watches the storyteller
+    # write. stream_reset() opens a fresh buffer; stream_append() grows it and
+    # repaints. The final _render_all() (after the step completes) overwrites
+    # this with the fully-parsed FrameState narration, so a streamed scene and a
+    # non-streamed one converge on identical end text.
+    def stream_reset(self) -> None:
+        self._stream_text = ""
+        self.update("")
+
+    def stream_append(self, delta: str) -> None:
+        self._stream_text = getattr(self, "_stream_text", "") + delta
+        self.update(self._stream_text)
+
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
@@ -148,15 +163,29 @@ class PartyPanel(Static):
 class EventBar(Static):
     """Bottom prompt + choices."""
 
-    def update_from(self, s: FrameState, *, busy: bool = False) -> None:
+    def update_from(
+        self, s: FrameState, *, busy: bool = False, streaming: bool = False,
+    ) -> None:
         if busy:
             # cli-tui-B-02: a step/ledger call is in flight on a worker thread.
             # Show a visible loading state so the UI never looks frozen, and
             # make it plain that input is paused.
-            self.update(
-                "[b]The storyteller is thinking...[/b]\n"
-                "[dim]Working \u2014 keys are paused for a moment.[/dim]"
-            )
+            #
+            # gm-feat-01: once the first narration token has arrived the state
+            # shifts from 'thinking' to 'writing' \u2014 the storyteller is no longer
+            # composing in silence, the words are landing in the panel. Choices
+            # stay withheld until the step completes either way.
+            if streaming:
+                self.update(
+                    "[b]The storyteller is writing...[/b]\n"
+                    "[dim]Watch the trail above \u2014 keys resume in a "
+                    "moment.[/dim]"
+                )
+            else:
+                self.update(
+                    "[b]The storyteller is thinking...[/b]\n"
+                    "[dim]Working \u2014 keys are paused for a moment.[/dim]"
+                )
             return
 
         choice_lines = []
@@ -301,6 +330,18 @@ class LedgerTrailApp(App):
         # worker thread. Gameplay + ledger hotkeys are ignored while in flight
         # so queued keypresses don't pile up and double-step the engine.
         self._in_flight = False
+        # gm-feat-01: streaming render. _streaming flips True on the FIRST
+        # narration token of a step, so the event bar can drop the 'thinking'
+        # state and the narration panel can begin showing prose as it is
+        # written. The GM-off path and the deterministic fallback path never set
+        # a token sink, so they render instantly with no streaming (no
+        # regression). Set by _run_step, consumed by _on_narration_token.
+        self._streaming = False
+        self._gm_wrapped = False
+        # The live token sink for the current step (None = no streaming this
+        # step). Set by _arm_stream, cleared by _finish_step. Initialized here
+        # so the GM wrapper and _finish_step can always read it safely.
+        self._token_sink = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -599,6 +640,12 @@ class LedgerTrailApp(App):
         Here we flip into a visible 'thinking' state, ignore further hotkeys,
         and hand the blocking call to a thread worker. The GM-off path is
         identical in behavior — it just returns fast.
+
+        gm-feat-01: before the step runs we arm the GM streaming sink so the
+        scene/outcome narration is shown progressively (see
+        _install_gm_stream_wrapper / _on_narration_token). The sink is a no-op
+        whenever the GM is disabled or falls back, so the GM-off and fallback
+        paths render instantly with no streaming.
         """
         # If there is no live App event loop (unit tests calling the action
         # directly), run synchronously so existing call sites keep working.
@@ -608,8 +655,88 @@ class LedgerTrailApp(App):
             return
 
         self._in_flight = True
+        self._streaming = False
+        self._arm_stream()
         self._render_all()
         self._step_worker(intent)
+
+    def _arm_stream(self) -> None:
+        """Arm the per-step GM token sink (gm-feat-01).
+
+        Installs (once) a thin wrapper around the engine's GMClient
+        scene/outcome generators that injects our on_token callback, then sets
+        the live sink for this step. When the GM is disabled, unreachable, or
+        produces nothing usable, no token ever flows and the narration is
+        rendered in one shot by the post-step _render_all — so the fallback and
+        GM-off paths are unchanged.
+        """
+        self._install_gm_stream_wrapper()
+        self._token_sink = self._on_narration_token
+
+    def _install_gm_stream_wrapper(self) -> None:
+        """Wrap the engine's GMClient generators to inject on_token (idempotent).
+
+        gm-feat-01: the StepEngine calls gm.generate_scene/outcome without an
+        on_token callback. Rather than reach into the engine (out of cli-tui
+        ownership), we wrap the GMClient instance the engine already holds so
+        that — only when a live token sink is set for the current step — the
+        streaming code path in gm.py fires. With no sink set the wrappers pass
+        on_token=None, i.e. the exact non-streamed round-trip. The wrap is a
+        plain delegation, so retries / tone-lint / fallback-never-bricks all
+        live untouched in gm.py.
+        """
+        gm = getattr(self._engine, "gm", None)
+        if gm is None or self._gm_wrapped:
+            return
+
+        orig_scene = gm.generate_scene
+        orig_outcome = gm.generate_outcome
+
+        def scene(*args, **kwargs):
+            kwargs.setdefault("on_token", self._token_sink)
+            return orig_scene(*args, **kwargs)
+
+        def outcome(*args, **kwargs):
+            kwargs.setdefault("on_token", self._token_sink)
+            return orig_outcome(*args, **kwargs)
+
+        gm.generate_scene = scene
+        gm.generate_outcome = outcome
+        self._gm_wrapped = True
+
+    def _on_narration_token(self, delta: str) -> None:
+        """GM streaming callback — runs on the WORKER thread (gm-feat-01).
+
+        Every widget mutation must be marshalled back onto the UI thread, so we
+        hand the delta to _apply_narration_token via call_from_thread. The first
+        token of a step flips _streaming True, which lets the event bar drop the
+        'thinking…' line and the narration panel begin showing prose. A buggy
+        renderer can never brick generation: gm._safe_emit already swallows any
+        exception this callback raises.
+        """
+        if not delta:
+            return
+        try:
+            self.call_from_thread(self._apply_narration_token, delta)
+        except Exception:
+            # No live loop (defensive): drop the delta; the final render still
+            # paints the complete narration.
+            pass
+
+    def _apply_narration_token(self, delta: str) -> None:
+        """UI-thread half of streaming: grow the narration panel (gm-feat-01)."""
+        first = not self._streaming
+        self._streaming = True
+        panel = self.query_one("#narration", NarrationPanel)
+        if first:
+            # First token: leave 'thinking' behind and open a fresh buffer.
+            panel.stream_reset()
+            # Repaint the event bar so the busy 'thinking' line yields to the
+            # streaming state (the choices are still withheld until completion).
+            self.query_one("#eventbar", EventBar).update_from(
+                self._frame, busy=True, streaming=True,
+            )
+        panel.stream_append(delta)
 
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.
@@ -647,6 +774,12 @@ class LedgerTrailApp(App):
     def _finish_step(self) -> None:
         """UI-thread completion: clear busy state, sync, render, narrate."""
         self._in_flight = False
+        # gm-feat-01: disarm the streaming sink and clear the flag so the next
+        # step starts clean. _after_step's _render_all repaints the narration
+        # panel from the fully-parsed FrameState, overwriting any streamed
+        # partial with the final text (streamed and non-streamed converge).
+        self._token_sink = None
+        self._streaming = False
         self._after_step()
 
     # ── Ledger Backpack actions ────────────────────────────────────
