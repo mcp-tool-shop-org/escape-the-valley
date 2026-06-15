@@ -455,30 +455,41 @@ def test_cache_collected_on_arrival():
         assert engine.diagnostics["caches_found"] >= 1
 
 
-# ── ENG-A-05: time_cost is not charged, so the callout must not claim it ──
+# ── ENG-A-05 (resolved): event time_cost now advances the clock ──
+#
+# ENG-A-05 deferred event-time advancement ("time_cost remains parsed ... for
+# future use") because apply_outcome is pure events.py with no engine clock hook.
+# The hook now lives in the engine (_handle_event_choice / _trigger_event), so a
+# WAIT/DETOUR/REST choice's time_cost advances the time-of-day by that many
+# quarter-day slots. apply_outcome stays pure; the callout reports the (now real)
+# cost truthfully.
 
 
-def test_callout_does_not_claim_uncharged_time():
-    """apply_outcome never advances the clock, so the fallback callout must not
-    advertise 'time lost' for an outcome that carries a time_cost."""
+def test_callout_reports_charged_time():
+    """The engine now advances the clock by time_cost on event resolution, so the
+    fallback callout truthfully reports 'time lost' when a cost was charged — and
+    omits it when there was none."""
     from escape_the_valley.events import EventOutcome
     from escape_the_valley.step_engine import _build_fallback_callout
 
-    outcome = EventOutcome(
-        supplies_delta={"food": -3},
-        morale_delta=-2,
-        time_cost=2,
-    )
-    callout = _build_fallback_callout(outcome)
-    assert "time" not in callout.lower()
-    # Real, charged effects are still reported.
-    assert "-3 food" in callout
-    assert "morale -2" in callout
+    charged = _build_fallback_callout(EventOutcome(
+        supplies_delta={"food": -3}, morale_delta=-2, time_cost=2,
+    ))
+    assert "2 time lost" in charged
+    # Real resource/morale effects are still reported alongside it.
+    assert "-3 food" in charged
+    assert "morale -2" in charged
+
+    # No time charged → no time mention (a zero time_cost is silent).
+    free = _build_fallback_callout(EventOutcome(supplies_delta={"food": -3}))
+    assert "time" not in free.lower()
 
 
-def test_time_cost_does_not_advance_clock_on_event():
-    """Resolving an event with a time_cost must not change day/time_of_day,
-    since the engine charges time per-action, not per-event."""
+def test_apply_outcome_stays_pure_engine_owns_the_clock():
+    """apply_outcome must stay a pure state mutation with NO clock side effect —
+    the engine (_handle_event_choice / _trigger_event) owns time advancement, so
+    time_cost is charged there, not in apply_outcome. Engine-level advancement is
+    covered by test_event_time_cost_advances_clock below."""
     from escape_the_valley.events import EventOutcome, apply_outcome
 
     engine = _make_engine(seed=5)
@@ -487,8 +498,63 @@ def test_time_cost_does_not_advance_clock_on_event():
 
     apply_outcome(engine.state, EventOutcome(time_cost=3, morale_delta=-1))
 
+    # The pure mutation applied morale but did NOT touch the clock.
     assert engine.state.day == day_before
     assert engine.state.time_of_day == tod_before
+    assert engine.state.party.morale < 100  # morale delta did apply
+
+
+def test_event_time_cost_advances_clock():
+    """Resolving an event whose chosen outcome carries a time_cost advances the
+    clock by exactly that many quarter-day slots — without drawing RNG
+    (determinism intact) and without double-charging consumption."""
+    from escape_the_valley.events import (
+        EventCategory,
+        EventOutcome,
+        EventSkeleton,
+    )
+    from escape_the_valley.models import TimeOfDay
+    from escape_the_valley.step_engine import EventChoiceInfo
+
+    engine = _make_engine(seed=5)
+
+    # A controlled pending event: choice A waits 2 slots, no other effects.
+    engine._pending_event = EventSkeleton(
+        event_id="test_wait",
+        title="Test Wait",
+        category=EventCategory.SURVIVAL,
+        fallback_narration="The party waits it out.",
+        outcome_templates={"A": EventOutcome(time_cost=2)},
+    )
+    engine._pending_event_choices = [
+        EventChoiceInfo(id="A", label="Wait it out")
+    ]
+    engine._pending_event_title = "Test Wait"
+    engine._pending_event_narration = "The party waits it out."
+    engine.phase = GamePhase.EVENT
+
+    slots = list(TimeOfDay)
+
+    def _clock_index(s) -> int:
+        # Monotonic clock position across day boundaries.
+        return s.day * len(slots) + slots.index(s.time_of_day)
+
+    before_idx = _clock_index(engine.state)
+    counter_before = engine.rng.counter
+    food_before = engine.state.supplies.food
+    water_before = engine.state.supplies.water
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # Clock advanced by exactly the time_cost (2 slots).
+    assert _clock_index(engine.state) - before_idx == 2
+    # A time-only outcome draws no RNG — determinism/counter preserved.
+    assert engine.rng.counter == counter_before
+    # The event step charged no consumption (no double-charge with travel).
+    assert engine.state.supplies.food == food_before
+    assert engine.state.supplies.water == water_before
+    # Event resolved cleanly back to camp.
+    assert engine.phase == GamePhase.CAMP
 
 
 # ── ledger-006: settlement failure must never silently drop the delta ──

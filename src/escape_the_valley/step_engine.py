@@ -728,6 +728,19 @@ class StepEngine:
         )
         apply_outcome(self.state, outcome)
 
+        # ENG-A-05 (resolved): charge the event's time_cost to the clock. ENG-A-05
+        # deferred this ("time_cost remains parsed on EventOutcome for future use")
+        # because apply_outcome is pure events.py with no engine clock hook — the
+        # hook lives here. Each unit advances one time-of-day slot (a quarter-day),
+        # applied AFTER the resource deltas, so WAIT/DETOUR/REST choices carry a
+        # real opportunity cost: nocturnal firewood/lantern-oil drain, the day-tick
+        # spoilage check, a weather reroll, and nocturnal-event eligibility. No
+        # double-charge — resource costs ride on supplies_delta, time_cost rides on
+        # the clock alone (this step charges no consumption). _advance_time draws no
+        # RNG, so determinism (rng_counter, synced at the end of this method) holds.
+        for _ in range(max(0, outcome.time_cost)):
+            self._advance_time()
+
         # Find choice label
         choice_label = ""
         for c in self._pending_event_choices:
@@ -1099,9 +1112,11 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
     if outcome.morale_delta:
         sign = "+" if outcome.morale_delta > 0 else ""
         parts.append(f"morale {sign}{outcome.morale_delta}")
-    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
-    # clock on event resolution (time is charged per-action in the engine), so
-    # claiming a time cost in the callout would be a lie about what was charged.
+    # ENG-A-05 (resolved): the engine now advances the clock by time_cost on event
+    # resolution (see _handle_event_choice), so reporting "time lost" is truthful
+    # — it names a cost the engine actually charges.
+    if outcome.time_cost:
+        parts.append(f"{outcome.time_cost} time lost")
 
     return ", ".join(parts) if parts else "No significant effect."
 
