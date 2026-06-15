@@ -216,6 +216,51 @@ class TestEventCausedDeathAttribution:
         # Not the generic game-over fallback.
         assert victim.death_cause != "The trail"
 
+    def test_event_kill_not_attributed_to_exposure(self):
+        """An event wound with food + water in stock must NOT read as 'Exposure'.
+
+        A bandit ambush or animal mauling is an injury, not slow exposure. With
+        starvation/dehydration ruled out (supplies stocked) and no SICK/INJURED
+        condition pre-set, the old fallback recorded the generic 'Exposure'; the
+        fix attributes an event death as 'Injury' instead.
+        """
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 50
+        state.supplies.water = 50
+        victim = state.party.members[0]
+        victim.health = 5
+        victim.condition = Condition.HEALTHY
+
+        apply_outcome(state, EventOutcome(health_delta=-40))
+
+        assert not victim.is_alive()
+        assert victim.death_cause != "Exposure", (
+            "event wound mis-attributed to Exposure"
+        )
+        assert victim.death_cause == "Injury"
+
+    def test_proximate_cause_exposure_preserved_for_non_event_attrition(self):
+        """Non-event attrition still falls through to 'Exposure'.
+
+        The from_event flag must not change the slow-attrition default: a member
+        who dies with supplies stocked and no condition, outside an event, is
+        still recorded as 'Exposure'.
+        """
+        from escape_the_valley.physics import _proximate_death_cause
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 50
+        state.supplies.water = 50
+        member = state.party.members[0]
+        member.condition = Condition.HEALTHY
+
+        assert _proximate_death_cause(member, state) == "Exposure"
+        assert (
+            _proximate_death_cause(member, state, from_event=True) == "Injury"
+        )
+
     def test_event_kill_respects_condition_cause(self):
         from escape_the_valley.events import EventOutcome, apply_outcome
 
