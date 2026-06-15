@@ -182,6 +182,78 @@ class TestVarietyGuards:
         assert river_flood >= river_no
 
 
+class TestWeatherFilter:
+    """ENG-A-06: weather-gated events are excluded when the current weather
+    doesn't match and included when it does."""
+
+    def _weather_lib(self):
+        from escape_the_valley.events import EventOutcome, EventSkeleton
+        from escape_the_valley.models import Weather
+
+        storm_only = EventSkeleton(
+            event_id="storm_gated",
+            title="Storm Only",
+            category=EventCategory.SURVIVAL,
+            tags=["weather"],
+            base_weight=1.0,
+            weather_filter=[Weather.STORM],
+            fallback_narration="x",
+            outcome_templates={"A": EventOutcome()},
+        )
+        always = EventSkeleton(
+            event_id="always",
+            title="Always",
+            category=EventCategory.SURVIVAL,
+            tags=["survival"],
+            base_weight=1.0,
+            fallback_narration="x",
+            outcome_templates={"A": EventOutcome()},
+        )
+        return [storm_only, always], storm_only, always
+
+    def test_excluded_when_weather_mismatch(self):
+        from escape_the_valley.models import Weather
+
+        lib, storm_only, _ = self._weather_lib()
+        state = create_new_run(seed=42)
+        # Draw many times in CLEAR weather — the storm-gated event must never win.
+        for i in range(50):
+            rng = SeededRNG(i)
+            chosen = select_event(state, rng, lib, weather=Weather.CLEAR)
+            assert chosen.event_id != "storm_gated"
+
+    def test_included_when_weather_matches(self):
+        from escape_the_valley.models import Weather
+
+        lib, _, _ = self._weather_lib()
+        state = create_new_run(seed=42)
+        ids = set()
+        for i in range(50):
+            rng = SeededRNG(i)
+            ids.add(select_event(state, rng, lib, weather=Weather.STORM).event_id)
+        # In STORM weather the gated event is eligible and should appear.
+        assert "storm_gated" in ids
+
+    def test_none_weather_skips_filter(self):
+        """Back-compat: callers that pass no weather keep weather-gated events
+        eligible (the pre-fix behavior, but now explicit)."""
+        from escape_the_valley.models import Weather
+
+        lib, _, _ = self._weather_lib()
+        state = create_new_run(seed=42)
+        ids = set()
+        for i in range(50):
+            rng = SeededRNG(i)
+            ids.add(select_event(state, rng, lib).event_id)  # weather=None
+        assert "storm_gated" in ids
+        # And confirm the symmetric case really does gate when weather is set.
+        clear_ids = {
+            select_event(state, SeededRNG(i), lib, weather=Weather.CLEAR).event_id
+            for i in range(50)
+        }
+        assert "storm_gated" not in clear_ids
+
+
 class TestSeverityCurve:
     def test_severity_shifts_late_game(self):
         """Late-game state should produce more high-severity events."""

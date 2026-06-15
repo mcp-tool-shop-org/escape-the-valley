@@ -231,9 +231,11 @@ class GameEngine:
         if self.rng.random() > 0.6:
             return
 
-        event = select_event(self.state, self.rng, self.event_library)
+        # ENG-A-06: derive weather BEFORE selection so weather-gated events are
+        # actually filtered, and reuse the same value for GM narration.
         node = _find_node(self.state)
         weather = generate_weather(self.rng, node.biome, self.state.day) if node else None
+        event = select_event(self.state, self.rng, self.event_library, weather)
 
         # Try GM narration first
         scene = None

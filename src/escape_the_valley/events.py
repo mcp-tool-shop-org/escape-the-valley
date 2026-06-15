@@ -1773,8 +1773,19 @@ _TWIST_TAG_BOOSTS: dict[TwistModifier, set[str]] = {
 }
 
 
-def select_event(state: RunState, rng: SeededRNG, library: list[EventSkeleton]) -> EventSkeleton:
-    """Select an event using weighted probabilities with variety guards."""
+def select_event(
+    state: RunState,
+    rng: SeededRNG,
+    library: list[EventSkeleton],
+    weather: Weather | None = None,
+) -> EventSkeleton:
+    """Select an event using weighted probabilities with variety guards.
+
+    When ``weather`` is supplied, weather-gated events are excluded unless the
+    current weather matches their ``weather_filter`` (mirroring ``biome_filter``
+    and ``time_filter``). When ``weather`` is None the filter is skipped, so
+    existing callers/tests that don't model weather keep their behavior.
+    """
     node = _find_node(state)
     candidates: list[EventSkeleton] = []
     weights: list[float] = []
@@ -1784,10 +1795,9 @@ def select_event(state: RunState, rng: SeededRNG, library: list[EventSkeleton]) 
         if event.biome_filter and node and node.biome not in event.biome_filter:
             continue
 
-        # Check weather filter
-        if event.weather_filter:
-            # We'll check this loosely — caller should pass current weather context
-            pass
+        # Check weather filter (ENG-A-06 — only when the caller models weather)
+        if event.weather_filter and weather is not None and weather not in event.weather_filter:
+            continue
 
         # Check time filter
         if event.time_filter and state.time_of_day not in event.time_filter:
