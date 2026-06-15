@@ -208,3 +208,131 @@ class TestResourceKeyValidation:
                     assert key in RESOURCE_CATALOG, (
                         f"{e.event_id}: phantom supply key {key!r}"
                     )
+
+
+class TestEventHealthPath:
+    """EC-02 STAKES: the 'health' profile key maps to EventOutcome.health_delta
+    so data events can wound (or heal) the party. apply_outcome already applies
+    health_delta and attributes event-caused deaths."""
+
+    def test_health_key_maps_to_health_delta(self):
+        outcome = _convert_profile(
+            {"health": -6, "time_days": 1, "morale": -2}, event_id="wound_event",
+        )
+        assert outcome.health_delta == -6
+        # And it is NOT smuggled into supplies (would be a phantom resource).
+        assert "health" not in outcome.supplies_delta
+
+    def test_positive_health_heals(self):
+        outcome = _convert_profile({"health": 8}, event_id="balm_event")
+        assert outcome.health_delta == 8
+
+    def test_condition_key_is_benign_noop(self, caplog):
+        """A 'condition' annotation is accepted (no warning) and never becomes a
+        phantom supply — it is a parsed no-op until a future slice maps it."""
+        with caplog.at_level(logging.WARNING):
+            outcome = _convert_profile(
+                {"condition": "injured", "health": -4}, event_id="annot_event",
+            )
+        assert outcome.health_delta == -4
+        assert "condition" not in outcome.supplies_delta
+        assert not any(
+            "unknown resource key" in r.message for r in caplog.records
+        )
+
+    def test_health_is_not_animals_health(self):
+        """A 'health' delta must wound the party, NOT the wagon's draft team
+        (the inverse of the ENG-A-03 invariant)."""
+        outcome = _convert_profile(
+            {"health": -5, "animals_health": -2}, event_id="both_event",
+        )
+        assert outcome.health_delta == -5
+        assert outcome.animals_health_delta == -2
+
+    def test_data_event_health_key_wounds_the_party(self):
+        """End-to-end: a loaded data event whose chosen outcome carries a
+        negative health_delta drops party health when applied."""
+        from escape_the_valley.events import apply_outcome
+        from escape_the_valley.worldgen import create_new_run
+
+        raw = {
+            "id": "ec02_wound",
+            "title": "Drowning Ford",
+            "tags": ["river", "ford", "survival"],
+            "weirdness_band": 0,
+            "severity": "high",
+            "choices": [
+                {"label": "Drive into the current", "intent_action": "FORD",
+                 "engine_effect_profile": {"health": -6, "time_days": 1}},
+                {"label": "Wait it out", "intent_action": "WAIT",
+                 "engine_effect_profile": {"time_days": 1, "morale": -1}},
+            ],
+            "narration_seed": "The river runs hard and cold.",
+        }
+        ev = _convert_event(raw)
+        assert ev.severity == "high"
+        wound = ev.outcome_templates["A"]
+        assert wound.health_delta == -6
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 50
+        state.supplies.water = 50  # so the wound — not scarcity — is the cause
+        before = state.party.members[0].health
+        apply_outcome(state, wound)
+        assert state.party.members[0].health == before - 6
+
+    def test_shipped_library_loads_clean_with_high_severity(self):
+        """The curated library still loads all 200 events, and the EC-02 bounded
+        enrichment produced a meaningful number of high-severity, wounding
+        events — without leaving any phantom supply keys behind."""
+        from escape_the_valley.resources import RESOURCE_CATALOG
+
+        events = load_json_events()
+        assert len(events) == 200
+
+        high = [e for e in events if e.severity == "high"]
+        wounding = [
+            e for e in events
+            if any(o.health_delta < 0 for o in e.outcome_templates.values())
+        ]
+        # Bounded enrichment target: ~25-40 events.
+        assert 25 <= len(high) <= 40
+        assert 25 <= len(wounding) <= 40
+
+        # No event smuggled a 'health'/'condition' key into supplies.
+        for e in events:
+            for o in e.outcome_templates.values():
+                for key in o.supplies_delta:
+                    assert key in RESOURCE_CATALOG, (
+                        f"{e.event_id}: phantom supply key {key!r}"
+                    )
+
+    def test_health_deltas_are_conservative(self):
+        """EC-02 keeps the deltas modest — no single shipped event wounds the
+        party by more than 10 in one choice (no instakills from data)."""
+        events = load_json_events()
+        for e in events:
+            for o in e.outcome_templates.values():
+                assert o.health_delta >= -10, (
+                    f"{e.event_id}: health_delta {o.health_delta} too harsh"
+                )
+
+    def test_unknown_severity_falls_back_to_medium(self, caplog):
+        raw = {
+            "id": "bad_sev",
+            "title": "Odd",
+            "tags": ["survival"],
+            "weirdness_band": 0,
+            "severity": "catastrophic",
+            "choices": [
+                {"label": "Go", "intent_action": "TRAVEL",
+                 "engine_effect_profile": {"time_days": 1}},
+                {"label": "Wait", "intent_action": "WAIT",
+                 "engine_effect_profile": {"morale": -1}},
+            ],
+            "narration_seed": "A strange fork.",
+        }
+        with caplog.at_level(logging.WARNING):
+            ev = _convert_event(raw)
+        assert ev.severity == "medium"
+        assert any("unknown severity" in r.message for r in caplog.records)
