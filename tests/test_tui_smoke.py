@@ -567,6 +567,80 @@ class TestEndScreen:
         asyncio.run(scenario())
 
 
+class TestEndScreenKeyGate:
+    """v1.1 polish: gameplay keys are a clean no-op on the end screen.
+
+    The gameplay BINDINGS (t/r/h/p, 1-7) are not gated on show_end, so before
+    this fix pressing them on the end screen still dispatched action_intent /
+    action_choose -> a step worker. Harmless today (StepEngine.step short
+    -circuits at GAME_OVER) but it spins a wasted worker thread + a redundant
+    re-render. The guard early-returns so the keypress dispatches no step.
+    """
+
+    def _ended_app(self, *, victory=False):
+        from escape_the_valley.step_engine import compute_ending
+
+        state = create_new_run(seed=7)
+        state.game_over = True
+        state.victory = victory
+        if not victory:
+            state.cause_of_death = "starvation"
+        state.ending = compute_ending(state)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+        app.show_end = True
+        # Spy on the single step-dispatch point both handlers funnel into.
+        dispatched = []
+        app._run_step = lambda intent: dispatched.append(intent)
+        return app, dispatched
+
+    def test_intent_key_dispatches_no_step_on_end_screen(self):
+        app, dispatched = self._ended_app()
+        for key in ("TRAVEL", "REST", "HUNT", "REPAIR"):
+            app.action_intent(key)
+        assert dispatched == []
+
+    def test_choose_key_dispatches_no_step_on_end_screen(self):
+        app, dispatched = self._ended_app()
+        for cid in ("A", "B", "C", "D", "E", "F", "G"):
+            app.action_choose(cid)
+        assert dispatched == []
+
+    def test_gameplay_keys_still_dispatch_during_live_run(self):
+        """Sanity: with the run live, the same keys DO reach the step dispatch."""
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+        assert app.show_end is False
+        dispatched = []
+        app._run_step = lambda intent: dispatched.append(intent)
+        app.action_intent("TRAVEL")
+        assert len(dispatched) == 1
+
+    def test_end_screen_pilot_t_key_runs_no_worker(self):
+        """Live loop: pressing 't' on the end screen spawns no step worker."""
+
+        async def scenario():
+            app, dispatched = self._ended_app()
+            # Use the real render path under the live loop.
+            del app._render_all
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app.show_end is True
+                await pilot.press("t")
+                await pilot.pause()
+                # No step was dispatched behind the ending.
+                assert dispatched == []
+
+        asyncio.run(scenario())
+
+
 class TestPostcardCopy:
     """FEAT-CLITUI-01: the end screen can export the postcard to a file and the
     end screen surfaces the postcard + run diagnostics.

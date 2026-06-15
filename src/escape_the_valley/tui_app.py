@@ -716,6 +716,13 @@ class LedgerTrailApp(App):
         valve letter the gate hasn't opened resolves to nothing and is
         ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
         """
+        # On the end screen the gameplay choice keys (1-7 / e-g) are dead: the
+        # run is over and StepEngine.step short-circuits at GAME_OVER anyway, so
+        # dispatching a step worker here only spins a wasted thread + a redundant
+        # re-render. Make an end-screen gameplay keypress a clean no-op without
+        # disturbing the keys that DO work there (quit/journal/help/copy/close).
+        if self.show_end:
+            return
         if not self._engine or self._in_flight:
             return
 
@@ -737,6 +744,10 @@ class LedgerTrailApp(App):
 
     def action_intent(self, intent_str: str) -> None:
         """Map hotkeys t/r/h/p to engine intents."""
+        # End-screen gameplay keys are a no-op (see action_choose): the run is
+        # over, so t/r/h/p should not dispatch a step worker behind the ending.
+        if self.show_end:
+            return
         if not self._engine or self._in_flight:
             return
 
