@@ -82,6 +82,26 @@ class FrameState:
     gm_degraded: bool = False
     gm_degraded_reason: str = ""
 
+    # ── End-of-run (EC-04 / FEAT-CLITUI-01) ─────────────────────────
+    # Populated only when the run is over. The end screen renders the graded
+    # ending (tier + facts), the GM epilogue, the run diagnostics, and the
+    # trail ledger / XRPL postcard. None/empty while the run is live.
+    game_over: bool = False
+    victory: bool = False
+    ending_tier: str = ""
+    ending_headline: str = ""
+    # Pre-rendered (label, value) rows for the facts table.
+    ending_facts: list[tuple[str, str]] = field(default_factory=list)
+    # The narrated epilogue (GM if available, deterministic floor otherwise).
+    # Empty string means "not computed yet" (the worker is composing it).
+    epilogue: str = ""
+    # The trail ledger / XRPL postcard lines (read-only, from ledger.py).
+    postcard_lines: list[str] = field(default_factory=list)
+    # True when the postcard carries on-ledger receipts (backpack was used).
+    is_postcard: bool = False
+    # Run diagnostics (the data the CLI `stats` command computes).
+    run_stats: list[tuple[str, str]] = field(default_factory=list)
+
 
 # ── Widgets ─────────────────────────────────────────────────────────
 
@@ -245,6 +265,90 @@ class JournalDrawer(Static):
         self.update("[b]Journal[/b]\n" + lines)
 
 
+class EndScreen(Static):
+    """The end-of-run screen (EC-04 / FEAT-CLITUI-01).
+
+    Replaces the old clinical cause-of-death line with an ending that feels like
+    one: a tier-keyed banner, the graded result's facts, the GM-narrated
+    epilogue (or its deterministic floor), the run diagnostics, and the trail
+    ledger / XRPL postcard. Serious, not cute — period weight throughout.
+    """
+
+    # A short, period-appropriate caption per tier so the worst and best
+    # endings read differently at a glance. Serious — never a score screen.
+    _TIER_CAPTION = {
+        "lost": "The valley kept its distance.",
+        "pyrrhic": "Arrived — and counting the cost of arriving.",
+        "weathered": "Worn thin, late, and still standing.",
+        "triumphant": "Intact, on time, the vow unbroken.",
+    }
+
+    def update_from(self, s: FrameState) -> None:
+        # The end screen only has content for a finished run; while the run is
+        # live it stays hidden, so render nothing rather than a stale banner.
+        if not s.game_over:
+            self.update("")
+            return
+
+        lines: list[str] = []
+
+        # Banner — victory or defeat, then the graded headline.
+        if s.victory:
+            lines.append("[b]THE VALLEY IS BEHIND YOU[/b]")
+        else:
+            lines.append("[b]THE TRAIL CLAIMS ANOTHER[/b]")
+        caption = self._TIER_CAPTION.get(s.ending_tier, "")
+        if caption:
+            lines.append(f"[dim]{caption}[/dim]")
+        if s.ending_headline:
+            lines.append("")
+            lines.append(s.ending_headline)
+
+        # The epilogue — the storyteller's closing words. While the GM is still
+        # composing it on the worker, show a quiet placeholder rather than a
+        # blank gap.
+        lines.append("")
+        lines.append("─" * 30)
+        if s.epilogue:
+            lines.append(s.epilogue)
+        else:
+            lines.append("[dim]The storyteller gathers the last of it...[/dim]")
+        lines.append("─" * 30)
+
+        # The graded facts.
+        if s.ending_facts:
+            lines.append("")
+            lines.append("[b]The reckoning[/b]")
+            for label, value in s.ending_facts:
+                lines.append(f"  {label}: {value}")
+
+        # Run diagnostics (the CLI `stats` data).
+        if s.run_stats:
+            lines.append("")
+            lines.append("[b]The run[/b]")
+            for label, value in s.run_stats:
+                lines.append(f"  {label}: {value}")
+
+        # The trail ledger / XRPL postcard.
+        if s.postcard_lines:
+            lines.append("")
+            heading = "[b]Postcard (on-ledger)[/b]" if s.is_postcard else "[b]Trail ledger[/b]"
+            lines.append(heading)
+            for ln in s.postcard_lines:
+                lines.append(ln)
+
+        lines.append("")
+        if s.postcard_lines:
+            lines.append(
+                "[dim]Press C to copy this postcard to a file • "
+                "q to close.[/dim]"
+            )
+        else:
+            lines.append("[dim]Press q to close.[/dim]")
+
+        self.update("\n".join(lines))
+
+
 HELP_TEXT = """\
 [b]Escape the Valley: Ledger Trail[/b]
 
@@ -297,6 +401,9 @@ class LedgerTrailApp(App):
 
     show_help: reactive[bool] = reactive(False)
     show_journal: reactive[bool] = reactive(False)
+    # EC-04 / FEAT-CLITUI-01: the end-of-run screen. Shown once the engine
+    # transitions to GAME_OVER; covers the play surface with the graded ending.
+    show_end: reactive[bool] = reactive(False)
     show_ledger: reactive[bool] = reactive(False)
     show_nudge: reactive[bool] = reactive(False)
     show_enable_flow: reactive[bool] = reactive(False)
@@ -342,6 +449,9 @@ class LedgerTrailApp(App):
         # step). Set by _arm_stream, cleared by _finish_step. Initialized here
         # so the GM wrapper and _finish_step can always read it safely.
         self._token_sink = None
+        # EC-04: the narrated epilogue once computed (empty until then). Held on
+        # the app so a frame re-sync after game-over re-applies it.
+        self._epilogue_text = ""
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -365,6 +475,8 @@ class LedgerTrailApp(App):
         with Container(id="overlays"):
             yield HelpOverlay(id="help")
             yield JournalDrawer(id="journal")
+            # EC-04 / FEAT-CLITUI-01: the full-screen end-of-run screen.
+            yield EndScreen(id="end_screen")
 
             from .backpack_ui import (
                 EnableFlowOverlay,
@@ -409,6 +521,12 @@ class LedgerTrailApp(App):
 
         self._render_all()
 
+        # EC-04: if a finished run was loaded (the CLI normally refuses this,
+        # but be robust), raise the end screen straight away.
+        if self._engine and self._engine.state.game_over and not self.show_end:
+            self._begin_end_screen()
+            return
+
         # cli-tui-B-09: confirm a resumed run so the player knows the save
         # loaded and where they are, with a pointer to the help overlay.
         if self._resumed and self._engine:
@@ -422,6 +540,13 @@ class LedgerTrailApp(App):
         from .adapter import state_to_frame
 
         self._frame = state_to_frame(self._engine)
+        # EC-04: re-apply an already-computed epilogue. _sync_frame rebuilds the
+        # frame from scratch (the adapter leaves epilogue empty on purpose,
+        # since it can block), so without this a re-sync after the epilogue
+        # landed would blank it back to the placeholder.
+        epilogue = getattr(self, "_epilogue_text", "")
+        if epilogue and self._frame.game_over:
+            self._frame.epilogue = epilogue
 
     def _save(self) -> None:
         """Persist the current run to disk after a backpack/parcel mutation.
@@ -446,9 +571,13 @@ class LedgerTrailApp(App):
         # loading state instead of the choices.
         self.query_one("#eventbar", EventBar).update_from(s, busy=self._in_flight)
         self.query_one("#journal", JournalDrawer).update_from(s)
+        # EC-04 / FEAT-CLITUI-01: keep the end screen's content fresh (the GM
+        # epilogue lands asynchronously, so this re-renders when it arrives).
+        self.query_one("#end_screen", EndScreen).update_from(s)
 
         self.query_one("#help").display = self.show_help
         self.query_one("#journal").display = self.show_journal
+        self.query_one("#end_screen").display = self.show_end
         self.query_one("#ledger_menu").display = self.show_ledger
         self.query_one("#nudge").display = self.show_nudge
         self.query_one("#enable_flow").display = self.show_enable_flow
@@ -474,6 +603,17 @@ class LedgerTrailApp(App):
         """Sync frame, render, optionally narrate, and check nudge."""
         self._sync_frame()
         self._render_all()
+
+        # EC-04 / FEAT-CLITUI-01: the run just ended — raise the end screen and
+        # kick off the (fallback-safe) GM epilogue. Done before the nudge check
+        # so a death never pops the backpack nudge over the ending.
+        if (
+            self._engine
+            and self._engine.state.game_over
+            and not self.show_end
+        ):
+            self._begin_end_screen()
+            return
 
         # Nudge: show once at first town if backpack not enabled/dismissed
         if self._engine:
@@ -737,6 +877,71 @@ class LedgerTrailApp(App):
                 self._frame, busy=True, streaming=True,
             )
         panel.stream_append(delta)
+
+    # ── End-of-run screen (EC-04 / FEAT-CLITUI-01) ─────────────────
+
+    def _begin_end_screen(self) -> None:
+        """Raise the end screen and compute the GM epilogue (fallback-safe).
+
+        The graded ending, postcard, and diagnostics are already on the frame
+        (populated by the adapter) and render instantly. The GM epilogue can
+        block on a network round-trip, so it is computed on a worker thread and
+        filled in by _finish_epilogue. generate_epilogue NEVER returns None — it
+        falls back to a deterministic floor — so a dead/disabled GM still yields
+        a real ending, just without the narrated dressing.
+        """
+        self._close_all_overlays()
+        self.show_end = True
+        self._render_all()
+
+        ending = self._engine.state.ending
+        if ending is None:
+            # Defensive: recompute deterministically so the worker always has an
+            # EndingResult to narrate (the adapter does the same).
+            from .step_engine import compute_ending
+
+            ending = compute_ending(self._engine.state)
+
+        if not self._has_worker_runtime():
+            self._epilogue_blocking(ending)
+            return
+        self._epilogue_worker(ending)
+
+    def _epilogue_blocking(self, ending) -> None:
+        """Synchronous epilogue (unit tests / no live loop)."""
+        text = self._compute_epilogue(ending)
+        self._finish_epilogue(text)
+
+    @work(thread=True, exclusive=True, group="epilogue")
+    def _epilogue_worker(self, ending) -> None:
+        text = self._compute_epilogue(ending)
+        self.call_from_thread(self._finish_epilogue, text)
+
+    def _compute_epilogue(self, ending) -> str:
+        """Call the (fallback-safe) GM epilogue API; never raises, never None.
+
+        gm.generate_epilogue computes a deterministic floor first and only
+        dresses it up if the GM is reachable, so this is safe to call with the
+        GM off. Any unexpected error still degrades to the deterministic floor
+        rather than leaving the end screen blank.
+        """
+        gm = getattr(self._engine, "gm", None)
+        if gm is None:
+            from .gm import build_deterministic_epilogue
+
+            return build_deterministic_epilogue(self._engine.state, ending)
+        try:
+            return gm.generate_epilogue(self._engine.state, ending)
+        except Exception:
+            from .gm import build_deterministic_epilogue
+
+            return build_deterministic_epilogue(self._engine.state, ending)
+
+    def _finish_epilogue(self, text: str) -> None:
+        """UI-thread completion: store the epilogue and repaint the end screen."""
+        self._epilogue_text = text
+        self._frame.epilogue = text
+        self._render_all()
 
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.

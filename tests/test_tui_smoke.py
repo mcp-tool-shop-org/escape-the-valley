@@ -442,6 +442,131 @@ class TestStreamingPilot:
         asyncio.run(scenario())
 
 
+class TestEndScreen:
+    """EC-04 / FEAT-CLITUI-01: the end screen renders the graded ending, the
+    GM epilogue (fallback-safe), the diagnostics, and the trail ledger.
+    """
+
+    def _ended_state(self, *, victory=False, seed=7):
+        """A finished run with a graded ending ready to render."""
+        from escape_the_valley.step_engine import compute_ending
+
+        state = create_new_run(seed=seed)
+        state.game_over = True
+        state.victory = victory
+        if not victory:
+            state.cause_of_death = "starvation"
+            # Kill someone so 'the fallen' row populates.
+            state.party.members[-1].health = 0
+        state.ending = compute_ending(state)
+        return state
+
+    def _ended_app(self, *, victory=False):
+        state = self._ended_state(victory=victory)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        return app
+
+    def test_after_step_raises_end_screen_on_game_over(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        app = self._ended_app()
+        # Neutralize the live-DOM render; we assert the state transition + the
+        # epilogue computation, and render the widget directly elsewhere.
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+
+        app._after_step()
+
+        # The run is over → the end screen is up and the frame carries the
+        # graded ending the EndScreen widget will render.
+        assert app.show_end is True
+        assert app._frame.game_over is True
+        assert "THE TRAIL" not in app._frame.ending_headline  # headline is prose
+        assert any("Survivors" in label for label, _ in app._frame.ending_facts)
+        # The epilogue (deterministic floor, GM off) was computed synchronously.
+        assert app._frame.epilogue
+
+    def test_end_screen_shows_deterministic_epilogue_with_gm_off(self):
+        """The fallback-safe epilogue API fills the screen even with the GM off."""
+        app = self._ended_app()
+        ending = app._engine.state.ending
+
+        # The synchronous (no live loop) path computes + applies the epilogue.
+        text = app._compute_epilogue(ending)
+        assert isinstance(text, str)
+        assert text  # never empty — deterministic floor
+
+        # And it matches the deterministic builder (GM off).
+        from escape_the_valley.gm import build_deterministic_epilogue
+
+        assert text == build_deterministic_epilogue(app._engine.state, ending)
+
+    def test_finish_epilogue_repaints_with_text(self):
+        app = self._ended_app()
+        app._render_all = lambda: None
+        app._frame.game_over = True
+        app._finish_epilogue("The country kept its silence.")
+        assert app._frame.epilogue == "The country kept its silence."
+        assert app._epilogue_text == "The country kept its silence."
+
+    def test_endscreen_widget_renders_all_sections(self):
+        from escape_the_valley.adapter import populate_end_data
+        from escape_the_valley.tui_app import EndScreen, FrameState
+
+        state = self._ended_state(victory=True)
+        frame = FrameState()
+        populate_end_data(frame, state)
+        frame.epilogue = "They had earned the quiet at the end."
+
+        widget = EndScreen()
+        captured = {}
+        widget.update = lambda txt: captured.setdefault("t", txt)
+        widget.update_from(frame)
+        text = captured["t"]
+
+        assert "THE VALLEY IS BEHIND YOU" in text
+        assert frame.ending_headline in text
+        assert "They had earned the quiet" in text
+        assert "The reckoning" in text   # facts section
+        assert "The run" in text          # diagnostics section
+        assert "Trail ledger" in text     # postcard/ledger section
+
+    def test_endscreen_hidden_for_live_run(self):
+        from escape_the_valley.tui_app import EndScreen, FrameState
+
+        widget = EndScreen()
+        captured = {}
+        widget.update = lambda txt: captured.setdefault("t", txt)
+        widget.update_from(FrameState(game_over=False))
+        # Live run → no content (the widget is hidden anyway).
+        assert captured["t"] == ""
+
+    def test_sync_frame_reapplies_epilogue_after_game_over(self, tmp_path, monkeypatch):
+        """A frame re-sync after the epilogue landed must not blank it."""
+        monkeypatch.chdir(tmp_path)
+        app = self._ended_app()
+        app._epilogue_text = "The vow held."
+        app._sync_frame()
+        assert app._frame.game_over is True
+        assert app._frame.epilogue == "The vow held."
+
+    def test_end_screen_pilot_renders_on_death(self):
+        """Live-loop: a run driven to game-over raises the end screen."""
+
+        async def scenario():
+            from escape_the_valley.tui_app import EndScreen
+
+            app = self._ended_app()
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app.show_end is True
+                assert app.query_one("#end_screen", EndScreen).display is True
+
+        asyncio.run(scenario())
+
+
 class TestVoiceRuntimeFailureConsumer:
     """gm-B-06 consumer: when the voice bridge self-disables on a runtime audio
     failure, the TUI must tell the player ONCE and stop claiming voice is on.
