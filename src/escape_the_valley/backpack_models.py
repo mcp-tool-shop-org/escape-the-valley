@@ -48,7 +48,15 @@ class SentParcelRecord:
 
 @dataclass
 class PermitRecord:
-    """A one-time clutch tool earned from a hard choice."""
+    """A one-time clutch tool earned from a hard choice.
+
+    Future seam (ledger-B09): permits are modeled and persisted but not yet
+    issued or spent by any engine path. When the "earn a one-time tool from a
+    hard choice" mechanic lands, it mints a permit token on the testnet and
+    appends a record here; spending flips ``used`` and stamps ``day_used``.
+    Kept in the data model now so saves written today round-trip forward without
+    a schema migration once the mechanic ships.
+    """
 
     permit_id: str = ""
     txid: str = ""
@@ -89,6 +97,13 @@ class BackpackState:
     nudge_shown: bool = False
     nudge_dismissed: bool = False  # "Not now" was clicked — never nag again
 
+    # Degraded-network signal (ledger-B04 / CROSS-DOMAIN CONTRACT). True after a
+    # settle()/_retry_pending attempt could not reach the testnet and left a
+    # checkpoint unsettled; cleared once a settlement (or retry) succeeds. The
+    # status_line + cli-tui render a distinct "offline -- testnet unreachable"
+    # state from this so a pending count is not mistaken for a healthy backlog.
+    last_settle_failed: bool = False
+
 
 # ── Currency mapping ──────────────────────────────────────────────
 # Game key → (XRPL 3-char standard code, 4-char display label)
@@ -105,3 +120,28 @@ XRPL_TOKEN_MAP: dict[str, tuple[str, str]] = {
 XRPL_RESOURCES: set[str] = set(XRPL_TOKEN_MAP.keys())
 
 TESTNET_URL = "https://s.altnet.rippletest.net:51234/"
+
+# ── Testnet-only safety (ledger-B03) ──────────────────────────────
+# The "no real value at risk" guarantee is enforced in code, not by
+# convention: BackpackManager only connects to a host on this allowlist
+# unless explicitly overridden with allow_non_testnet=True (which also
+# logs a loud warning). These are Ripple's public test networks; tokens
+# minted here have no monetary value, so a lost/leaked seed costs nothing.
+TESTNET_HOSTS: frozenset[str] = frozenset({
+    "s.altnet.rippletest.net",   # XRPL Testnet
+    "s.devnet.rippletest.net",   # XRPL Devnet
+})
+
+# ── Parcel accept cap (ledger-B09) ────────────────────────────────
+# A single accepted parcel cannot inject more than this many units of any
+# one supply. Multiplayer parcels are a generosity channel, not an economy
+# break: capping the accept keeps a benefactor (or a griefer) from trivializing
+# the survival pressure that the whole game is about. Named here so the cap is
+# a documented design lever rather than a bare literal at the call site.
+PARCEL_ACCEPT_CAP: int = 20
+
+# Memo schema-version token (ledger-B09). Stamped into the settlement memo
+# header so a future memo-format change is self-describing on-chain and an
+# external verifier can branch on the version it reads back. Bump when the
+# TRAIL| memo grammar changes in a non-backward-compatible way.
+MEMO_SCHEMA_VERSION: str = "v1"
