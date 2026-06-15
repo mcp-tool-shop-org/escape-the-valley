@@ -60,6 +60,15 @@ class TestSanitize:
         result = _sanitize(text)
         assert seed not in result
 
+    def test_xrpl_classic_address_redacted(self):
+        # gm-A-103 — the r-address branch of _SECRETS_PATTERN was untested
+        # with a real base58 classic address (prior fixtures used non-base58
+        # placeholders that never matched). A valid r-address must be redacted.
+        address = "rhub8VRN55s94qWKDv6jmDy1pUykJzF3wq"
+        text = f"The courier left {address} on the bench."
+        result = _sanitize(text)
+        assert address not in result
+
     def test_assignment_secret_redacted(self):
         text = "Leaked wallet_secret=hunter2 in the log."
         result = _sanitize(text)
