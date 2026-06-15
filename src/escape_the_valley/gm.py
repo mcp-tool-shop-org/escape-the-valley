@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import httpx
@@ -217,8 +218,17 @@ class GMClient:
         event: EventSkeleton,
         weather_str: str,
         brief: GMBrief | None = None,
+        on_token: Callable[[str], None] | None = None,
     ) -> SceneResponse | None:
-        """Generate a scene narration from the GM. Returns None on failure."""
+        """Generate a scene narration from the GM. Returns None on failure.
+
+        gm-feat-01 — when ``on_token`` is supplied, the narration prose is
+        streamed: ``on_token(delta)`` fires with each new run of decoded
+        narration text as it arrives, while the method STILL returns a fully
+        parsed + tone-linted ``SceneResponse`` (or None on any failure, after
+        the usual retry). When ``on_token`` is None the behavior — and the
+        request payload — is byte-identical to the non-streamed path.
+        """
         if not self.config.enabled:
             return None
 
@@ -291,6 +301,7 @@ class GMClient:
 
         return self._request_scene(
             system_prompt, user_prompt, state.gm_profile.value,
+            on_token=on_token,
         )
 
     def generate_outcome(
@@ -302,8 +313,15 @@ class GMClient:
         choice_label: str,
         outcome_facts: dict,
         brief: GMBrief | None = None,
+        on_token: Callable[[str], None] | None = None,
     ) -> OutcomeResponse | None:
-        """Generate outcome narration. Returns None on failure."""
+        """Generate outcome narration. Returns None on failure.
+
+        gm-feat-01 — ``on_token`` streams the ``outcome_narration`` prose the
+        same way ``generate_scene`` streams scene narration; the method still
+        returns a fully parsed + tone-linted ``OutcomeResponse`` (or None).
+        ``on_token=None`` is byte-identical to the non-streamed path.
+        """
         if not self.config.enabled:
             return None
 
@@ -339,10 +357,69 @@ class GMClient:
 
         return self._request_outcome(
             system_prompt, user_prompt, state.gm_profile.value,
+            on_token=on_token,
         )
 
+    def _post_text(
+        self,
+        system: str,
+        user: str,
+        *,
+        narration_key: str,
+        on_token: Callable[[str], None] | None,
+    ) -> tuple[int, str]:
+        """Issue the generate request; return (status_code, full_response_text).
+
+        gm-feat-01 — when ``on_token`` is None this is the exact non-streamed
+        round-trip used since launch (``"stream": False``; the payload is
+        byte-identical). When ``on_token`` is provided we set ``"stream": True``,
+        consume the NDJSON chunk stream, accumulate the full ``response`` text
+        for normal end-of-stream parsing, and surface each new run of decoded
+        ``narration_key`` prose via ``on_token`` as it arrives. Either way the
+        returned ``text`` is the complete raw model response, so the caller's
+        parse/validate/tone path is unchanged.
+        """
+        payload = {
+            "model": self.config.model,
+            "prompt": user,
+            "system": system,
+            "options": {"temperature": 0.7},
+        }
+        if on_token is None:
+            payload["stream"] = False
+            resp = self._client.post(self.config.generate_url, json=payload)
+            if resp.status_code != 200:
+                return resp.status_code, ""
+            return 200, resp.json().get("response", "")
+
+        # Streamed path.
+        payload["stream"] = True
+        streamer = _NarrationStreamer(narration_key)
+        with self._client.stream(
+            "POST", self.config.generate_url, json=payload,
+        ) as resp:
+            if resp.status_code != 200:
+                # Drain so the connection can be reused/closed cleanly.
+                resp.read()
+                return resp.status_code, ""
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                fragment = obj.get("response", "")
+                if fragment:
+                    _safe_emit(on_token, streamer.feed(fragment))
+        return 200, streamer.raw
+
     def _request_scene(
-        self, system: str, user: str, requested_profile: str = "",
+        self,
+        system: str,
+        user: str,
+        requested_profile: str = "",
+        on_token: Callable[[str], None] | None = None,
     ) -> SceneResponse | None:
         """Make the Ollama request with retry + validation.
 
@@ -351,26 +428,23 @@ class GMClient:
         gm-B-04 — a tone-only miss (valid JSON+schema, narration present, the
         ONLY problem is a banned word) is repaired locally rather than spending
         a full multi-second round-trip to re-fail identically.
+        gm-feat-01 — when ``on_token`` is set the request is streamed and the
+        narration prose is surfaced progressively; the parse/validate/tone path
+        below is identical to the non-streamed path, so fallback-never-bricks
+        (a streaming error/!200/invalid/tone-fail still retries-then-None) is
+        preserved.
         """
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.stats["attempts"] += 1
-                resp = self._client.post(
-                    self.config.generate_url,
-                    json={
-                        "model": self.config.model,
-                        "prompt": user,
-                        "system": system,
-                        "stream": False,
-                        "options": {"temperature": 0.7},
-                    },
+                status, text = self._post_text(
+                    system, user, narration_key="narration", on_token=on_token,
                 )
-                if resp.status_code != 200:
-                    logger.warning("GM returned %d", resp.status_code)
+                if status != 200:
+                    logger.warning("GM returned %d", status)
                     self.stats["json_rejects"] += 1
                     continue
 
-                text = resp.json().get("response", "")
                 data = _parse_json(text)
                 if data and _validate_scene(data):
                     narration = data.get("narration", "")
@@ -404,27 +478,28 @@ class GMClient:
         return None
 
     def _request_outcome(
-        self, system: str, user: str, requested_profile: str = "",
+        self,
+        system: str,
+        user: str,
+        requested_profile: str = "",
+        on_token: Callable[[str], None] | None = None,
     ) -> OutcomeResponse | None:
-        """Make outcome request with retry. See _request_scene for stats/repair."""
+        """Make outcome request with retry. See _request_scene for stats/repair.
+
+        gm-feat-01 — ``on_token`` streams the ``outcome_narration`` prose; the
+        parse/tone/fallback path is otherwise identical to the non-streamed one.
+        """
         for _attempt in range(self.config.max_retries + 1):
             try:
                 self.stats["attempts"] += 1
-                resp = self._client.post(
-                    self.config.generate_url,
-                    json={
-                        "model": self.config.model,
-                        "prompt": user,
-                        "system": system,
-                        "stream": False,
-                        "options": {"temperature": 0.7},
-                    },
+                status, text = self._post_text(
+                    system, user,
+                    narration_key="outcome_narration", on_token=on_token,
                 )
-                if resp.status_code != 200:
+                if status != 200:
                     self.stats["json_rejects"] += 1
                     continue
 
-                text = resp.json().get("response", "")
                 data = _parse_json(text)
                 if data and "outcome_narration" in data:
                     narration = data.get("outcome_narration", "")
@@ -606,6 +681,174 @@ def _nudge_prompt(user: str) -> str:
     if nudge in user:
         return user
     return user + nudge
+
+
+class _NarrationStreamer:
+    """Incrementally decode one JSON string field's text from a raw stream.
+
+    gm-feat-01 — the model streams its full JSON object as a sequence of raw
+    text chunks (Ollama NDJSON `response` fragments). We accumulate the raw
+    text for final parsing exactly as the non-streamed path does, and *in
+    addition* surface the narration prose progressively: as soon as the
+    ``"<key>":"`` value opens we decode and emit each new run of text up to
+    (but not including) the unescaped closing quote.
+
+    The decoder is deliberately small and tolerant of being fed arbitrary
+    partial chunks — a quote, an escape, or a unicode `\\uXXXX` sequence may be
+    split across two chunks. State carried between ``feed`` calls:
+
+      - ``_in_value``   — have we crossed the opening quote of the value?
+      - ``_done``       — has the closing quote been seen (stop emitting)?
+      - ``_pending``    — a trailing backslash / partial escape held back until
+                          the next chunk completes it.
+
+    When the value never opens (e.g. the field is absent, or the JSON is
+    malformed) nothing is emitted — the caller still parses the accumulated raw
+    at the end, so fallback-never-bricks is preserved either way.
+    """
+
+    def __init__(self, key: str = "narration"):
+        # The literal token that opens the value: e.g.  "narration":"
+        # We match it ignoring whitespace around the colon by scanning the
+        # accumulated raw for the key then the next opening quote.
+        self._key = key
+        self._raw = ""
+        self._scanned = 0  # index in _raw up to which we've emitted/consumed
+        self._in_value = False
+        self._done = False
+        self._pending = ""  # held-back partial escape ("\" or "\uAB")
+
+    def feed(self, chunk: str) -> str:
+        """Append a raw chunk; return the newly-decoded narration delta (maybe "")."""
+        if self._done or not chunk:
+            self._raw += chunk
+            return ""
+        self._raw += chunk
+
+        if not self._in_value:
+            # Look for  "<key>" : "  in the accumulated raw. Find the key,
+            # then the next colon, then the opening quote of the value.
+            anchor = f'"{self._key}"'
+            ki = self._raw.find(anchor, self._scanned)
+            if ki == -1:
+                # Key not present yet; keep the tail in case the key token
+                # itself is split across chunks.
+                self._scanned = max(0, len(self._raw) - len(anchor))
+                return ""
+            colon = self._raw.find(":", ki + len(anchor))
+            if colon == -1:
+                return ""
+            quote = self._raw.find('"', colon + 1)
+            if quote == -1:
+                return ""
+            self._in_value = True
+            self._scanned = quote + 1  # first char of the value's content
+
+        return self._consume_value()
+
+    def _consume_value(self) -> str:
+        """Decode value characters from _scanned until close quote or run-out."""
+        out: list[str] = []
+        i = self._scanned
+        n = len(self._raw)
+
+        # Resume a partial escape held from the previous chunk.
+        if self._pending:
+            consumed, emitted, done_or_wait = self._resume_pending(i, n)
+            if done_or_wait == "wait":
+                return ""
+            out.append(emitted)
+            i = consumed
+
+        while i < n:
+            ch = self._raw[i]
+            if ch == "\\":
+                if i + 1 >= n:
+                    # Escape opener at the very end; hold for next chunk.
+                    self._pending = "\\"
+                    self._scanned = n
+                    return "".join(out)
+                esc = self._raw[i + 1]
+                if esc == "u":
+                    if i + 6 > n:
+                        self._pending = self._raw[i:n]
+                        self._scanned = n
+                        return "".join(out)
+                    out.append(self._decode_u(self._raw[i + 2 : i + 6]))
+                    i += 6
+                else:
+                    out.append(_ESCAPES.get(esc, esc))
+                    i += 2
+                continue
+            if ch == '"':
+                # Unescaped close quote — value complete.
+                self._done = True
+                self._scanned = i + 1
+                return "".join(out)
+            out.append(ch)
+            i += 1
+
+        self._scanned = i
+        return "".join(out)
+
+    def _resume_pending(self, i: int, n: int) -> tuple[int, str, str]:
+        """Complete a held-back partial escape. Returns (new_i, emitted, status)."""
+        p = self._pending
+        if p == "\\":
+            if i >= n:
+                return i, "", "wait"
+            esc = self._raw[i]
+            if esc == "u":
+                if i + 5 > n:
+                    self._pending = "\\" + self._raw[i:n]
+                    self._scanned = n
+                    return i, "", "wait"
+                self._pending = ""
+                return i + 5, self._decode_u(self._raw[i + 1 : i + 5]), "ok"
+            self._pending = ""
+            return i + 1, _ESCAPES.get(esc, esc), "ok"
+        # p is a partial "\uXX" sequence; gather to 6 chars total ("\uXXXX").
+        need = 6 - len(p)
+        if n - i < need:
+            self._pending = p + self._raw[i:n]
+            self._scanned = n
+            return i, "", "wait"
+        full = p + self._raw[i : i + need]
+        self._pending = ""
+        return i + need, self._decode_u(full[2:6]), "ok"
+
+    @staticmethod
+    def _decode_u(hexdigits: str) -> str:
+        try:
+            return chr(int(hexdigits, 16))
+        except ValueError:
+            return ""
+
+    @property
+    def raw(self) -> str:
+        return self._raw
+
+
+_ESCAPES = {
+    '"': '"', "\\": "\\", "/": "/",
+    "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t",
+}
+
+
+def _safe_emit(on_token: Callable[[str], None] | None, delta: str) -> None:
+    """Call on_token with a delta, swallowing any exception it raises.
+
+    gm-feat-01 — the streaming callback runs UI code from inside the model
+    loop. A buggy or slow renderer must never propagate an exception up and
+    brick generation (fallback-never-bricks). A delta is only emitted when it
+    is non-empty.
+    """
+    if on_token is None or not delta:
+        return
+    try:
+        on_token(delta)
+    except Exception as e:  # noqa: BLE001 — callback is untrusted UI code
+        logger.warning("on_token callback raised (ignored): %s", e)
 
 
 def _find_node(state: RunState):

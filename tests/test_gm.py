@@ -30,6 +30,47 @@ class _FakeResp:
         return {"response": self._payload}
 
 
+class _FakeStream:
+    """Context-manager stand-in for httpx.Client.stream() returning NDJSON lines.
+
+    gm-feat-01 — Ollama streams its full JSON object as a sequence of NDJSON
+    objects, each carrying a ``response`` text fragment. This fake replays a
+    pre-split list of raw fragments so a test can prove on_token receives the
+    narration progressively while the final accumulated raw still parses.
+    """
+
+    def __init__(self, fragments: list[str], status_code: int = 200):
+        self._fragments = fragments
+        self.status_code = status_code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def read(self) -> bytes:  # drained on non-200
+        return b""
+
+    def iter_lines(self):
+        for frag in self._fragments:
+            yield json.dumps({"response": frag})
+
+
+def _stream_factory(fragments, status_code=200):
+    """Build a monkeypatch replacement for client._client.stream."""
+
+    def _stream(_method, _url, **_kwargs):
+        return _FakeStream(fragments, status_code)
+
+    return _stream
+
+
+def _chunk(text: str, size: int = 3) -> list[str]:
+    """Split a string into size-bounded fragments (to exercise partial chunks)."""
+    return [text[i : i + size] for i in range(0, len(text), size)] or [""]
+
+
 def _make_event() -> EventSkeleton:
     return EventSkeleton(
         event_id="river_ford",
@@ -556,3 +597,184 @@ class TestIsAvailableTimeout:
     def test_probe_default_is_short(self):
         # The default probe budget is seconds, not the 30s generation window.
         assert GMConfig().probe_timeout <= 5.0
+
+
+class TestStreamingNarration:
+    """gm-feat-01 — on_token streams narration progressively, still parses.
+
+    The invariants under test:
+      - on_token receives the narration prose in arriving order, and the
+        accumulated deltas equal the final SceneResponse.narration;
+      - the fully-parsed SceneResponse is still returned and passes tone-lint;
+      - a streaming failure (non-200 / transport / invalid JSON / tone-fail)
+        still falls through to None after the usual retry (fallback never
+        bricks), and on_token never raises into the model loop;
+      - on_token=None is byte-identical to the non-streamed path (still hits
+        client._client.post, never .stream).
+    """
+
+    def _world(self):
+        return create_new_run(seed=1), _make_event()
+
+    def test_scene_streams_progressive_narration(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The ford runs wide and cold, and the mule will not move."
+        full = _valid_scene_json(narration)
+        # Split the raw model output into many small fragments to exercise the
+        # incremental decoder across chunk boundaries.
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 4)),
+        )
+        # post must NOT be used on the streaming path.
+        monkeypatch.setattr(
+            client._client, "post",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("streaming path must not call post")
+            ),
+        )
+
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is not None
+        assert result.narration == narration
+        # The streamed deltas, concatenated, reconstruct the narration exactly.
+        assert "".join(seen) == narration
+        # Progressive: more than one delta arrived (it was not one dump).
+        assert len(seen) >= 2
+        # And the final response still passes tone-lint.
+        assert _tone_check(result.narration)
+        assert client.stats["successes"] == 1
+
+    def test_scene_stream_non200_falls_through_to_none(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _FakeStream([], status_code=500)
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is None  # fallback-never-bricks
+        assert calls["n"] == 2  # max_retries + 1
+        assert seen == []  # nothing decoded
+        assert client.stats["json_rejects"] == 2
+
+    def test_scene_stream_invalid_json_falls_through(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        monkeypatch.setattr(
+            client._client, "stream",
+            _stream_factory(_chunk("this is not json at all", 5)),
+        )
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=lambda _d: None,
+        )
+        assert result is None
+
+    def test_scene_stream_tone_fail_falls_through(self, monkeypatch):
+        # A streamed punchline still hard-fails after retries → None.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        bad = _valid_scene_json("Plot twist: the bridge gave way.")
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _FakeStream(_chunk(bad, 6))
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=lambda _d: None,
+        )
+        assert result is None
+        assert calls["n"] == 2
+        assert client.stats["tone_rejects"] >= 1
+
+    def test_on_token_exception_never_propagates(self, monkeypatch):
+        # A buggy renderer must not brick generation: the scene still parses.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The river is high and the rope is frayed."
+        monkeypatch.setattr(
+            client._client, "stream",
+            _stream_factory(_chunk(_valid_scene_json(narration), 4)),
+        )
+
+        def _explode(_delta):
+            raise RuntimeError("renderer blew up")
+
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=_explode,
+        )
+        assert result is not None  # callback failure swallowed
+        assert result.narration == narration
+        assert client.stats["successes"] == 1
+
+    def test_on_token_none_uses_post_not_stream(self, monkeypatch):
+        # gm-feat-01 — the None path is byte-identical to today: it uses post,
+        # never stream.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        good = _valid_scene_json("The wind drives the dust before it.")
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, good),
+        )
+        monkeypatch.setattr(
+            client._client, "stream",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("non-stream path must not call stream")
+            ),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is not None
+        assert "dust" in result.narration
+
+    def test_outcome_streams_progressive_narration(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The water takes the wagon to its knees and lets go slowly."
+        full = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": narration,
+            "callout": "You crossed, soaked but whole.",
+        })
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 5)),
+        )
+        seen: list[str] = []
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+            on_token=seen.append,
+        )
+        assert result is not None
+        assert result.outcome_narration == narration
+        assert "".join(seen) == narration
+        assert len(seen) >= 2
+        assert _tone_check(result.outcome_narration)
+
+    def test_stream_handles_escapes_across_chunks(self, monkeypatch):
+        # A narration containing escaped quotes + a unicode escape, split so
+        # the escapes straddle chunk boundaries, must still decode cleanly.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = 'She said "go" and the café lamp guttered out.'
+        full = _valid_scene_json(narration)
+        # Size-1 fragments guarantee every escape is split.
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 1)),
+        )
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is not None
+        assert result.narration == narration
+        assert "".join(seen) == narration
