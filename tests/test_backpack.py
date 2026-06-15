@@ -832,6 +832,60 @@ class TestFetchOnchainMemos:
         assert memos["TXHASH1"] == memo_text
         assert "TXHASH2" not in memos
 
+    @requires_xrpl
+    def test_paginates_via_marker(self, monkeypatch):
+        """ledger-A03: AccountTx is paged via the response marker until exhausted.
+
+        A long run can exceed one page (limit=200). Without pagination, older
+        memos beyond page 1 are dropped — a FALSE-NEGATIVE proof failure. Mock a
+        2-page response per account and assert every memo across pages is
+        gathered.
+        """
+        state = _enabled_state()
+        memo_p1 = "TRAIL|RUN:test1234|DAY:1|DELTA:FOD-1"
+        memo_p2 = "TRAIL|RUN:test1234|DAY:2|DELTA:FOD-2"
+
+        def page(tx_hash: str, memo: str) -> dict:
+            return {
+                "hash": tx_hash,
+                "tx_json": {
+                    "TransactionType": "Payment",
+                    "Memos": [{"Memo": {"MemoData": _hex_encode(memo)}}],
+                },
+            }
+
+        class _PagedClient(_FakeClient):
+            def __init__(self):
+                # One independent page cursor per account so wallet + issuer
+                # both walk their own 2-page sequence.
+                self._cursor: dict[str, int] = {}
+
+            def request(self, req):
+                account = req.account
+                page_idx = self._cursor.get(account, 0)
+                self._cursor[account] = page_idx + 1
+                if page_idx == 0:
+                    # Page 1: a marker signals more remain.
+                    return _FakeResp({
+                        "transactions": [page(f"{account}-TX1", memo_p1)],
+                        "marker": {"ledger": 1, "seq": 7},
+                    })
+                # Page 2: no marker → done.
+                return _FakeResp({
+                    "transactions": [page(f"{account}-TX2", memo_p2)],
+                })
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _PagedClient())
+
+        memos = mgr.fetch_onchain_memos(state)
+        # Both pages of BOTH accounts were gathered (wallet + issuer).
+        assert memos["rPlayerAddr-TX1"] == memo_p1
+        assert memos["rPlayerAddr-TX2"] == memo_p2
+        assert memos["rIssuerAddr-TX1"] == memo_p1
+        assert memos["rIssuerAddr-TX2"] == memo_p2
+        assert len(memos) == 4
+
 
 class TestCheckParcelsTxHash:
     @requires_xrpl

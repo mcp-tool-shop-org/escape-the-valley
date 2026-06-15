@@ -701,6 +701,14 @@ class BackpackManager:
         ``MemoData`` so the proof driver can confirm the on-ledger memo matches
         the expected header — independent of whatever the engine stored locally.
 
+        Pagination (ledger-A03): AccountTx caps results per page (we request
+        200), and a long run can exceed that on a single account. Each response
+        carries a ``marker`` when more transactions remain; we resubmit with
+        that marker until the chain stops returning one, so older settlement
+        memos are never dropped (which would otherwise produce a FALSE-NEGATIVE
+        proof failure). A page cap bounds the loop against a server that keeps
+        echoing a marker.
+
         Returns ``{txid: decoded_memo_text}``. Empty on any error or when xrpl
         is unavailable; the proof then reports memo integrity as unverified
         rather than crashing.
@@ -711,25 +719,35 @@ class BackpackManager:
 
         memos: dict[str, str] = {}
         accounts = [a for a in (bp.wallet_address, bp.issuer_address) if a]
+        max_pages = 100  # safety bound: 100 * 200 = 20k txns/account
 
         try:
             client = self._get_client()
             for account in accounts:
-                resp = client.request(AccountTx(account=account, limit=200))
-                for tx_entry in resp.result.get("transactions", []):
-                    tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
-                    tx_hash = tx_entry.get("hash") or tx.get("hash", "")
-                    if not tx_hash or tx_hash in memos:
-                        continue
-                    tx_memos = tx.get("Memos", [])
-                    if not tx_memos:
-                        continue
-                    memo_data = tx_memos[0].get("Memo", {}).get("MemoData", "")
-                    try:
-                        decoded = _hex_decode(memo_data)
-                    except (ValueError, UnicodeDecodeError):
-                        continue
-                    memos[tx_hash] = decoded
+                marker = None
+                for _ in range(max_pages):
+                    resp = client.request(AccountTx(
+                        account=account, limit=200, marker=marker,
+                    ))
+                    result = resp.result
+                    for tx_entry in result.get("transactions", []):
+                        tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
+                        tx_hash = tx_entry.get("hash") or tx.get("hash", "")
+                        if not tx_hash or tx_hash in memos:
+                            continue
+                        tx_memos = tx.get("Memos", [])
+                        if not tx_memos:
+                            continue
+                        memo_data = tx_memos[0].get("Memo", {}).get("MemoData", "")
+                        try:
+                            decoded = _hex_decode(memo_data)
+                        except (ValueError, UnicodeDecodeError):
+                            continue
+                        memos[tx_hash] = decoded
+                    # No marker → this account is fully paged.
+                    marker = result.get("marker")
+                    if not marker:
+                        break
             return memos
 
         except Exception as e:
