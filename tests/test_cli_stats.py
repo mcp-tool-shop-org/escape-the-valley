@@ -93,6 +93,54 @@ class TestStatsCommand:
         assert data["party_alive"] == 1
         assert data["wagon_condition"] == 100
 
+    def test_stats_gm_flag_surfaces_counters(self, monkeypatch):
+        """gm-B-03 consumer: `stats --gm` surfaces the GMClient.stats shape."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        from escape_the_valley.gm import GMClient
+
+        # Probe must not hit the network; force a deterministic 'unreachable'.
+        monkeypatch.setattr(GMClient, "is_available", lambda self: False)
+
+        result = runner.invoke(app, ["stats", "--gm"])
+        assert result.exit_code == 0
+        assert "GM calls (this session)" in result.output
+        assert "attempts" in result.output
+        assert "unreachable" in result.output
+
+    def test_stats_gm_json_includes_block(self, monkeypatch):
+        """`stats --gm --json` includes a structured gm block with counters."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        from escape_the_valley.gm import GMClient
+
+        monkeypatch.setattr(GMClient, "is_available", lambda self: True)
+
+        result = runner.invoke(app, ["stats", "--gm", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "gm" in data
+        assert data["gm"]["reachable"] is True
+        # The full stats shape committed by gm-B-03 must be present.
+        counters = data["gm"]["session_counters"]
+        for key in (
+            "attempts", "successes", "json_rejects",
+            "tone_rejects", "timeouts", "connect_errors",
+        ):
+            assert key in counters
+
+    def test_stats_without_gm_flag_omits_block(self, monkeypatch):
+        """No --gm means no GM probe and no gm block (stays fast/offline)."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        result = runner.invoke(app, ["stats", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "gm" not in data
+
     def test_stats_game_over(self, monkeypatch):
         """Stats shows outcome when game is over."""
         state = RunState(

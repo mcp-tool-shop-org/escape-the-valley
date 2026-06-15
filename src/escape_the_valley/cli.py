@@ -412,9 +412,40 @@ def version() -> None:
     console.print(f"Escape the Valley: Ledger Trail ({_version_string()})")
 
 
+def _gm_diagnostics(model: str) -> dict:
+    """Probe the GM and return its reliability counters (gm-B-03 consumer).
+
+    GMClient.stats is per-process accounting (attempts / successes / why a
+    call didn't produce usable JSON). The `stats` command reads a save, so it
+    has no live engine — the counters are this-process zeros, surfaced
+    honestly alongside a fresh reachability probe so 'stats --gm' answers
+    'can the GM be reached, and what is the shape of its reliability signal?'.
+    """
+    from .gm import GMClient, GMConfig
+
+    client = GMClient(GMConfig(
+        host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
+        model=model,
+    ))
+    reachable = client.is_available()
+    return {
+        "host": client.config.host,
+        "model": client.config.model,
+        "reachable": reachable,
+        "session_counters": dict(client.stats),
+    }
+
+
 @app.command()
 def stats(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    gm: bool = typer.Option(
+        False, "--gm",
+        help="Include GM reachability + session reliability counters",
+    ),
+    model: str = typer.Option(
+        "llama3.2", "--model", "-m", help="GM model to probe with --gm",
+    ),
 ) -> None:
     """Show run statistics from the current save."""
     state = load_game()
@@ -457,6 +488,11 @@ def stats(
         "wagon_condition": state.wagon.condition,
     }
 
+    # gm-B-03 consumer: surface the GMClient reliability counters on request.
+    gm_diag = _gm_diagnostics(model) if gm else None
+    if gm_diag is not None:
+        data["gm"] = gm_diag
+
     if json_output:
         import json
         console.print(json.dumps(data, indent=2))
@@ -475,6 +511,24 @@ def stats(
         if state.game_over:
             outcome = "Victory!" if state.victory else f"Defeated: {state.cause_of_death}"
             console.print(f"  Outcome:   {outcome}")
+        if gm_diag is not None:
+            reach = (
+                "[green]reachable[/green]" if gm_diag["reachable"]
+                else "[yellow]unreachable[/yellow]"
+            )
+            console.print(
+                f"  GM host:   {gm_diag['host']} "
+                f"({gm_diag['model']}) — {reach}"
+            )
+            c = gm_diag["session_counters"]
+            console.print(
+                "  GM calls (this session): "
+                f"{c['attempts']} attempts, {c['successes']} ok, "
+                f"{c['json_rejects']} json-reject, "
+                f"{c['tone_rejects']} tone-reject, "
+                f"{c['timeouts']} timeout, "
+                f"{c['connect_errors']} connect-err"
+            )
         console.print()
 
 
