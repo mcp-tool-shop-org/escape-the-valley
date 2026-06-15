@@ -1,35 +1,59 @@
+# Build platform binaries for npm distribution via @mcptoolshop/npm-launcher.
+# Asset naming convention (locked):
+#   escape-the-valley-<version>-<os>-<arch>[.exe]
+#   checksums-<version>.txt
+#
+# linux-x64 + win-x64 only. macOS is dropped (≈10x runner cost; locked binary
+# convention) — mac users install via `pip install escape-the-valley`.
+
 name: Release Binaries
 
 on:
   release:
     types: [published]
+  # workflow_run chains off the Release workflow completing — a Release created
+  # by release.yml with GITHUB_TOKEN does not fire `release: published`. Gated
+  # on success in the build job; the tag is resolved from
+  # github.event.workflow_run.head_branch (github.ref is main under this event).
+  # See publish.yml for the full rationale.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.1.0). On release/workflow_run events the tag comes from the event.'
+        required: true
 
 env:
   TOOL_NAME: escape-the-valley
   ENTRYPOINT: src/escape_the_valley/__main__.py
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    # Under workflow_run, only build if the upstream Release succeeded (release /
+    # workflow_dispatch set workflow_run to null → success check stays truthy).
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             target: linux-x64
             ext: ""
-          - os: macos-latest
-            target: darwin-arm64
-            ext: ""
+          # macOS removed: ~10x cost, users can install via pip/pipx instead
           - os: windows-latest
             target: win-x64
             ext: ".exe"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref }}
 
       - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
 
@@ -43,7 +67,8 @@ jobs:
       - name: Build binary
         shell: bash
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          REF_NAME="${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}"
+          VERSION=${REF_NAME#v}
           uv run pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
             --collect-submodules rich \
             --collect-submodules textual \
@@ -54,9 +79,11 @@ jobs:
           echo "ASSET_NAME=${OUTNAME}" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: binary-${{ matrix.target }}
           path: dist/${{ env.ASSET_NAME }}
+          if-no-files-found: ignore
 
   release:
     needs: build
@@ -67,12 +94,14 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts
+          pattern: binary-*
           merge-multiple: true
 
       - name: Generate checksums
         shell: bash
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          REF_NAME="${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}"
+          VERSION=${REF_NAME#v}
           cd artifacts
           sha256sum * > "checksums-${VERSION}.txt"
           cat "checksums-${VERSION}.txt"
@@ -80,3 +109,4 @@ jobs:
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: artifacts/*
+          tag_name: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}
