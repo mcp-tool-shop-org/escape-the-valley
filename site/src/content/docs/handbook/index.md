@@ -15,6 +15,7 @@ Welcome to the Escape the Valley handbook. This is the complete guide to survivi
 - **[GM Profiles](/escape-the-valley/handbook/gm-profiles/)** -- The three AI narrators and how they shape the story
 - **[XRPL Ledger](/escape-the-valley/handbook/xrpl-ledger/)** -- On-chain supply tracking with the Ledger Backpack
 - **[Commands](/escape-the-valley/handbook/commands/)** -- Full CLI reference
+- **[Troubleshooting](/escape-the-valley/handbook/troubleshooting/)** -- The three things that go wrong, and the fix for each
 - **[Beginners](/escape-the-valley/handbook/beginners/)** -- First-timer walkthrough with worked examples
 
 ## About the game
