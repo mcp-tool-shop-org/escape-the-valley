@@ -1680,7 +1680,15 @@ PROFILE_UNCANNY_WEIGHT = {
 
 
 def can_spend_uncanny_token(state: RunState, event: EventSkeleton) -> bool:
-    """Check if an uncanny token can be spent based on profile rules."""
+    """Check if an uncanny token can be spent based on profile rules.
+
+    Founding gate (ENG-A-02 / Director decision D2): the uncanny is only
+    available once the run has crossed into weirdness_level >= 2. Below that,
+    folklore must stay rumor/omen/coincidence — never an uncanny-token spend —
+    so a level-2 gate at the top short-circuits before any profile rule.
+    """
+    if state.weirdness_level < 2:
+        return False
     if state.uncanny_tokens <= 0:
         return False
     if not event.costs_uncanny_token:

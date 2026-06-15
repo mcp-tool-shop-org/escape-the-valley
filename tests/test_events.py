@@ -85,6 +85,45 @@ class TestUncannyTokens:
         for event in uncanny_events:
             assert not can_spend_uncanny_token(state, event)
 
+    def test_weirdness_gate_blocks_below_level_2(self):
+        """ENG-A-02 / D2: no uncanny-token spend below weirdness_level 2,
+        even on the most permissive profile with tokens in hand."""
+        lib = build_event_library()
+        uncanny_events = [e for e in lib if e.costs_uncanny_token]
+        assert uncanny_events  # sanity — there are token-costing events
+
+        for level in (0, 1):
+            state = create_new_run(seed=42, gm_profile=GMProfile.LANTERN)
+            state.weirdness_level = level
+            state.uncanny_tokens = 2  # tokens ARE available
+            for event in uncanny_events:
+                assert not can_spend_uncanny_token(state, event), (
+                    f"{event.event_id} spent a token at weirdness {level}"
+                )
+
+    def test_weirdness_gate_allows_at_level_2_per_profile(self):
+        """At weirdness_level >= 2 the existing profile rules govern again:
+        Lantern can spend on a tagged uncanny event; Chronicler cannot spend
+        on a low-severity one."""
+        lib = build_event_library()
+        uncanny_events = [e for e in lib if e.costs_uncanny_token]
+        tagged = [e for e in uncanny_events if "folklore:uncanny" in e.tags]
+        assert tagged
+
+        lantern = create_new_run(seed=42, gm_profile=GMProfile.LANTERN)
+        lantern.weirdness_level = 2
+        lantern.uncanny_tokens = 2
+        # Lantern allows any folklore:uncanny event once gated open.
+        assert can_spend_uncanny_token(lantern, tagged[0])
+
+        # Chronicler still refuses low-severity uncanny even at level 2.
+        chron = create_new_run(seed=42, gm_profile=GMProfile.CHRONICLER)
+        chron.weirdness_level = 2
+        chron.uncanny_tokens = 2
+        low_sev = [e for e in uncanny_events if e.severity == "low"]
+        for event in low_sev:
+            assert not can_spend_uncanny_token(chron, event)
+
 
 class TestVarietyGuards:
     def test_cooldown_reduces_repeats(self):
