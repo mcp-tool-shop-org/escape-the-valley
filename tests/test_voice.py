@@ -2,6 +2,7 @@
 
 import struct
 import sys
+import threading
 import time
 import wave
 
@@ -11,6 +12,7 @@ from escape_the_valley.voice import (
     DEFAULT_VOICE,
     PACE_SPEED,
     PROFILE_VOICE,
+    NoAudioPlayerError,
     VoiceBridge,
     VoiceConfig,
     VoicePace,
@@ -137,3 +139,75 @@ class TestPlaybackDuration:
         bridge._play_audio(wav)
         elapsed = time.monotonic() - start
         assert elapsed < 5.0  # nowhere near the 60s safety cap
+
+
+class TestVoiceRuntimeStatus:
+    """gm-B-06 — voice infra honesty: surface failures, don't swallow them."""
+
+    def test_status_shape_default(self):
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        st = bridge.status()
+        assert set(st) == {"installed", "available", "enabled", "last_error"}
+        assert st["enabled"] is True
+        assert st["last_error"] is None
+
+    def test_fail_runtime_flips_voice_off_and_records_reason(self):
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._fail_runtime("no audio player found")
+        assert bridge.available is False  # even if the library is installed
+        assert bridge.config.enabled is False  # voice flipped off
+        assert bridge.last_error == "no audio player found"
+        st = bridge.status()
+        assert st["available"] is False
+        assert st["last_error"] == "no audio player found"
+
+    def test_start_is_noop_after_runtime_failure(self):
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._fail_runtime("dead audio stack")
+        # config got flipped off; force it back on as a paranoid caller might.
+        bridge.config.enabled = True
+        # A dead audio stack stays dead — start must not pretend otherwise.
+        assert bridge.start() is False
+
+    def test_no_audio_player_raises(self, tmp_path, monkeypatch):
+        # gm-B-06 — the previously-silent "No audio player found" path now
+        # raises a typed error the worker turns into a surfaced failure.
+        import subprocess
+
+        wav = tmp_path / "clip.wav"
+        _write_wav(wav, seconds=0.1)
+
+        def _no_player(*_a, **_k):
+            raise FileNotFoundError("not installed")
+
+        monkeypatch.setattr(subprocess, "run", _no_player)
+        monkeypatch.setattr(sys, "platform", "linux")
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        with pytest.raises(NoAudioPlayerError):
+            bridge._play_audio(wav)
+
+    def test_worker_records_playback_failure_and_disables(self):
+        # Drive the worker loop with a fake engine whose speak() raises; the
+        # first failure must flip voice off and record last_error, not loop
+        # forever logging silently.
+        from escape_the_valley.narration import NarrationEvent, NarrationType
+
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+
+        class _BoomEngine:
+            def speak(self, *_a, **_k):
+                raise RuntimeError("synth backend gone")
+
+        bridge._engine = _BoomEngine()
+        bridge._stop.clear()
+        worker = threading.Thread(target=bridge._worker_loop, daemon=True)
+        worker.start()
+        bridge._queue.put(NarrationEvent(
+            type=NarrationType.SCENE_OPEN, voice_text="The river is wide.",
+        ))
+        worker.join(timeout=3.0)
+        assert not worker.is_alive()  # worker exited, not stuck
+        assert bridge.available is False
+        assert bridge.config.enabled is False
+        assert bridge.last_error is not None
+        assert "synth backend gone" in bridge.last_error
