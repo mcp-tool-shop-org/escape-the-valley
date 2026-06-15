@@ -23,6 +23,14 @@ Install from PyPI:
 pip install escape-the-valley
 ```
 
+Before your first launch, run a quick environment check -- this is the first thing to run if anything ever looks off:
+
+```bash
+trail self-check
+```
+
+It tells you whether the AI narrator (Ollama) is reachable, whether you have a save, and which model is installed. If something is missing, [Troubleshooting](/escape-the-valley/handbook/troubleshooting/) explains the fix. None of it is required to play -- the core game works without Ollama or the ledger.
+
 Launch the full-screen TUI (recommended):
 
 ```bash
@@ -39,6 +47,16 @@ When the game starts, you will see:
 - **Party** -- your 4 settlers, each with 1-2 traits
 
 The TUI shows your party status, supplies, wagon condition, and morale at all times.
+
+### What to expect from AI narration
+
+If you enabled the GM (the default, when Ollama is running), the **first narrated turn loads the model into memory and can take 10-30 seconds.** This is normal -- it is not a hang. After that first turn, narration is much faster because the model stays warm. A few things that affect the wait:
+
+- **Larger `--model` values are slower.** The default `llama3.2` is a good balance; bigger models read richer but take longer per turn.
+- **Your hardware matters.** The 30-second default timeout exists to give slower machines room for that first warm-up.
+- **`--gm-off` removes the wait entirely.** With the GM off, every turn is instant and you see deterministic fallback text instead of narration -- the game plays exactly the same.
+
+If a turn ever seems stuck, it is almost always the first-load warm-up, not a crash. When in doubt, run `trail self-check` to confirm Ollama is reachable, or play with `--gm-off`.
 
 ## 3. Core mechanics in plain language
 

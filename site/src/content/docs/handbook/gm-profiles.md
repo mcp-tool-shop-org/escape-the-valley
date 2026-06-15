@@ -84,7 +84,13 @@ Enable spoken narration with `--voice`. Each GM profile maps to a different voic
 trail tui --seed 42 --voice --voice-pace slow
 ```
 
-Voice pacing options: `fast`, `normal` (default), `slow`. Requires the `voice-soundboard` package. Audio plays in the background and can be interrupted with any key press.
+Voice pacing options: `fast`, `normal` (default), `slow`. Spoken narration requires the `voice` extra, which pulls in the `voice-soundboard` package:
+
+```bash
+pip install "escape-the-valley[voice]"
+```
+
+Audio plays in the background and can be interrupted with any key press.
 
 ## Disabling the GM
 

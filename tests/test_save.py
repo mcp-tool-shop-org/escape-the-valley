@@ -2,7 +2,10 @@
 
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
+
+import pytest
 
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
@@ -10,8 +13,10 @@ from escape_the_valley.models import GMProfile, JournalEntry
 from escape_the_valley.save import (
     SAVE_DIR,
     SAVE_FILE,
+    SAVE_VERSION,
     _state_to_dict,
     load_game,
+    load_game_result,
     save_game,
 )
 from escape_the_valley.step_engine import StepEngine
@@ -406,3 +411,248 @@ class TestSecretsSidecar:
             assert state_b.run_id in store
             assert store[state_a.run_id]["wallet_secret"] == state_a.backpack.wallet_secret
             assert store[state_b.run_id]["wallet_secret"] == state_b.backpack.wallet_secret
+
+
+class TestSaveVersion:
+    """ENG-B-04: save_version is written, read, and branched on."""
+
+    def test_save_writes_version(self, tmp_path):
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        data = json.loads(
+            (tmp_path / SAVE_DIR / SAVE_FILE).read_text(encoding="utf-8")
+        )
+        assert data["save_version"] == SAVE_VERSION
+
+    def test_legacy_save_without_version_loads(self, tmp_path):
+        """A pre-versioning save (no save_version key) loads as version 0."""
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data.pop("save_version", None)
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        result = load_game_result(base_path=tmp_path)
+        assert result.ok
+        assert result.state is not None
+
+    def test_newer_version_reported_incompatible(self, tmp_path):
+        """A save from a future build is 'incompatible', not 'corrupt'."""
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["save_version"] = SAVE_VERSION + 5
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "incompatible"
+        assert result.state is None
+        # Incompatible saves are left in place (a newer build may read them).
+        assert save_path.exists()
+
+    def test_result_reason_no_save(self, tmp_path):
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "no_save"
+
+    def test_result_reason_corrupt(self, tmp_path):
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        (save_dir / SAVE_FILE).write_text("{bad json", encoding="utf-8")
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "corrupt"
+
+    def test_result_ok_on_good_save(self, tmp_path):
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        result = load_game_result(base_path=tmp_path)
+        assert result.ok
+        assert result.reason == ""
+        assert result.state is not None
+        assert result.state.seed == 42
+
+
+class TestCorruptSaveBackup:
+    """TCD-B-03: a corrupt run.json is preserved as run.json.corrupt-<ts>
+    BEFORE load_game returns, so the next autosave can never overwrite it."""
+
+    def _corrupt_files(self, save_dir):
+        return list(save_dir.glob(f"{SAVE_FILE}.corrupt-*"))
+
+    def test_corrupt_json_is_backed_up(self, tmp_path):
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+        save_path.write_text("{this is not valid json", encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+
+        # Original is gone (renamed), a corrupt-<ts> backup exists with content.
+        assert not save_path.exists()
+        backups = self._corrupt_files(save_dir)
+        assert len(backups) == 1
+        assert backups[0].read_text(encoding="utf-8") == "{this is not valid json"
+
+    def test_reconstruct_error_is_backed_up(self, tmp_path):
+        """Valid JSON but wrong structure → corrupt → backed up."""
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+        save_path.write_text(json.dumps({"not": "a game state"}), encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+        assert not save_path.exists()
+        assert len(self._corrupt_files(save_dir)) == 1
+
+    def test_next_save_cannot_overwrite_backup(self, tmp_path):
+        """After a corrupt load + backup, a fresh save writes a NEW run.json and
+        leaves the corrupt evidence untouched."""
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        (save_dir / SAVE_FILE).write_text("{corrupt!!!", encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+        backups_before = self._corrupt_files(save_dir)
+        assert len(backups_before) == 1
+
+        # A fresh, valid save now lands.
+        save_game(create_new_run(seed=7), base_path=tmp_path)
+        assert (save_dir / SAVE_FILE).exists()
+        # The corrupt backup is still there, byte-for-byte.
+        backups_after = self._corrupt_files(save_dir)
+        assert len(backups_after) == 1
+        assert backups_after[0].read_text(encoding="utf-8") == "{corrupt!!!"
+
+    def test_good_save_is_not_backed_up(self, tmp_path):
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        assert load_game(base_path=tmp_path) is not None
+        assert self._corrupt_files(tmp_path / SAVE_DIR) == []
+
+
+class TestAtomicSave:
+    """Stage-C: save_game() writes run.json atomically (temp file in the same
+    dir, then os.replace) so a crash mid-save can never leave a half-written
+    file, and no leftover *.tmp survives a normal save."""
+
+    def _temp_files(self, save_dir):
+        # Anything the atomic writer might leave behind: our prefix + .tmp.
+        return [
+            p
+            for p in save_dir.iterdir()
+            if p.is_file() and p.name.endswith(".tmp")
+        ]
+
+    def test_save_leaves_no_temp_file(self, tmp_path):
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        # run.json exists and is valid JSON; no leftover temp file.
+        save_path = save_dir / SAVE_FILE
+        assert save_path.exists()
+        json.loads(save_path.read_text(encoding="utf-8"))  # raises if invalid
+        assert self._temp_files(save_dir) == []
+
+    def test_repeated_saves_leave_no_temp_files(self, tmp_path):
+        """Overwriting an existing run.json must not accumulate temp files."""
+        state = create_new_run(seed=42)
+        for _ in range(3):
+            save_game(state, base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        assert (save_dir / SAVE_FILE).exists()
+        assert self._temp_files(save_dir) == []
+
+    def test_save_uses_temp_then_replace(self, tmp_path, monkeypatch):
+        """The write must go through os.replace (atomic), not a direct write to
+        run.json — so run.json is only ever the old or new complete file."""
+        import escape_the_valley.save as save_mod
+
+        replaced = []
+        real_replace = save_mod.os.replace
+
+        def spy_replace(src, dst):
+            replaced.append((str(src), str(dst)))
+            return real_replace(src, dst)
+
+        monkeypatch.setattr(save_mod.os, "replace", spy_replace)
+
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        # Exactly one replace landed run.json, and the source was a temp file.
+        landed = [r for r in replaced if r[1] == str(save_path)]
+        assert len(landed) == 1
+        assert landed[0][0].endswith(".tmp")
+
+    def test_failed_write_leaves_run_json_intact_and_no_temp(self, tmp_path):
+        """If the atomic replace fails after a good save already exists, the
+        prior run.json survives whole and no temp file is left behind."""
+        import escape_the_valley.save as save_mod
+
+        # First, a good save so a complete run.json is on disk.
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        save_path = save_dir / SAVE_FILE
+        good = save_path.read_text(encoding="utf-8")
+
+        # Now make os.replace blow up to simulate a crash at the replace step.
+        def boom(src, dst):
+            raise OSError("simulated crash during replace")
+
+        original_replace = save_mod.os.replace
+        save_mod.os.replace = boom
+        try:
+            with pytest.raises(OSError):
+                save_game(create_new_run(seed=99), base_path=tmp_path)
+        finally:
+            save_mod.os.replace = original_replace
+
+        # The original run.json is untouched (only-ever-fully-replaced).
+        assert save_path.read_text(encoding="utf-8") == good
+        # And the failed attempt cleaned up its temp file.
+        leftover = [
+            p for p in save_dir.iterdir() if p.is_file() and p.name.endswith(".tmp")
+        ]
+        assert leftover == []
+
+
+class TestCorruptBackupUniqueness:
+    """Stage-C: two corrupt loads that resolve to the same microsecond
+    timestamp must produce two distinct backups — the second must not silently
+    overwrite the first (Path.rename clobbers)."""
+
+    def _corrupt_files(self, save_dir):
+        return list(save_dir.glob(f"{SAVE_FILE}.corrupt-*"))
+
+    def test_two_corrupt_backups_in_same_microsecond_both_survive(
+        self, tmp_path, monkeypatch
+    ):
+        import escape_the_valley.save as save_mod
+
+        # Freeze the timestamp so both backups target the same base name,
+        # forcing the uniquifier path (the real-world collision case).
+        class _FrozenDatetime:
+            @staticmethod
+            def now(tz=None):
+                return datetime(2026, 6, 15, 12, 0, 0, 0, tzinfo=tz)
+
+        monkeypatch.setattr(save_mod, "datetime", _FrozenDatetime)
+
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+
+        # First corrupt load + backup.
+        save_path.write_text("{first corrupt", encoding="utf-8")
+        assert load_game(base_path=tmp_path) is None
+
+        # Second corrupt load + backup — same frozen microsecond.
+        save_path.write_text("{second corrupt", encoding="utf-8")
+        assert load_game(base_path=tmp_path) is None
+
+        backups = self._corrupt_files(save_dir)
+        assert len(backups) == 2
+        contents = sorted(b.read_text(encoding="utf-8") for b in backups)
+        assert contents == ["{first corrupt", "{second corrupt"]

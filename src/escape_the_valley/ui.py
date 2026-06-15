@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -10,7 +12,33 @@ from rich.text import Text
 
 from .models import Condition, JournalEntry, Pace, RunState
 
-console = Console()
+
+def _no_color() -> bool:
+    """Honor the NO_COLOR convention (https://no-color.org).
+
+    cli-tui-B-06: when NO_COLOR is set (to anything), the player has asked for
+    a monochrome terminal. We still need urgency to survive, which is why the
+    danger cues below are plain text, not just color.
+    """
+    return os.environ.get("NO_COLOR") is not None
+
+
+# Rich already auto-detects NO_COLOR, but we pin it explicitly so the behavior
+# is deterministic and testable regardless of Rich version.
+console = Console(no_color=_no_color())
+
+
+def _supply_cue(val: int) -> str:
+    """Non-color urgency tag for a supply count (cli-tui-B-06).
+
+    Returns a plain-text tag so a critically low resource is legible on a
+    monochrome or colorblind read, where a red number alone is invisible.
+    """
+    if val <= 0:
+        return " (CRITICAL)"
+    if val <= 5:
+        return " (LOW)"
+    return ""
 
 
 def show_title_screen() -> None:
@@ -66,19 +94,35 @@ def show_status(state: RunState) -> None:
         if not member.is_alive():
             cond_style = "dim"
 
+        # cli-tui-B-06: critically low health gets a plain (!) marker so the
+        # danger survives a monochrome read, not just a red number.
+        health_cue = " (!)" if member.is_alive() and member.health <= 30 else ""
+        if member.is_alive():
+            health_cell = f"[{health_style}]{member.health}{health_cue}[/]"
+        else:
+            health_cell = "[dim]dead[/]"
+
         party_table.add_row(
             member.name if member.is_alive() else f"[dim strikethrough]{member.name}[/]",
-            f"[{health_style}]{member.health}[/]" if member.is_alive() else "[dim]dead[/]",
+            health_cell,
             f"[{cond_style}]{member.condition.value}[/]" if member.is_alive() else "",
             ", ".join(t.value for t in member.traits) if member.is_alive() else "",
         )
 
+    # cli-tui-B-06: a plain morale tag so low/critical morale reads without
+    # relying on the panel border color alone.
+    morale = state.party.morale
+    morale_cue = (
+        " (CRITICAL)" if morale <= 20
+        else " (LOW)" if morale <= 40
+        else ""
+    )
     console.print(Panel(
         party_table,
-        title=f"[bold]Party[/bold]  Morale: {state.party.morale}/100",
+        title=f"[bold]Party[/bold]  Morale: {morale}/100{morale_cue}",
         border_style=(
-            "green" if state.party.morale > 40
-            else "yellow" if state.party.morale > 20
+            "green" if morale > 40
+            else "yellow" if morale > 20
             else "red"
         ),
         box=box.ROUNDED,
@@ -93,7 +137,9 @@ def show_status(state: RunState) -> None:
     for name, val in [("Food", s.food), ("Water", s.water), ("Medicine", s.meds),
                        ("Ammo", s.ammo), ("Parts", s.parts)]:
         style = "white" if val > 5 else "yellow" if val > 0 else "red bold"
-        supplies_table.add_row(name, f"[{style}]{val}[/]")
+        # cli-tui-B-06: a plain-text (LOW)/(CRITICAL) tag carries the urgency
+        # even with color stripped (NO_COLOR / colorblind / monochrome term).
+        supplies_table.add_row(name, f"[{style}]{val}{_supply_cue(val)}[/]")
 
     wagon_text = (
         f"Condition: {_bar(state.wagon.condition)}\n"

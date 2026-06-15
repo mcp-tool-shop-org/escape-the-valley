@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from .events import (
     EventOutcome,
     apply_outcome,
@@ -42,6 +44,8 @@ from .ui import (
     show_status,
 )
 from .worldgen import generate_weather
+
+log = logging.getLogger(__name__)
 
 
 class GameEngine:
@@ -348,23 +352,40 @@ class GameEngine:
                 dest_node = node
                 break
 
-        if dest_node:
-            self.state.location_id = dest_node.node_id
-            self.state.distance_remaining = 0
-            show_message(f"Arrived at {dest_node.name}!", "bold green")
+        if not dest_node:
+            # ENG-B-09: destination_id points at no real node — don't silently
+            # strand the party. Warn, log, and recover by snapping to the final
+            # node so the journey can still conclude.
+            log.warning(
+                "destination_id %r not found among map_nodes; recovering",
+                self.state.destination_id,
+            )
+            show_message(
+                "The way ahead doesn't match the map. "
+                "Pressing on toward the last known waypoint.",
+                "yellow",
+            )
+            if not self.state.map_nodes:
+                return
+            dest_node = self.state.map_nodes[-1]
+            self.state.destination_id = dest_node.node_id
 
-            if dest_node.is_town:
-                show_message("  This is a settlement. You may find supplies or trade.", "dim")
+        self.state.location_id = dest_node.node_id
+        self.state.distance_remaining = 0
+        show_message(f"Arrived at {dest_node.name}!", "bold green")
 
-            # Set up next destination
-            if dest_node.connections:
-                if len(dest_node.connections) == 1:
-                    next_id = dest_node.connections[0]
-                    self.state.destination_id = next_id
-                    self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
-                else:
-                    # Route choice handled next travel action
-                    pass
+        if dest_node.is_town:
+            show_message("  This is a settlement. You may find supplies or trade.", "dim")
+
+        # Set up next destination
+        if dest_node.connections:
+            if len(dest_node.connections) == 1:
+                next_id = dest_node.connections[0]
+                self.state.destination_id = next_id
+                self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
+            else:
+                # Route choice handled next travel action
+                pass
 
     def _check_route_choice(self) -> None:
         """Check if the player needs to choose a route."""

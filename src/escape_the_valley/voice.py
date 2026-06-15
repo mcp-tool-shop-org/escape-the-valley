@@ -126,6 +126,14 @@ class VoiceConfig:
 # ── Voice Bridge ───────────────────────────────────────────────────
 
 
+class NoAudioPlayerError(RuntimeError):
+    """Raised when no system audio player can be found to play a clip.
+
+    gm-B-06 — this turns a previously-silent "No audio player found" log into a
+    surfaced runtime failure the bridge records and the UI can read.
+    """
+
+
 class VoiceBridge:
     """Non-blocking voice playback bridge.
 
@@ -139,18 +147,67 @@ class VoiceBridge:
         self._worker: threading.Thread | None = None
         self._stop = threading.Event()
         self._playing = threading.Event()
+        # gm-B-06 — runtime voice honesty. _HAS_VOICE only says the library
+        # imported; it cannot know whether an audio player exists or whether
+        # the first synth/playback will raise. When the infra actually fails
+        # at runtime we record the reason here and flip voice off, instead of
+        # swallowing it to a silent log the player never sees. The UI reads
+        # `status()` to notify the player that the DM has gone quiet and why.
+        self._runtime_failed = False
+        self.last_error: str | None = None
 
     @property
     def available(self) -> bool:
-        """True if voice-soundboard is installed."""
+        """True if voice-soundboard is installed AND no runtime infra failure.
+
+        gm-B-06 — distinct from `installed`: the library can be importable yet
+        unusable at runtime (no audio player on PATH, synth raised). Once a
+        runtime failure is recorded, voice is no longer available.
+        """
+        return _HAS_VOICE and not self._runtime_failed
+
+    @property
+    def installed(self) -> bool:
+        """True if the voice-soundboard library is importable (no runtime claim)."""
         return _HAS_VOICE
+
+    def status(self) -> dict:
+        """Readable voice status for the UI (gm-B-06).
+
+        Keys:
+          - installed: voice-soundboard import succeeded
+          - available: installed AND no runtime infra failure so far
+          - enabled: the player has voice turned on in config
+          - last_error: human-readable reason voice went quiet, or None
+        """
+        return {
+            "installed": _HAS_VOICE,
+            "available": self.available,
+            "enabled": self.config.enabled,
+            "last_error": self.last_error,
+        }
+
+    def _fail_runtime(self, reason: str) -> None:
+        """Record a runtime infra failure, surface it, and flip voice off.
+
+        gm-B-06 — the single place an infra failure becomes visible: set the
+        last-error string the UI reads, mark voice unavailable, disable the
+        config so nothing re-enqueues, and stop the worker. Never raises.
+        """
+        self.last_error = reason
+        self._runtime_failed = True
+        self.config.enabled = False
+        logger.warning("Voice disabled: %s", reason)
+        self._stop.set()
 
     def start(self) -> bool:
         """Initialize engine and start worker thread.
 
         Returns True if voice started successfully.
         """
-        if not _HAS_VOICE or not self.config.enabled:
+        # gm-B-06 — once runtime infra has failed, do not keep retrying it; a
+        # dead audio stack stays dead for the session.
+        if not _HAS_VOICE or not self.config.enabled or self._runtime_failed:
             return False
 
         try:
@@ -172,9 +229,12 @@ class VoiceBridge:
                 self.config.voice_id, self.config.pace.value,
             )
             return True
-        except Exception:
+        except Exception as exc:
+            # gm-B-06 — engine init failed; record it and flip voice off so the
+            # UI can say why, instead of a silent log.
             logger.warning("Voice DM failed to start", exc_info=True)
             self._engine = None
+            self._fail_runtime(f"voice engine failed to start: {exc}")
             return False
 
     def enqueue(self, event: NarrationEvent) -> None:
@@ -263,9 +323,13 @@ class VoiceBridge:
                 self._playing.set()
                 self._play_audio(result.audio_path)
                 self._playing.clear()
-            except Exception:
-                logger.warning("Voice playback error", exc_info=True)
+            except Exception as exc:
+                # gm-B-06 — the first synth/playback failure is real infra
+                # trouble (missing player, broken engine). Surface it and flip
+                # voice off rather than logging into the void every turn.
                 self._playing.clear()
+                self._fail_runtime(f"voice playback failed: {exc}")
+                break
 
     def _play_audio(self, path: Path) -> None:
         """Play WAV with interrupt support."""
@@ -316,5 +380,9 @@ class VoiceBridge:
                         timeout=30,
                         check=False,
                     )
-                except FileNotFoundError:
-                    logger.warning("No audio player found")
+                except FileNotFoundError as exc:
+                    # gm-B-06 — no player on PATH. Raise so the worker records
+                    # it via _fail_runtime instead of swallowing to a log.
+                    raise NoAudioPlayerError(
+                        "no audio player found (tried aplay, ffplay)"
+                    ) from exc

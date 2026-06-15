@@ -14,8 +14,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from .backpack_models import (
+    MEMO_SCHEMA_VERSION,
+    PARCEL_ACCEPT_CAP,
+    TESTNET_HOSTS,
     TESTNET_URL,
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
@@ -29,6 +33,32 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+# Network timeout for every XRPL request (ledger-B02). Kept consistent with the
+# GM's ~30s ceiling so a stalled testnet node degrades to the offline/unanchored
+# path (a pending settlement, an unreachable wallet) instead of hanging the run.
+# xrpl-py's default per-request timeout is only 10s and is not surfaced through
+# JsonRpcClient(url); we pass it explicitly via _TimeoutJsonRpcClient below.
+XRPL_REQUEST_TIMEOUT: float = 30.0
+
+# Wall-clock ceiling for a single write (ledger-B02 WRITE-PATH). The READ path
+# (AccountTx/AccountLines via client.request) is bounded per round-trip by
+# _TimeoutJsonRpcClient, but the WRITE path goes through xrpl-py's
+# submit_and_wait, which runs its OWN ledger-validation poll loop
+# (_wait_for_final_transaction_outcome) — recursing with a 1s sleep between Tx
+# lookups until the tx is validated OR the latest validated ledger passes the
+# tx's LastLedgerSequence. submit_and_wait exposes NO timeout/deadline param
+# (signature: transaction, client, wallet, *, check_fee, autofill, fail_hard),
+# and the inner Tx polls call client._request_impl WITHOUT a timeout, so on a
+# stalled node where ledgers stop closing the loop can spin well past
+# XRPL_REQUEST_TIMEOUT. We therefore wrap submit_and_wait in a bounded worker
+# (_submit_and_wait_bounded) whose wall-clock deadline caps the whole write,
+# raising into the same offline/pending degradation path (settle → pending,
+# send_parcel → supplies unchanged, enable → stays OFF) instead of freezing the
+# run. The ceiling is a small multiple of the per-request timeout: a healthy
+# write needs a handful of ledger closes (~4s each on testnet) plus signing, so
+# 2x gives real submissions ample headroom while still bounding a stall.
+XRPL_WRITE_DEADLINE: float = XRPL_REQUEST_TIMEOUT * 2  # 60s
+
 # ── Optional xrpl-py import ──────────────────────────────────────
 
 _HAS_XRPL = False
@@ -41,6 +71,28 @@ try:
     from xrpl.wallet import Wallet, generate_faucet_wallet
 
     _HAS_XRPL = True
+
+    class _TimeoutJsonRpcClient(JsonRpcClient):
+        """JsonRpcClient that bounds every request with an explicit timeout.
+
+        xrpl-py's ``JsonRpcClient(url)`` constructor takes no timeout and the
+        sync ``request()`` calls ``_request_impl`` with the library default
+        (10s). We override ``request()`` to thread ``XRPL_REQUEST_TIMEOUT``
+        through so a stalled node fails fast into the offline path (ledger-B02)
+        rather than hanging the run, and on a consistent ceiling with the GM.
+        """
+
+        def __init__(self, url, timeout: float = XRPL_REQUEST_TIMEOUT):
+            super().__init__(url)
+            self._timeout = timeout
+
+        def request(self, request):  # noqa: A003 - matches xrpl API name
+            import asyncio
+
+            return asyncio.run(
+                self._request_impl(request, timeout=self._timeout)
+            )
+
 except ImportError:
 
     class Memo:  # type: ignore[no-redef]
@@ -90,6 +142,11 @@ def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
     ``SettlementRecord.memo`` so the record matches the on-ledger memo
     byte-for-byte (ledger-003). Begins with ``TRAIL|RUN:<id>|DAY:<n>`` so the
     external verifier can confirm the prefix against the decoded on-chain memo.
+
+    Schema version (ledger-B09): a trailing ``|V:<version>`` field stamps the
+    memo grammar so a future format change is self-describing on-chain. It is
+    appended AFTER the run/day/delta fields, never before, so the
+    ``TRAIL|RUN:<id>|DAY:<n>`` prefix the verifier matches on stays intact.
     """
     delta_parts = []
     for key, diff in sorted(deltas.items()):
@@ -97,7 +154,10 @@ def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
         sign = "+" if diff > 0 else ""
         delta_parts.append(f"{code}{sign}{diff}")
 
-    return f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+    return (
+        f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+        f"|V:{MEMO_SCHEMA_VERSION}"
+    )
 
 
 def _build_memo(run_id: str, day: int, deltas: dict[str, int]) -> list:
@@ -145,6 +205,22 @@ def _balance_to_int(balance: str) -> int:
     return int(dec)
 
 
+def _setup_complete(bp) -> bool:
+    """True when enable() finished every step (ledger-B05).
+
+    A pack is only "back online" if it has wallets, trust lines are ready, and
+    the minted snapshot is populated. A half-built pack (faucet succeeded but
+    trust lines or mint did not) returns False so enable() resumes the missing
+    steps instead of falsely declaring it online.
+    """
+    return bool(
+        bp.wallet_address
+        and bp.issuer_secret
+        and bp.trust_lines_ready
+        and bp.last_settled_supplies
+    )
+
+
 def _decode_parcel_memo(memo_hex: str) -> dict | None:
     """Decode a PARCEL memo from hex. Returns {supply, amount} or None."""
     try:
@@ -176,6 +252,69 @@ def _decode_parcel_memo(memo_hex: str) -> dict | None:
     return {"supply": supply, "amount": amount}
 
 
+class WriteTimeoutError(Exception):
+    """A write (submit_and_wait) exceeded its wall-clock deadline (ledger-B02).
+
+    Raised by ``_submit_and_wait_bounded`` when the worker thread driving
+    ``submit_and_wait`` does not finish within ``XRPL_WRITE_DEADLINE``. It is a
+    plain ``Exception`` subclass so the existing ``except Exception`` blocks in
+    ``settle``/``_retry_pending``/``send_parcel``/``enable`` catch it and route
+    the write into the offline/pending degradation path — never a freeze.
+    """
+
+
+def _submit_and_wait_bounded(tx, client, signer, *, deadline: float | None = None):
+    """Run ``submit_and_wait`` with a wall-clock deadline (ledger-B02 WRITE).
+
+    xrpl-py's ``submit_and_wait`` polls the ledger for transaction validation in
+    its own loop and exposes no timeout parameter, so a stalled testnet node
+    (ledgers not closing) can keep it blocked far past ``XRPL_REQUEST_TIMEOUT``.
+    Each individual round-trip is now capped by ``_TimeoutJsonRpcClient``, but
+    the *number* of round-trips is unbounded; only an outer wall-clock deadline
+    makes the WRITE path honor the "never hang, degrade to offline" guarantee.
+
+    We drive the (synchronous) ``submit_and_wait`` on a daemon worker thread and
+    wait at most ``deadline`` seconds for it. On timeout we raise
+    ``WriteTimeoutError`` so the caller degrades exactly as it would for any other
+    submit failure (settle → pending, send_parcel → supplies unchanged, enable
+    → stays OFF). The worker is a daemon: if the underlying socket is wedged
+    past the per-request timeout the thread cannot be force-killed, but it can
+    never block the run or process exit, and the next attempt (manual or
+    next-town retry) starts fresh.
+
+    ``deadline`` defaults to ``None`` and is resolved to the module-level
+    ``XRPL_WRITE_DEADLINE`` at call time (not bound at definition), so the
+    ceiling stays tunable by monkeypatching the constant. ``submit_and_wait`` is
+    likewise resolved through the module namespace so test monkeypatching of
+    ``backpack.submit_and_wait`` continues to apply.
+    """
+    import threading
+
+    if deadline is None:
+        deadline = XRPL_WRITE_DEADLINE
+
+    result: dict = {}
+
+    def _worker() -> None:
+        try:
+            result["value"] = submit_and_wait(tx, client, signer)
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the caller thread
+            result["error"] = exc
+
+    worker = threading.Thread(target=_worker, daemon=True)
+    worker.start()
+    worker.join(deadline)
+
+    if worker.is_alive():
+        raise WriteTimeoutError(
+            f"submit_and_wait exceeded {deadline:.0f}s deadline "
+            f"(testnet stalled); degrading to offline/pending"
+        )
+    if "error" in result:
+        raise result["error"]
+    return result["value"]
+
+
 # ── BackpackManager ──────────────────────────────────────────────
 
 
@@ -186,7 +325,33 @@ class BackpackManager:
     degradation. The game never blocks on network failures.
     """
 
-    def __init__(self, url: str = TESTNET_URL):
+    def __init__(self, url: str = TESTNET_URL, *, allow_non_testnet: bool = False):
+        """Create a manager bound to an XRPL endpoint.
+
+        Testnet-only by default (ledger-B03 / SAFETY): the URL host must be on
+        ``TESTNET_HOSTS`` (Ripple's public Testnet/Devnet). The "no real value
+        at risk" guarantee is enforced here in code, not by convention — a
+        mainnet URL is rejected with a clear error so a mis-set endpoint can
+        never move value off a real account. ``allow_non_testnet=True`` is the
+        single, explicit escape hatch (e.g. a local standalone rippled in CI);
+        it is honored but logs a loud warning so the choice is never silent.
+        """
+        host = (urlparse(url).hostname or "").lower()
+        if host not in TESTNET_HOSTS and not allow_non_testnet:
+            allowed = ", ".join(sorted(TESTNET_HOSTS))
+            raise ValueError(
+                f"Ledger Backpack refuses non-testnet host {host!r}: "
+                f"the 'no real value at risk' guarantee is testnet-only. "
+                f"Allowed hosts: {allowed}. "
+                f"Pass allow_non_testnet=True only for a local test node."
+            )
+        if host not in TESTNET_HOSTS:
+            log.warning(
+                "Ledger Backpack connecting to NON-TESTNET host %r "
+                "(allow_non_testnet=True) — real value may be at risk. "
+                "This is not a supported configuration.",
+                host,
+            )
         self._url = url
         self._client: JsonRpcClient | None = None
 
@@ -196,7 +361,9 @@ class BackpackManager:
 
     def _get_client(self) -> JsonRpcClient:
         if self._client is None:
-            self._client = JsonRpcClient(self._url)
+            # Timeout-bounded client (ledger-B02): a stalled testnet node
+            # degrades to the offline path instead of hanging the run.
+            self._client = _TimeoutJsonRpcClient(self._url)
         return self._client
 
     def enable(self, state: RunState) -> EnableResult:
@@ -212,12 +379,17 @@ class BackpackManager:
 
         bp = state.backpack
 
-        # Idempotent re-enable (ledger-002): if a wallet already exists, honor
-        # disable()'s "keep wallet for re-enable" contract — flip the flag back
-        # on in place instead of generating fresh faucet wallets and re-minting
-        # (which would orphan the old wallet's tokens while `settlements` still
-        # reference the defunct addresses). Only mint on a true first enable.
-        if bp.wallet_address and bp.issuer_secret:
+        # Idempotent re-enable (ledger-002 + ledger-B05): "back online" is only
+        # honest when the setup actually COMPLETED — wallets exist, trust lines
+        # are ready, AND the minted snapshot is populated. Checking just
+        # wallet_address+issuer_secret (ledger-002's original guard) would
+        # declare a half-built pack (faucet succeeded, trust lines or mint did
+        # not) "back online" with no trust lines and no tokens, so the next
+        # settle() fails silently. Now a complete pack flips back on in place
+        # (no fresh faucet, no re-mint — that would orphan the old wallet's
+        # tokens); a half-built pack falls through to RESUME the missing steps
+        # below using the wallets it already has.
+        if bp.wallet_address and bp.issuer_secret and _setup_complete(bp):
             bp.enabled = True
             return EnableResult(
                 success=True,
@@ -226,57 +398,86 @@ class BackpackManager:
             )
 
         client = self._get_client()
+        resuming = bool(bp.wallet_address and bp.issuer_secret)
 
         try:
-            # Step 1: Create issuer wallet ("Trail Authority")
-            issuer = generate_faucet_wallet(client, debug=False)
-            bp.issuer_address = issuer.address
-            bp.issuer_secret = issuer.seed
-
-            # Step 2: Create player wallet
-            player = generate_faucet_wallet(client, debug=False)
-            bp.wallet_address = player.address
-            bp.wallet_secret = player.seed
-
-            # Step 3: Set trust lines (player trusts issuer for each token)
-            for _key, (code, _display) in XRPL_TOKEN_MAP.items():
-                trust_tx = TrustSet(
-                    account=player.address,
-                    limit_amount=IssuedCurrencyAmount(
-                        currency=code,
-                        issuer=issuer.address,
-                        value="999999",
-                    ),
+            if resuming:
+                # Reuse the wallets a prior partial enable already created —
+                # generating new faucet wallets would strand the old addresses
+                # that `settlements`/`pending_settlements` may already reference.
+                issuer = Wallet.from_seed(bp.issuer_secret)
+                player = Wallet.from_seed(bp.wallet_secret)
+                log.info(
+                    "Backpack enable: resuming partial setup "
+                    "(trust_lines_ready=%s, minted=%s)",
+                    bp.trust_lines_ready, bool(bp.last_settled_supplies),
                 )
-                submit_and_wait(trust_tx, client, player)
+            else:
+                # Step 1: Create issuer wallet ("Trail Authority")
+                issuer = generate_faucet_wallet(client, debug=False)
+                bp.issuer_address = issuer.address
+                bp.issuer_secret = issuer.seed
 
-            bp.trust_lines_ready = True
+                # Step 2: Create player wallet
+                player = generate_faucet_wallet(client, debug=False)
+                bp.wallet_address = player.address
+                bp.wallet_secret = player.seed
 
-            # Step 4: Mint starting supplies (issuer sends to player)
-            for key, (code, _display) in XRPL_TOKEN_MAP.items():
-                amount = state.supplies.get(key)
-                if amount > 0:
-                    mint_tx = Payment(
-                        account=issuer.address,
-                        destination=player.address,
-                        amount=IssuedCurrencyAmount(
+            # Step 3: Set trust lines (player trusts issuer for each token).
+            # Skipped when already ready — TrustSet is idempotent on XRPL (a
+            # repeat just re-sets the same limit) but we avoid the round-trips.
+            if not bp.trust_lines_ready:
+                for _key, (code, _display) in XRPL_TOKEN_MAP.items():
+                    trust_tx = TrustSet(
+                        account=player.address,
+                        limit_amount=IssuedCurrencyAmount(
                             currency=code,
                             issuer=issuer.address,
-                            value=str(amount),
+                            value="999999",
                         ),
                     )
-                    submit_and_wait(mint_tx, client, issuer)
+                    _submit_and_wait_bounded(trust_tx, client, player)
+                # Flag set ONLY after every trust line fully succeeds
+                # (ledger-B05): a mid-loop failure leaves it False so the next
+                # enable() resumes rather than skipping straight to mint.
+                bp.trust_lines_ready = True
 
-            # Step 5: Record snapshot
-            bp.last_settled_supplies = {
-                k: state.supplies.get(k) for k in XRPL_RESOURCES
-            }
-            bp.last_settlement_day = state.day
+            # Step 4: Mint starting supplies (issuer sends to player). Skipped
+            # when the snapshot is already populated so a resume does not
+            # double-mint.
+            if not bp.last_settled_supplies:
+                for key, (code, _display) in XRPL_TOKEN_MAP.items():
+                    amount = state.supplies.get(key)
+                    if amount > 0:
+                        mint_tx = Payment(
+                            account=issuer.address,
+                            destination=player.address,
+                            amount=IssuedCurrencyAmount(
+                                currency=code,
+                                issuer=issuer.address,
+                                value=str(amount),
+                            ),
+                        )
+                        _submit_and_wait_bounded(mint_tx, client, issuer)
+
+                # Step 5: Record snapshot. Set ONLY after the full mint loop
+                # completes (ledger-B05) so a half-minted pack stays "incomplete"
+                # and resumes on the next enable().
+                bp.last_settled_supplies = {
+                    k: state.supplies.get(k) for k in XRPL_RESOURCES
+                }
+                bp.last_settlement_day = state.day
+
             bp.enabled = True
 
+            message = (
+                "Ledger Backpack setup resumed. Your pack is now receipted."
+                if resuming
+                else "Ledger Backpack enabled. Your pack is now receipted."
+            )
             return EnableResult(
                 success=True,
-                message="Ledger Backpack enabled. Your pack is now receipted.",
+                message=message,
                 wallet_address=player.address,
             )
 
@@ -340,7 +541,7 @@ class BackpackManager:
                         ),
                         memos=memos,
                     )
-                    resp = submit_and_wait(tx, client, player)
+                    resp = _submit_and_wait_bounded(tx, client, player)
                 else:
                     # Player gained supplies → issuer sends to player
                     tx = Payment(
@@ -353,7 +554,7 @@ class BackpackManager:
                         ),
                         memos=memos,
                     )
-                    resp = submit_and_wait(tx, client, issuer)
+                    resp = _submit_and_wait_bounded(tx, client, issuer)
 
                 txid = resp.result.get("hash", "")
                 if txid:
@@ -379,6 +580,18 @@ class BackpackManager:
             )
             bp.settlements.append(record)
 
+            # Settlement reached the ledger: clear the degraded signal
+            # (ledger-B04) so the status line drops back to a healthy state.
+            bp.last_settle_failed = False
+
+            # Settlement-lifecycle log (ledger-B07): a successful settle records
+            # the day, signed deltas, and txids so a later reconcile mismatch is
+            # traceable from the log without re-running the chain.
+            log.info(
+                "settle ok: day=%d location=%s deltas=%s txids=%s",
+                state.day, location, deltas, txids,
+            )
+
             short_txid = txids[0][:12] + "..." if txids else "none"
             return SettlementResult(
                 success=True,
@@ -399,6 +612,16 @@ class BackpackManager:
                 timestamp=datetime.now(UTC).isoformat(),
             )
             bp.pending_settlements.append(record)
+            # Degraded signal (ledger-B04): the testnet was unreachable, this
+            # checkpoint is unsettled. status_line + cli-tui render the offline
+            # state from this so the pending count is not read as a healthy
+            # backlog.
+            bp.last_settle_failed = True
+            log.info(
+                "settle degraded: day=%d location=%s deltas=%s — "
+                "queued as pending (testnet unreachable)",
+                state.day, location, deltas,
+            )
 
             return SettlementResult(
                 success=False,
@@ -425,6 +648,7 @@ class BackpackManager:
         issuer = Wallet.from_seed(bp.issuer_secret)
 
         still_pending: list[SettlementRecord] = []
+        moved = 0  # settlements that cleared on this retry pass (ledger-B07)
 
         for record in bp.pending_settlements:
             try:
@@ -445,7 +669,7 @@ class BackpackManager:
                             ),
                             memos=memos,
                         )
-                        resp = submit_and_wait(tx, client, player)
+                        resp = _submit_and_wait_bounded(tx, client, player)
                     else:
                         tx = Payment(
                             account=issuer.address,
@@ -457,7 +681,7 @@ class BackpackManager:
                             ),
                             memos=memos,
                         )
-                        resp = submit_and_wait(tx, client, issuer)
+                        resp = _submit_and_wait_bounded(tx, client, issuer)
 
                     txid = resp.result.get("hash", "")
                     if txid:
@@ -486,12 +710,30 @@ class BackpackManager:
                     bp.last_settled_supplies[key] = (
                         bp.last_settled_supplies.get(key, 0) + val
                     )
+                moved += 1
+                log.info(
+                    "retry settled: day=%d deltas=%s txids=%s",
+                    record.day, record.deltas, txids,
+                )
 
             except Exception as e:
                 log.warning("Retry settlement day %d failed: %s", record.day, e)
                 still_pending.append(record)
 
         bp.pending_settlements = still_pending
+
+        # Retry-pass lifecycle log + degraded signal (ledger-B04 / ledger-B07):
+        # report how many cleared vs how many remain, and keep last_settle_failed
+        # in sync — True while anything is still pending, cleared once the queue
+        # drains (a fresh failing settle() re-sets it).
+        log.info(
+            "retry pending pass: moved=%d still_pending=%d",
+            moved, len(still_pending),
+        )
+        if still_pending:
+            bp.last_settle_failed = True
+        elif moved:
+            bp.last_settle_failed = False
 
     def send_parcel(
         self,
@@ -554,7 +796,7 @@ class BackpackManager:
                 amount="12",  # 12 drops — minimum XRP payment
                 memos=memos,
             )
-            resp = submit_and_wait(tx, client, player)
+            resp = _submit_and_wait_bounded(tx, client, player)
             txid = resp.result.get("hash", "")
 
             # Deduct supplies
@@ -666,9 +908,14 @@ class BackpackManager:
             return []
 
     def accept_parcel(
-        self, parcel: ParcelRecord, state: RunState, cap: int = 20,
+        self, parcel: ParcelRecord, state: RunState,
+        cap: int = PARCEL_ACCEPT_CAP,
     ) -> bool:
         """Accept a parcel: apply contents to supplies, capped.
+
+        The per-supply cap defaults to ``PARCEL_ACCEPT_CAP`` (ledger-B09): a
+        named design lever, not a bare literal, documenting why generosity is
+        bounded — a parcel cannot trivialize the survival pressure.
 
         Idempotent (ledger-005): a second accept is a no-op so a double-trigger
         from any caller (the TUI path does not guard) cannot double the supplies
@@ -725,10 +972,12 @@ class BackpackManager:
             client = self._get_client()
             for account in accounts:
                 marker = None
+                pages = 0
                 for _ in range(max_pages):
                     resp = client.request(AccountTx(
                         account=account, limit=200, marker=marker,
                     ))
+                    pages += 1
                     result = resp.result
                     for tx_entry in result.get("transactions", []):
                         tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
@@ -748,6 +997,13 @@ class BackpackManager:
                     marker = result.get("marker")
                     if not marker:
                         break
+                # Pagination-lifecycle log (ledger-B07): how many AccountTx pages
+                # were walked per account, so a missing memo can be traced to an
+                # un-paged account rather than a verification bug.
+                log.info(
+                    "fetch_onchain_memos: account=%s pages=%d",
+                    _shorten_address(account), pages,
+                )
             return memos
 
         except Exception as e:
@@ -793,16 +1049,36 @@ class BackpackManager:
                                 "Non-integer IOU balance for %s: %r", currency, balance,
                             )
                 info["balances"] = balances
-            except Exception:
+                info["balances_error"] = False
+            except Exception as e:
+                # ledger-B08: distinguish "couldn't reach the ledger" from a
+                # genuinely empty wallet. An empty {} could mean either; the
+                # error flag lets the overlay say "balances unavailable
+                # (offline)" instead of implying the pack is empty.
+                log.warning("wallet_info balance query failed: %s", e)
                 info["balances"] = {}
+                info["balances_error"] = True
 
         return info
 
     def status_line(self, state: RunState) -> str:
-        """One-line status for the TUI status panel."""
+        """One-line status for the TUI status panel.
+
+        Degraded rendering (ledger-B04): when the last settle attempt failed
+        (``last_settle_failed``) and checkpoints are unsettled, the line names
+        the offline cause — "testnet unreachable" — instead of a bare pending
+        count, so the player can tell a transient network outage from a healthy
+        backlog. The cli-tui renders this string verbatim.
+        """
         bp = state.backpack
         if bp.enabled:
             pending = len(bp.pending_settlements)
+            if pending and bp.last_settle_failed:
+                noun = "checkpoint" if pending == 1 else "checkpoints"
+                return (
+                    f"Ledger: ON (offline -- testnet unreachable, "
+                    f"{pending} unsettled {noun})"
+                )
             line = "Ledger: ON (Testnet)"
             if pending:
                 line += f"  Unsettled: {pending} checkpoint"

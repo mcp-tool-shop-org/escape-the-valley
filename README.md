@@ -39,6 +39,9 @@ trail tui --continue
 # With AI narration (requires Ollama running locally)
 trail tui --seed 42 --voice
 
+# Spoken voice narration needs the voice extra:
+#   pip install "escape-the-valley[voice]"
+
 # With voice pacing control
 trail tui --seed 42 --voice --voice-pace slow
 
@@ -68,7 +71,7 @@ Each turn you choose an action from camp:
 
 **Escape valves** (hard ration, desperate repair, abandon cargo) exist for emergencies. They have side effects and cooldowns — last resorts, not strategies.
 
-For deeper tips, see the [Survival Guide](docs/survival-guide.md).
+For deeper tips, see the [Survival Guide](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/).
 
 ## GM Profiles
 
@@ -136,6 +139,18 @@ By default, the game shows verbose warnings to help new players spot danger earl
 trail tui --callouts minimal
 trail new --callouts minimal
 ```
+
+## Troubleshooting
+
+**If anything looks wrong, run `trail self-check` first.** It reports whether Ollama is reachable, whether your save loads, and which model is installed. The three things that go wrong:
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| **Generic / no narration** | Ollama isn't running (the GM is optional and falls back, never bricks) | Start Ollama (`ollama serve`), or play deterministically with `--gm-off`. Run `trail self-check` to confirm. |
+| **Ledger pending / settlement failed** | XRPL Testnet is a public test network and is sometimes flaky | `trail ledger reconcile` retries the failed settlements; run it again when the network recovers. Supplies are correct locally either way. |
+| **Save won't resume** | `run.json` was truncated or corrupted mid-write | The engine quarantines it as `run.json.corrupt-<timestamp>` before refusing it, so your next save can't clobber the evidence. Recover from that backup, or start a fresh run from a seed. |
+
+The first narrated turn loads the model and can take 10-30s — that's normal, not a hang. Full details: [Troubleshooting handbook](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
 
 ## Requirements
 

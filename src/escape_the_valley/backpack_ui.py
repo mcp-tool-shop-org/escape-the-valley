@@ -154,6 +154,11 @@ class WalletInfoOverlay(Static):
                 f"  {code}: {amount}" for code, amount in balances.items()
             )
             balances_text = f"Balances:\n{bal_lines}"
+        elif info.get("balances_error"):
+            # ledger-B08: an empty balances dict alone is ambiguous — it could be
+            # a genuinely empty wallet OR an unreachable ledger. The error flag
+            # lets the overlay say which, instead of implying the pack is empty.
+            balances_text = "Balances: unavailable (couldn't reach the ledger)"
         else:
             balances_text = "Balances: unavailable"
 

@@ -97,6 +97,11 @@ class StepMessages:
     outcome_title: str = ""
     outcome_narration: str = ""
     outcome_deltas: dict[str, int] = field(default_factory=dict)
+    # ENG-B-05 (CONTRACT): the GM was asked for narration but returned None and
+    # the engine fell back to deterministic narration for this step. cli-tui
+    # renders these so the player knows the trail's own voice is speaking.
+    gm_degraded: bool = False
+    gm_degraded_reason: str = ""
 
 
 # ── Engine ──────────────────────────────────────────────────────────
@@ -133,12 +138,22 @@ class StepEngine:
             "maintenance_windows": 0,
             "caches_found": 0,
             "escape_valves_used": 0,
+            # ENG-B-05 (CONTRACT): GM call accounting, surfaced by cli-tui 'stats'.
+            "gm_calls": 0,
+            "gm_fallbacks": 0,
         }
+
+        # ENG-B-05: emit the "GM narration unavailable" note only once per session.
+        self._gm_degraded_noted = False
 
         # Pending state for multi-step flows
         self._pending_event: EventSkeleton | None = None
         self._pending_event_choices: list[EventChoiceInfo] = []
         self._pending_event_scene: object | None = None
+        # ENG-B-06: keep the offered scene text so an invalid-choice retry can
+        # re-present the event verbatim instead of losing it.
+        self._pending_event_title: str = ""
+        self._pending_event_narration: str = ""
         self._pending_routes: list[RouteOption] = []
 
         # Check initial conditions
@@ -166,6 +181,15 @@ class StepEngine:
 
         if self.phase == GamePhase.GAME_OVER:
             self.msgs.lines.append("This run is over.")
+            return self.msgs
+
+        # ENG-B-08: never roll events or call the GM against a dead party. If
+        # everyone has perished, settle into game-over immediately rather than
+        # processing the action (which could trigger an event on corpses).
+        if self.state.party.alive_count == 0:
+            self._check_game_over()
+            self.msgs.lines.append("This run is over.")
+            self._save()
             return self.msgs
 
         if self.phase == GamePhase.EVENT:
@@ -283,6 +307,14 @@ class StepEngine:
                     f"Wagon breakdown! No parts. Damage: {damage}"
                 )
             emit_wagon_card(self.state, damage, had_parts)
+            # ENG-B-02: a breakdown is a milestone worth remembering.
+            self._record_milestone(
+                "wagon:breakdown",
+                "Wagon Breakdown",
+                f"The wagon broke down. Damage: {damage}."
+                + ("" if had_parts else " No spare parts on hand."),
+                tags=["wagon", "breakdown"],
+            )
 
         # Night travel danger (no lantern oil)
         night_danger = check_night_travel_danger(
@@ -308,6 +340,7 @@ class StepEngine:
                 self.msgs.lines.append(
                     f"{eff['member']} is recovering."
                 )
+        self._record_death_milestones(effects)
         emit_health_cards(self.state, effects)
 
         # Resource crisis check after consumption
@@ -514,6 +547,74 @@ class StepEngine:
             "Hard rationing imposed — half rations for 2 days.",
         )
 
+    # ── Journal milestones (ENG-B-02) ───────────────────────────────
+
+    def _record_milestone(
+        self,
+        event_id: str,
+        scene_title: str,
+        outcome: str,
+        *,
+        tags: list[str] | None = None,
+    ) -> None:
+        """Append a non-event milestone to the journal so show_journal renders
+        it (ENG-B-02).
+
+        Reuses the JournalEntry shape with a synthetic event_id (e.g.
+        'death:starvation') so a long run's deaths, breakdowns, and town
+        arrivals all leave a durable record alongside resolved events.
+        """
+        node = _find_node(self.state)
+        self.state.journal.append(JournalEntry(
+            day=self.state.day,
+            location=node.name if node else "unknown",
+            event_id=event_id,
+            scene_title=scene_title,
+            narration="",
+            choice_made="",
+            outcome=outcome[:300],
+            deltas={},
+            tags=tags or [],
+        ))
+
+    def _record_death_milestones(self, effects: list[dict]) -> None:
+        """Write a journal milestone for each death in this batch of health
+        effects (ENG-B-02), carrying member, day, cause, and location."""
+        node = _find_node(self.state)
+        location = node.name if node else "unknown"
+        for eff in effects:
+            if eff.get("type") != "died":
+                continue
+            member = eff.get("member", "Someone")
+            cause = eff.get("cause", "the trail")
+            self._record_milestone(
+                f"death:{cause.lower()}",
+                f"Death: {member}",
+                f"{member} died of {cause.lower()} "
+                f"on day {self.state.day} near {location}.",
+                tags=["death", cause.lower()],
+            )
+
+    # ── GM observability ────────────────────────────────────────────
+
+    def _note_gm_fallback(self, reason: str) -> None:
+        """Record that a GM call returned nothing and the engine fell back to
+        deterministic narration (ENG-B-05 / CONTRACT).
+
+        Sets the per-step degraded signal the UI renders, bumps the
+        gm_fallbacks diagnostic, and — the first time it happens in a session —
+        appends a single, calm line so the player understands the shift in voice
+        without it nagging on every event thereafter.
+        """
+        self.diagnostics["gm_fallbacks"] += 1
+        self.msgs.gm_degraded = True
+        self.msgs.gm_degraded_reason = reason
+        if not self._gm_degraded_noted:
+            self._gm_degraded_noted = True
+            self.msgs.lines.append(
+                "GM narration unavailable -- using the trail's own voice."
+            )
+
     # ── EVENT phase ─────────────────────────────────────────────────
 
     def _maybe_trigger_event(self) -> None:
@@ -541,6 +642,7 @@ class StepEngine:
         # Try GM narration
         scene = None
         if self.gm.config.enabled:
+            self.diagnostics["gm_calls"] += 1
             weather_str = weather.value if weather else "unknown"
             brief = build_gm_brief(self.state)
             scene = self.gm.generate_scene(
@@ -561,6 +663,10 @@ class StepEngine:
                 for c in scene.choices
             ]
         else:
+            # ENG-B-05: GM was enabled but produced nothing usable — fall back to
+            # the deterministic skeleton and surface the degraded signal.
+            if self.gm.config.enabled:
+                self._note_gm_fallback("scene narration unavailable")
             title = event.title
             narration = event.fallback_narration
             choices = [
@@ -580,6 +686,8 @@ class StepEngine:
         self._pending_event = event
         self._pending_event_choices = choices
         self._pending_event_scene = scene
+        self._pending_event_title = title
+        self._pending_event_narration = narration
         self.phase = GamePhase.EVENT
 
         self.msgs.event_title = title
@@ -600,6 +708,21 @@ class StepEngine:
             return
 
         choice_id = intent.choice_id
+
+        # ENG-B-06: an invalid choice id must not silently fizzle into an
+        # arbitrary outcome. Tell the player what's on offer and return WITHOUT
+        # clearing the pending event, so they can retry rather than lose it.
+        offered_ids = [c.id for c in self._pending_event_choices]
+        if choice_id not in offered_ids:
+            self.msgs.lines.append(
+                "That option isn't available -- choose one of: "
+                f"{'/'.join(offered_ids)}."
+            )
+            self.msgs.event_title = self._pending_event_title
+            self.msgs.event_narration = self._pending_event_narration
+            self.msgs.event_choices = self._pending_event_choices
+            return
+
         outcome = resolve_event(
             self.state, event, choice_id, self.rng,
         )
@@ -620,6 +743,7 @@ class StepEngine:
         brief = build_gm_brief(self.state) if self.gm.config.enabled else None
         gm_out = None
         if self.gm.config.enabled and scene:
+            self.diagnostics["gm_calls"] += 1
             outcome_facts = {
                 "Supplies delta": outcome.supplies_delta,
                 "Health effects": outcome.health_delta,
@@ -642,6 +766,10 @@ class StepEngine:
                 outcome_title = gm_out.outcome_title
 
         if not outcome_narration:
+            # ENG-B-05: GM enabled (had a scene) but no usable outcome narration
+            # came back — fall back deterministically and surface the signal.
+            if self.gm.config.enabled and scene:
+                self._note_gm_fallback("outcome narration unavailable")
             outcome_title = "Outcome"
             outcome_narration = _build_fallback_callout(outcome)
 
@@ -690,6 +818,8 @@ class StepEngine:
         self._pending_event = None
         self._pending_event_choices = []
         self._pending_event_scene = None
+        self._pending_event_title = ""
+        self._pending_event_narration = ""
         self.phase = GamePhase.CAMP
 
         self.state.rng_counter = self.rng.counter
@@ -750,7 +880,24 @@ class StepEngine:
                 break
 
         if not dest:
-            return
+            # ENG-B-09: the destination_id points at no real node (corrupt save,
+            # data drift, or a fork that never resolved). Don't silently strand
+            # the party at distance 0 with nowhere to go — warn, log, and recover
+            # by snapping to the final node so the journey can still conclude.
+            log.warning(
+                "destination_id %r not found among map_nodes; recovering",
+                self.state.destination_id,
+            )
+            self.msgs.lines.append(
+                "The way ahead doesn't match the map. "
+                "Pressing on toward the last known waypoint."
+            )
+            if self.state.map_nodes:
+                dest = self.state.map_nodes[-1]
+                self.state.destination_id = dest.node_id
+            else:
+                # No map at all — nothing to recover to; leave state untouched.
+                return
 
         self.state.location_id = dest.node_id
         self.state.distance_remaining = 0
@@ -783,6 +930,13 @@ class StepEngine:
         emit_arrival_card(self.state, dest)
 
         if dest.is_town:
+            # ENG-B-02: reaching a town is a milestone — leave a journal record.
+            self._record_milestone(
+                "town:arrival",
+                f"Arrived at {dest.name}",
+                f"The party reached {dest.name} on day {self.state.day}.",
+                tags=["town", "arrival"],
+            )
             # Town trade: morale-gated + doctrine-boosted
             from .models import DOCTRINE_MODIFIERS
             doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})

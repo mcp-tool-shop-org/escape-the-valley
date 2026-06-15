@@ -12,9 +12,15 @@ from escape_the_valley.backpack import (
     _hex_decode,
     _hex_encode,
     _settlement_memo_text,
+    _setup_complete,
     _shorten_address,
 )
-from escape_the_valley.backpack_models import ParcelRecord, SettlementRecord
+from escape_the_valley.backpack_models import (
+    MEMO_SCHEMA_VERSION,
+    PARCEL_ACCEPT_CAP,
+    ParcelRecord,
+    SettlementRecord,
+)
 from escape_the_valley.models import RunState, SuppliesState
 
 
@@ -1026,3 +1032,491 @@ class TestCheckParcelsTxHash:
         assert parcels[0].parcel_id == "WRAPHASH"
         assert parcels[0].txid == "WRAPHASH"
         assert parcels[0].contents == {"food": 6}
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Stage-C humanization fixes (ledger-B02..B09).
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestTestnetOnly:
+    """ledger-B03 (SAFETY): the manager only connects to testnet hosts."""
+
+    def test_default_url_is_accepted(self):
+        # The default URL is a testnet host — constructs without error.
+        mgr = BackpackManager()
+        assert mgr is not None
+
+    def test_explicit_testnet_url_accepted(self):
+        mgr = BackpackManager("https://s.altnet.rippletest.net:51234/")
+        assert mgr is not None
+
+    def test_devnet_url_accepted(self):
+        mgr = BackpackManager("https://s.devnet.rippletest.net:51234/")
+        assert mgr is not None
+
+    def test_mainnet_url_rejected(self):
+        """A mainnet host must be refused — no real value at risk, in code."""
+        with pytest.raises(ValueError) as exc:
+            BackpackManager("https://s1.ripple.com:51234/")
+        assert "testnet" in str(exc.value).lower()
+
+    def test_arbitrary_host_rejected(self):
+        with pytest.raises(ValueError):
+            BackpackManager("https://evil.example.com:51234/")
+
+    def test_non_testnet_allowed_with_explicit_flag(self):
+        """The escape hatch is honored (e.g. a local standalone rippled)."""
+        mgr = BackpackManager(
+            "http://localhost:5005/", allow_non_testnet=True,
+        )
+        assert mgr is not None
+
+
+class TestTimeoutClient:
+    """ledger-B02: the XRPL client is bounded by an explicit timeout."""
+
+    @requires_xrpl
+    def test_get_client_uses_timeout_subclass(self):
+        from escape_the_valley.backpack import (
+            XRPL_REQUEST_TIMEOUT,
+            _TimeoutJsonRpcClient,
+        )
+
+        mgr = BackpackManager()
+        client = mgr._get_client()
+        assert isinstance(client, _TimeoutJsonRpcClient)
+        # The timeout is the ~30s ceiling consistent with the GM, not the
+        # xrpl-py default of 10s.
+        assert client._timeout == XRPL_REQUEST_TIMEOUT
+        assert XRPL_REQUEST_TIMEOUT == 30.0
+
+
+class TestWritePathDeadline:
+    """ledger-B02 WRITE-PATH: a stalled submit_and_wait degrades, never hangs.
+
+    xrpl-py's submit_and_wait runs its own ledger-validation poll loop and
+    exposes no timeout param, so a stalled testnet could block it past
+    XRPL_REQUEST_TIMEOUT. _submit_and_wait_bounded caps the whole write with a
+    wall-clock deadline; on timeout it raises WriteTimeout, which the existing
+    except-Exception paths route into the same offline/pending degradation as
+    any other submit failure (WriteTimeoutError is a plain Exception). These
+    tests mock a submit that blocks until the
+    test releases it (so no live thread leaks) and assert the write degrades
+    within the (tiny, monkeypatched) deadline rather than freezing.
+    """
+
+    @staticmethod
+    def _slow_submit(release_evt, *, fire_evt=None):
+        """A submit_and_wait stand-in that blocks until ``release_evt`` is set.
+
+        Simulates a stalled node: the call does not return on its own. The test
+        sets ``release_evt`` in teardown so the daemon worker thread unwinds
+        cleanly instead of leaking. ``fire_evt`` (if given) is set the moment
+        the worker actually enters the call, so the test can prove the deadline
+        fired against a genuinely in-flight submit.
+        """
+
+        def _submit(tx, client, signer):
+            if fire_evt is not None:
+                fire_evt.set()
+            release_evt.wait(timeout=10)  # released by the test; safety cap
+            return _FakeResp({"hash": "NEVER"})
+
+        return _submit
+
+    @requires_xrpl
+    def test_bounded_wrapper_raises_writetimeout_on_stall(self, monkeypatch):
+        """The wrapper itself raises WriteTimeoutError when submit blocks past
+        the deadline — and does not block the calling thread."""
+        import threading
+        import time
+
+        from escape_the_valley.backpack import (
+            WriteTimeoutError,
+            _submit_and_wait_bounded,
+        )
+
+        release = threading.Event()
+        fired = threading.Event()
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait",
+            self._slow_submit(release, fire_evt=fired),
+        )
+
+        start = time.monotonic()
+        try:
+            with pytest.raises(WriteTimeoutError):
+                _submit_and_wait_bounded(
+                    object(), _FakeClient(), _FakeWallet("rX"), deadline=0.2,
+                )
+            elapsed = time.monotonic() - start
+            # The caller was released ~at the deadline, not after the 10s stall.
+            assert elapsed < 5.0
+            assert fired.is_set()  # the slow submit was genuinely in flight
+        finally:
+            release.set()  # let the daemon worker unwind
+
+    @requires_xrpl
+    def test_stalled_settle_degrades_to_pending(self, monkeypatch):
+        """A stalled write during settle() queues a pending record (degrade),
+        does not hang, and flips the offline signal."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed",
+            staticmethod(lambda *a, **k: _FakeWallet("rPlayerAddr")),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _enabled_state()
+        state.supplies.set("food", 40)  # -10 → triggers a write that stalls
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.settle(state, "StalledTown")
+            assert res.success is False
+            assert len(state.backpack.pending_settlements) == 1
+            assert state.backpack.pending_settlements[0].status == "pending"
+            assert state.backpack.last_settle_failed is True
+            # Baseline NOT advanced — nothing reached the ledger.
+            assert state.backpack.last_settled_supplies["food"] == 50
+        finally:
+            release.set()
+
+    @requires_xrpl
+    def test_stalled_send_parcel_degrades_supplies_unchanged(self, monkeypatch):
+        """A stalled write during send_parcel() leaves supplies untouched and
+        records no parcel — degrade, not freeze."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed",
+            staticmethod(lambda *a, **k: _FakeWallet("rPlayerAddr")),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.send_parcel(state, "rRecipient", "food", 7)
+            assert res.success is False
+            assert state.supplies.food == before  # unchanged on stall
+            assert state.backpack.sent_parcels == []
+        finally:
+            release.set()
+
+    @requires_xrpl
+    def test_stalled_enable_degrades_to_off(self, monkeypatch):
+        """A stalled write during enable() (the TrustSet step) leaves the pack
+        OFF instead of hanging the faucet flow."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+
+        wallets = iter([
+            _FakeWallet("rIssuerAddr", "sIssuerSeed"),
+            _FakeWallet("rPlayerAddr", "sPlayerSeed"),
+        ])
+        monkeypatch.setattr(
+            backpack_mod, "generate_faucet_wallet",
+            lambda *a, **k: next(wallets),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _make_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.enable(state)
+            assert res.success is False
+            assert state.backpack.enabled is False
+            # Trust lines never completed — a later enable() resumes, not skips.
+            assert state.backpack.trust_lines_ready is False
+        finally:
+            release.set()
+
+
+class TestLastSettleFailedSignal:
+    """ledger-B04 (CONTRACT): settle()/_retry_pending track last_settle_failed."""
+
+    @requires_xrpl
+    def test_failed_settle_sets_flag(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)  # -10 → FOD payment fails
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, fail_keys={"FOD"})
+
+        res = mgr.settle(state, "BadTown")
+        assert res.success is False
+        assert state.backpack.last_settle_failed is True
+
+    @requires_xrpl
+    def test_successful_settle_clears_flag(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.last_settle_failed = True  # pretend a prior failure
+        state.supplies.set("food", 38)  # -12, succeeds
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["TXF"])
+
+        res = mgr.settle(state, "GoodTown")
+        assert res.success is True
+        assert state.backpack.last_settle_failed is False
+
+    @requires_xrpl
+    def test_retry_clears_flag_when_queue_drains(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.last_settle_failed = True
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"water": -5},
+                status="pending", memo=_settlement_memo_text(
+                    state.run_id, 4, {"water": -5},
+                ),
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["RETRYHASH"])
+
+        mgr._retry_pending(state)
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.last_settle_failed is False
+
+    @requires_xrpl
+    def test_retry_keeps_flag_when_still_pending(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"food": -5},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, fail_keys={"FOD"})
+
+        mgr._retry_pending(state)
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+
+
+class TestStatusLineDegraded:
+    """ledger-B04: status_line renders a distinct offline state."""
+
+    def test_degraded_line_when_failed_and_pending(self):
+        state = _make_state()
+        bp = state.backpack
+        bp.enabled = True
+        bp.last_settle_failed = True
+        bp.pending_settlements = [
+            SettlementRecord(day=3, location="A", status="pending"),
+            SettlementRecord(day=5, location="B", status="pending"),
+        ]
+        mgr = BackpackManager()
+        line = mgr.status_line(state)
+        assert "offline" in line.lower()
+        assert "testnet unreachable" in line.lower()
+        assert "2 unsettled checkpoints" in line
+
+    def test_singular_unsettled_checkpoint(self):
+        state = _make_state()
+        bp = state.backpack
+        bp.enabled = True
+        bp.last_settle_failed = True
+        bp.pending_settlements = [
+            SettlementRecord(day=3, location="A", status="pending"),
+        ]
+        mgr = BackpackManager()
+        line = mgr.status_line(state)
+        assert "1 unsettled checkpoint" in line
+        assert "checkpoints" not in line  # singular
+
+    def test_pending_without_failure_uses_plain_count(self):
+        """A backlog that did NOT fail (last_settle_failed False) reads plainly,
+        not as 'testnet unreachable'."""
+        state = _make_state()
+        bp = state.backpack
+        bp.enabled = True
+        bp.last_settle_failed = False
+        bp.pending_settlements = [
+            SettlementRecord(day=3, location="A", status="pending"),
+        ]
+        mgr = BackpackManager()
+        line = mgr.status_line(state)
+        assert "Unsettled: 1 checkpoint" in line
+        assert "offline" not in line.lower()
+
+
+class TestSetupComplete:
+    """ledger-B05: completion is the re-enable gate, not just wallet+secret."""
+
+    def test_complete_when_all_set(self):
+        state = _enabled_state()  # trust_lines_ready + last_settled_supplies set
+        assert _setup_complete(state.backpack) is True
+
+    def test_incomplete_without_trust_lines(self):
+        state = _enabled_state()
+        state.backpack.trust_lines_ready = False
+        assert _setup_complete(state.backpack) is False
+
+    def test_incomplete_without_minted_snapshot(self):
+        state = _enabled_state()
+        state.backpack.last_settled_supplies = {}
+        assert _setup_complete(state.backpack) is False
+
+
+class TestEnableResume:
+    """ledger-B05: a half-built pack resumes instead of declaring 'back online'."""
+
+    @requires_xrpl
+    def test_half_built_no_trust_lines_resumes_without_refaucet(self, monkeypatch):
+        """Wallets exist but trust lines never finished: enable() must NOT call
+        the faucet again and must NOT short-circuit to 'back online'."""
+        state = _make_state()
+        bp = state.backpack
+        # Simulate a prior enable() that created wallets but died before trust.
+        bp.wallet_address = "rPlayerAddr"
+        bp.wallet_secret = "sPlayerSeed"
+        bp.issuer_address = "rIssuerAddr"
+        bp.issuer_secret = "sIssuerSeed"
+        bp.trust_lines_ready = False
+        bp.last_settled_supplies = {}
+
+        faucet_calls = {"n": 0}
+
+        def fake_faucet(*a, **k):
+            faucet_calls["n"] += 1
+            return _FakeWallet("rUnexpected", "sUnexpected")
+
+        monkeypatch.setattr(backpack_mod, "generate_faucet_wallet", fake_faucet)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch)
+
+        res = mgr.enable(state)
+
+        assert res.success is True
+        assert faucet_calls["n"] == 0  # reused existing wallets, no new faucet
+        # Resume finished the missing steps.
+        assert bp.trust_lines_ready is True
+        assert bp.last_settled_supplies  # minted snapshot now populated
+        assert bp.enabled is True
+        # Address unchanged — old wallet not orphaned.
+        assert bp.wallet_address == "rPlayerAddr"
+        assert "resumed" in res.message.lower()
+
+    @requires_xrpl
+    def test_complete_pack_flips_back_online_without_remint(self, monkeypatch):
+        """A fully-built pack short-circuits: no faucet, no mint, no trust set."""
+        state = _enabled_state()
+        state.backpack.enabled = False  # was disabled
+
+        faucet_calls = {"n": 0}
+        submit_calls = {"n": 0}
+
+        monkeypatch.setattr(
+            backpack_mod, "generate_faucet_wallet",
+            lambda *a, **k: faucet_calls.__setitem__("n", faucet_calls["n"] + 1),
+        )
+
+        def fake_submit(*a, **k):
+            submit_calls["n"] += 1
+            return _FakeResp({"hash": "X"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        res = mgr.enable(state)
+        assert res.success is True
+        assert state.backpack.enabled is True
+        assert faucet_calls["n"] == 0
+        assert submit_calls["n"] == 0  # no re-mint, no re-trust
+        assert "back online" in res.message.lower()
+
+
+class TestWalletInfoBalancesError:
+    """ledger-B08: distinguish 'couldn't reach the ledger' from an empty wallet."""
+
+    @requires_xrpl
+    def test_balances_error_set_on_exception(self, monkeypatch):
+        state = _enabled_state()
+
+        class _BoomClient(_FakeClient):
+            def request(self, _req):
+                raise RuntimeError("ledger unreachable")
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _BoomClient())
+
+        info = mgr.wallet_info(state)
+        assert info["balances"] == {}
+        assert info["balances_error"] is True
+
+    @requires_xrpl
+    def test_balances_error_false_on_success(self, monkeypatch):
+        state = _enabled_state()
+
+        class _LinesClient(_FakeClient):
+            def request(self, _req):
+                return _FakeResp({"lines": [
+                    {"account": "rIssuerAddr", "currency": "FOD", "balance": "38"},
+                ]})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _LinesClient())
+
+        info = mgr.wallet_info(state)
+        assert info["balances_error"] is False
+        assert info["balances"] == {"FOD": 38}
+
+
+class TestParcelCapConstant:
+    """ledger-B09: accept_parcel uses the named cap by default."""
+
+    def test_default_cap_is_named_constant(self):
+        state = _make_state()
+        parcel = ParcelRecord(
+            parcel_id="tx:FOD:100", sender="rSender",
+            contents={"food": 100}, day_received=3,
+        )
+        mgr = BackpackManager()
+        before = state.supplies.food
+        mgr.accept_parcel(parcel, state)  # no explicit cap
+        # Applied exactly PARCEL_ACCEPT_CAP, not the raw 100.
+        assert state.supplies.food == before + PARCEL_ACCEPT_CAP
+
+
+class TestMemoSchemaVersion:
+    """ledger-B09: the settlement memo carries a schema-version token."""
+
+    def test_memo_text_has_version_suffix(self):
+        memo = _settlement_memo_text("run1", 5, {"food": -3, "water": 5})
+        assert memo.endswith(f"|V:{MEMO_SCHEMA_VERSION}")
+
+    def test_version_after_run_day_header_preserves_prefix(self):
+        """The version is appended, so the TRAIL|RUN|DAY prefix the verifier
+        matches on stays intact (ledger-B09 must not break ledger-003)."""
+        memo = _settlement_memo_text("run1", 5, {"food": -3})
+        assert memo.startswith("TRAIL|RUN:run1|DAY:5")
+        # Version comes after DELTA, never before the header.
+        assert memo.index("DELTA:") < memo.index("|V:")

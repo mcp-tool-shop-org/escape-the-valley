@@ -200,8 +200,20 @@ def compute_themes(state: RunState) -> list[str]:
 def retrieve_memories(
     state: RunState,
     max_results: int = 6,
+    *,
+    mark_retrieved: bool = True,
 ) -> list[MemoryCard]:
-    """Retrieve top-scoring memories using tag overlap + recency + salience."""
+    """Retrieve top-scoring memories using tag overlap + recency + salience.
+
+    By default this marks the returned cards as retrieved, advancing their
+    `day_last_seen`/`cooldown_until` so they are not surfaced again next turn.
+
+    gm-B-09 — pass `mark_retrieved=False` for a *read-only* peek that does not
+    touch cooldown bookkeeping. This lets a caller build a brief twice in one
+    turn (scene + outcome) without the second retrieval being starved of the
+    callbacks the first one put on cooldown. The scoring is identical; only the
+    side effect is suppressed.
+    """
     if not state.memory_cards:
         return []
 
@@ -249,11 +261,12 @@ def retrieve_memories(
     # Sort by score descending
     scored.sort(key=lambda x: -x[0])
 
-    # Take top results, update last_seen + cooldown
+    # Take top results, update last_seen + cooldown (unless read-only peek).
     results: list[MemoryCard] = []
     for _, card in scored[:max_results]:
-        card.day_last_seen = state.day
-        card.cooldown_until = state.day + 3
+        if mark_retrieved:
+            card.day_last_seen = state.day
+            card.cooldown_until = state.day + 3
         results.append(card)
 
     return results
@@ -273,15 +286,33 @@ class GMBrief:
     weirdness_allowance: str = "none"  # none | hint | strong
 
 
-def build_gm_brief(state: RunState) -> GMBrief:
+def build_gm_brief(state: RunState, *, mark_retrieved: bool = True) -> GMBrief:
     """Compute the full GM brief from state.
 
     Not pure: `retrieve_memories` marks the returned callback cards as
     retrieved, updating their `day_last_seen`/`cooldown_until` on `state`.
+
+    gm-B-09 (cross-domain note — fix lives in step_engine, engine domain):
+    the step engine calls this once at scene time and again at outcome time
+    *within the same turn* (step_engine `_present_event` ~L647 and
+    `_handle_event_choice` ~L743). Because each call runs `retrieve_memories`,
+    which puts the top cards on a `state.day + 3` cooldown, the second call of
+    the turn is starved of the very callbacks the first call consumed — the
+    outcome brief sees a thinner (often empty) callback set than the scene
+    brief, and the cooldown bookkeeping is touched twice for one logical turn.
+    The cooldown *value* is not double-advanced (both calls share the same
+    `state.day`, so it is idempotent within a day), but the callback starvation
+    is real. The correct fix is for the engine to compute the brief ONCE per
+    turn and reuse it for both scene and outcome — that change is out of this
+    module's ownership. As a defensive aid until then, callers that only need
+    the read-only parts of a brief can pass `mark_retrieved=False` (see
+    `retrieve_memories`) to avoid mutating cooldown bookkeeping.
     """
     pressures = compute_pressures(state)
     themes = compute_themes(state)
-    callbacks = retrieve_memories(state, max_results=6)
+    callbacks = retrieve_memories(
+        state, max_results=6, mark_retrieved=mark_retrieved,
+    )
 
     situation = _build_situation(state, pressures)
     weirdness = _compute_weirdness(state)

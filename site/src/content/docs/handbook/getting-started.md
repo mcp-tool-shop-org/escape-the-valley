@@ -27,6 +27,16 @@ pip install -e ".[dev]"
 pip install -e ".[xrpl]"
 ```
 
+## First, check your environment
+
+Before your first run, confirm the game can see everything it needs:
+
+```bash
+trail self-check
+```
+
+This is the first thing to run if anything ever looks wrong. It reports whether Ollama is reachable, whether a save loads, and which model is installed -- so you never have to guess. See [Troubleshooting](/escape-the-valley/handbook/troubleshooting/) for what each result means.
+
 ## Play your first game
 
 The full-screen TUI is the recommended way to play:
@@ -42,6 +52,8 @@ The `--seed` flag makes the run reproducible — same seed, same world, same eve
 ```bash
 # With AI narration (requires Ollama running locally)
 trail tui --seed 42 --voice
+# Spoken voice narration also needs the voice extra:
+#   pip install "escape-the-valley[voice]"
 
 # With a specific Ollama model
 trail tui --seed 42 --model mistral

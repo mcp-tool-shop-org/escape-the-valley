@@ -93,6 +93,54 @@ class TestStatsCommand:
         assert data["party_alive"] == 1
         assert data["wagon_condition"] == 100
 
+    def test_stats_gm_flag_surfaces_counters(self, monkeypatch):
+        """gm-B-03 consumer: `stats --gm` surfaces the GMClient.stats shape."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        from escape_the_valley.gm import GMClient
+
+        # Probe must not hit the network; force a deterministic 'unreachable'.
+        monkeypatch.setattr(GMClient, "is_available", lambda self: False)
+
+        result = runner.invoke(app, ["stats", "--gm"])
+        assert result.exit_code == 0
+        assert "GM calls (this session)" in result.output
+        assert "attempts" in result.output
+        assert "unreachable" in result.output
+
+    def test_stats_gm_json_includes_block(self, monkeypatch):
+        """`stats --gm --json` includes a structured gm block with counters."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        from escape_the_valley.gm import GMClient
+
+        monkeypatch.setattr(GMClient, "is_available", lambda self: True)
+
+        result = runner.invoke(app, ["stats", "--gm", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "gm" in data
+        assert data["gm"]["reachable"] is True
+        # The full stats shape committed by gm-B-03 must be present.
+        counters = data["gm"]["session_counters"]
+        for key in (
+            "attempts", "successes", "json_rejects",
+            "tone_rejects", "timeouts", "connect_errors",
+        ):
+            assert key in counters
+
+    def test_stats_without_gm_flag_omits_block(self, monkeypatch):
+        """No --gm means no GM probe and no gm block (stays fast/offline)."""
+        state = create_new_run(seed=5)
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+
+        result = runner.invoke(app, ["stats", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "gm" not in data
+
     def test_stats_game_over(self, monkeypatch):
         """Stats shows outcome when game is over."""
         state = RunState(
@@ -378,3 +426,144 @@ class TestLedgerExitCodes:
         result = runner.invoke(app, ["ledger", "reconcile"])
         assert result.exit_code == 0
         assert "All clear" in result.output
+
+
+class TestNetworkHints:
+    """cli-tui-B-04: a failed network round-trip prints a structured hint."""
+
+    def test_settle_failure_prints_hint(self, monkeypatch):
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SettlementResult
+
+        monkeypatch.setattr(
+            BackpackManager, "settle",
+            lambda self, st, loc: SettlementResult(
+                success=False, message="testnet timeout",
+            ),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "settle"])
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+        assert "trail ledger reconcile" in result.output
+
+    def test_enable_failure_prints_hint(self, monkeypatch):
+        state = create_new_run(seed=5)  # backpack disabled
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, EnableResult
+
+        monkeypatch.setattr(
+            BackpackManager, "enable",
+            lambda self, st: EnableResult(success=False, message="unreachable"),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "enable"])
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+        assert "trail ledger enable" in result.output
+
+    def test_parcel_send_failure_prints_hint(self, monkeypatch):
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SendResult
+
+        monkeypatch.setattr(
+            BackpackManager, "send_parcel",
+            lambda self, st, r, sup, amt: SendResult(
+                success=False, message="submit failed",
+            ),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(
+            app,
+            ["parcel", "send", "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", "food", "5"],
+        )
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+
+    def test_settle_success_no_hint(self, monkeypatch):
+        """A successful settle does not nag with a network hint."""
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SettlementResult
+
+        monkeypatch.setattr(
+            BackpackManager, "settle",
+            lambda self, st, loc: SettlementResult(success=True, message="settled"),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "settle"])
+        assert result.exit_code == 0
+        assert "hint:" not in result.output
+
+
+class _FakeResp:
+    def __init__(self, status_code=200, models=None):
+        self.status_code = status_code
+        self._models = models or []
+
+    def json(self):
+        return {"models": [{"name": n} for n in self._models]}
+
+
+class TestSelfCheckHints:
+    """cli-tui-B-05: self-check gives actionable next steps."""
+
+    def test_model_present_matches_tagged_name(self):
+        from escape_the_valley.cli import _model_present
+
+        assert _model_present("llama3.2", ["llama3.2:latest"]) is True
+        assert _model_present("llama3.2", ["llama3.2"]) is True
+        assert _model_present("llama3.2:latest", ["llama3.2:latest"]) is True
+        assert _model_present("mistral", ["llama3.2:latest"]) is False
+
+    def test_unreachable_prints_start_or_gm_off(self, monkeypatch):
+        import httpx
+
+        def _boom(*a, **k):
+            raise httpx.ConnectError("nope")
+
+        monkeypatch.setattr(httpx, "get", _boom)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "not reachable" in result.output
+        assert "ollama serve" in result.output
+        assert "--gm-off" in result.output
+
+    def test_reachable_warns_on_missing_model(self, monkeypatch):
+        import httpx
+
+        monkeypatch.setattr(
+            httpx, "get",
+            lambda *a, **k: _FakeResp(200, models=["mistral:latest"]),
+        )
+        result = runner.invoke(app, ["self-check", "--model", "llama3.2"])
+        assert result.exit_code == 0
+        assert "reachable" in result.output
+        assert "not found" in result.output
+        assert "ollama pull llama3.2" in result.output
+
+    def test_reachable_with_model_no_warning(self, monkeypatch):
+        import httpx
+
+        monkeypatch.setattr(
+            httpx, "get",
+            lambda *a, **k: _FakeResp(200, models=["llama3.2:latest"]),
+        )
+        result = runner.invoke(app, ["self-check", "--model", "llama3.2"])
+        assert result.exit_code == 0
+        assert "reachable" in result.output
+        assert "not found" not in result.output

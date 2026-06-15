@@ -691,3 +691,274 @@ def test_gameengine_brief_allowance_none_below_floor(monkeypatch):
 
     assert captured["scene_brief"].weirdness_allowance == "none"
     assert captured["outcome_brief"].weirdness_allowance == "none"
+
+
+# ── Stage C: humanization regression tests ───────────────────────────
+
+
+class _NoneGM:
+    """GM stub that is 'enabled' but returns nothing — forces fallback."""
+
+    def __init__(self):
+        self.config = GMConfig(enabled=True)
+
+    def generate_scene(self, *a, **k):
+        return None
+
+    def generate_outcome(self, *a, **k):
+        return None
+
+    def close(self):
+        pass
+
+
+def _force_event_engine(seed=42, gm=None):
+    """Build a StepEngine whose next travel will deterministically roll an
+    event (rng.random patched to 0.0 opens the ~60% gate)."""
+    from escape_the_valley.worldgen import create_new_run
+
+    engine = StepEngine(create_new_run(seed=seed), GMConfig(enabled=False))
+    if gm is not None:
+        engine.gm = gm
+    return engine
+
+
+# ── ENG-B-08: dead party never rolls events / calls the GM ──
+
+
+def test_dead_party_short_circuits_to_game_over():
+    engine = _make_engine(seed=42)
+    for m in engine.state.party.members:
+        m.health = 0
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.state.game_over
+    assert engine.phase == GamePhase.GAME_OVER
+    # No event was offered against the corpses.
+    assert engine.phase != GamePhase.EVENT
+    assert msgs.event_choices == []
+
+
+def test_dead_party_does_not_call_gm(monkeypatch):
+    """A step with a dead party must not invoke the GM at all."""
+    engine = _make_engine(seed=42)
+    called = {"scene": 0}
+
+    class _CountingGM(_NoneGM):
+        def generate_scene(self, *a, **k):
+            called["scene"] += 1
+            return None
+
+    engine.gm = _CountingGM()
+    for m in engine.state.party.members:
+        m.health = 0
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # would open gate
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert called["scene"] == 0
+
+
+# ── ENG-B-05: GM observability + degraded signal ──
+
+
+def test_gm_fallback_sets_degraded_and_counts(monkeypatch):
+    engine = _force_event_engine(seed=42, gm=_NoneGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+
+    assert engine.phase == GamePhase.EVENT  # fell back to deterministic event
+    assert msgs.gm_degraded is True
+    assert msgs.gm_degraded_reason != ""
+    assert engine.diagnostics["gm_calls"] >= 1
+    assert engine.diagnostics["gm_fallbacks"] >= 1
+    # One-time degraded note appears.
+    assert any("trail's own voice" in line for line in msgs.lines)
+
+
+def test_gm_degraded_note_only_once(monkeypatch):
+    """The 'GM narration unavailable' note appears at most once per session."""
+    engine = _force_event_engine(seed=7, gm=_NoneGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+
+    note_counts = []
+    for _ in range(4):
+        msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+        note_counts.append(
+            sum(1 for line in msgs.lines if "trail's own voice" in line)
+        )
+        if engine.phase == GamePhase.EVENT:
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        elif engine.phase == GamePhase.ROUTE:
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        if engine.phase == GamePhase.GAME_OVER:
+            break
+
+    assert sum(note_counts) <= 1
+
+
+def test_gm_off_does_not_count_calls_or_degrade():
+    """With the GM disabled, no gm_calls/fallbacks are recorded and the step is
+    never marked degraded."""
+    engine = _make_engine(seed=42)  # GMConfig(enabled=False)
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.diagnostics["gm_calls"] == 0
+    assert engine.diagnostics["gm_fallbacks"] == 0
+    assert msgs.gm_degraded is False
+
+
+# ── ENG-B-06: invalid choice id must not fizzle the event ──
+
+
+def test_invalid_choice_retains_event(monkeypatch):
+    engine = _force_event_engine(seed=42)
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+    offered = [c.id for c in engine.msgs.event_choices]
+
+    # Submit a clearly invalid choice id.
+    msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="Z"))
+
+    # Still in EVENT, pending event intact, helpful message shown.
+    assert engine.phase == GamePhase.EVENT
+    assert engine._pending_event is not None
+    assert any("isn't available" in line for line in msgs.lines)
+    assert msgs.event_choices  # re-presented
+    # A valid retry then resolves it.
+    valid = offered[0]
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id=valid))
+    assert engine.phase == GamePhase.CAMP
+
+
+# ── ENG-B-09: dangling destination recovers instead of stranding ──
+
+
+def test_dangling_destination_recovers(monkeypatch, caplog):
+    import logging
+
+    engine = _make_engine(seed=42)
+    engine.state.destination_id = "does_not_exist"
+    engine.state.distance_remaining = 0
+
+    with caplog.at_level(logging.WARNING):
+        engine._arrive_at_next_node()
+
+    # Snapped to the final node, not left stranded.
+    assert engine.state.location_id == engine.state.map_nodes[-1].node_id
+    assert any("doesn't match the map" in line for line in engine.msgs.lines)
+    assert any("not found" in r.message for r in caplog.records)
+
+
+# ── ENG-B-02: non-event milestones land in the journal ──
+
+
+def test_town_arrival_recorded_in_journal():
+    engine = _make_engine(seed=42)
+    town = None
+    for node in engine.state.map_nodes:
+        if node.node_id == engine.state.destination_id:
+            node.is_town = True
+            town = node
+            break
+    assert town is not None
+    engine.state.distance_remaining = 0
+
+    before = len(engine.state.journal)
+    engine._arrive_at_next_node()
+    arrivals = [
+        e for e in engine.state.journal if e.event_id == "town:arrival"
+    ]
+    assert len(engine.state.journal) > before
+    assert len(arrivals) == 1
+    assert town.name in arrivals[0].scene_title
+
+
+def test_death_recorded_in_journal():
+    engine = _make_engine(seed=42)
+    effects = [
+        {"type": "died", "member": "Sela", "cause": "Starvation"},
+    ]
+    before = len(engine.state.journal)
+    engine._record_death_milestones(effects)
+    assert len(engine.state.journal) == before + 1
+    entry = engine.state.journal[-1]
+    assert entry.event_id == "death:starvation"
+    assert "Sela" in entry.scene_title
+    assert "starvation" in entry.outcome.lower()
+
+
+def test_breakdown_milestone_helper():
+    """The milestone helper writes a renderable JournalEntry with empty
+    narration/choice but a populated outcome."""
+    engine = _make_engine(seed=42)
+    before = len(engine.state.journal)
+    engine._record_milestone(
+        "wagon:breakdown", "Wagon Breakdown", "The wagon broke down.",
+        tags=["wagon"],
+    )
+    assert len(engine.state.journal) == before + 1
+    entry = engine.state.journal[-1]
+    assert entry.event_id == "wagon:breakdown"
+    assert entry.outcome == "The wagon broke down."
+    assert "wagon" in entry.tags
+
+
+def test_long_run_deaths_leave_records():
+    """A run where everyone dies of starvation leaves death milestones."""
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("food", 0)
+    engine.state.supplies.set("water", 50)
+    for m in engine.state.party.members:
+        m.health = 2
+    # One travel step should starve at least one member.
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    # Resolve any event/route so the step settles.
+    if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    death_entries = [
+        e for e in engine.state.journal if e.event_id.startswith("death:")
+    ]
+    assert len(death_entries) >= 1
+
+
+# ── TCD-B-06: a GM that always raises ConnectError still completes the turn ──
+
+
+def test_gm_connect_error_turn_completes_with_journal_and_fallback(monkeypatch):
+    """TCD-B-06 (integration): a real GMClient whose HTTP layer always raises
+    ConnectError must let the turn complete — the event resolves, a journal
+    entry is written, and the fallback narration is non-empty (the trail's own
+    voice carries the scene)."""
+    import httpx
+
+    from escape_the_valley.worldgen import create_new_run
+
+    # Real GMClient (enabled), but its underlying transport always refuses.
+    engine = StepEngine(create_new_run(seed=42), GMConfig(enabled=True))
+
+    def _always_connect_error(*a, **k):
+        raise httpx.ConnectError("ollama down")
+
+    monkeypatch.setattr(engine.gm._client, "post", _always_connect_error)
+    # Open the ~60% event gate deterministically.
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+
+    journal_before = len(engine.state.journal)
+
+    # Travel — GMClient.generate_scene swallows ConnectError, returns None →
+    # the deterministic fallback event is offered.
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+    assert msgs.event_narration  # fallback narration is non-empty
+    assert msgs.gm_degraded is True
+    assert engine.diagnostics["gm_fallbacks"] >= 1
+
+    # Resolve the event — GMClient.generate_outcome also returns None →
+    # deterministic callout. Turn completes back in CAMP.
+    out = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.phase == GamePhase.CAMP
+    assert out.outcome_narration  # non-empty fallback outcome
+
+    # A journal entry for the resolved event was written.
+    assert len(engine.state.journal) > journal_before
+    last = engine.state.journal[-1]
+    assert last.choice_made.startswith("A:")
+    engine.gm.close()

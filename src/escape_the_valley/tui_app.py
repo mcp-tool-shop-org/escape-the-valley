@@ -17,15 +17,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, Markdown, Rule, Static
+from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
-ChoiceId = Literal["A", "B", "C", "D"]
+# A-D are the base camp actions; E/F/G are the conditional escape valves
+# (Abandon Cargo / Desperate Repair / Hard Ration). They are reachable now
+# (cli-tui-B-01).
+ChoiceId = Literal["A", "B", "C", "D", "E", "F", "G"]
 
 
 @dataclass
@@ -70,6 +74,13 @@ class FrameState:
 
     # Ledger Backpack
     backpack_status: str = ""
+
+    # GM narration health (ENG-B-05 / gm-B-02 consumer). When the GM was asked
+    # for narration but fell back to the engine's deterministic voice, the UI
+    # shows a subtle, non-nagging signal so a degraded GM reads differently
+    # from an intentionally terse one.
+    gm_degraded: bool = False
+    gm_degraded_reason: str = ""
 
 
 # ── Widgets ─────────────────────────────────────────────────────────
@@ -137,7 +148,17 @@ class PartyPanel(Static):
 class EventBar(Static):
     """Bottom prompt + choices."""
 
-    def update_from(self, s: FrameState) -> None:
+    def update_from(self, s: FrameState, *, busy: bool = False) -> None:
+        if busy:
+            # cli-tui-B-02: a step/ledger call is in flight on a worker thread.
+            # Show a visible loading state so the UI never looks frozen, and
+            # make it plain that input is paused.
+            self.update(
+                "[b]The storyteller is thinking...[/b]\n"
+                "[dim]Working \u2014 keys are paused for a moment.[/dim]"
+            )
+            return
+
         choice_lines = []
         for c in s.choices:
             hints = []
@@ -150,12 +171,39 @@ class EventBar(Static):
                 f"[b]{c.id}[/b]) {c.label}{hint_txt}"
             )
 
+        # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
+        # choices (so the conditional valves E/F/G are named), and the
+        # persistent hint is now complete \u2014 every always-available key,
+        # including ledger, voice, and quit.
+        choice_letters = ", ".join(c.id for c in s.choices) if s.choices else ""
+        pick_hint = (
+            f"Choose {choice_letters} (number keys also work). "
+            if choice_letters
+            else ""
+        )
+        hint_line = (
+            f"[i]{pick_hint}Actions: t/r/h/p. "
+            "L ledger \u2022 V voice \u2022 J journal \u2022 ? help \u2022 q quit[/i]"
+        )
+
+        # gm-B-02 / ENG-B-05 consumer: a single subtle footer line when the GM
+        # fell back to the engine's own voice. Not a popup, not repeated per
+        # choice \u2014 just enough that a degraded GM reads differently from a
+        # deliberately terse one. Never nags.
+        degraded_line = ""
+        if s.gm_degraded:
+            degraded_line = (
+                "\n[dim]\u2022 Narration: engine fallback "
+                "(the storyteller is quiet)[/dim]"
+            )
+
+        body = "\n".join(choice_lines)
         text = (
             f"[b]{s.prompt_title}[/b]\n"
             f"{s.prompt_text}\n\n"
-            + "\n".join(choice_lines)
-            + "\n\n[i]Choose 1\u20134. Actions: t/r/h/p. "
-            "Journal: J. Help: ?[/i]"
+            + body
+            + f"\n\n{hint_line}"
+            + degraded_line
         )
         self.update(text)
 
@@ -173,7 +221,9 @@ HELP_TEXT = """\
 
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
-\u2022 1\u20134 Choose option (A\u2013D)
+\u2022 1\u20137 Choose option (A\u2013G); letters a\u2013g also work
+\u2022 E/F/G are last-resort moves (Abandon Cargo, Desperate
+  Repair, Hard Ration) \u2014 they appear only when things are dire
 \u2022 J Toggle journal drawer
 \u2022 L Toggle ledger menu
 \u2022 V Toggle voice narration
@@ -208,6 +258,12 @@ class LedgerTrailApp(App):
         Binding("2", "choose('B')", "B"),
         Binding("3", "choose('C')", "C"),
         Binding("4", "choose('D')", "D"),
+        # cli-tui-B-01: the escape valves are reachable. 5/6/7 map to the
+        # conditional E/F/G choices; e/f/g are handled in on_key (so they don't
+        # collide with the ledger/nudge overlay letters) when no overlay is up.
+        Binding("5", "choose('E')", "E"),
+        Binding("6", "choose('F')", "F"),
+        Binding("7", "choose('G')", "G"),
     ]
 
     show_help: reactive[bool] = reactive(False)
@@ -226,6 +282,7 @@ class LedgerTrailApp(App):
         *,
         demo: bool = False,
         voice_config=None,
+        resumed: bool = False,
     ) -> None:
         super().__init__()
         self._engine = engine
@@ -234,6 +291,16 @@ class LedgerTrailApp(App):
         self._voice_config = voice_config
         self._voice_bridge = None
         self._voice_enabled = False
+        # gm-B-06 consumer: latch so a runtime voice failure is announced to
+        # the player exactly once, not on every subsequent step/tick.
+        self._voice_failure_notified = False
+        # cli-tui-B-09: True when this app was launched via `--continue`, so
+        # on_mount can confirm which run + day the player picked back up.
+        self._resumed = resumed
+        # cli-tui-B-02: True while a blocking step()/ledger call runs on a
+        # worker thread. Gameplay + ledger hotkeys are ignored while in flight
+        # so queued keypresses don't pile up and double-step the engine.
+        self._in_flight = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -274,6 +341,16 @@ class LedgerTrailApp(App):
             yield WalletInfoOverlay(id="wallet_info")
             yield LearnMoreOverlay(id="learn_more")
             yield SendParcelOverlay(id="send_parcel")
+            # cli-tui-B-03: a real input so the send-parcel overlay is no
+            # longer a dead end. Shown/hidden together with #send_parcel.
+            # can_focus starts False so the hidden input doesn't steal initial
+            # focus from the gameplay key bindings; it's enabled when shown.
+            parcel_input = Input(
+                placeholder="<address> <supply> <amount>  (Esc to cancel)",
+                id="parcel_input",
+            )
+            parcel_input.can_focus = False
+            yield parcel_input
             yield ParcelNotification(id="parcel_notify")
 
         yield Footer()
@@ -290,6 +367,14 @@ class LedgerTrailApp(App):
             self._voice_enabled = self._voice_bridge.start()
 
         self._render_all()
+
+        # cli-tui-B-09: confirm a resumed run so the player knows the save
+        # loaded and where they are, with a pointer to the help overlay.
+        if self._resumed and self._engine:
+            st = self._engine.state
+            self.notify(
+                f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+            )
 
     def _sync_frame(self) -> None:
         """Pull a fresh FrameState from the engine."""
@@ -316,7 +401,9 @@ class LedgerTrailApp(App):
         self.query_one("#map", MapPanel).update_from(s)
         self.query_one("#narration", NarrationPanel).update_from(s)
         self.query_one("#party", PartyPanel).update_from(s)
-        self.query_one("#eventbar", EventBar).update_from(s)
+        # cli-tui-B-02: while a worker is running, the event bar shows a
+        # loading state instead of the choices.
+        self.query_one("#eventbar", EventBar).update_from(s, busy=self._in_flight)
         self.query_one("#journal", JournalDrawer).update_from(s)
 
         self.query_one("#help").display = self.show_help
@@ -327,6 +414,19 @@ class LedgerTrailApp(App):
         self.query_one("#wallet_info").display = self.show_wallet_info
         self.query_one("#learn_more").display = self.show_learn_more
         self.query_one("#send_parcel").display = self.show_send_parcel
+        # cli-tui-B-03: the parcel input rides with the send-parcel overlay.
+        # It is only focusable while shown, so it never steals focus from the
+        # gameplay keys when hidden.
+        parcel_input = self.query_one("#parcel_input", Input)
+        parcel_input.display = self.show_send_parcel
+        parcel_input.can_focus = self.show_send_parcel
+        if not self.show_send_parcel and self.focused is parcel_input:
+            # Release focus so gameplay key bindings work again once the
+            # overlay closes.
+            try:
+                self.set_focus(None)
+            except Exception:
+                pass
         self.query_one("#parcel_notify").display = self.show_parcel_notify
 
     def _after_step(self) -> None:
@@ -364,6 +464,37 @@ class LedgerTrailApp(App):
             for event in events:
                 self._voice_bridge.enqueue(event)
 
+        # gm-B-06 consumer: voice synth/playback runs on the bridge's own
+        # worker thread, so an infra failure (no audio player, engine raised)
+        # surfaces asynchronously — often a tick or two after the enqueue that
+        # triggered it. Re-check the bridge status every step so the player is
+        # told the storyteller went quiet, instead of a silent stale ON state.
+        self._check_voice_health()
+
+    def _check_voice_health(self) -> None:
+        """If the voice bridge failed at runtime, notify once and disable.
+
+        gm-B-06 consumer for VoiceBridge.status(): when voice was on for the
+        player but the bridge self-disabled on a runtime audio failure
+        (status()['available'] is False with a last_error), surface the reason
+        a single time and flip the UI's _voice_enabled False so the footer /
+        toggle state stop claiming voice is on.
+        """
+        bridge = self._voice_bridge
+        if bridge is None or self._voice_failure_notified:
+            return
+        # Only act on a genuine runtime failure: the bridge reports a reason
+        # and is no longer available. (A bridge that was simply never started,
+        # or toggled off cleanly, has no last_error.)
+        status = bridge.status()
+        if status["available"] or not status["last_error"]:
+            return
+        self._voice_failure_notified = True
+        self._voice_enabled = False
+        self.notify(f"Voice unavailable - {status['last_error']}")
+        # Reflect the quieted state in the event bar / footer immediately.
+        self._render_all()
+
     def on_unmount(self) -> None:
         """Clean shutdown of voice worker."""
         if self._voice_bridge:
@@ -397,22 +528,35 @@ class LedgerTrailApp(App):
         self.notify("Voice ON" if new_state else "Voice OFF")
 
     def action_choose(self, choice_id: str) -> None:
-        """Send CHOOSE intent to the engine."""
-        if not self._engine:
+        """Resolve a visible choice (A-G) to an intent and step the engine.
+
+        In CAMP phase, the conditional escape valves E/F/G map to their own
+        IntentActions via the shared camp_choices() table (cli-tui-B-01); a
+        valve letter the gate hasn't opened resolves to nothing and is
+        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .intent import IntentAction, PlayerIntent
+        from .intent import GamePhase, IntentAction, PlayerIntent
 
-        intent = PlayerIntent(
-            action=IntentAction.CHOOSE,
-            choice_id=choice_id,
-        )
-        self._engine.step(intent)
-        self._after_step()
+        if self._engine.phase == GamePhase.CAMP:
+            from .adapter import camp_choice_intent
+
+            action = camp_choice_intent(self._engine.state, choice_id)
+            if action is None:
+                return
+            intent = PlayerIntent(action=action)
+        else:
+            intent = PlayerIntent(
+                action=IntentAction.CHOOSE,
+                choice_id=choice_id,
+            )
+        self._run_step(intent)
 
     def action_intent(self, intent_str: str) -> None:
         """Map hotkeys t/r/h/p to engine intents."""
-        if not self._engine:
+        if not self._engine or self._in_flight:
             return
 
         from .intent import GamePhase, IntentAction, PlayerIntent
@@ -443,8 +587,66 @@ class LedgerTrailApp(App):
         if not action:
             return
 
-        intent = PlayerIntent(action=action)
+        self._run_step(PlayerIntent(action=action))
+
+    # ── Worker-driven stepping (cli-tui-B-02) ──────────────────────
+
+    def _run_step(self, intent) -> None:
+        """Dispatch one engine step onto a worker thread.
+
+        step() can block for tens of seconds on a GM/network call. Running it
+        on the Textual UI thread froze the whole interface (cli-tui-B-02).
+        Here we flip into a visible 'thinking' state, ignore further hotkeys,
+        and hand the blocking call to a thread worker. The GM-off path is
+        identical in behavior — it just returns fast.
+        """
+        # If there is no live App event loop (unit tests calling the action
+        # directly), run synchronously so existing call sites keep working.
+        if not self._has_worker_runtime():
+            self._engine.step(intent)
+            self._after_step()
+            return
+
+        self._in_flight = True
+        self._render_all()
+        self._step_worker(intent)
+
+    def _has_worker_runtime(self) -> bool:
+        """True only when a real Textual event loop is driving this App.
+
+        Unit tests build the App without run()/run_test() and call actions
+        directly; in that case run_worker/call_from_thread have no loop to
+        target, so we fall back to a synchronous step.
+        """
+        try:
+            return bool(self.is_running)
+        except Exception:
+            return False
+
+    # _in_flight invariant (read before touching any @work worker below):
+    #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
+    #     "ledger" group (enable/settle/wallet_info/send_parcel) are SEPARATE
+    #     groups, so Textual will happily run one of each concurrently — its
+    #     exclusivity only cancels a prior worker in the SAME group.
+    #   * The cross-action guard (a gameplay step must not race a ledger call,
+    #     and vice versa) is therefore NOT provided by exclusive=True. It is the
+    #     single self._in_flight flag, checked at the top of every dispatching
+    #     action handler and cleared in each _finish_* completion.
+    #   * That flag is safe as a plain bool ONLY because every action handler
+    #     runs on the single-threaded Textual event loop, so the read-check and
+    #     the write (self._in_flight = True) are never interleaved across
+    #     actions. The workers themselves only ever flip it back to False via
+    #     call_from_thread, i.e. marshalled back onto that same loop.
+    @work(thread=True, exclusive=True, group="step")
+    def _step_worker(self, intent) -> None:
+        """Thread worker: the actual blocking engine step + frame sync."""
         self._engine.step(intent)
+        # Marshal all widget/state mutations back onto the UI thread.
+        self.call_from_thread(self._finish_step)
+
+    def _finish_step(self) -> None:
+        """UI-thread completion: clear busy state, sync, render, narrate."""
+        self._in_flight = False
         self._after_step()
 
     # ── Ledger Backpack actions ────────────────────────────────────
@@ -462,8 +664,13 @@ class LedgerTrailApp(App):
         self._render_all()
 
     def action_ledger_enable(self) -> None:
-        """Start the backpack enable flow."""
-        if not self._engine:
+        """Start the backpack enable flow.
+
+        cli-tui-B-02 / ledger-B01: enabling creates testnet wallets, which can
+        block for 30-60s. Run that round-trip on a worker thread with the
+        enable-flow overlay's progress state visible, so the UI never freezes.
+        """
+        if not self._engine or self._in_flight:
             return
 
         self._close_all_overlays()
@@ -475,25 +682,58 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         overlay.show_progress()
 
+        if not self._has_worker_runtime():
+            # Synchronous fallback (unit tests / no live loop).
+            self._enable_blocking()
+            return
+
+        self._in_flight = True
+        self._enable_worker()
+
+    def _enable_blocking(self):
+        """The blocking enable round-trip. Returns the EnableResult."""
         from .backpack import BackpackManager
 
         mgr = BackpackManager()
         result = mgr.enable(self._engine.state)
         mgr.close()
+        if result.success:
+            self._save()
+        self._finish_enable(result)
+        return result
 
+    @work(thread=True, exclusive=True, group="ledger")
+    def _enable_worker(self) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.enable(self._engine.state)
+        mgr.close()
+        if result.success:
+            self._save()
+        self.call_from_thread(self._finish_enable, result)
+
+    def _finish_enable(self, result) -> None:
+        """UI-thread completion for the enable flow."""
+        self._in_flight = False
+        from .backpack_ui import EnableFlowOverlay
+
+        overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         if result.success:
             overlay.show_success(result.wallet_address)
-            self._save()
             self.notify("Ledger Backpack enabled")
         else:
             overlay.show_failure(result.message)
-
         self._sync_frame()
         self._render_all()
 
     def action_ledger_disable(self) -> None:
         """Disable the backpack."""
-        if not self._engine:
+        # Serialize against any in-flight worker: disable mutates state and
+        # _save()s synchronously, so racing it with a step/ledger worker could
+        # persist a torn snapshot. The _in_flight flag is the cross-action
+        # guard (see the worker-invariant note above).
+        if not self._engine or self._in_flight:
             return
 
         from .backpack import BackpackManager
@@ -508,37 +748,99 @@ class LedgerTrailApp(App):
         self.notify("Ledger Backpack disabled")
 
     def action_ledger_settle(self) -> None:
-        """Manual settlement."""
-        if not self._engine:
+        """Manual settlement.
+
+        cli-tui-B-02 / ledger-B01: settlement submits to the testnet and can
+        block; run it on a worker thread with the busy state visible.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .backpack import BackpackManager
-
-        mgr = BackpackManager()
         cur = None
         for n in self._engine.state.map_nodes:
             if n.node_id == self._engine.state.location_id:
                 cur = n
                 break
         location = cur.name if cur else "Unknown"
+
+        if not self._has_worker_runtime():
+            self._settle_blocking(location)
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self._render_all()
+        self._settle_worker(location)
+
+    def _settle_blocking(self, location: str):
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
         result = mgr.settle(self._engine.state, location)
         mgr.close()
         self._save()
+        self._finish_settle(result)
+        return result
 
+    @work(thread=True, exclusive=True, group="ledger")
+    def _settle_worker(self, location: str) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.settle(self._engine.state, location)
+        mgr.close()
+        self._save()
+        self.call_from_thread(self._finish_settle, result)
+
+    def _finish_settle(self, result) -> None:
+        self._in_flight = False
         self.notify(result.message)
         self._sync_frame()
         self._render_all()
 
     def action_wallet_info(self) -> None:
-        """Show wallet info overlay."""
-        if not self._engine:
+        """Show wallet info overlay.
+
+        cli-tui-B-02 / ledger-B01: wallet_info reads balances from the testnet
+        and can block; run it on a worker with a loading state.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .backpack import BackpackManager
+        if not self._has_worker_runtime():
+            self._wallet_info_blocking()
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self.show_wallet_info = True
         from .backpack_ui import WalletInfoOverlay
+
+        self.query_one("#wallet_info", WalletInfoOverlay).update(
+            "[b]Wallet Info[/b]\n\nReading the ledger..."
+        )
+        self._render_all()
+        self._wallet_info_worker()
+
+    def _wallet_info_blocking(self):
+        from .backpack import BackpackManager
 
         mgr = BackpackManager()
         info = mgr.wallet_info(self._engine.state)
+        self._finish_wallet_info(info)
+        return info
+
+    @work(thread=True, exclusive=True, group="ledger")
+    def _wallet_info_worker(self) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        info = mgr.wallet_info(self._engine.state)
+        self.call_from_thread(self._finish_wallet_info, info)
+
+    def _finish_wallet_info(self, info) -> None:
+        self._in_flight = False
+        from .backpack_ui import WalletInfoOverlay
 
         self._close_all_overlays()
         self.show_wallet_info = True
@@ -578,6 +880,121 @@ class LedgerTrailApp(App):
         ).show_form("\n".join(supply_lines))
         self._render_all()
 
+        # cli-tui-B-03: clear and focus the real input so the player can type
+        # the parcel command. (No-op without a live DOM, e.g. unit tests.)
+        try:
+            inp = self.query_one("#parcel_input", Input)
+            inp.value = ""
+            inp.focus()
+        except Exception:
+            pass
+
+    def on_input_submitted(self, event) -> None:
+        """Parse + dispatch the send-parcel command (cli-tui-B-03).
+
+        Honest replacement for the dead-end overlay: the player types
+        '<address> <supply> <amount>' (or 'cancel'), we validate the address
+        with the same shape check the CLI uses, then send + persist on a
+        worker thread and report success/failure on the overlay.
+        """
+        if event.input.id != "parcel_input":
+            return
+        if not self.show_send_parcel or not self._engine:
+            return
+
+        raw = (event.value or "").strip()
+        event.input.value = ""
+
+        if not raw or raw.lower() == "cancel":
+            self.show_send_parcel = False
+            self._render_all()
+            return
+
+        from .backpack_ui import SendParcelOverlay
+
+        overlay = self.query_one("#send_parcel", SendParcelOverlay)
+
+        parts = raw.split()
+        if len(parts) != 3:
+            overlay.show_failure(
+                "Expected: <address> <supply> <amount>  "
+                "(e.g. rPT1Sjq... food 10)"
+            )
+            self._render_all()
+            return
+
+        address, supply, amount_str = parts
+        try:
+            amount = int(amount_str)
+        except ValueError:
+            overlay.show_failure(f"'{amount_str}' is not a whole number.")
+            self._render_all()
+            return
+        if amount <= 0:
+            overlay.show_failure("Amount must be a positive whole number.")
+            self._render_all()
+            return
+
+        # Same address shape check the CLI uses (cli-tui-002), so a bad
+        # address is caught before any testnet round-trip.
+        from .cli import _is_valid_recipient
+
+        if not _is_valid_recipient(address):
+            overlay.show_failure(
+                f"'{address}' is not a valid XRPL classic address "
+                "(starts with 'r', 25-35 base58 chars)."
+            )
+            self._render_all()
+            return
+
+        supply = supply.lower()
+        if self._in_flight:
+            return
+        if not self._has_worker_runtime():
+            self._send_parcel_blocking(address, supply, amount)
+            return
+        self._in_flight = True
+        overlay.update("[b]Send Parcel[/b]\n\nSending parcel...")
+        self._render_all()
+        self._send_parcel_worker(address, supply, amount)
+
+    def _send_parcel_blocking(self, address: str, supply: str, amount: int):
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.send_parcel(self._engine.state, address, supply, amount)
+        mgr.close()
+        if result.success:
+            self._save()
+        self._finish_send_parcel(result)
+        return result
+
+    @work(thread=True, exclusive=True, group="ledger")
+    def _send_parcel_worker(
+        self, address: str, supply: str, amount: int,
+    ) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.send_parcel(self._engine.state, address, supply, amount)
+        mgr.close()
+        if result.success:
+            self._save()
+        self.call_from_thread(self._finish_send_parcel, result)
+
+    def _finish_send_parcel(self, result) -> None:
+        self._in_flight = False
+        from .backpack_ui import SendParcelOverlay
+
+        overlay = self.query_one("#send_parcel", SendParcelOverlay)
+        if result.success:
+            overlay.show_success(result.message)
+            self.notify("Parcel sent")
+        else:
+            overlay.show_failure(result.message)
+        self._sync_frame()
+        self._render_all()
+
     def action_show_parcel(self, parcel) -> None:
         """Show a parcel notification for accept/refuse."""
         from .backpack_ui import ParcelNotification
@@ -595,7 +1012,13 @@ class LedgerTrailApp(App):
 
     def action_accept_parcel(self) -> None:
         """Accept the currently shown parcel."""
-        if not self._engine or not hasattr(self, "_current_parcel"):
+        # Serialize against any in-flight worker (accept mutates state +
+        # _save()s synchronously) — see the worker-invariant note above.
+        if (
+            not self._engine
+            or self._in_flight
+            or not hasattr(self, "_current_parcel")
+        ):
             return
 
         from .backpack import BackpackManager
@@ -614,7 +1037,13 @@ class LedgerTrailApp(App):
 
     def action_refuse_parcel(self) -> None:
         """Refuse the currently shown parcel."""
-        if not self._engine or not hasattr(self, "_current_parcel"):
+        # Serialize against any in-flight worker (refuse mutates state +
+        # _save()s synchronously) — see the worker-invariant note above.
+        if (
+            not self._engine
+            or self._in_flight
+            or not hasattr(self, "_current_parcel")
+        ):
             return
 
         from .backpack import BackpackManager
@@ -635,6 +1064,10 @@ class LedgerTrailApp(App):
 
     def action_nudge_dismiss(self) -> None:
         """Dismiss the nudge — never show again."""
+        # Serialize against any in-flight worker: dismiss flips a flag and
+        # _save()s synchronously — see the worker-invariant note above.
+        if self._in_flight:
+            return
         if self._engine:
             self._engine.state.backpack.nudge_dismissed = True
             self._save()
@@ -659,6 +1092,20 @@ class LedgerTrailApp(App):
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
         key = event.key
+
+        # cli-tui-B-02: while a step/ledger worker is running, swallow the
+        # on_key-routed gameplay/overlay letters so queued keypresses can't
+        # pile up and double-act. Escape (to close an overlay) still works.
+        if self._in_flight and key != "escape":
+            no_overlay = not any([
+                self.show_ledger, self.show_nudge,
+                self.show_enable_flow, self.show_wallet_info,
+                self.show_learn_more, self.show_help,
+                self.show_send_parcel, self.show_parcel_notify,
+            ])
+            if no_overlay and key in ("e", "f", "g"):
+                event.prevent_default()
+                return
 
         # Escape closes any overlay
         if key == "escape":
@@ -726,6 +1173,20 @@ class LedgerTrailApp(App):
                 self.action_learn_more()
                 event.prevent_default()
                 return
+
+        # cli-tui-B-01: e/f/g pick the conditional escape valves when no
+        # overlay is open. (5/6/7 are bound globally; the letters are routed
+        # here so they don't collide with the ledger/nudge overlay letters.)
+        no_overlay = not any([
+            self.show_ledger, self.show_nudge,
+            self.show_enable_flow, self.show_wallet_info,
+            self.show_learn_more, self.show_help,
+            self.show_send_parcel, self.show_parcel_notify,
+        ])
+        if no_overlay and key in ("e", "f", "g"):
+            self.action_choose(key.upper())
+            event.prevent_default()
+            return
 
         # Voice interrupt
         if self._voice_enabled and self._voice_bridge:

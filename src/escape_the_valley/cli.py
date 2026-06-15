@@ -67,6 +67,32 @@ app = typer.Typer(
 console = Console()
 
 
+def _network_hint(action: str) -> None:
+    """Structured next-step hint after a ledger/parcel round-trip fails.
+
+    cli-tui-B-04: a bare red error leaves the player stuck. These XRPL calls
+    can stall on a slow/unreachable testnet; on failure we name the likely
+    cause and the exact command to recover, so a transient outage is
+    actionable rather than a dead end.
+    """
+    console.print(
+        "[dim]hint: the XRPL testnet may be slow or unreachable. "
+        f"{action}[/dim]"
+    )
+
+
+def _run_with_spinner(message: str, fn):
+    """Run a blocking network round-trip under a Rich status spinner.
+
+    cli-tui-B-04: every ledger/parcel call can block for tens of seconds on
+    the testnet. The spinner gives the player visible feedback that the CLI
+    is working, not hung. Any exception is re-raised to the caller after the
+    spinner closes so the command can render its own structured error.
+    """
+    with console.status(message, spinner="dots"):
+        return fn()
+
+
 @app.callback(invoke_without_command=True)
 def main_callback(
     _version: bool = typer.Option(
@@ -195,8 +221,28 @@ def journal(
     show_journal(state.journal, limit)
 
 
+def _model_present(configured: str, available: list[str]) -> bool:
+    """True if the configured game model is among Ollama's models.
+
+    Ollama reports tagged names ('llama3.2:latest'); a bare configured name
+    ('llama3.2') should match the untagged form too (cli-tui-B-05).
+    """
+    if configured in available:
+        return True
+    base = configured.split(":", 1)[0]
+    return any(
+        name == base or name.split(":", 1)[0] == base
+        for name in available
+    )
+
+
 @app.command(name="self-check")
-def self_check() -> None:
+def self_check(
+    model: str = typer.Option(
+        "llama3.2", "--model", "-m",
+        help="Game model to verify is installed in Ollama",
+    ),
+) -> None:
     """Check game environment health."""
     console.print("[bold]Escape the Valley — Self Check[/bold]\n")
     console.print(f"  {_version_string()}")
@@ -218,13 +264,29 @@ def self_check() -> None:
         resp = httpx.get(f"{host}/api/tags", timeout=5)
         if resp.status_code == 200:
             models = resp.json().get("models", [])
-            model_names = [m.get("name", "?") for m in models[:5]]
+            all_names = [m.get("name", "?") for m in models]
             console.print(f"  [green]Ollama reachable[/green] at {host}")
-            console.print(f"  Models: {', '.join(model_names)}")
+            console.print(f"  Models: {', '.join(all_names[:5])}")
+            # cli-tui-B-05: reachable but the configured game model is missing
+            # is a silent failure waiting to happen — name the exact pull.
+            if not _model_present(model, all_names):
+                console.print(
+                    f"  [yellow]model '{model}' not found[/yellow] "
+                    f"-- run: ollama pull {model}"
+                )
         else:
             console.print(f"  [yellow]Ollama returned {resp.status_code}[/yellow]")
+            console.print(
+                "  [dim]hint: the GM is optional -- play with --gm-off[/dim]"
+            )
     except Exception:
+        # cli-tui-B-05: unreachable Ollama gets an actionable next step, not
+        # just a red line. The GM is optional, so name the no-GM escape too.
         console.print(f"  [red]Ollama not reachable[/red] at {host}")
+        console.print(
+            "  [dim]hint: start Ollama (ollama serve) "
+            "or play without the GM: trail tui --gm-off[/dim]"
+        )
 
     console.print()
 
@@ -337,7 +399,9 @@ def tui(
         )
 
     engine = StepEngine(state, gm_config)
-    LedgerTrailApp(engine=engine, voice_config=voice_config).run()
+    LedgerTrailApp(
+        engine=engine, voice_config=voice_config, resumed=resume,
+    ).run()
 
 
 @app.command()
@@ -348,9 +412,40 @@ def version() -> None:
     console.print(f"Escape the Valley: Ledger Trail ({_version_string()})")
 
 
+def _gm_diagnostics(model: str) -> dict:
+    """Probe the GM and return its reliability counters (gm-B-03 consumer).
+
+    GMClient.stats is per-process accounting (attempts / successes / why a
+    call didn't produce usable JSON). The `stats` command reads a save, so it
+    has no live engine — the counters are this-process zeros, surfaced
+    honestly alongside a fresh reachability probe so 'stats --gm' answers
+    'can the GM be reached, and what is the shape of its reliability signal?'.
+    """
+    from .gm import GMClient, GMConfig
+
+    client = GMClient(GMConfig(
+        host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
+        model=model,
+    ))
+    reachable = client.is_available()
+    return {
+        "host": client.config.host,
+        "model": client.config.model,
+        "reachable": reachable,
+        "session_counters": dict(client.stats),
+    }
+
+
 @app.command()
 def stats(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    gm: bool = typer.Option(
+        False, "--gm",
+        help="Include GM reachability + session reliability counters",
+    ),
+    model: str = typer.Option(
+        "llama3.2", "--model", "-m", help="GM model to probe with --gm",
+    ),
 ) -> None:
     """Show run statistics from the current save."""
     state = load_game()
@@ -393,6 +488,11 @@ def stats(
         "wagon_condition": state.wagon.condition,
     }
 
+    # gm-B-03 consumer: surface the GMClient reliability counters on request.
+    gm_diag = _gm_diagnostics(model) if gm else None
+    if gm_diag is not None:
+        data["gm"] = gm_diag
+
     if json_output:
         import json
         console.print(json.dumps(data, indent=2))
@@ -411,6 +511,24 @@ def stats(
         if state.game_over:
             outcome = "Victory!" if state.victory else f"Defeated: {state.cause_of_death}"
             console.print(f"  Outcome:   {outcome}")
+        if gm_diag is not None:
+            reach = (
+                "[green]reachable[/green]" if gm_diag["reachable"]
+                else "[yellow]unreachable[/yellow]"
+            )
+            console.print(
+                f"  GM host:   {gm_diag['host']} "
+                f"({gm_diag['model']}) — {reach}"
+            )
+            c = gm_diag["session_counters"]
+            console.print(
+                "  GM calls (this session): "
+                f"{c['attempts']} attempts, {c['successes']} ok, "
+                f"{c['json_rejects']} json-reject, "
+                f"{c['tone_rejects']} tone-reject, "
+                f"{c['timeouts']} timeout, "
+                f"{c['connect_errors']} connect-err"
+            )
         console.print()
 
 
@@ -456,8 +574,10 @@ def ledger_enable() -> None:
     from .save import save_game
 
     mgr = BackpackManager()
-    console.print("Enabling Ledger Backpack on XRPL Testnet...")
-    result = mgr.enable(state)
+    result = _run_with_spinner(
+        "Enabling Ledger Backpack on XRPL Testnet...",
+        lambda: mgr.enable(state),
+    )
     mgr.close()
 
     if result.success:
@@ -466,6 +586,7 @@ def ledger_enable() -> None:
         console.print(f"  Wallet: {result.wallet_address}")
     else:
         console.print(f"[red]{result.message}[/red]")
+        _network_hint("Try again at the next town: trail ledger enable")
         raise typer.Exit(1)
 
 
@@ -513,7 +634,10 @@ def ledger_settle() -> None:
             break
 
     mgr = BackpackManager()
-    result = mgr.settle(state, location)
+    result = _run_with_spinner(
+        f"Settling checkpoint at {location}...",
+        lambda: mgr.settle(state, location),
+    )
     mgr.close()
 
     if result.success:
@@ -523,6 +647,9 @@ def ledger_settle() -> None:
         # cli-tui-003: surface settlement failure via a non-zero exit so
         # automation can detect it (was exit 0 with only a red line).
         console.print(f"[red]{result.message}[/red]")
+        _network_hint(
+            "The checkpoint is queued; retry later: trail ledger reconcile"
+        )
         raise typer.Exit(1)
 
 
@@ -546,9 +673,11 @@ def ledger_reconcile() -> None:
     from .backpack import BackpackManager
     from .save import save_game
 
-    console.print(f"Retrying {pending_count} pending settlement(s)...")
     mgr = BackpackManager()
-    mgr._retry_pending(state)
+    _run_with_spinner(
+        f"Retrying {pending_count} pending settlement(s)...",
+        lambda: mgr._retry_pending(state),
+    )
     mgr.close()
 
     remaining = len(state.backpack.pending_settlements)
@@ -564,6 +693,7 @@ def ledger_reconcile() -> None:
             f"[yellow]Settled {settled}, {remaining} still pending. "
             f"Network may be down — try again later.[/yellow]"
         )
+        _network_hint("Run again when the testnet recovers: trail ledger reconcile")
         raise typer.Exit(1)
 
 
@@ -637,8 +767,10 @@ def parcel_send(
     from .save import save_game
 
     mgr = BackpackManager()
-    console.print(f"Sending {amount} {supply} to {address[:8]}...")
-    result = mgr.send_parcel(state, address, supply.lower(), amount)
+    result = _run_with_spinner(
+        f"Sending {amount} {supply} to {address[:8]}...",
+        lambda: mgr.send_parcel(state, address, supply.lower(), amount),
+    )
     mgr.close()
 
     if result.success:
@@ -646,6 +778,10 @@ def parcel_send(
         console.print(f"[green]{result.message}[/green]")
     else:
         console.print(f"[red]{result.message}[/red]")
+        _network_hint(
+            "Confirm the address with 'trail wallet share' and retry: "
+            f"trail parcel send {address[:8]}... {supply} {amount}"
+        )
         raise typer.Exit(1)
 
 
