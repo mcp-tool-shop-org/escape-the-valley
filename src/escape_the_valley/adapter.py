@@ -150,6 +150,11 @@ def state_to_frame(engine: StepEngine) -> FrameState:
 
     bp_mgr = BackpackManager()
     backpack_status = bp_mgr.status_line(s)
+    # cli-tui-B-10: when the optional ledger is off, name the key that turns it
+    # on so a curious player can find it — the bare "Ledger: OFF" was a
+    # dead-end label.
+    if not s.backpack.enabled and backpack_status.strip() == "Ledger: OFF":
+        backpack_status = "Ledger: OFF (press L)"
 
     return FrameState(
         day=s.day,

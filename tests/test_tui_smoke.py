@@ -115,6 +115,24 @@ def test_parcel_input_does_not_steal_initial_focus():
     asyncio.run(scenario())
 
 
+def test_resume_notifies_run_and_day():
+    """cli-tui-B-09: launching with resumed=True confirms run + day on mount."""
+
+    async def scenario():
+        state = create_new_run(seed=7)
+        state.day = 4
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine, resumed=True)
+        seen = []
+        # Patch the instance before run_test() triggers on_mount.
+        app.notify = lambda msg, *a, **k: seen.append(msg)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+        assert any("Resumed run" in m and "Day 4" in m for m in seen)
+
+    asyncio.run(scenario())
+
+
 def test_overlay_css_selectors_apply():
     """cli-tui-B-07: #parcel_notify and #send_parcel are styled hidden.
 

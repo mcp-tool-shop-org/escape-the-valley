@@ -282,6 +282,7 @@ class LedgerTrailApp(App):
         *,
         demo: bool = False,
         voice_config=None,
+        resumed: bool = False,
     ) -> None:
         super().__init__()
         self._engine = engine
@@ -290,6 +291,9 @@ class LedgerTrailApp(App):
         self._voice_config = voice_config
         self._voice_bridge = None
         self._voice_enabled = False
+        # cli-tui-B-09: True when this app was launched via `--continue`, so
+        # on_mount can confirm which run + day the player picked back up.
+        self._resumed = resumed
         # cli-tui-B-02: True while a blocking step()/ledger call runs on a
         # worker thread. Gameplay + ledger hotkeys are ignored while in flight
         # so queued keypresses don't pile up and double-step the engine.
@@ -360,6 +364,14 @@ class LedgerTrailApp(App):
             self._voice_enabled = self._voice_bridge.start()
 
         self._render_all()
+
+        # cli-tui-B-09: confirm a resumed run so the player knows the save
+        # loaded and where they are, with a pointer to the help overlay.
+        if self._resumed and self._engine:
+            st = self._engine.state
+            self.notify(
+                f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+            )
 
     def _sync_frame(self) -> None:
         """Pull a fresh FrameState from the engine."""

@@ -337,7 +337,9 @@ def tui(
         )
 
     engine = StepEngine(state, gm_config)
-    LedgerTrailApp(engine=engine, voice_config=voice_config).run()
+    LedgerTrailApp(
+        engine=engine, voice_config=voice_config, resumed=resume,
+    ).run()
 
 
 @app.command()

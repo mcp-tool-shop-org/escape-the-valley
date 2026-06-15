@@ -628,3 +628,32 @@ class TestSendParcelOverlayInput:
         )
         assert sent["called"] is True
         assert overlay.failure == "network down"
+
+
+# ── cli-tui-B-10: ledger-off status names the key to turn it on ─────
+
+
+class TestLedgerOffHint:
+    def test_disabled_status_names_the_key(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        assert state.backpack.enabled is False
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.backpack_status == "Ledger: OFF (press L)"
+
+    def test_enabled_status_unchanged(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rABC"
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert "press L" not in frame.backpack_status
+        assert "Ledger: ON" in frame.backpack_status
