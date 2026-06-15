@@ -41,8 +41,24 @@ class NarrationEvent:
 MAX_UTTERANCE_CHARS = 240
 MIN_INTERVAL_SECONDS = 3.0
 
+# Redact real secrets/paths while letting domain prose ("uncanny token",
+# "the last token is spent") survive. We strip:
+#   1. filesystem paths and dotenv files,
+#   2. credential labels — api_key / secret / password and the assignment-
+#      shaped forms of "token"/"seed" (key followed by : or = and a value,
+#      e.g. wallet_secret=..., api_key ABC123). "token"/"seed" alone are
+#      domain prose and survive unless they appear in an assignment.
+#   3. XRPL family seeds / classic addresses by their literal shape
+#      (s..., r...), which never legitimately appear in narration.
 _SECRETS_PATTERN = re.compile(
-    r"[A-Za-z]:\\|/home/|/tmp/|\.env|api[_-]?key|token|secret|password",
+    r"[A-Za-z]:\\[^\s]*"
+    r"|/(?:home|tmp)/[^\s]*"
+    r"|[^\s]*\.env\b"
+    r"|api[_-]?key\b\s*[:=]?\s*\S*"
+    r"|[\w-]*(?:secret|password)\b\s*[:=]?\s*\S*"
+    r"|[\w-]*(?:token|seed)[\w-]*\s*[:=]\s*\S+"
+    r"|\bs[1-9A-HJ-NP-Za-km-z]{25,}\b"
+    r"|\br[1-9A-HJ-NP-Za-km-z]{24,}\b",
     re.IGNORECASE,
 )
 
@@ -96,8 +112,9 @@ def extract_narration(
 ) -> list[NarrationEvent]:
     """Extract voice-worthy narration events from a StepMessages.
 
-    Returns 0-3 NarrationEvents. The TUI decides whether to send
-    them to the VoiceBridge.
+    Returns 0-5 NarrationEvents — at most one each of scene-open, outcome,
+    warning, arrival, and game-over. The TUI decides whether to send them
+    to the VoiceBridge.
 
     SPEAK: scene title + opening, outcome title + recap, cliff warnings
     SKIP:  inventory, journal, travel/status, choices

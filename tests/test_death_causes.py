@@ -193,6 +193,75 @@ class TestDeathCauseSaveRoundtrip:
             assert m.death_cause == ""
 
 
+class TestEventCausedDeathAttribution:
+    """ENG-A-07: a member killed by an event resolution gets a specific
+    death_cause, not the generic 'The trail' fallback."""
+
+    def test_event_kill_sets_specific_cause(self):
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        # Healthy supplies so the proximate cause isn't starvation/dehydration;
+        # the event itself is the proximate killer (→ "Exposure" fallback).
+        state.supplies.food = 50
+        state.supplies.water = 50
+        victim = state.party.members[0]
+        victim.health = 5
+        victim.condition = Condition.HEALTHY
+
+        apply_outcome(state, EventOutcome(health_delta=-40))
+
+        assert not victim.is_alive()
+        assert victim.death_cause != "", "event death left cause unattributed"
+        # Not the generic game-over fallback.
+        assert victim.death_cause != "The trail"
+
+    def test_event_kill_respects_condition_cause(self):
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 50
+        state.supplies.water = 50
+        victim = state.party.members[0]
+        victim.health = 5
+        victim.condition = Condition.INJURED
+
+        apply_outcome(state, EventOutcome(health_delta=-30))
+
+        assert not victim.is_alive()
+        assert victim.death_cause == "Injury"
+
+    def test_event_death_feeds_determine_cause_not_fallback(self):
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 50
+        state.supplies.water = 50
+        # Kill every member via an event so determine_cause_of_death aggregates
+        # real per-member causes, never the generic "The trail".
+        for m in state.party.members:
+            m.health = 3
+            m.condition = Condition.HEALTHY
+        apply_outcome(state, EventOutcome(health_delta=-50))
+
+        cause = determine_cause_of_death(state)
+        assert cause != "The trail"
+        assert cause != ""
+
+    def test_event_does_not_overwrite_existing_cause(self):
+        """If a member already has a death_cause, an event must not clobber it."""
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        victim = state.party.members[0]
+        victim.health = 0
+        victim.death_cause = "Dehydration"
+        # Member is already dead (is_alive() False) so apply_outcome skips it,
+        # but assert the invariant explicitly.
+        apply_outcome(state, EventOutcome(health_delta=-10))
+        assert victim.death_cause == "Dehydration"
+
+
 class TestLedgerDeathDisplay:
     """Trail ledger shows enriched death causes."""
 

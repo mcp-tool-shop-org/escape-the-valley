@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 from .backpack_models import (
@@ -82,15 +83,26 @@ def _hex_encode(text: str) -> str:
     return text.encode("utf-8").hex().upper()
 
 
-def _build_memo(run_id: str, day: int, deltas: dict[str, int]) -> list:
-    """Build XRPL memo list for a settlement transaction."""
+def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
+    """Canonical settlement memo text — the exact bytes written on-chain.
+
+    Used by both ``_build_memo`` (the on-chain Memo) and the stored
+    ``SettlementRecord.memo`` so the record matches the on-ledger memo
+    byte-for-byte (ledger-003). Begins with ``TRAIL|RUN:<id>|DAY:<n>`` so the
+    external verifier can confirm the prefix against the decoded on-chain memo.
+    """
     delta_parts = []
     for key, diff in sorted(deltas.items()):
         code = XRPL_TOKEN_MAP[key][0]
         sign = "+" if diff > 0 else ""
         delta_parts.append(f"{code}{sign}{diff}")
 
-    memo_text = f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+    return f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+
+
+def _build_memo(run_id: str, day: int, deltas: dict[str, int]) -> list:
+    """Build XRPL memo list for a settlement transaction."""
+    memo_text = _settlement_memo_text(run_id, day, deltas)
     return [Memo(
         memo_data=_hex_encode(memo_text),
         memo_type=_hex_encode("text/plain"),
@@ -116,6 +128,21 @@ def _build_parcel_memo(run_id: str, day: int, supply: str, amount: int) -> list:
         memo_data=_hex_encode(memo_text),
         memo_type=_hex_encode("text/plain"),
     )]
+
+
+def _balance_to_int(balance: str) -> int:
+    """Parse an IOU balance string to an exact integer.
+
+    IOU balances are decimal strings; routing them through binary ``float``
+    risks precision loss before they feed ``reconcile()`` (ledger-004). Parse
+    with ``Decimal`` and require the fractional part to be zero — supplies are
+    integers only, so a non-integer on-ledger balance is itself a drift signal
+    and must not be silently truncated.
+    """
+    dec = Decimal(str(balance))
+    if dec != dec.to_integral_value():
+        raise ValueError(f"non-integer IOU balance: {balance!r}")
+    return int(dec)
 
 
 def _decode_parcel_memo(memo_hex: str) -> dict | None:
@@ -184,6 +211,20 @@ class BackpackManager:
             )
 
         bp = state.backpack
+
+        # Idempotent re-enable (ledger-002): if a wallet already exists, honor
+        # disable()'s "keep wallet for re-enable" contract — flip the flag back
+        # on in place instead of generating fresh faucet wallets and re-minting
+        # (which would orphan the old wallet's tokens while `settlements` still
+        # reference the defunct addresses). Only mint on a true first enable.
+        if bp.wallet_address and bp.issuer_secret:
+            bp.enabled = True
+            return EnableResult(
+                success=True,
+                message="Ledger Backpack re-enabled. Your existing pack is back online.",
+                wallet_address=bp.wallet_address,
+            )
+
         client = self._get_client()
 
         try:
@@ -324,7 +365,9 @@ class BackpackManager:
             }
             bp.last_settlement_day = state.day
 
-            memo_text = f"TRAIL|RUN:{state.run_id}|DAY:{state.day}"
+            # Store the exact on-chain memo text so the record matches the
+            # on-ledger bytes (ledger-003), not a DELTA-less near-miss.
+            memo_text = _settlement_memo_text(state.run_id, state.day, deltas)
             record = SettlementRecord(
                 day=state.day,
                 location=location,
@@ -352,7 +395,7 @@ class BackpackManager:
                 deltas=deltas,
                 txids=[],
                 status="pending",
-                memo=f"TRAIL|RUN:{state.run_id}|DAY:{state.day}",
+                memo=_settlement_memo_text(state.run_id, state.day, deltas),
                 timestamp=datetime.now(UTC).isoformat(),
             )
             bp.pending_settlements.append(record)
@@ -422,8 +465,27 @@ class BackpackManager:
 
                 record.txids = txids
                 record.status = "settled"
+                # Match the on-chain memo bytes actually written above (ledger-003).
+                record.memo = _settlement_memo_text(
+                    state.run_id, record.day, record.deltas,
+                )
                 record.timestamp = datetime.now(UTC).isoformat()
                 bp.settlements.append(record)
+
+                # Conservation fix (ENG-A-08): a failed settle() leaves the
+                # baseline un-advanced and enqueues this pending record. Now that
+                # it is settled on-chain, fold its (signed) delta into the
+                # baseline so the *next* fresh settle() measures current against a
+                # baseline that already accounts for this retried portion.
+                # Without this, settle() recomputes (current - baseline) over the
+                # WHOLE interval — including the just-retried delta — paying it
+                # on-chain twice and double-summing it in reconcile(), breaking
+                # 'minted + Σdeltas == final'. Only advance on success; a record
+                # that fails below stays pending with the baseline untouched.
+                for key, val in record.deltas.items():
+                    bp.last_settled_supplies[key] = (
+                        bp.last_settled_supplies.get(key, 0) + val
+                    )
 
             except Exception as e:
                 log.warning("Retry settlement day %d failed: %s", record.day, e)
@@ -563,7 +625,11 @@ class BackpackManager:
                 if not sender or sender == bp.wallet_address:
                     continue
 
-                tx_hash = tx.get("hash", tx_entry.get("hash", ""))
+                # tx-hash location varies by AccountTx api_version (ledger-007):
+                # api_version 2 puts `hash` on the wrapping entry alongside
+                # `tx_json`; the legacy shape nests it inside `tx`. Read the
+                # wrapper first, fall back to the inner object.
+                tx_hash = tx_entry.get("hash") or tx.get("hash", "")
                 if not tx_hash or tx_hash in known_txids:
                     continue
 
@@ -602,7 +668,15 @@ class BackpackManager:
     def accept_parcel(
         self, parcel: ParcelRecord, state: RunState, cap: int = 20,
     ) -> bool:
-        """Accept a parcel: apply contents to supplies, capped."""
+        """Accept a parcel: apply contents to supplies, capped.
+
+        Idempotent (ledger-005): a second accept is a no-op so a double-trigger
+        from any caller (the TUI path does not guard) cannot double the supplies
+        and break conservation. Mirrors refuse_parcel's `accepted` guard.
+        """
+        if parcel.accepted:
+            return False
+
         for key, amount in parcel.contents.items():
             capped_amount = min(amount, cap)
             current = state.supplies.get(key)
@@ -618,6 +692,67 @@ class BackpackManager:
         parcel.accepted = False
         parcel.parcel_id = f"refused:{parcel.parcel_id}"
         return True
+
+    def fetch_onchain_memos(self, state: RunState) -> dict[str, str]:
+        """Read settlement memos back OFF the chain, keyed by txid (ledger-003).
+
+        The external-verifier half of the memo check: scans the issuer and
+        player accounts via AccountTx and hex-decodes each transaction's
+        ``MemoData`` so the proof driver can confirm the on-ledger memo matches
+        the expected header — independent of whatever the engine stored locally.
+
+        Pagination (ledger-A03): AccountTx caps results per page (we request
+        200), and a long run can exceed that on a single account. Each response
+        carries a ``marker`` when more transactions remain; we resubmit with
+        that marker until the chain stops returning one, so older settlement
+        memos are never dropped (which would otherwise produce a FALSE-NEGATIVE
+        proof failure). A page cap bounds the loop against a server that keeps
+        echoing a marker.
+
+        Returns ``{txid: decoded_memo_text}``. Empty on any error or when xrpl
+        is unavailable; the proof then reports memo integrity as unverified
+        rather than crashing.
+        """
+        bp = state.backpack
+        if not _HAS_XRPL or not bp.enabled or not bp.wallet_address:
+            return {}
+
+        memos: dict[str, str] = {}
+        accounts = [a for a in (bp.wallet_address, bp.issuer_address) if a]
+        max_pages = 100  # safety bound: 100 * 200 = 20k txns/account
+
+        try:
+            client = self._get_client()
+            for account in accounts:
+                marker = None
+                for _ in range(max_pages):
+                    resp = client.request(AccountTx(
+                        account=account, limit=200, marker=marker,
+                    ))
+                    result = resp.result
+                    for tx_entry in result.get("transactions", []):
+                        tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
+                        tx_hash = tx_entry.get("hash") or tx.get("hash", "")
+                        if not tx_hash or tx_hash in memos:
+                            continue
+                        tx_memos = tx.get("Memos", [])
+                        if not tx_memos:
+                            continue
+                        memo_data = tx_memos[0].get("Memo", {}).get("MemoData", "")
+                        try:
+                            decoded = _hex_decode(memo_data)
+                        except (ValueError, UnicodeDecodeError):
+                            continue
+                        memos[tx_hash] = decoded
+                    # No marker → this account is fully paged.
+                    marker = result.get("marker")
+                    if not marker:
+                        break
+            return memos
+
+        except Exception as e:
+            log.warning("On-chain memo fetch failed: %s", e)
+            return {}
 
     def disable(self, state: RunState) -> None:
         """Disable the Ledger Backpack. Keep wallet for potential re-enable."""
@@ -650,7 +785,13 @@ class BackpackManager:
                     if line.get("account") == bp.issuer_address:
                         currency = line.get("currency", "")
                         balance = line.get("balance", "0")
-                        balances[currency] = int(float(balance))
+                        # Integer/decimal-exact — no binary float (ledger-004).
+                        try:
+                            balances[currency] = _balance_to_int(balance)
+                        except (ValueError, InvalidOperation):
+                            log.warning(
+                                "Non-integer IOU balance for %s: %r", currency, balance,
+                            )
                 info["balances"] = balances
             except Exception:
                 info["balances"] = {}

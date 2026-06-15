@@ -74,10 +74,14 @@ OUTCOME_SCHEMA = """{
     "tags":["string"], "entities":["string"]}]
 }"""
 
-# Modern slang ban list for tone lint
+# Modern slang ban list for tone lint.
+# Only genuine modern slang belongs here. Ordinary English words that happen
+# to double as slang (goat=livestock, cap=ridge feature, slay=slaughter an
+# animal, literally/basically=adverbs, oof=an exhalation) were removed in
+# gm-A-102 after they over-rejected grounded frontier prose and forced
+# needless GM retries, then silent deterministic fallback.
 BANNED_WORDS = {
-    "bro", "lol", "meme", "vibes", "yeet", "sus", "goat", "cap",
-    "slay", "lowkey", "literally", "basically", "bruh", "oof",
+    "bro", "lol", "meme", "vibes", "yeet", "sus", "lowkey", "bruh",
     "ngl", "tbh", "fr", "bestie", "rizz",
 }
 
@@ -87,7 +91,8 @@ class GMConfig:
     host: str = "http://localhost:11434"
     model: str = "llama3.2"
     # 30s allows for first-load model warm-up on slower hardware.
-    # Health checks (cli.py self_check) use a shorter 5s timeout.
+    # This timeout governs scene/outcome generation and is_available();
+    # cli.py self_check runs its own independent reachability probe.
     timeout: float = 30.0
     max_retries: int = 1
     enabled: bool = True
@@ -155,13 +160,18 @@ class GMClient:
         self._client = httpx.Client(timeout=self.config.timeout)
 
     def is_available(self) -> bool:
-        """Check if Ollama is reachable."""
+        """Check if Ollama is reachable.
+
+        Reachability helper for use as a pre-flight probe. Any transport
+        failure (connect, timeout, read, protocol, pool) resolves to False
+        rather than propagating — a pre-flight check must never raise.
+        """
         if not self.config.enabled:
             return False
         try:
             resp = self._client.get(f"{self.config.host}/api/tags")
             return resp.status_code == 200
-        except (httpx.ConnectError, httpx.TimeoutException):
+        except httpx.HTTPError:
             return False
 
     def generate_scene(
@@ -345,7 +355,13 @@ class GMClient:
                 text = resp.json().get("response", "")
                 data = _parse_json(text)
                 if data and "outcome_narration" in data:
-                    return OutcomeResponse.from_dict(data)
+                    if _tone_check(data.get("outcome_narration", "")):
+                        return OutcomeResponse.from_dict(data)
+                    logger.warning("Outcome tone check failed, retrying")
+                else:
+                    logger.warning(
+                        "Invalid outcome JSON (attempt %d)", _attempt + 1
+                    )
 
             except (httpx.ConnectError, httpx.TimeoutException):
                 return None

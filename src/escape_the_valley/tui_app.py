@@ -297,6 +297,18 @@ class LedgerTrailApp(App):
 
         self._frame = state_to_frame(self._engine)
 
+    def _save(self) -> None:
+        """Persist the current run to disk after a backpack/parcel mutation.
+
+        Ledger actions don't route through StepEngine.step()'s autosave, so a
+        wallet created via the ledger menu (or any settle/parcel change) would
+        be lost on quit without this explicit write (cli-tui-001).
+        """
+        if self._engine:
+            from .save import save_game
+
+            save_game(self._engine.state)
+
     def _render_all(self) -> None:
         s = self._frame
         self.query_one("#status", StatusPanel).update_from(s)
@@ -471,6 +483,7 @@ class LedgerTrailApp(App):
 
         if result.success:
             overlay.show_success(result.wallet_address)
+            self._save()
             self.notify("Ledger Backpack enabled")
         else:
             overlay.show_failure(result.message)
@@ -487,6 +500,7 @@ class LedgerTrailApp(App):
 
         mgr = BackpackManager()
         mgr.disable(self._engine.state)
+        self._save()
 
         self._close_all_overlays()
         self._sync_frame()
@@ -509,6 +523,7 @@ class LedgerTrailApp(App):
         location = cur.name if cur else "Unknown"
         result = mgr.settle(self._engine.state, location)
         mgr.close()
+        self._save()
 
         self.notify(result.message)
         self._sync_frame()
@@ -544,12 +559,17 @@ class LedgerTrailApp(App):
 
         from .backpack_models import XRPL_TOKEN_MAP
         from .backpack_ui import SendParcelOverlay
+        from .resources import RESOURCE_CATALOG
 
         supplies = self._engine.state.supplies
         supply_lines = []
         for key in sorted(XRPL_TOKEN_MAP.keys()):
             amount = supplies.get(key)
-            supply_lines.append(f"  {key}: {amount}")
+            # Show the 4-char display label (FOOD/WATR/...) like SuppliesPanel,
+            # not the raw lowercase game key (cli-tui-007).
+            rdef = RESOURCE_CATALOG.get(key)
+            label = rdef.display if rdef else key.upper()
+            supply_lines.append(f"  {label}: {amount}")
 
         self._close_all_overlays()
         self.show_send_parcel = True
@@ -582,6 +602,7 @@ class LedgerTrailApp(App):
 
         mgr = BackpackManager()
         mgr.accept_parcel(self._current_parcel, self._engine.state)
+        self._save()
 
         contents = ", ".join(
             f"+{v} {k}" for k, v in self._current_parcel.contents.items()
@@ -600,6 +621,7 @@ class LedgerTrailApp(App):
 
         mgr = BackpackManager()
         mgr.refuse_parcel(self._current_parcel)
+        self._save()
 
         self.notify("Parcel refused")
         self._close_all_overlays()
@@ -615,6 +637,7 @@ class LedgerTrailApp(App):
         """Dismiss the nudge — never show again."""
         if self._engine:
             self._engine.state.backpack.nudge_dismissed = True
+            self._save()
         self.show_nudge = False
         self._render_all()
 

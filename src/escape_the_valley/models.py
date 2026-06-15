@@ -281,6 +281,10 @@ class RunState:
 
     # RNG state tracking for determinism
     rng_counter: int = 0
+    # Full Mersenne-Twister state — the authoritative position for save/load.
+    # rng_counter is kept for telemetry/back-compat (counter-replay is lossy
+    # because randint/choice/sample consume a variable number of draws).
+    rng_state: Any | None = None
 
     # Variety guard — last N event tag families (for cooldown)
     recent_event_tags: list[str] = field(default_factory=list)
@@ -353,3 +357,23 @@ class SeededRNG:
             if r <= cumulative:
                 return item
         return items[-1]
+
+    def getstate(self) -> tuple:
+        """Return the exact internal Mersenne-Twister state.
+
+        Used to persist the PRNG position across save/load so a
+        saved-and-continued run is byte-identical to a never-saved run.
+        The tuple is JSON-encodable (ints + nested int tuples).
+        """
+        return self._rng.getstate()
+
+    def setstate(self, state: tuple) -> None:
+        """Restore the exact internal Mersenne-Twister state.
+
+        Accepts either a tuple (native) or a list-of-lists (as it
+        round-trips through JSON), normalizing the nested internal-state
+        sequence back to a tuple as ``random.Random.setstate`` requires.
+        """
+        version, internal, gauss_next = state
+        # JSON turns the inner state tuple into a list — restore the tuple.
+        self._rng.setstate((version, tuple(internal), gauss_next))

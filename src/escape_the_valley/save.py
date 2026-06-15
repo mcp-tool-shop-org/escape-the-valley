@@ -33,6 +33,9 @@ from .resources import DEFAULT_SUPPLIES
 
 SAVE_DIR = ".trail"
 SAVE_FILE = "run.json"
+# Wallet/issuer seeds live in a local, gitignored sidecar — never in run.json
+# (ledger-001 / ENG-A-04). .trail/ is already gitignored per the save format.
+SECRETS_FILE = "secrets.json"
 
 
 def _enum_to_str(obj):
@@ -51,7 +54,64 @@ def save_game(state: RunState, base_path: Path | None = None) -> Path:
 
     data = _state_to_dict(state)
     save_path.write_text(json.dumps(data, indent=2, default=_enum_to_str), encoding="utf-8")
+
+    # Secrets go to a local-only sidecar, keyed by run_id (ledger-001/ENG-A-04).
+    _write_secrets_sidecar(save_dir, state)
     return save_path
+
+
+def _write_secrets_sidecar(save_dir: Path, state: RunState) -> None:
+    """Persist wallet/issuer seeds to .trail/secrets.json, keyed by run_id.
+
+    The file is local-only and lives under the already-gitignored .trail/ dir.
+    Other runs' secrets in the same file are preserved.
+    """
+    bp = state.backpack
+    secrets_path = save_dir / SECRETS_FILE
+
+    # Load any existing sidecar so we don't clobber other runs' secrets.
+    store: dict = {}
+    if secrets_path.exists():
+        try:
+            store = json.loads(secrets_path.read_text(encoding="utf-8"))
+            if not isinstance(store, dict):
+                store = {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            store = {}
+
+    if bp.wallet_secret or bp.issuer_secret:
+        store[state.run_id] = {
+            "wallet_secret": bp.wallet_secret,
+            "issuer_secret": bp.issuer_secret,
+        }
+    else:
+        # Nothing to persist for this run — drop any stale entry.
+        store.pop(state.run_id, None)
+
+    secrets_path.write_text(json.dumps(store, indent=2), encoding="utf-8")
+    # Restrictive intent — local-only file (best-effort; no-op on Windows ACLs).
+    try:
+        secrets_path.chmod(0o600)
+    except OSError:
+        pass
+
+
+def _read_secrets_sidecar(save_dir: Path, run_id: str) -> dict:
+    """Read wallet/issuer seeds for run_id from .trail/secrets.json.
+
+    Returns an empty dict if the sidecar or entry is absent/unreadable.
+    """
+    secrets_path = save_dir / SECRETS_FILE
+    if not secrets_path.exists():
+        return {}
+    try:
+        store = json.loads(secrets_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    if not isinstance(store, dict):
+        return {}
+    entry = store.get(run_id, {})
+    return entry if isinstance(entry, dict) else {}
 
 
 def load_game(base_path: Path | None = None) -> RunState | None:
@@ -68,9 +128,19 @@ def load_game(base_path: Path | None = None) -> RunState | None:
         return None
 
     try:
-        return _dict_to_state(data)
+        state = _dict_to_state(data)
     except (KeyError, TypeError, ValueError):
         return None
+
+    # Re-populate wallet/issuer seeds from the local sidecar (ENG-A-04). If the
+    # sidecar is absent, the backpack keeps empty secrets — re-derivable/
+    # re-enableable; do not crash.
+    secrets = _read_secrets_sidecar(base / SAVE_DIR, state.run_id)
+    if secrets:
+        state.backpack.wallet_secret = secrets.get("wallet_secret", "")
+        state.backpack.issuer_secret = secrets.get("issuer_secret", "")
+
+    return state
 
 
 def has_save(base_path: Path | None = None) -> bool:
@@ -100,6 +170,10 @@ def _state_to_dict(state: RunState) -> dict:
         "victory": state.victory,
         "cause_of_death": state.cause_of_death,
         "rng_counter": state.rng_counter,
+        # Full Mersenne-Twister state — authoritative RNG position (ENG-A-01).
+        # getstate() returns (version, tuple-of-ints, gauss_next); JSON encodes
+        # the inner tuple as a list and setstate() re-tuples it on load.
+        "rng_state": state.rng_state,
         "recent_event_tags": state.recent_event_tags,
         "party": {
             "members": [
@@ -216,6 +290,9 @@ def _dict_to_state(data: dict) -> RunState:
         victory=data.get("victory", False),
         cause_of_death=data.get("cause_of_death", ""),
         rng_counter=data.get("rng_counter", 0),
+        # Legacy saves predate rng_state → None triggers counter-replay fallback
+        # in the engine (no regression: those runs were already non-deterministic).
+        rng_state=data.get("rng_state"),
         recent_event_tags=data.get("recent_event_tags", []),
         party=PartyState(members=members, morale=party_data.get("morale", 70)),
         wagon=WagonState(
@@ -293,13 +370,16 @@ def _load_supplies(data: dict) -> SuppliesState:
 
 
 def _backpack_to_dict(bp: BackpackState) -> dict:
-    """Serialize BackpackState to dict."""
+    """Serialize BackpackState to dict.
+
+    Secrets (wallet_secret / issuer_secret) are intentionally OMITTED here —
+    they are persisted to a local, gitignored sidecar (.trail/secrets.json)
+    by save_game(), never to run.json (ledger-001 / ENG-A-04).
+    """
     return {
         "enabled": bp.enabled,
         "wallet_address": bp.wallet_address,
-        "wallet_secret": bp.wallet_secret,
         "issuer_address": bp.issuer_address,
-        "issuer_secret": bp.issuer_secret,
         "trust_lines_ready": bp.trust_lines_ready,
         "last_settled_supplies": bp.last_settled_supplies,
         "last_settlement_day": bp.last_settlement_day,

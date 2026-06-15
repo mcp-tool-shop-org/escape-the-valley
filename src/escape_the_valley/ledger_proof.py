@@ -6,16 +6,32 @@ independently reconciles the ledger against the engine truth:
 
   - on-ledger balances (FOD/WTR/MED/AMO/PRT) == engine's settled supplies
   - minted_initial + sum(settlement deltas) == final settled supplies (conservation)
-  - every settlement memo matches TRAIL|RUN:<id>|DAY:<n>
+  - each settlement's ON-CHAIN memo begins with TRAIL|RUN:<id>|DAY:<n>
 
 The ledger is an EXTERNAL VERIFIER: a different system family than the engine, so
 the engine cannot fake it. A mismatch means a settlement bug or state tampering.
 This is the "audit mode" the design roadmap promised: verify balances evolved per
 game deltas, detect drift.
 
+Scope note (ledger-A04): reconciliation is against POST-CLAMP supplies — the
+on-ledger truth the engine actually settled, already clamped to >= 0. The proof
+confirms the ledger matches what the engine settled; it does NOT see pre-clamp
+intent, so a clamp-masked economy bug (e.g. consumption that should have driven a
+supply negative but was floored to 0) is out of scope for this proof.
+
+Memo verification is genuinely external (ledger-003): the driver fetches the actual
+on-chain memos (hex-decoded ``MemoData`` via AccountTx) and ``reconcile()`` asserts
+the decoded on-ledger memo — bytes the engine signed but cannot retroactively
+alter — begins with the expected header. The engine-stored ``SettlementRecord.memo``
+is checked separately and only as a *local consistency* signal (``memo_local_ok``),
+never relabeled as integrity. With no on-chain memos supplied, ``reconcile()`` stays
+network-free and reports that external memo integrity was not verified.
+
 Standards compliance (workflow-standards.md):
   EXTERNAL_VERIFIER=3      the ledger (xrpl) verifies the engine; the engine's logic
                           is hidden from the ledger, which only sees signed txns.
+                          Memo integrity is read back OFF the chain (ledger-003), so
+                          the memo dimension is externally verified, not self-checked.
   PIN_PER_STEP=3           seed + rng_counter + GM-off => byte-replayable run.
   ANDON_AUTHORITY=2        any per-resource mismatch fails the whole proof; no
                           green-washing a partial pass.
@@ -67,9 +83,19 @@ class ReconcileReport:
     pending_count: int
     txids: list[str]
     resources: list[ResourceCheck]
-    memo_ok: bool
+    memo_ok: bool                       # authoritative memo verdict (external when available)
     passed: bool
     notes: list[str] = field(default_factory=list)
+    # Split memo checks (ledger-003):
+    #   memo_local_ok  — local consistency only: the engine-stored record memo
+    #                    names this run + its own day. The engine controls this
+    #                    string, so it is NOT an integrity proof.
+    #   onchain_memo_ok — genuinely external: the decoded on-chain MemoData
+    #                    (fetched from the chain by the driver) begins with
+    #                    TRAIL|RUN:<id>|DAY:<n>. None when no on-chain memos
+    #                    were supplied (offline / local-only reconcile).
+    memo_local_ok: bool = True
+    onchain_memo_ok: bool | None = None
 
 
 def reconcile(
@@ -83,12 +109,28 @@ def reconcile(
     pending: list[SettlementRecord],
     player_address: str = "",
     issuer_address: str = "",
+    onchain_memos: dict[str, str] | None = None,
 ) -> ReconcileReport:
     """Reconcile on-ledger balances against the engine's settled snapshot.
 
     Pure function — no network, no xrpl import. ``ledger_balances`` is keyed by
     XRPL currency code (FOD/WTR/...); engine dicts are keyed by game key
     (food/water/...).
+
+    Memo verification (ledger-003) has two distinct dimensions:
+
+    * **Local consistency** (``memo_local_ok``): the engine-stored
+      ``SettlementRecord.memo`` begins with ``TRAIL|RUN:<id>|DAY:<n>``. The
+      engine writes this string, so it proves the record is internally
+      consistent — NOT that the on-ledger memo matches. Not an integrity proof.
+    * **External integrity** (``onchain_memo_ok``): when ``onchain_memos`` is
+      supplied — a mapping of settlement ``txid`` → the memo text the driver
+      decoded *from the chain* (hex-decoded ``MemoData``) — each settlement's
+      on-chain memo must begin with ``TRAIL|RUN:<id>|DAY:<n>``. This is the
+      genuinely external check: the verifier reads bytes the engine signed but
+      cannot retroactively alter. ``None`` when no on-chain memos were supplied
+      (offline / local-only reconcile), and the authoritative ``memo_ok`` then
+      falls back to local consistency with an explicit caveat note.
     """
     notes: list[str] = []
 
@@ -129,13 +171,64 @@ def reconcile(
             balance_ok=balance_ok, conservation_ok=conservation_ok,
         ))
 
-    # Memo integrity: each record memo must name this run and its own day.
-    memo_ok = True
+    # Local consistency: each engine-stored record memo must begin with the
+    # run + its own day. This is the value the engine controls, so it is a
+    # *consistency* check, not integrity (ledger-003). Prefix match — the
+    # canonical memo carries a |DELTA:... suffix after the run/day header.
+    memo_local_ok = True
     for rec in settlements:
-        expected = f"TRAIL|RUN:{run_id}|DAY:{rec.day}"
-        if (rec.memo or "") != expected:
-            memo_ok = False
-            notes.append(f"settlement day {rec.day}: memo {rec.memo!r} != {expected!r}")
+        prefix = f"TRAIL|RUN:{run_id}|DAY:{rec.day}"
+        if not (rec.memo or "").startswith(prefix):
+            memo_local_ok = False
+            notes.append(
+                f"settlement day {rec.day}: stored memo {rec.memo!r} "
+                f"does not start with {prefix!r} (local consistency)"
+            )
+
+    # External integrity: the decoded ON-CHAIN memo (supplied by the driver from
+    # the chain, keyed by txid) must begin with the same header. The engine
+    # cannot fake this — it is reading the signed bytes back off the ledger.
+    onchain_memo_ok: bool | None
+    if onchain_memos is None:
+        onchain_memo_ok = None
+        notes.append(
+            "memo: no on-chain memos supplied — external integrity NOT verified; "
+            "memo_ok reflects local consistency only"
+        )
+    else:
+        onchain_memo_ok = True
+        for rec in settlements:
+            prefix = f"TRAIL|RUN:{run_id}|DAY:{rec.day}"
+            # A settled record with NO txids cannot be verified on-chain — the
+            # loop below would be empty and the record would pass external
+            # integrity vacuously (ledger-A02). Treat it as a miss so a proof
+            # cannot pass without any on-ledger evidence for a claimed
+            # settlement.
+            if not rec.txids:
+                onchain_memo_ok = False
+                notes.append(
+                    f"settlement day {rec.day}: no txids to verify on-chain "
+                    f"(external integrity)"
+                )
+                continue
+            for txid in rec.txids:
+                actual = onchain_memos.get(txid)
+                if actual is None:
+                    onchain_memo_ok = False
+                    notes.append(
+                        f"settlement day {rec.day}: no on-chain memo for txid "
+                        f"{txid!r} (external integrity)"
+                    )
+                elif not actual.startswith(prefix):
+                    onchain_memo_ok = False
+                    notes.append(
+                        f"settlement day {rec.day}: on-chain memo {actual!r} "
+                        f"does not start with {prefix!r} (external integrity)"
+                    )
+
+    # Authoritative verdict: the external on-chain check when available, else
+    # honestly-scoped local consistency.
+    memo_ok = onchain_memo_ok if onchain_memo_ok is not None else memo_local_ok
 
     if pending:
         notes.append(f"{len(pending)} settlement(s) still pending (unsettled on ledger)")
@@ -158,6 +251,8 @@ def reconcile(
         memo_ok=memo_ok,
         passed=passed,
         notes=notes,
+        memo_local_ok=memo_local_ok,
+        onchain_memo_ok=onchain_memo_ok,
     )
 
 
@@ -175,6 +270,8 @@ def report_to_dict(report: ReconcileReport) -> dict:
         "pending_count": report.pending_count,
         "txids": report.txids,
         "memo_ok": report.memo_ok,
+        "memo_local_ok": report.memo_local_ok,
+        "onchain_memo_ok": report.onchain_memo_ok,
         "passed": report.passed,
         "notes": report.notes,
         "resources": [
@@ -193,6 +290,13 @@ def report_to_dict(report: ReconcileReport) -> dict:
     }
 
 
+def _memo_verdict(report: ReconcileReport) -> str:
+    """Human-readable on-chain memo verdict (ledger-003)."""
+    if report.onchain_memo_ok is None:
+        return "not verified (no on-chain memos fetched)"
+    return "ok" if report.onchain_memo_ok else "FAILED"
+
+
 def report_to_markdown(report: ReconcileReport) -> str:
     """Render a human-readable reconciliation report."""
     verdict = "PASS" if report.passed else "FAIL"
@@ -204,7 +308,9 @@ def report_to_markdown(report: ReconcileReport) -> str:
         f"- **Issuer (Trail Authority):** `{report.issuer_address}`",
         f"- **Settlements:** {report.settlements_count}  "
         f"(**pending:** {report.pending_count})",
-        f"- **Memo integrity:** {'ok' if report.memo_ok else 'FAILED'}",
+        f"- **Memo integrity (on-chain):** {_memo_verdict(report)}",
+        f"- **Memo local consistency:** "
+        f"{'ok' if report.memo_local_ok else 'FAILED'}",
         "",
         "| Resource | Code | Minted | Σ Deltas | Engine | Ledger | Balance | Conserv. |",
         "|----------|------|-------:|---------:|-------:|-------:|:-------:|:--------:|",
@@ -341,6 +447,10 @@ def run_proof(
 
     info = mgr.wallet_info(state)
     ledger_balances = info.get("balances", {})
+
+    # Read the settlement memos back OFF the chain so reconcile() can verify
+    # them externally — the engine cannot fake bytes it signed (ledger-003).
+    onchain_memos = mgr.fetch_onchain_memos(state)
     mgr.close()
 
     return reconcile(
@@ -353,4 +463,5 @@ def run_proof(
         pending=state.backpack.pending_settlements,
         player_address=state.backpack.wallet_address,
         issuer_address=state.backpack.issuer_address,
+        onchain_memos=onchain_memos,
     )

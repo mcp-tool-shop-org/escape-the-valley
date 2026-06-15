@@ -4,9 +4,25 @@ import json
 import tempfile
 from pathlib import Path
 
+from escape_the_valley.gm import GMConfig
+from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
 from escape_the_valley.models import GMProfile, JournalEntry
-from escape_the_valley.save import SAVE_DIR, SAVE_FILE, load_game, save_game
+from escape_the_valley.save import (
+    SAVE_DIR,
+    SAVE_FILE,
+    _state_to_dict,
+    load_game,
+    save_game,
+)
+from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.worldgen import create_new_run
+
+
+def _drive(engine: StepEngine, intent: PlayerIntent) -> None:
+    """Apply one intent, auto-resolving any event/route prompt with 'A'."""
+    engine.step(intent)
+    if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
 
 
 class TestSaveLoad:
@@ -210,3 +226,183 @@ class TestSaveLoad:
             assert loaded.doctrine == ""
             assert loaded.taboo == ""
             assert loaded.rationing_steps == 0
+
+
+class TestSaveLoadDeterminism:
+    """ENG-A-01 / ENG-A-08 — a saved-and-continued run must be byte-identical
+    to a never-saved run driven by the same intents (GM off)."""
+
+    INTENTS = [
+        PlayerIntent(IntentAction.TRAVEL),
+        PlayerIntent(IntentAction.REST),
+        PlayerIntent(IntentAction.TRAVEL),
+        PlayerIntent(IntentAction.HUNT),
+        PlayerIntent(IntentAction.TRAVEL),
+        PlayerIntent(IntentAction.REST),
+    ]
+
+    def _sync_rng_state(self, engine: StepEngine) -> None:
+        """Mirror what _save() does so the serialized RNG position is current."""
+        engine.state.rng_counter = engine.rng.counter
+        engine.state.rng_state = engine.rng.getstate()
+
+    def test_save_load_continue_matches_never_saved(self):
+        """Play N, save, load, play M more — must equal a never-saved engine
+        driven by the identical intent stream."""
+        seed = 31337
+        split = 3  # save after this many intents
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+
+            # Engine A — saves after `split` intents, reloads, continues.
+            engine_a = StepEngine(create_new_run(seed=seed), GMConfig(enabled=False))
+            for intent in self.INTENTS[:split]:
+                _drive(engine_a, intent)
+            self._sync_rng_state(engine_a)
+            save_game(engine_a.state, base)
+
+            loaded = load_game(base)
+            assert loaded is not None
+            # The full PRNG state must survive the round trip.
+            assert loaded.rng_state is not None
+            engine_a2 = StepEngine(loaded, GMConfig(enabled=False))
+            for intent in self.INTENTS[split:]:
+                _drive(engine_a2, intent)
+            self._sync_rng_state(engine_a2)
+
+            # Engine B — never saved, same seed, same intents end to end.
+            engine_b = StepEngine(create_new_run(seed=seed), GMConfig(enabled=False))
+            for intent in self.INTENTS:
+                _drive(engine_b, intent)
+            self._sync_rng_state(engine_b)
+
+            # Full serialized state must be byte-identical.
+            assert _state_to_dict(engine_a2.state) == _state_to_dict(engine_b.state)
+
+    def test_legacy_save_without_rng_state_still_loads(self):
+        """Saves predating ENG-A-01 (no rng_state) must still load and run via
+        the counter-replay fallback — no crash."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            engine = StepEngine(create_new_run(seed=7), GMConfig(enabled=False))
+            for intent in self.INTENTS[:2]:
+                _drive(engine, intent)
+            self._sync_rng_state(engine)
+            save_game(engine.state, base)
+
+            # Strip rng_state to simulate a pre-ENG-A-01 save.
+            save_path = base / SAVE_DIR / SAVE_FILE
+            data = json.loads(save_path.read_text(encoding="utf-8"))
+            data.pop("rng_state", None)
+            save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.rng_state is None
+            # Engine reconstructs via counter-replay and keeps running.
+            engine2 = StepEngine(loaded, GMConfig(enabled=False))
+            _drive(engine2, PlayerIntent(IntentAction.TRAVEL))
+
+
+class TestSecretsSidecar:
+    """ledger-001 / ENG-A-04 — wallet/issuer seeds never touch run.json; they
+    live in a local .trail/secrets.json sidecar and restore in-memory on load."""
+
+    def _enable_backpack(self, state):
+        bp = state.backpack
+        bp.enabled = True
+        bp.wallet_address = "rWalletAddr0000000000000000000"
+        bp.wallet_secret = "sWalletSecretSEED000000000000"
+        bp.issuer_address = "rIssuerAddr0000000000000000000"
+        bp.issuer_secret = "sIssuerSecretSEED000000000000"
+        bp.trust_lines_ready = True
+
+    def test_secrets_absent_from_run_json(self):
+        """run.json must contain neither secret, anywhere in the file."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            raw = (base / SAVE_DIR / SAVE_FILE).read_text(encoding="utf-8")
+            assert state.backpack.wallet_secret not in raw
+            assert state.backpack.issuer_secret not in raw
+            assert "wallet_secret" not in raw
+            assert "issuer_secret" not in raw
+
+            # Public addresses still round-trip in run.json.
+            data = json.loads(raw)
+            assert data["backpack"]["wallet_address"] == state.backpack.wallet_address
+            assert data["backpack"]["issuer_address"] == state.backpack.issuer_address
+
+    def test_secrets_written_to_sidecar(self):
+        """secrets.json holds the seeds keyed by run_id."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            sidecar = base / SAVE_DIR / "secrets.json"
+            assert sidecar.exists()
+            store = json.loads(sidecar.read_text(encoding="utf-8"))
+            assert store[state.run_id]["wallet_secret"] == state.backpack.wallet_secret
+            assert store[state.run_id]["issuer_secret"] == state.backpack.issuer_secret
+
+    def test_load_restores_secrets_from_sidecar(self):
+        """A load round-trip repopulates the in-memory secrets."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.wallet_secret == state.backpack.wallet_secret
+            assert loaded.backpack.issuer_secret == state.backpack.issuer_secret
+            # And the public fields too.
+            assert loaded.backpack.wallet_address == state.backpack.wallet_address
+
+    def test_load_without_sidecar_leaves_secrets_empty(self):
+        """If the sidecar is missing, load must not crash — secrets stay empty."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            # Remove the sidecar entirely.
+            (base / SAVE_DIR / "secrets.json").unlink()
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.wallet_secret == ""
+            assert loaded.backpack.issuer_secret == ""
+            assert loaded.backpack.enabled is True  # rest of backpack intact
+
+    def test_sidecar_preserves_other_runs(self):
+        """Saving one run must not clobber another run's secrets in the file."""
+        state_a = create_new_run(seed=1)
+        self._enable_backpack(state_a)
+        state_b = create_new_run(seed=2)
+        self._enable_backpack(state_b)
+        state_b.backpack.wallet_secret = "sDifferentWalletSEED0000000000"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state_a, base)
+            save_game(state_b, base)
+
+            store = json.loads(
+                (base / SAVE_DIR / "secrets.json").read_text(encoding="utf-8")
+            )
+            assert state_a.run_id in store
+            assert state_b.run_id in store
+            assert store[state_a.run_id]["wallet_secret"] == state_a.backpack.wallet_secret
+            assert store[state_b.run_id]["wallet_secret"] == state_b.backpack.wallet_secret

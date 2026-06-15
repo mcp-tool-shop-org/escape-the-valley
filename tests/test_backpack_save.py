@@ -75,6 +75,39 @@ class TestBackpackSaveRoundtrip:
             assert len(loaded.backpack.parcels) == 1
             assert loaded.backpack.parcels[0].accepted is True
 
+    def test_secrets_never_written_to_run_json(self):
+        """A-06 / ledger-001: enabled backpack saves must NOT leak seeds.
+
+        Wallet/issuer seeds live only in the local .trail/secrets.json sidecar
+        (the engine executor moved them there); run.json must be secret-free.
+        """
+        state = create_new_run(seed=42)
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rPlayerAddr"
+        state.backpack.wallet_secret = "sEDPlayerSeedTopSecret"
+        state.backpack.issuer_address = "rIssuerAddr"
+        state.backpack.issuer_secret = "sEDIssuerSeedTopSecret"
+        state.backpack.trust_lines_ready = True
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            run_text = (base / ".trail" / "run.json").read_text(encoding="utf-8")
+            # The seeds must not appear anywhere in run.json.
+            assert "sEDPlayerSeedTopSecret" not in run_text
+            assert "sEDIssuerSeedTopSecret" not in run_text
+            assert "wallet_secret" not in run_text
+            assert "issuer_secret" not in run_text
+
+            # But the run loads back with seeds restored from the sidecar,
+            # so the backpack stays usable.
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.wallet_secret == "sEDPlayerSeedTopSecret"
+            assert loaded.backpack.issuer_secret == "sEDIssuerSeedTopSecret"
+            assert loaded.backpack.wallet_address == "rPlayerAddr"
+
     def test_backward_compat_no_backpack(self):
         """Old saves without backpack key should load with defaults."""
         state = create_new_run(seed=42)

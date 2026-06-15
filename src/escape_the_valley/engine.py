@@ -10,6 +10,7 @@ from .events import (
     select_event,
 )
 from .gm import GMClient, GMConfig
+from .memory import build_gm_brief
 from .models import (
     JournalEntry,
     RunState,
@@ -49,6 +50,12 @@ class GameEngine:
     def __init__(self, state: RunState, gm_config: GMConfig | None = None):
         self.state = state
         self.rng = SeededRNG(state.seed, state.rng_counter)
+        # ENG-A-01: restore the exact PRNG position from the full saved state.
+        # Counter-replay is lossy (variable draws per call), so prefer the
+        # serialized Mersenne-Twister state when the save carries it. Legacy
+        # saves without rng_state fall back to counter-replay (unchanged).
+        if state.rng_state is not None:
+            self.rng.setstate(state.rng_state)
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config)
 
@@ -225,15 +232,23 @@ class GameEngine:
         if self.rng.random() > 0.6:
             return
 
-        event = select_event(self.state, self.rng, self.event_library)
+        # ENG-A-06: derive weather BEFORE selection so weather-gated events are
+        # actually filtered, and reuse the same value for GM narration.
         node = _find_node(self.state)
         weather = generate_weather(self.rng, node.biome, self.state.day) if node else None
+        event = select_event(self.state, self.rng, self.event_library, weather)
 
         # Try GM narration first
         scene = None
         if self.gm.config.enabled:
             weather_str = weather.value if weather else "unknown"
-            scene = self.gm.generate_scene(self.state, event, weather_str)
+            # gm-A-101: pass the GM brief so the D2 weirdness gate
+            # (uncanny only at weirdness_level >= 2 with tokens) is enforced
+            # in-prompt on the CLI play/continue path, same as the TUI.
+            brief = build_gm_brief(self.state)
+            scene = self.gm.generate_scene(
+                self.state, event, weather_str, brief=brief
+            )
 
         # Use GM scene or fallback
         if scene and scene.choices:
@@ -284,8 +299,17 @@ class GameEngine:
                 "Time cost": outcome.time_cost,
                 "Special": outcome.special_flags,
             }
+            # gm-A-101: rebuild the brief against post-outcome state so the
+            # D2 weirdness gate is enforced on the outcome prompt too.
+            outcome_brief = build_gm_brief(self.state)
             gm_outcome = self.gm.generate_outcome(
-                self.state, event, title, choice_id, choice_label, outcome_facts
+                self.state,
+                event,
+                title,
+                choice_id,
+                choice_label,
+                outcome_facts,
+                brief=outcome_brief,
             )
             if gm_outcome:
                 outcome_narration = gm_outcome.outcome_narration
@@ -379,6 +403,7 @@ class GameEngine:
     def _save(self) -> None:
         """Autosave current state."""
         self.state.rng_counter = self.rng.counter
+        self.state.rng_state = self.rng.getstate()
         save_game(self.state)
 
 
@@ -397,8 +422,9 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
         parts.append(f"wagon {'+'if outcome.wagon_delta > 0 else ''}{outcome.wagon_delta}")
     if outcome.morale_delta:
         parts.append(f"morale {'+'if outcome.morale_delta > 0 else ''}{outcome.morale_delta}")
-    if outcome.time_cost:
-        parts.append(f"{outcome.time_cost} time lost")
+    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
+    # clock on event resolution (time is charged per-action in the engine), so
+    # claiming a time cost in the callout would be a lie about what was charged.
 
     return ", ".join(parts) if parts else "No significant effect."
 

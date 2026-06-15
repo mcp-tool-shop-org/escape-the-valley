@@ -8,6 +8,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from .events import (
@@ -61,6 +62,8 @@ from .physics import (
 from .save import save_game
 from .worldgen import generate_weather
 
+log = logging.getLogger(__name__)
+
 # ── Message types ───────────────────────────────────────────────────
 
 @dataclass
@@ -111,6 +114,12 @@ class StepEngine:
     ):
         self.state = state
         self.rng = SeededRNG(state.seed, state.rng_counter)
+        # ENG-A-01: restore the exact PRNG position from the full saved state.
+        # Counter-replay is lossy (variable draws per call), so prefer the
+        # serialized Mersenne-Twister state when the save carries it. Legacy
+        # saves without rng_state fall back to counter-replay (unchanged).
+        if state.rng_state is not None:
+            self.rng.setstate(state.rng_state)
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config or GMConfig())
         self.phase = GamePhase.CAMP
@@ -513,19 +522,21 @@ class StepEngine:
         if self.rng.random() > 0.6:
             return
 
-        event = select_event(
-            self.state, self.rng, self.event_library,
-        )
-        self.diagnostics["events_total"] += 1
-        if event.severity == "high":
-            self.diagnostics["events_high_sev"] += 1
-
+        # ENG-A-06: derive weather BEFORE selection so weather-gated events are
+        # actually filtered, and reuse the same value for GM narration.
         node = _find_node(self.state)
         weather = (
             generate_weather(self.rng, node.biome, self.state.day)
             if node
             else None
         )
+
+        event = select_event(
+            self.state, self.rng, self.event_library, weather,
+        )
+        self.diagnostics["events_total"] += 1
+        if event.severity == "high":
+            self.diagnostics["events_high_sev"] += 1
 
         # Try GM narration
         scene = None
@@ -806,19 +817,61 @@ class StepEngine:
             # Multi-connection → ROUTE phase on next travel
 
     def _settle_checkpoint(self, dest) -> None:
-        """Settle Ledger Backpack at a town checkpoint."""
+        """Settle Ledger Backpack at a town checkpoint.
+
+        ledger-006: if settle() raises before it can enqueue its own pending
+        record (e.g. the manager fails to construct, or the error escapes the
+        inner try in settle()), the unsettled delta would be lost silently. We
+        narrow the catch, log a warning, and guarantee a pending SettlementRecord
+        is enqueued so the delta stays retryable via `ledger reconcile`.
+        """
         try:
             from .backpack import BackpackManager
 
             mgr = BackpackManager()
-            result = mgr.settle(self.state, dest.name)
-            if result.success and result.txids:
-                self.msgs.lines.append(result.message)
-            elif not result.success and result.message:
-                self.msgs.lines.append(result.message)
-            mgr.close()
-        except Exception:
-            pass  # graceful degradation — game continues
+            try:
+                result = mgr.settle(self.state, dest.name)
+                if result.success and result.txids:
+                    self.msgs.lines.append(result.message)
+                elif not result.success and result.message:
+                    self.msgs.lines.append(result.message)
+            finally:
+                mgr.close()
+        except Exception as e:  # graceful degradation — game continues
+            log.warning("Checkpoint settlement at %s failed: %s", dest.name, e)
+            self._enqueue_pending_settlement(dest.name)
+
+    def _enqueue_pending_settlement(self, location: str) -> None:
+        """Record the current unsettled delta as a pending SettlementRecord so a
+        settle() that raised before enqueuing does not silently drop the delta.
+
+        Idempotent-ish: skips if settle() already enqueued a pending record for
+        this day (so we don't double-record when the error escaped after enqueue).
+        """
+        from datetime import UTC, datetime
+
+        from .backpack_models import XRPL_RESOURCES, SettlementRecord
+
+        bp = self.state.backpack
+        deltas: dict[str, int] = {}
+        for key in XRPL_RESOURCES:
+            diff = self.state.supplies.get(key) - bp.last_settled_supplies.get(key, 0)
+            if diff != 0:
+                deltas[key] = diff
+        if not deltas:
+            return
+        # Avoid duplicating a pending record settle() may already have queued.
+        if any(r.day == self.state.day for r in bp.pending_settlements):
+            return
+        bp.pending_settlements.append(SettlementRecord(
+            day=self.state.day,
+            location=location,
+            deltas=deltas,
+            txids=[],
+            status="pending",
+            memo=f"TRAIL|RUN:{self.state.run_id}|DAY:{self.state.day}",
+            timestamp=datetime.now(UTC).isoformat(),
+        ))
 
     def _check_parcels(self, dest) -> None:
         """Check for incoming parcels at a town."""
@@ -826,18 +879,20 @@ class StepEngine:
             from .backpack import BackpackManager
 
             mgr = BackpackManager()
-            parcels = mgr.check_parcels(self.state)
-            for parcel in parcels:
-                sender_short = parcel.sender[:8] + "..."
-                contents = ", ".join(
-                    f"{v} {k}" for k, v in parcel.contents.items()
-                )
-                self.msgs.lines.append(
-                    f"A parcel arrived from {sender_short}: {contents}"
-                )
-            mgr.close()
-        except Exception:
-            pass  # graceful degradation
+            try:
+                parcels = mgr.check_parcels(self.state)
+                for parcel in parcels:
+                    sender_short = parcel.sender[:8] + "..."
+                    contents = ", ".join(
+                        f"{v} {k}" for k, v in parcel.contents.items()
+                    )
+                    self.msgs.lines.append(
+                        f"A parcel arrived from {sender_short}: {contents}"
+                    )
+            finally:
+                mgr.close()
+        except Exception as e:  # graceful degradation
+            log.warning("Parcel check at %s failed: %s", dest.name, e)
 
     def _advance_time(self) -> None:
         times = list(TimeOfDay)
@@ -867,6 +922,7 @@ class StepEngine:
 
     def _save(self) -> None:
         self.state.rng_counter = self.rng.counter
+        self.state.rng_state = self.rng.getstate()
         save_game(self.state)
 
 
@@ -889,8 +945,9 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
     if outcome.morale_delta:
         sign = "+" if outcome.morale_delta > 0 else ""
         parts.append(f"morale {sign}{outcome.morale_delta}")
-    if outcome.time_cost:
-        parts.append(f"{outcome.time_cost} time lost")
+    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
+    # clock on event resolution (time is charged per-action in the engine), so
+    # claiming a time cost in the callout would be a lie about what was charged.
 
     return ", ".join(parts) if parts else "No significant effect."
 

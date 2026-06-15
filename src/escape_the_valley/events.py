@@ -36,6 +36,7 @@ class EventOutcome:
     supplies_delta: dict[str, int] = field(default_factory=dict)
     health_delta: int = 0
     wagon_delta: int = 0
+    animals_health_delta: int = 0  # ENG-A-03: draft-animal health (the wagon team)
     morale_delta: int = 0
     time_cost: int = 0  # extra hours/half-days
     distance_delta: int = 0
@@ -1680,7 +1681,15 @@ PROFILE_UNCANNY_WEIGHT = {
 
 
 def can_spend_uncanny_token(state: RunState, event: EventSkeleton) -> bool:
-    """Check if an uncanny token can be spent based on profile rules."""
+    """Check if an uncanny token can be spent based on profile rules.
+
+    Founding gate (ENG-A-02 / Director decision D2): the uncanny is only
+    available once the run has crossed into weirdness_level >= 2. Below that,
+    folklore must stay rumor/omen/coincidence — never an uncanny-token spend —
+    so a level-2 gate at the top short-circuits before any profile rule.
+    """
+    if state.weirdness_level < 2:
+        return False
     if state.uncanny_tokens <= 0:
         return False
     if not event.costs_uncanny_token:
@@ -1764,8 +1773,19 @@ _TWIST_TAG_BOOSTS: dict[TwistModifier, set[str]] = {
 }
 
 
-def select_event(state: RunState, rng: SeededRNG, library: list[EventSkeleton]) -> EventSkeleton:
-    """Select an event using weighted probabilities with variety guards."""
+def select_event(
+    state: RunState,
+    rng: SeededRNG,
+    library: list[EventSkeleton],
+    weather: Weather | None = None,
+) -> EventSkeleton:
+    """Select an event using weighted probabilities with variety guards.
+
+    When ``weather`` is supplied, weather-gated events are excluded unless the
+    current weather matches their ``weather_filter`` (mirroring ``biome_filter``
+    and ``time_filter``). When ``weather`` is None the filter is skipped, so
+    existing callers/tests that don't model weather keep their behavior.
+    """
     node = _find_node(state)
     candidates: list[EventSkeleton] = []
     weights: list[float] = []
@@ -1775,10 +1795,9 @@ def select_event(state: RunState, rng: SeededRNG, library: list[EventSkeleton]) 
         if event.biome_filter and node and node.biome not in event.biome_filter:
             continue
 
-        # Check weather filter
-        if event.weather_filter:
-            # We'll check this loosely — caller should pass current weather context
-            pass
+        # Check weather filter (ENG-A-06 — only when the caller models weather)
+        if event.weather_filter and weather is not None and weather not in event.weather_filter:
+            continue
 
         # Check time filter
         if event.time_filter and state.time_of_day not in event.time_filter:
@@ -1866,6 +1885,7 @@ def resolve_event(
         supplies_delta=dict(template.supplies_delta),
         health_delta=template.health_delta,
         wagon_delta=template.wagon_delta,
+        animals_health_delta=template.animals_health_delta,
         morale_delta=template.morale_delta,
         time_cost=template.time_cost,
         distance_delta=template.distance_delta,
@@ -1888,12 +1908,25 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
     state.supplies.apply_delta(outcome.supplies_delta)
 
     if outcome.health_delta != 0:
+        # Local import avoids a module-load cycle (physics imports from events).
+        from .physics import _proximate_death_cause
         for member in state.party.members:
             if member.is_alive():
                 member.health = max(0, min(100, member.health + outcome.health_delta))
+                # ENG-A-07: attribute event-caused deaths so they don't fall
+                # through to the generic "The trail" in determine_cause_of_death.
+                if member.health <= 0 and not member.death_cause:
+                    member.death_cause = _proximate_death_cause(member, state)
 
     if outcome.wagon_delta != 0:
         state.wagon.condition = max(0, min(100, state.wagon.condition + outcome.wagon_delta))
+
+    # ENG-A-03: animal-health deltas affect the wagon's draft team (which slows
+    # travel in physics.compute_travel_distance), NOT party member health.
+    if outcome.animals_health_delta != 0:
+        state.wagon.animals_health = max(
+            0, min(100, state.wagon.animals_health + outcome.animals_health_delta)
+        )
 
     if outcome.morale_delta != 0:
         state.party.morale = max(0, min(100, state.party.morale + outcome.morale_delta))

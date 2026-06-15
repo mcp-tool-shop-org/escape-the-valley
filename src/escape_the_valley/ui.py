@@ -156,6 +156,11 @@ def show_outcome(title: str, narration: str, callout: str, deltas: dict) -> None
     if deltas:
         delta_parts = []
         for key, val in deltas.items():
+            # Guard against a corrupted/loaded save with a non-numeric delta —
+            # skip it rather than raise a raw TypeError to the player
+            # (cli-tui-008).
+            if not isinstance(val, (int, float)):
+                continue
             if val > 0:
                 delta_parts.append(f"[green]+{val} {key}[/green]")
             elif val < 0:

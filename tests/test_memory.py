@@ -3,6 +3,7 @@
 from escape_the_valley.memory import (
     MEMORY_BUDGET,
     GMBrief,
+    _compute_weirdness,
     add_card,
     build_gm_brief,
     compute_pressures,
@@ -315,6 +316,45 @@ class TestBuildGMBrief:
         state.weirdness_level = 3
         brief = build_gm_brief(state)
         assert brief.weirdness_allowance == "strong"
+
+    def test_weirdness_hint_only_at_level_2(self):
+        # Director decision D2: the uncanny "hint" is gated at level >= 2.
+        # Level 1 must stay grounded ("none").
+        state = create_new_run(seed=1)
+        state.uncanny_tokens = 2
+        state.weirdness_level = 1
+        brief = build_gm_brief(state)
+        assert brief.weirdness_allowance == "none"
+
+
+class TestComputeWeirdness:
+    """Director decision D2 — uncanny hint gated at weirdness_level >= 2."""
+
+    def test_none_at_levels_0_and_1(self):
+        state = create_new_run(seed=1)
+        state.uncanny_tokens = 2
+        state.weirdness_level = 0
+        assert _compute_weirdness(state) == "none"
+        state.weirdness_level = 1
+        assert _compute_weirdness(state) == "none"
+
+    def test_hint_at_level_2(self):
+        state = create_new_run(seed=1)
+        state.uncanny_tokens = 2
+        state.weirdness_level = 2
+        assert _compute_weirdness(state) == "hint"
+
+    def test_strong_at_level_3(self):
+        state = create_new_run(seed=1)
+        state.uncanny_tokens = 2
+        state.weirdness_level = 3
+        assert _compute_weirdness(state) == "strong"
+
+    def test_none_when_no_tokens(self):
+        state = create_new_run(seed=1)
+        state.uncanny_tokens = 0
+        state.weirdness_level = 3
+        assert _compute_weirdness(state) == "none"
 
 
 # ── Format for prompt ────────────────────────────────────────────────

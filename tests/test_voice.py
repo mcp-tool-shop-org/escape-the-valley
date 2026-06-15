@@ -1,5 +1,12 @@
 """Tests for voice bridge — graceful degradation, config, mapping."""
 
+import struct
+import sys
+import time
+import wave
+
+import pytest
+
 from escape_the_valley.voice import (
     DEFAULT_VOICE,
     PACE_SPEED,
@@ -7,7 +14,18 @@ from escape_the_valley.voice import (
     VoiceBridge,
     VoiceConfig,
     VoicePace,
+    _wav_duration_seconds,
 )
+
+
+def _write_wav(path, seconds: float, rate: int = 8000) -> None:
+    """Write a tiny silent mono WAV of the given duration."""
+    nframes = int(seconds * rate)
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes(struct.pack("<" + "h" * nframes, *([0] * nframes)))
 
 
 class TestVoiceConfig:
@@ -85,3 +103,37 @@ class TestVoiceBridge:
         # Toggle on (start may fail without voice-soundboard, but state flips)
         bridge.toggle()
         assert config.enabled is True
+
+
+class TestWavDuration:
+    def test_reads_clip_duration(self, tmp_path):
+        wav = tmp_path / "clip.wav"
+        _write_wav(wav, seconds=0.4)
+        dur = _wav_duration_seconds(wav)
+        assert dur is not None
+        assert abs(dur - 0.4) < 0.05
+
+    def test_missing_file_returns_none(self, tmp_path):
+        assert _wav_duration_seconds(tmp_path / "nope.wav") is None
+
+    def test_non_wav_returns_none(self, tmp_path):
+        bogus = tmp_path / "bogus.wav"
+        bogus.write_bytes(b"not a wave file at all")
+        assert _wav_duration_seconds(bogus) is None
+
+
+class TestPlaybackDuration:
+    @pytest.mark.skipif(
+        sys.platform != "win32", reason="winsound playback path is Windows-only"
+    )
+    def test_short_clip_exits_near_duration_not_cap(self, tmp_path):
+        # A short clip's playback loop must exit near the clip duration,
+        # not pin the worker until the 60s safety cap (gm-A-003).
+        wav = tmp_path / "short.wav"
+        _write_wav(wav, seconds=0.3)
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._playing.set()
+        start = time.monotonic()
+        bridge._play_audio(wav)
+        elapsed = time.monotonic() - start
+        assert elapsed < 5.0  # nowhere near the 60s safety cap

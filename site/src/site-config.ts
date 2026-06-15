@@ -16,7 +16,7 @@ export const config: SiteConfig = {
     primaryCta: { href: '#quickstart', label: 'Get started' },
     secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
-      { label: 'Install', code: 'pip install -e ".[dev]"' },
+      { label: 'Install', code: 'pip install escape-the-valley' },
       { label: 'Play', code: 'trail tui --seed 42' },
       { label: 'Resume', code: 'trail tui --continue' },
     ],
@@ -50,7 +50,7 @@ export const config: SiteConfig = {
           desc: 'Rich terminal interface built with Textual. Camp actions, event choices, route forks, and a trail ledger at journey\'s end.',
         },
         {
-          title: '316 Tests',
+          title: '449 Tests',
           desc: 'Comprehensive test suite covering physics, events, save/load, ledger, backpack, and death cause enrichment. Lint clean.',
         },
       ],
@@ -62,7 +62,7 @@ export const config: SiteConfig = {
       cards: [
         {
           title: 'Install',
-          code: '# Install the game\npip install -e ".[dev]"\n\n# Optional: XRPL backpack\npip install -e ".[xrpl]"',
+          code: '# Install the game\npip install escape-the-valley\n\n# Optional: XRPL ledger backpack\npip install "escape-the-valley[xrpl]"\n\n# Development (editable + test/lint tooling)\npip install -e ".[dev,xrpl]"',
         },
         {
           title: 'Play',

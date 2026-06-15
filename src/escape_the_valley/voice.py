@@ -71,6 +71,30 @@ PROFILE_VOICE: dict[str, dict] = {
 
 DEFAULT_VOICE = "bm_george"
 
+# Safety cap for async playback if a clip's real duration can't be read.
+_PLAYBACK_SAFETY_CAP_S = 60.0
+# Small tail so the loop doesn't cut the last fraction of audio.
+_PLAYBACK_TAIL_S = 0.25
+
+
+def _wav_duration_seconds(path: Path) -> float | None:
+    """Return a WAV clip's duration in seconds, or None if unreadable.
+
+    Used to exit async (winsound) playback near natural completion instead
+    of pinning the worker for the full safety cap.
+    """
+    import wave
+
+    try:
+        with wave.open(str(path), "rb") as wf:
+            frames = wf.getnframes()
+            rate = wf.getframerate()
+        if rate <= 0:
+            return None
+        return frames / float(rate)
+    except (OSError, wave.Error, EOFError):
+        return None
+
 
 # ── Config ─────────────────────────────────────────────────────────
 
@@ -257,8 +281,17 @@ class VoiceBridge:
                 | winsound.SND_ASYNC
                 | winsound.SND_NODEFAULT,
             )
-            # Poll for completion or interrupt (hard timeout: 60s)
-            deadline = _time.monotonic() + 60.0
+            # winsound plays async and never signals completion, so derive
+            # the real clip length and exit near it. The 60s cap is only a
+            # safety net for clips whose duration we can't read.
+            duration = _wav_duration_seconds(path)
+            if duration is not None:
+                play_until = min(
+                    duration + _PLAYBACK_TAIL_S, _PLAYBACK_SAFETY_CAP_S
+                )
+            else:
+                play_until = _PLAYBACK_SAFETY_CAP_S
+            deadline = _time.monotonic() + play_until
             while self._playing.is_set() and not self._stop.is_set():
                 if _time.monotonic() >= deadline:
                     break

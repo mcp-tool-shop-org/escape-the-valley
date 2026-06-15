@@ -34,7 +34,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        # Install the xrpl extra so _HAS_XRPL is True and the mock-based XRPL
+        # settlement/parcel/run_proof tests actually run in CI (they self-skip
+        # without it). The mocks need no network, so this stays Testnet-safe.
+        run: pip install -e ".[dev,xrpl]"
 
       - name: Lint
         run: ruff check src/ tests/
