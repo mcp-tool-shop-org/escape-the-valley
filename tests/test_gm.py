@@ -14,8 +14,9 @@ from escape_the_valley.gm import (
     _tone_check,
     _tone_repair,
     _validate_scene,
+    build_deterministic_epilogue,
 )
-from escape_the_valley.models import GMProfile
+from escape_the_valley.models import EndingResult, GMProfile
 from escape_the_valley.worldgen import create_new_run
 
 
@@ -778,3 +779,206 @@ class TestStreamingNarration:
         assert result is not None
         assert result.narration == narration
         assert "".join(seen) == narration
+
+
+def _ending(
+    tier: str = "triumphant",
+    *,
+    victory: bool = True,
+    survivors: int = 4,
+    party_size: int = 4,
+    days: int = 30,
+    par_days: int = 32,
+    taboo: str | None = "never_night",
+    taboo_kept: bool = True,
+    uncanny_unspent: int = 0,
+    deaths: dict | None = None,
+    headline: str = "All reached the valley.",
+) -> EndingResult:
+    return EndingResult(
+        tier=tier,
+        headline=headline,
+        facts={
+            "victory": victory,
+            "survivors": survivors,
+            "party_size": party_size,
+            "days": days,
+            "par_days": par_days,
+            "taboo": taboo,
+            "taboo_kept": taboo_kept,
+            "uncanny_tokens_unspent": uncanny_unspent,
+            "deaths_by_cause": deaths or {},
+            "distance": 600,
+            "total_distance": 600,
+            "cause_of_death": "",
+        },
+    )
+
+
+class TestDeterministicEpilogue:
+    """EC-04 — the GM-free floor: grounded, deterministic, invents nothing."""
+
+    def test_leads_with_headline(self):
+        state = create_new_run(seed=1)
+        ending = _ending(headline="They made it through.")
+        text = build_deterministic_epilogue(state, ending)
+        assert text.startswith("They made it through.")
+
+    def test_deterministic_for_same_ending(self):
+        state = create_new_run(seed=1)
+        ending = _ending()
+        a = build_deterministic_epilogue(state, ending)
+        b = build_deterministic_epilogue(state, ending)
+        assert a == b
+        assert a  # non-empty
+
+    def test_pyrrhic_names_the_loss(self):
+        state = create_new_run(seed=1)
+        ending = _ending(
+            tier="pyrrhic", survivors=3, party_size=5,
+            deaths={"starvation": 2}, headline="Reached, but at cost.",
+        )
+        text = build_deterministic_epilogue(state, ending)
+        assert "2 did not finish" in text
+        assert "starvation" in text
+
+    def test_broken_taboo_reflected(self):
+        state = create_new_run(seed=1)
+        ending = _ending(tier="pyrrhic", taboo_kept=False)
+        text = build_deterministic_epilogue(state, ending)
+        assert "vow did not survive" in text.lower()
+
+    def test_lost_tier_closer(self):
+        state = create_new_run(seed=1)
+        ending = _ending(
+            tier="lost", victory=False, survivors=0,
+            headline="None reached the valley.",
+        )
+        text = build_deterministic_epilogue(state, ending)
+        assert "silence" in text.lower()
+        # A loss epilogue passes tone-lint (no slang, no punchline).
+        assert _tone_check(text)
+
+    def test_no_resources_invented(self):
+        # The deterministic floor never references supply quantities.
+        state = create_new_run(seed=1)
+        ending = _ending()
+        text = build_deterministic_epilogue(state, ending).lower()
+        for word in ("food:", "water:", "parts:", "+", "supplies"):
+            assert word not in text
+
+
+class TestGenerateEpilogue:
+    """EC-04 (gm half) — narrated when possible, deterministic floor always."""
+
+    def test_gm_off_yields_deterministic(self):
+        client = GMClient(GMConfig(enabled=False))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+
+    def test_mocked_gm_yields_narrated(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        prose = (
+            "The valley opened below them at last, green and indifferent. "
+            "They had spent everything but the vow, and the vow had held. "
+            "No one spoke of the days behind. The fires that night were small "
+            "and warm and earned."
+        )
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, prose),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == prose
+        assert result != build_deterministic_epilogue(state, ending)
+        assert client.stats["successes"] == 1
+
+    def test_narrated_epilogue_is_tone_linted(self, monkeypatch):
+        # A punchline epilogue is hard-rejected → deterministic fallback.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        bad = "Plot twist: they all lived happily ever after."
+        calls = {"n": 0}
+
+        def _post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(200, bad)
+
+        monkeypatch.setattr(client._client, "post", _post)
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+        assert calls["n"] == 2  # retried then gave up
+        assert client.stats["tone_rejects"] >= 1
+
+    def test_slang_only_epilogue_repaired(self, monkeypatch):
+        # A slang-only epilogue is repaired locally, not dropped to fallback.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        prose = "Bro, the valley was wide and the fires burned low that night."
+        calls = {"n": 0}
+
+        def _post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(200, prose)
+
+        monkeypatch.setattr(client._client, "post", _post)
+        result = client.generate_epilogue(state, ending)
+        assert calls["n"] == 1  # repaired in one call
+        assert "bro" not in result.lower().split()
+        assert "valley" in result.lower()
+
+    def test_transport_failure_yields_deterministic(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+
+        def _refuse(*_a, **_k):
+            raise httpx.ConnectError("refused")
+
+        monkeypatch.setattr(client._client, "post", _refuse)
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+        assert client.stats["connect_errors"] == 1
+
+    def test_junk_response_yields_deterministic(self, monkeypatch):
+        # Empty/junk prose falls through to the deterministic floor.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, "   "),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+
+    def test_json_wrapped_prose_is_lifted(self, monkeypatch):
+        # A model that wraps the epilogue in JSON still yields the prose.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        wrapped = json.dumps({
+            "epilogue": "The valley held them gently after the long road down.",
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, wrapped),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == "The valley held them gently after the long road down."
+
+    def test_never_returns_none(self, monkeypatch):
+        # The contract: generate_epilogue NEVER returns None.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending(tier="lost", victory=False, survivors=0)
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(500, ""),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result is not None
+        assert isinstance(result, str)
+        assert result  # non-empty

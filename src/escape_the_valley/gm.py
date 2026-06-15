@@ -11,7 +11,7 @@ import httpx
 
 from .events import EventSkeleton
 from .memory import GMBrief, format_brief_for_prompt
-from .models import GMProfile, RunState
+from .models import EndingResult, GMProfile, RunState
 
 logger = logging.getLogger(__name__)
 
@@ -360,6 +360,131 @@ class GMClient:
             on_token=on_token,
         )
 
+    def generate_epilogue(
+        self,
+        state: RunState,
+        ending: EndingResult,
+    ) -> str:
+        """Narrate a short, period-appropriate epilogue for a finished run.
+
+        EC-04 (gm half) — grounds the closing on the EndingResult facts (who
+        survived, days against par, whether the taboo held, how much of the
+        uncanny went unspent, the manner of any deaths) and the run's journal,
+        and asks the GM to narrate it in the active profile's voice while
+        respecting the no-free-resources / period-voice rules.
+
+        MUST be fallback-safe: this NEVER returns None. If the GM is disabled,
+        unreachable, returns junk, or fails tone-lint after the retry budget,
+        we return a deterministic epilogue assembled from the ending facts
+        (the same text the engine/cli-tui would render with the GM off). The
+        deterministic floor is computed first and handed to the model as the
+        thing it is dressing up — so even the narrated path stays grounded.
+        """
+        deterministic = build_deterministic_epilogue(state, ending)
+
+        if not self.config.enabled:
+            return deterministic
+
+        narrated = self._request_epilogue(state, ending, deterministic)
+        return narrated if narrated is not None else deterministic
+
+    def _request_epilogue(
+        self,
+        state: RunState,
+        ending: EndingResult,
+        deterministic: str,
+    ) -> str | None:
+        """Ask the GM to narrate the epilogue; None on any failure (caller falls back).
+
+        Returns prose, not JSON — an epilogue is a closing paragraph, not a
+        structured scene. The same retry-then-give-up + tone-lint discipline as
+        the scene/outcome paths applies; a hard tone miss or transport failure
+        yields None so generate_epilogue can return the deterministic floor.
+        """
+        system_prompt = (
+            f"{_profile_header(state.gm_profile)}\n"
+            "Write a SHORT closing epilogue (3-6 sentences) for a finished "
+            "overland journey. Output PROSE ONLY — no JSON, no markdown, no "
+            "headings, no lists. Stay strictly grounded in the facts given; do "
+            "NOT invent survivors, resources, or rescues the facts do not "
+            "support. Period-appropriate voice; no modern slang."
+        )
+
+        facts = ending.facts
+        survivors = facts.get("survivors", 0)
+        party_size = facts.get("party_size", 0)
+        days = facts.get("days", state.day)
+        par_days = facts.get("par_days", days)
+
+        user_prompt = (
+            "Narrate the epilogue for this journey.\n\n"
+            "ENDING FACTS YOU MUST RESPECT (do not contradict):\n"
+            f"- Tier: {ending.tier}\n"
+            f"- Headline: {ending.headline}\n"
+            f"- Reached the valley: {facts.get('victory', False)}\n"
+            f"- Survivors: {survivors} of {party_size}\n"
+            f"- Days taken: {days} (par {par_days})\n"
+            f"- Taboo: {facts.get('taboo') or 'none'} "
+            f"(kept: {facts.get('taboo_kept', True)})\n"
+            f"- Uncanny left unspent: {facts.get('uncanny_tokens_unspent', 0)}\n"
+        )
+
+        deaths = facts.get("deaths_by_cause") or {}
+        if deaths:
+            causes = ", ".join(f"{c}:{n}" for c, n in deaths.items())
+            user_prompt += f"- Deaths by cause: {causes}\n"
+        if facts.get("cause_of_death"):
+            user_prompt += f"- Final cause of death: {facts['cause_of_death']}\n"
+
+        # Ground the model with the run's closing memory: the last journal beats.
+        tail = _journal_tail(state)
+        if tail:
+            user_prompt += f"\nRECENT EVENTS (for continuity):\n{tail}\n"
+
+        user_prompt += (
+            "\nA plain factual summary you should DRESS UP (do not contradict "
+            f"it, do not add resources):\n{deterministic}\n\n"
+            "REQUIREMENTS:\n"
+            "- 3-6 sentences, grounded and specific to the facts above.\n"
+            "- Match the tier's weight: a 'lost' or 'pyrrhic' ending is somber; "
+            "a 'triumphant' one is earned, not triumphalist.\n"
+            "- Do NOT grant or invent supplies, survivors, or miracles.\n"
+            "- Period-appropriate language; no modern slang.\n"
+        )
+
+        for _attempt in range(self.config.max_retries + 1):
+            try:
+                self.stats["attempts"] += 1
+                status, text = self._post_text(
+                    system_prompt, user_prompt,
+                    narration_key="", on_token=None,
+                )
+                if status != 200:
+                    self.stats["json_rejects"] += 1
+                    continue
+                prose = _extract_epilogue_prose(text)
+                if not prose:
+                    self.stats["json_rejects"] += 1
+                    logger.warning("Empty epilogue prose (attempt %d)", _attempt + 1)
+                    continue
+                repaired = _tone_repair(prose)
+                if repaired is None:
+                    self.stats["tone_rejects"] += 1
+                    logger.warning("Epilogue tone check failed (hard), retrying")
+                    user_prompt = _nudge_prompt(user_prompt)
+                    continue
+                if repaired != prose:
+                    logger.info("Epilogue tone repaired locally; accepting")
+                self.stats["successes"] += 1
+                return repaired
+            except (httpx.ConnectError, httpx.TimeoutException) as e:
+                self._count_transport_error(e)
+                return None
+            except Exception as e:  # noqa: BLE001
+                logger.warning("GM epilogue error: %s", e)
+
+        return None
+
     def _post_text(
         self,
         system: str,
@@ -681,6 +806,123 @@ def _nudge_prompt(user: str) -> str:
     if nudge in user:
         return user
     return user + nudge
+
+
+def _journal_tail(state: RunState, n: int = 4) -> str:
+    """Return the last N journal beats as compact lines for epilogue grounding."""
+    lines: list[str] = []
+    for entry in state.journal[-n:]:
+        title = entry.scene_title or entry.event_id
+        outcome = entry.outcome or entry.choice_made
+        if title or outcome:
+            lines.append(f"- Day {entry.day}: {title} — {outcome}".rstrip(" —"))
+    return "\n".join(lines)
+
+
+def _extract_epilogue_prose(text: str) -> str:
+    """Clean a GM epilogue response down to prose.
+
+    EC-04 — the epilogue is asked for as plain prose, but a model may still
+    wrap it in a JSON object or markdown fence out of habit. We tolerate both:
+    if the response parses as JSON, lift the longest string value; otherwise
+    strip any markdown fences and return the trimmed text. Empty result means
+    "no usable prose" and the caller falls back to the deterministic floor.
+    """
+    text = text.strip()
+    if not text:
+        return ""
+
+    # If it parsed as JSON, take the longest string field (likely the prose).
+    data = _parse_json(text)
+    if isinstance(data, dict):
+        strings = [v for v in data.values() if isinstance(v, str) and v.strip()]
+        if strings:
+            return max(strings, key=len).strip()
+        return ""
+
+    # Plain prose — strip markdown fences if the model added them.
+    if text.startswith("```"):
+        lines = [ln for ln in text.split("\n") if not ln.strip().startswith("```")]
+        text = "\n".join(lines).strip()
+    return text
+
+
+def build_deterministic_epilogue(state: RunState, ending: EndingResult) -> str:
+    """Assemble a grounded, GM-free epilogue from the ending facts.
+
+    EC-04 — this is the fallback floor ``generate_epilogue`` returns whenever
+    the GM is off or unavailable, and the factual skeleton the narrated path is
+    asked to dress up. It is deterministic for a given EndingResult (no RNG, no
+    I/O) and invents nothing: every clause is read straight off the facts. It
+    leads with the ending's own headline, then adds the manner of any losses,
+    the pace against par, whether a taboo held, and a closing line keyed to the
+    tier.
+    """
+    facts = ending.facts
+    survivors = int(facts.get("survivors", 0) or 0)
+    party_size = int(facts.get("party_size", 0) or 0)
+    days = int(facts.get("days", state.day) or state.day)
+    par_days = int(facts.get("par_days", days) or days)
+    taboo = facts.get("taboo")
+    taboo_kept = bool(facts.get("taboo_kept", True))
+    unspent = int(facts.get("uncanny_tokens_unspent", 0) or 0)
+
+    parts: list[str] = []
+    if ending.headline:
+        parts.append(ending.headline)
+
+    # Manner of any losses.
+    lost = party_size - survivors
+    if lost > 0:
+        deaths = facts.get("deaths_by_cause") or {}
+        if deaths:
+            cause = max(deaths.items(), key=lambda kv: kv[1])[0]
+            parts.append(
+                f"Of the {party_size} who set out, {lost} did not finish; "
+                f"the trail took them mostly to {cause}."
+            )
+        else:
+            parts.append(
+                f"Of the {party_size} who set out, {lost} did not finish."
+            )
+
+    # Pace against par (only meaningful when the valley was reached).
+    if facts.get("victory"):
+        if days > par_days:
+            parts.append(
+                f"They reached the valley in {days} days, slower than the "
+                f"{par_days} the route asks."
+            )
+        else:
+            parts.append(
+                f"They reached the valley in {days} days, within the "
+                f"{par_days} the route asks."
+            )
+
+    # The vow.
+    if taboo:
+        if taboo_kept:
+            parts.append("Whatever else was spent, the vow held.")
+        else:
+            parts.append("The vow did not survive the road.")
+
+    # The uncanny, if any was left untouched.
+    if unspent > 0:
+        parts.append(
+            "What strangeness the country offered, they left mostly unanswered."
+        )
+
+    # Tier-keyed closing beat.
+    closer = {
+        "lost": "The valley kept its distance, and the country kept its silence.",
+        "pyrrhic": "They arrived, but the arriving cost more than the leaving.",
+        "weathered": "Worn thin and late, they arrived all the same.",
+        "triumphant": "Intact and on time, they had earned the quiet at the end.",
+    }.get(ending.tier, "")
+    if closer:
+        parts.append(closer)
+
+    return " ".join(p.strip() for p in parts if p.strip())
 
 
 class _NarrationStreamer:
