@@ -1,6 +1,9 @@
 """Tests for backpack_models — pure data models + token map."""
 
 from escape_the_valley.backpack_models import (
+    MEMO_SCHEMA_VERSION,
+    PARCEL_ACCEPT_CAP,
+    TESTNET_HOSTS,
     TESTNET_URL,
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
@@ -26,6 +29,8 @@ class TestBackpackState:
         assert bp.permits == []
         assert bp.nudge_shown is False
         assert bp.nudge_dismissed is False
+        # ledger-B04 (CONTRACT): degraded-network signal defaults to False.
+        assert bp.last_settle_failed is False
 
     def test_settlement_record_defaults(self):
         rec = SettlementRecord()
@@ -70,3 +75,28 @@ class TestTokenMap:
 
     def test_testnet_url(self):
         assert "rippletest" in TESTNET_URL
+
+
+class TestSafetyConstants:
+    def test_testnet_url_host_is_in_allowlist(self):
+        """ledger-B03: the default URL's host must be a known testnet host."""
+        from urllib.parse import urlparse
+
+        host = urlparse(TESTNET_URL).hostname
+        assert host in TESTNET_HOSTS
+
+    def test_testnet_hosts_are_ripple_test_networks(self):
+        assert "s.altnet.rippletest.net" in TESTNET_HOSTS
+        assert "s.devnet.rippletest.net" in TESTNET_HOSTS
+        # No mainnet host is on the allowlist.
+        assert not any("rippletest" not in h for h in TESTNET_HOSTS)
+
+    def test_parcel_accept_cap_is_named_constant(self):
+        """ledger-B09: the parcel cap is a documented lever, not a bare literal."""
+        assert isinstance(PARCEL_ACCEPT_CAP, int)
+        assert PARCEL_ACCEPT_CAP == 20
+
+    def test_memo_schema_version_token(self):
+        """ledger-B09: a schema-version token exists for the memo header."""
+        assert isinstance(MEMO_SCHEMA_VERSION, str)
+        assert MEMO_SCHEMA_VERSION
