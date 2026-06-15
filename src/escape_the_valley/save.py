@@ -100,6 +100,10 @@ def _state_to_dict(state: RunState) -> dict:
         "victory": state.victory,
         "cause_of_death": state.cause_of_death,
         "rng_counter": state.rng_counter,
+        # Full Mersenne-Twister state — authoritative RNG position (ENG-A-01).
+        # getstate() returns (version, tuple-of-ints, gauss_next); JSON encodes
+        # the inner tuple as a list and setstate() re-tuples it on load.
+        "rng_state": state.rng_state,
         "recent_event_tags": state.recent_event_tags,
         "party": {
             "members": [
@@ -216,6 +220,9 @@ def _dict_to_state(data: dict) -> RunState:
         victory=data.get("victory", False),
         cause_of_death=data.get("cause_of_death", ""),
         rng_counter=data.get("rng_counter", 0),
+        # Legacy saves predate rng_state → None triggers counter-replay fallback
+        # in the engine (no regression: those runs were already non-deterministic).
+        rng_state=data.get("rng_state"),
         recent_event_tags=data.get("recent_event_tags", []),
         party=PartyState(members=members, morale=party_data.get("morale", 70)),
         wagon=WagonState(

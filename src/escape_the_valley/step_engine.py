@@ -111,6 +111,12 @@ class StepEngine:
     ):
         self.state = state
         self.rng = SeededRNG(state.seed, state.rng_counter)
+        # ENG-A-01: restore the exact PRNG position from the full saved state.
+        # Counter-replay is lossy (variable draws per call), so prefer the
+        # serialized Mersenne-Twister state when the save carries it. Legacy
+        # saves without rng_state fall back to counter-replay (unchanged).
+        if state.rng_state is not None:
+            self.rng.setstate(state.rng_state)
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config or GMConfig())
         self.phase = GamePhase.CAMP
@@ -867,6 +873,7 @@ class StepEngine:
 
     def _save(self) -> None:
         self.state.rng_counter = self.rng.counter
+        self.state.rng_state = self.rng.getstate()
         save_game(self.state)
 
 
