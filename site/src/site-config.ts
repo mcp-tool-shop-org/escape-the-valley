@@ -50,8 +50,8 @@ export const config: SiteConfig = {
           desc: 'Rich terminal interface built with Textual. Camp actions, event choices, route forks, and a trail ledger at journey\'s end.',
         },
         {
-          title: '449 Tests',
-          desc: 'Comprehensive test suite covering physics, events, save/load, ledger, backpack, and death cause enrichment. Lint clean.',
+          title: 'Tested & Lint-Clean',
+          desc: 'Comprehensive test suite covering physics, events, save/load, ledger, backpack, GM fallback, and death cause enrichment. Lint clean.',
         },
       ],
     },
