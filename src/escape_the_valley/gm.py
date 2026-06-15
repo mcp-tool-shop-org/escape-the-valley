@@ -54,6 +54,18 @@ PROFILE_HEADERS = {
     ),
 }
 
+def _profile_header(profile: GMProfile) -> str:
+    """Return the system header for a profile, defaulting to FIRESIDE.
+
+    gm-B-07 — a future GMProfile member (or a profile loaded from a stale
+    save) must never crash a live run on a bare KeyError. The fallback is the
+    middle-of-the-road serious campfire voice; the test
+    `test_every_profile_has_a_header` guards against a member being added
+    without a matching header.
+    """
+    return PROFILE_HEADERS.get(profile, PROFILE_HEADERS[GMProfile.FIRESIDE])
+
+
 SCENE_SCHEMA = """{
   "scene_id": "string", "title": "string", "narration": "string",
   "profile": "chronicler|fireside|lantern", "uncanny_intensity": "none|hint|strong",
@@ -91,9 +103,12 @@ class GMConfig:
     host: str = "http://localhost:11434"
     model: str = "llama3.2"
     # 30s allows for first-load model warm-up on slower hardware.
-    # This timeout governs scene/outcome generation and is_available();
-    # cli.py self_check runs its own independent reachability probe.
+    # This timeout governs scene/outcome generation.
     timeout: float = 30.0
+    # gm-B-08 — reachability probes (is_available) get their own short budget
+    # so a dead host fails fast instead of stalling for the full generation
+    # window. cli.py self_check runs its own independent reachability probe.
+    probe_timeout: float = 2.5
     max_retries: int = 1
     enabled: bool = True
 
@@ -158,6 +173,21 @@ class GMClient:
     def __init__(self, config: GMConfig | None = None):
         self.config = config or GMConfig()
         self._client = httpx.Client(timeout=self.config.timeout)
+        # gm-B-03 — per-outcome counters the 'stats' command surfaces. These
+        # are the observable shape of the GM's reliability: how often it was
+        # asked, how often it produced usable JSON, and why it didn't when it
+        # didn't. cli-tui reads this dict; do not rename keys without updating
+        # the consumer. profile_drifts is an extra honesty signal (the model
+        # returned a different profile than the one we asked it to wear).
+        self.stats: dict[str, int] = {
+            "attempts": 0,
+            "successes": 0,
+            "json_rejects": 0,
+            "tone_rejects": 0,
+            "timeouts": 0,
+            "connect_errors": 0,
+            "profile_drifts": 0,
+        }
 
     def is_available(self) -> bool:
         """Check if Ollama is reachable.
@@ -165,11 +195,18 @@ class GMClient:
         Reachability helper for use as a pre-flight probe. Any transport
         failure (connect, timeout, read, protocol, pool) resolves to False
         rather than propagating — a pre-flight check must never raise.
+
+        gm-B-08 — this probe uses its own short timeout (PROBE_TIMEOUT_S),
+        separate from the 30s generation budget, so a dead host fails fast
+        instead of stalling the UI for the full generation window.
         """
         if not self.config.enabled:
             return False
         try:
-            resp = self._client.get(f"{self.config.host}/api/tags")
+            resp = self._client.get(
+                f"{self.config.host}/api/tags",
+                timeout=self.config.probe_timeout,
+            )
             return resp.status_code == 200
         except httpx.HTTPError:
             return False
@@ -206,7 +243,7 @@ class GMClient:
         )
 
         system_prompt = (
-            f"{PROFILE_HEADERS[state.gm_profile]}\n"
+            f"{_profile_header(state.gm_profile)}\n"
             f"You MUST output valid JSON ONLY (no markdown), following the schema below.\n"
             f"If you cannot comply, output an empty JSON object {{}}.\n\n"
             f"SCHEMA (scene response):\n{SCENE_SCHEMA}"
@@ -252,7 +289,9 @@ class GMClient:
         if event.gm_aside:
             user_prompt += f"\nGM ASIDE: {event.gm_aside}\n"
 
-        return self._request_scene(system_prompt, user_prompt)
+        return self._request_scene(
+            system_prompt, user_prompt, state.gm_profile.value,
+        )
 
     def generate_outcome(
         self,
@@ -269,7 +308,7 @@ class GMClient:
             return None
 
         system_prompt = (
-            f"{PROFILE_HEADERS[state.gm_profile]}\n"
+            f"{_profile_header(state.gm_profile)}\n"
             f"You MUST output valid JSON ONLY, following schema below.\n\n"
             f"SCHEMA (outcome response):\n{OUTCOME_SCHEMA}"
         )
@@ -298,12 +337,24 @@ class GMClient:
             "places, rumors, or promises). Do NOT reference supply quantities.\n"
         )
 
-        return self._request_outcome(system_prompt, user_prompt)
+        return self._request_outcome(
+            system_prompt, user_prompt, state.gm_profile.value,
+        )
 
-    def _request_scene(self, system: str, user: str) -> SceneResponse | None:
-        """Make the Ollama request with retry + validation."""
+    def _request_scene(
+        self, system: str, user: str, requested_profile: str = "",
+    ) -> SceneResponse | None:
+        """Make the Ollama request with retry + validation.
+
+        gm-B-03 — each branch bumps self.stats so the 'stats' command can
+        report attempts/successes and *why* the GM fell back.
+        gm-B-04 — a tone-only miss (valid JSON+schema, narration present, the
+        ONLY problem is a banned word) is repaired locally rather than spending
+        a full multi-second round-trip to re-fail identically.
+        """
         for attempt in range(self.config.max_retries + 1):
             try:
+                self.stats["attempts"] += 1
                 resp = self._client.post(
                     self.config.generate_url,
                     json={
@@ -316,18 +367,35 @@ class GMClient:
                 )
                 if resp.status_code != 200:
                     logger.warning("GM returned %d", resp.status_code)
+                    self.stats["json_rejects"] += 1
                     continue
 
                 text = resp.json().get("response", "")
                 data = _parse_json(text)
                 if data and _validate_scene(data):
-                    if _tone_check(data.get("narration", "")):
-                        return SceneResponse.from_dict(data)
-                    logger.warning("Tone check failed, retrying")
-                else:
-                    logger.warning("Invalid scene JSON (attempt %d)", attempt + 1)
+                    narration = data.get("narration", "")
+                    repaired = _tone_repair(narration)
+                    if repaired is None:
+                        # Hard tone failure (punchline structure) — local repair
+                        # can't fix it, so retry with an explicit nudge.
+                        self.stats["tone_rejects"] += 1
+                        logger.warning("Tone check failed (hard), retrying")
+                        user = _nudge_prompt(user)
+                        continue
+                    if repaired != narration:
+                        # Tone-only miss repaired in place; do not burn a retry.
+                        logger.info("Tone repaired locally; accepting scene")
+                        data["narration"] = repaired
+                    self._count_profile_drift(
+                        data.get("profile", ""), requested_profile,
+                    )
+                    self.stats["successes"] += 1
+                    return SceneResponse.from_dict(data)
+                self.stats["json_rejects"] += 1
+                logger.warning("Invalid scene JSON (attempt %d)", attempt + 1)
 
             except (httpx.ConnectError, httpx.TimeoutException) as e:
+                self._count_transport_error(e)
                 logger.warning("GM connection error: %s", e)
                 return None
             except Exception as e:
@@ -335,10 +403,13 @@ class GMClient:
 
         return None
 
-    def _request_outcome(self, system: str, user: str) -> OutcomeResponse | None:
-        """Make outcome request with retry."""
+    def _request_outcome(
+        self, system: str, user: str, requested_profile: str = "",
+    ) -> OutcomeResponse | None:
+        """Make outcome request with retry. See _request_scene for stats/repair."""
         for _attempt in range(self.config.max_retries + 1):
             try:
+                self.stats["attempts"] += 1
                 resp = self._client.post(
                     self.config.generate_url,
                     json={
@@ -350,25 +421,48 @@ class GMClient:
                     },
                 )
                 if resp.status_code != 200:
+                    self.stats["json_rejects"] += 1
                     continue
 
                 text = resp.json().get("response", "")
                 data = _parse_json(text)
                 if data and "outcome_narration" in data:
-                    if _tone_check(data.get("outcome_narration", "")):
-                        return OutcomeResponse.from_dict(data)
-                    logger.warning("Outcome tone check failed, retrying")
-                else:
-                    logger.warning(
-                        "Invalid outcome JSON (attempt %d)", _attempt + 1
-                    )
+                    narration = data.get("outcome_narration", "")
+                    repaired = _tone_repair(narration)
+                    if repaired is None:
+                        self.stats["tone_rejects"] += 1
+                        logger.warning("Outcome tone check failed (hard), retrying")
+                        user = _nudge_prompt(user)
+                        continue
+                    if repaired != narration:
+                        logger.info("Tone repaired locally; accepting outcome")
+                        data["outcome_narration"] = repaired
+                    self.stats["successes"] += 1
+                    return OutcomeResponse.from_dict(data)
+                self.stats["json_rejects"] += 1
+                logger.warning(
+                    "Invalid outcome JSON (attempt %d)", _attempt + 1
+                )
 
-            except (httpx.ConnectError, httpx.TimeoutException):
+            except (httpx.ConnectError, httpx.TimeoutException) as e:
+                self._count_transport_error(e)
                 return None
             except Exception as e:
                 logger.warning("GM outcome error: %s", e)
 
         return None
+
+    def _count_transport_error(self, exc: Exception) -> None:
+        """gm-B-03 — bucket a transport failure into timeouts vs connect_errors."""
+        if isinstance(exc, httpx.TimeoutException):
+            self.stats["timeouts"] += 1
+        else:
+            self.stats["connect_errors"] += 1
+
+    def _count_profile_drift(self, returned: str, requested: str) -> None:
+        """gm-B-03 — count when the model wore a different profile than asked."""
+        if requested and returned and returned.lower() != requested.lower():
+            self.stats["profile_drifts"] += 1
 
     def close(self) -> None:
         self._client.close()
@@ -426,20 +520,92 @@ _PUNCHLINE_PATTERNS = [
 ]
 
 
-def _tone_check(text: str) -> bool:
-    """Light tone lint — reject if modern slang or punchline structure detected."""
+def _has_punchline(text: str) -> bool:
+    """True if modern punchline structure is present.
+
+    Punchlines are a *structural* tone failure — there is no single word to
+    strip — so a hit means the response must be regenerated (gm-B-04), not
+    locally repaired.
+    """
     import re
 
-    words = {w.strip(".,!?;:\"'()") for w in text.lower().split()}
-    violations = words & BANNED_WORDS
-    if violations:
-        logger.warning("Tone violation: %s", violations)
-        return False
     for pattern in _PUNCHLINE_PATTERNS:
         if re.search(pattern, text):
             logger.warning("Punchline pattern detected: %s", pattern)
-            return False
-    return True
+            return True
+    return False
+
+
+def _banned_words_in(text: str) -> set[str]:
+    """Return the set of banned modern-slang words present in text."""
+    words = {w.strip(".,!?;:\"'()") for w in text.lower().split()}
+    return words & BANNED_WORDS
+
+
+def _tone_check(text: str) -> bool:
+    """Light tone lint — reject if modern slang or punchline structure detected."""
+    violations = _banned_words_in(text)
+    if violations:
+        logger.warning("Tone violation: %s", violations)
+        return False
+    return not _has_punchline(text)
+
+
+def _tone_repair(text: str) -> str | None:
+    """Repair a tone-only miss in place; return the cleaned text.
+
+    gm-B-04 — a valid, schema-conforming narration whose ONLY tone problem is
+    a banned slang word does not deserve a full multi-second GM round-trip to
+    re-fail on the same prompt. We strip the offending word(s) locally and
+    accept, collapsing the whitespace they leave behind. Returns:
+
+      - the original text unchanged when it was already clean,
+      - a cleaned copy when banned words were present and removed,
+      - None when the failure is structural (a punchline pattern) and cannot
+        be fixed by word removal — the caller should regenerate with a nudge.
+    """
+    import re
+
+    if _has_punchline(text):
+        return None
+
+    violations = _banned_words_in(text)
+    if not violations:
+        return text
+
+    # Strip each banned word as a whole token, case-insensitively, then
+    # tidy the doubled spaces / dangling punctuation the removal leaves.
+    cleaned = text
+    for word in violations:
+        cleaned = re.sub(rf"(?i)\b{re.escape(word)}\b", "", cleaned)
+    # Drop space before punctuation a removed word left dangling.
+    cleaned = re.sub(r"\s+([,.!?;:])", r"\1", cleaned)
+    # Collapse runs of punctuation left adjacent (", ." → ".").
+    cleaned = re.sub(r"([,;:])\s*([,.!?;:])", r"\2", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    cleaned = re.sub(r"^[\s,;:]+", "", cleaned).strip()
+
+    # If stripping the slang left nothing of substance, there is nothing to
+    # accept — treat it as a hard miss so the caller regenerates/falls back.
+    if not re.search(r"[A-Za-z]", cleaned):
+        return None
+    return cleaned
+
+
+def _nudge_prompt(user: str) -> str:
+    """Append a one-line tone nudge so a regeneration is less likely to repeat.
+
+    gm-B-04 — when we DO spend a retry (only for structural punchline misses),
+    we steer it rather than re-issuing the identical prompt that just failed.
+    """
+    nudge = (
+        "\nTONE NOTE: Avoid modern punchline structure "
+        "(no 'plot twist', 'spoiler alert', 'wait for it'). "
+        "Keep the voice period-appropriate and grounded."
+    )
+    if nudge in user:
+        return user
+    return user + nudge
 
 
 def _find_node(state: RunState):

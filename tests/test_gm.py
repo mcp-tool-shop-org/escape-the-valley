@@ -6,12 +6,16 @@ import httpx
 
 from escape_the_valley.events import EventCategory, EventSkeleton
 from escape_the_valley.gm import (
+    PROFILE_HEADERS,
     GMClient,
     GMConfig,
     _parse_json,
+    _profile_header,
     _tone_check,
+    _tone_repair,
     _validate_scene,
 )
+from escape_the_valley.models import GMProfile
 from escape_the_valley.worldgen import create_new_run
 
 
@@ -168,9 +172,15 @@ class TestIsAvailable:
 
 
 class TestOutcomeToneLint:
-    """gm-A-001 — outcome narration is tone-linted like scenes."""
+    """gm-A-001 — outcome narration is tone-linted like scenes.
 
-    def test_tone_violating_outcome_rejected(self, monkeypatch):
+    gm-B-04 — a *slang-only* miss is now repaired locally (the banned word is
+    stripped and the narration accepted) rather than burning the single retry
+    on an identical regeneration. A *punchline* miss is still a hard failure.
+    """
+
+    def test_slang_only_outcome_repaired_in_one_call(self, monkeypatch):
+        # gm-B-04 — slang words are stripped locally; no retry is spent.
         config = GMConfig(max_retries=1)
         client = GMClient(config)
         state = create_new_run(seed=1)
@@ -192,8 +202,43 @@ class TestOutcomeToneLint:
         result = client.generate_outcome(
             state, event, "The Ford", "A", "Ford it", {"result": "ok"},
         )
+        assert result is not None  # repaired, not dropped to fallback
+        assert calls["n"] == 1  # the single retry was NOT burned
+        # The banned words are gone; the substance survives.
+        low = result.outcome_narration.lower()
+        assert "lol" not in low.split()
+        assert "bro" not in low.split()
+        assert "sus" not in low.split()
+        assert "crossing" in low
+        assert client.stats["successes"] == 1
+
+    def test_punchline_outcome_still_hard_rejected(self, monkeypatch):
+        # A structural punchline cannot be word-stripped — still falls back
+        # after exhausting retries.
+        config = GMConfig(max_retries=1)
+        client = GMClient(config)
+        state = create_new_run(seed=1)
+        event = _make_event()
+
+        calls = {"n": 0}
+        bad = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": "Plot twist: the ford swallowed the wagon.",
+            "callout": "You crossed.",
+        })
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(200, bad)
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
         assert result is None  # tone-fail → deterministic fallback
         assert calls["n"] == config.max_retries + 1  # retried then gave up
+        assert client.stats["tone_rejects"] >= 1
 
     def test_clean_outcome_accepted(self, monkeypatch):
         client = GMClient(GMConfig(max_retries=1))
@@ -252,23 +297,29 @@ class TestGMFallbackNeverBricks:
         assert result is None
         assert calls["n"] == 2
 
-    def test_tone_violating_scene_returns_none(self, monkeypatch):
+    def test_punchline_scene_returns_none(self, monkeypatch):
+        # A structural punchline (gm-B-04 hard miss) cannot be repaired and
+        # must fall through to None after exhausting retries.
         client, state, event = self._client_and_world(max_retries=1)
         calls = {"n": 0}
 
         def _fake_post(*_a, **_k):
             calls["n"] += 1
-            return _FakeResp(200, _valid_scene_json("Bro that was sus, lol."))
+            return _FakeResp(
+                200, _valid_scene_json("Plot twist: the bridge gave way.")
+            )
 
         monkeypatch.setattr(client._client, "post", _fake_post)
         result = client.generate_scene(state, event, "clear skies")
         assert result is None
         assert calls["n"] == 2
 
-    def test_tone_fail_then_pass_recovers(self, monkeypatch):
+    def test_punchline_fail_then_clean_recovers(self, monkeypatch):
+        # A hard punchline miss spends a retry; the second (clean) attempt is
+        # accepted. The retried prompt carries a tone nudge (gm-B-04).
         client, state, event = self._client_and_world(max_retries=1)
         responses = [
-            _FakeResp(200, _valid_scene_json("Totally sus vibes, bro.")),
+            _FakeResp(200, _valid_scene_json("Wait for it. The mule bolts.")),
             _FakeResp(200, _valid_scene_json("The river runs wide and cold.")),
         ]
 
@@ -330,3 +381,178 @@ class TestGMFallbackNeverBricks:
         assert client.generate_outcome(
             state, event, "The Ford", "A", "Ford it", {},
         ) is None
+
+
+class TestToneRepair:
+    """gm-B-04 — local repair of slang-only misses; hard fail on punchlines."""
+
+    def test_clean_text_unchanged(self):
+        text = "The wind howls through the canyon."
+        assert _tone_repair(text) == text
+
+    def test_slang_stripped_and_substance_kept(self):
+        repaired = _tone_repair("Bro the river was lowkey dangerous.")
+        assert repaired is not None
+        words = repaired.lower().split()
+        assert "bro" not in words
+        assert "lowkey" not in words
+        assert "river" in repaired.lower()
+        assert "dangerous" in repaired.lower()
+
+    def test_punchline_returns_none(self):
+        assert _tone_repair("Plot twist: the bridge collapsed.") is None
+
+    def test_all_slang_leaves_nothing_returns_none(self):
+        # Stripping every word leaves no substance — treat as a hard miss.
+        assert _tone_repair("bro lol sus") is None
+
+    def test_slang_only_scene_repaired_in_one_call(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        calls = {"n": 0}
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(
+                200, _valid_scene_json("Bro the ford runs wide and cold.")
+            )
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is not None  # repaired, not dropped
+        assert calls["n"] == 1  # the retry was NOT burned re-failing identically
+        assert "bro" not in result.narration.lower().split()
+        assert "ford" in result.narration.lower()
+
+
+class TestGMStats:
+    """gm-B-03 — the stats dict cli-tui surfaces; each outcome bumps a counter."""
+
+    def _client_world_event(self, **cfg):
+        return GMClient(GMConfig(**cfg)), create_new_run(seed=1), _make_event()
+
+    def test_stats_dict_has_contract_keys(self):
+        client = GMClient(GMConfig())
+        for key in (
+            "attempts", "successes", "json_rejects",
+            "tone_rejects", "timeouts", "connect_errors",
+        ):
+            assert key in client.stats
+            assert client.stats[key] == 0
+
+    def test_success_increments_attempts_and_successes(self, monkeypatch):
+        client, state, event = self._client_world_event(max_retries=1)
+        good = _valid_scene_json("The river runs wide and cold.")
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, good),
+        )
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["attempts"] == 1
+        assert client.stats["successes"] == 1
+        assert client.stats["json_rejects"] == 0
+
+    def test_garbage_increments_json_rejects(self, monkeypatch):
+        client, state, event = self._client_world_event(max_retries=1)
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, "not json"),
+        )
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["json_rejects"] == 2  # max_retries + 1 misses
+        assert client.stats["successes"] == 0
+
+    def test_punchline_increments_tone_rejects(self, monkeypatch):
+        client, state, event = self._client_world_event(max_retries=1)
+        bad = _valid_scene_json("Spoiler alert, the bridge fell.")
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, bad),
+        )
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["tone_rejects"] >= 1
+
+    def test_timeout_increments_timeouts(self, monkeypatch):
+        client, state, event = self._client_world_event(max_retries=1)
+
+        def _timeout(*_a, **_k):
+            raise httpx.TimeoutException("slow")
+
+        monkeypatch.setattr(client._client, "post", _timeout)
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["timeouts"] == 1
+        assert client.stats["connect_errors"] == 0
+
+    def test_connect_error_increments_connect_errors(self, monkeypatch):
+        client, state, event = self._client_world_event(max_retries=1)
+
+        def _refuse(*_a, **_k):
+            raise httpx.ConnectError("refused")
+
+        monkeypatch.setattr(client._client, "post", _refuse)
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["connect_errors"] == 1
+        assert client.stats["timeouts"] == 0
+
+    def test_profile_drift_counted(self, monkeypatch):
+        # Requested fireside (the default new-run profile) but the model
+        # returned 'lantern' → one drift recorded.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)  # default profile == fireside
+        event = _make_event()
+        drifted = json.dumps({
+            "scene_id": "s1",
+            "narration": "The river runs wide and cold.",
+            "profile": "lantern",
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait"},
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, drifted),
+        )
+        client.generate_scene(state, event, "clear skies")
+        assert client.stats["profile_drifts"] == 1
+
+
+class TestProfileHeaders:
+    """gm-B-07 — every profile resolves to a header; lookup never crashes."""
+
+    def test_every_profile_has_a_header(self):
+        # A future GMProfile member without a matching header would crash a
+        # live run on the bare subscript this replaced. Keep them in lockstep.
+        assert set(GMProfile) == set(PROFILE_HEADERS)
+
+    def test_known_profile_resolves(self):
+        for profile in GMProfile:
+            assert _profile_header(profile) == PROFILE_HEADERS[profile]
+
+    def test_unknown_profile_defaults_to_fireside(self):
+        # Simulate a profile not present in PROFILE_HEADERS without mutating
+        # the real enum: a bare string the .get() can't match falls back.
+        assert _profile_header("phantom_profile") == (  # type: ignore[arg-type]
+            PROFILE_HEADERS[GMProfile.FIRESIDE]
+        )
+
+
+class TestIsAvailableTimeout:
+    """gm-B-08 — the reachability probe uses its own short timeout."""
+
+    def test_probe_uses_probe_timeout(self, monkeypatch):
+        client = GMClient(GMConfig(timeout=30.0, probe_timeout=2.5))
+        seen = {}
+
+        class _OK:
+            status_code = 200
+
+        def _get(_url, *, timeout=None, **_k):
+            seen["timeout"] = timeout
+            return _OK()
+
+        monkeypatch.setattr(client._client, "get", _get)
+        assert client.is_available() is True
+        # The probe must NOT use the 30s generation budget.
+        assert seen["timeout"] == 2.5
+
+    def test_probe_default_is_short(self):
+        # The default probe budget is seconds, not the 30s generation window.
+        assert GMConfig().probe_timeout <= 5.0
