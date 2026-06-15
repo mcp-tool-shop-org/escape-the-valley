@@ -67,6 +67,32 @@ app = typer.Typer(
 console = Console()
 
 
+def _network_hint(action: str) -> None:
+    """Structured next-step hint after a ledger/parcel round-trip fails.
+
+    cli-tui-B-04: a bare red error leaves the player stuck. These XRPL calls
+    can stall on a slow/unreachable testnet; on failure we name the likely
+    cause and the exact command to recover, so a transient outage is
+    actionable rather than a dead end.
+    """
+    console.print(
+        "[dim]hint: the XRPL testnet may be slow or unreachable. "
+        f"{action}[/dim]"
+    )
+
+
+def _run_with_spinner(message: str, fn):
+    """Run a blocking network round-trip under a Rich status spinner.
+
+    cli-tui-B-04: every ledger/parcel call can block for tens of seconds on
+    the testnet. The spinner gives the player visible feedback that the CLI
+    is working, not hung. Any exception is re-raised to the caller after the
+    spinner closes so the command can render its own structured error.
+    """
+    with console.status(message, spinner="dots"):
+        return fn()
+
+
 @app.callback(invoke_without_command=True)
 def main_callback(
     _version: bool = typer.Option(
@@ -458,8 +484,10 @@ def ledger_enable() -> None:
     from .save import save_game
 
     mgr = BackpackManager()
-    console.print("Enabling Ledger Backpack on XRPL Testnet...")
-    result = mgr.enable(state)
+    result = _run_with_spinner(
+        "Enabling Ledger Backpack on XRPL Testnet...",
+        lambda: mgr.enable(state),
+    )
     mgr.close()
 
     if result.success:
@@ -468,6 +496,7 @@ def ledger_enable() -> None:
         console.print(f"  Wallet: {result.wallet_address}")
     else:
         console.print(f"[red]{result.message}[/red]")
+        _network_hint("Try again at the next town: trail ledger enable")
         raise typer.Exit(1)
 
 
@@ -515,7 +544,10 @@ def ledger_settle() -> None:
             break
 
     mgr = BackpackManager()
-    result = mgr.settle(state, location)
+    result = _run_with_spinner(
+        f"Settling checkpoint at {location}...",
+        lambda: mgr.settle(state, location),
+    )
     mgr.close()
 
     if result.success:
@@ -525,6 +557,9 @@ def ledger_settle() -> None:
         # cli-tui-003: surface settlement failure via a non-zero exit so
         # automation can detect it (was exit 0 with only a red line).
         console.print(f"[red]{result.message}[/red]")
+        _network_hint(
+            "The checkpoint is queued; retry later: trail ledger reconcile"
+        )
         raise typer.Exit(1)
 
 
@@ -548,9 +583,11 @@ def ledger_reconcile() -> None:
     from .backpack import BackpackManager
     from .save import save_game
 
-    console.print(f"Retrying {pending_count} pending settlement(s)...")
     mgr = BackpackManager()
-    mgr._retry_pending(state)
+    _run_with_spinner(
+        f"Retrying {pending_count} pending settlement(s)...",
+        lambda: mgr._retry_pending(state),
+    )
     mgr.close()
 
     remaining = len(state.backpack.pending_settlements)
@@ -566,6 +603,7 @@ def ledger_reconcile() -> None:
             f"[yellow]Settled {settled}, {remaining} still pending. "
             f"Network may be down — try again later.[/yellow]"
         )
+        _network_hint("Run again when the testnet recovers: trail ledger reconcile")
         raise typer.Exit(1)
 
 
@@ -639,8 +677,10 @@ def parcel_send(
     from .save import save_game
 
     mgr = BackpackManager()
-    console.print(f"Sending {amount} {supply} to {address[:8]}...")
-    result = mgr.send_parcel(state, address, supply.lower(), amount)
+    result = _run_with_spinner(
+        f"Sending {amount} {supply} to {address[:8]}...",
+        lambda: mgr.send_parcel(state, address, supply.lower(), amount),
+    )
     mgr.close()
 
     if result.success:
@@ -648,6 +688,10 @@ def parcel_send(
         console.print(f"[green]{result.message}[/green]")
     else:
         console.print(f"[red]{result.message}[/red]")
+        _network_hint(
+            "Confirm the address with 'trail wallet share' and retry: "
+            f"trail parcel send {address[:8]}... {supply} {amount}"
+        )
         raise typer.Exit(1)
 
 

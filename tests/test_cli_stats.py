@@ -378,3 +378,85 @@ class TestLedgerExitCodes:
         result = runner.invoke(app, ["ledger", "reconcile"])
         assert result.exit_code == 0
         assert "All clear" in result.output
+
+
+class TestNetworkHints:
+    """cli-tui-B-04: a failed network round-trip prints a structured hint."""
+
+    def test_settle_failure_prints_hint(self, monkeypatch):
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SettlementResult
+
+        monkeypatch.setattr(
+            BackpackManager, "settle",
+            lambda self, st, loc: SettlementResult(
+                success=False, message="testnet timeout",
+            ),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "settle"])
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+        assert "trail ledger reconcile" in result.output
+
+    def test_enable_failure_prints_hint(self, monkeypatch):
+        state = create_new_run(seed=5)  # backpack disabled
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, EnableResult
+
+        monkeypatch.setattr(
+            BackpackManager, "enable",
+            lambda self, st: EnableResult(success=False, message="unreachable"),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "enable"])
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+        assert "trail ledger enable" in result.output
+
+    def test_parcel_send_failure_prints_hint(self, monkeypatch):
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SendResult
+
+        monkeypatch.setattr(
+            BackpackManager, "send_parcel",
+            lambda self, st, r, sup, amt: SendResult(
+                success=False, message="submit failed",
+            ),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(
+            app,
+            ["parcel", "send", "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", "food", "5"],
+        )
+        assert result.exit_code == 1
+        assert "hint:" in result.output
+
+    def test_settle_success_no_hint(self, monkeypatch):
+        """A successful settle does not nag with a network hint."""
+        state = _enabled_state()
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager, SettlementResult
+
+        monkeypatch.setattr(
+            BackpackManager, "settle",
+            lambda self, st, loc: SettlementResult(success=True, message="settled"),
+        )
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "settle"])
+        assert result.exit_code == 0
+        assert "hint:" not in result.output
