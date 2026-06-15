@@ -4,6 +4,8 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
 from escape_the_valley.models import GMProfile, JournalEntry
@@ -528,3 +530,88 @@ class TestCorruptSaveBackup:
         save_game(create_new_run(seed=42), base_path=tmp_path)
         assert load_game(base_path=tmp_path) is not None
         assert self._corrupt_files(tmp_path / SAVE_DIR) == []
+
+
+class TestAtomicSave:
+    """Stage-C: save_game() writes run.json atomically (temp file in the same
+    dir, then os.replace) so a crash mid-save can never leave a half-written
+    file, and no leftover *.tmp survives a normal save."""
+
+    def _temp_files(self, save_dir):
+        # Anything the atomic writer might leave behind: our prefix + .tmp.
+        return [
+            p
+            for p in save_dir.iterdir()
+            if p.is_file() and p.name.endswith(".tmp")
+        ]
+
+    def test_save_leaves_no_temp_file(self, tmp_path):
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        # run.json exists and is valid JSON; no leftover temp file.
+        save_path = save_dir / SAVE_FILE
+        assert save_path.exists()
+        json.loads(save_path.read_text(encoding="utf-8"))  # raises if invalid
+        assert self._temp_files(save_dir) == []
+
+    def test_repeated_saves_leave_no_temp_files(self, tmp_path):
+        """Overwriting an existing run.json must not accumulate temp files."""
+        state = create_new_run(seed=42)
+        for _ in range(3):
+            save_game(state, base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        assert (save_dir / SAVE_FILE).exists()
+        assert self._temp_files(save_dir) == []
+
+    def test_save_uses_temp_then_replace(self, tmp_path, monkeypatch):
+        """The write must go through os.replace (atomic), not a direct write to
+        run.json — so run.json is only ever the old or new complete file."""
+        import escape_the_valley.save as save_mod
+
+        replaced = []
+        real_replace = save_mod.os.replace
+
+        def spy_replace(src, dst):
+            replaced.append((str(src), str(dst)))
+            return real_replace(src, dst)
+
+        monkeypatch.setattr(save_mod.os, "replace", spy_replace)
+
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        # Exactly one replace landed run.json, and the source was a temp file.
+        landed = [r for r in replaced if r[1] == str(save_path)]
+        assert len(landed) == 1
+        assert landed[0][0].endswith(".tmp")
+
+    def test_failed_write_leaves_run_json_intact_and_no_temp(self, tmp_path):
+        """If the atomic replace fails after a good save already exists, the
+        prior run.json survives whole and no temp file is left behind."""
+        import escape_the_valley.save as save_mod
+
+        # First, a good save so a complete run.json is on disk.
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        save_dir = tmp_path / SAVE_DIR
+        save_path = save_dir / SAVE_FILE
+        good = save_path.read_text(encoding="utf-8")
+
+        # Now make os.replace blow up to simulate a crash at the replace step.
+        def boom(src, dst):
+            raise OSError("simulated crash during replace")
+
+        original_replace = save_mod.os.replace
+        save_mod.os.replace = boom
+        try:
+            with pytest.raises(OSError):
+                save_game(create_new_run(seed=99), base_path=tmp_path)
+        finally:
+            save_mod.os.replace = original_replace
+
+        # The original run.json is untouched (only-ever-fully-replaced).
+        assert save_path.read_text(encoding="utf-8") == good
+        # And the failed attempt cleaned up its temp file.
+        leftover = [
+            p for p in save_dir.iterdir() if p.is_file() and p.name.endswith(".tmp")
+        ]
+        assert leftover == []

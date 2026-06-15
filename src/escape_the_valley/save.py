@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -72,18 +74,55 @@ def _enum_to_str(obj):
 
 
 def save_game(state: RunState, base_path: Path | None = None) -> Path:
-    """Save the current game state to disk."""
+    """Save the current game state to disk.
+
+    The write is atomic and concurrency-tolerant: the JSON is written to a
+    temp file in the SAME directory as run.json, then os.replace()'d over it.
+    os.replace() is atomic on both POSIX and Windows, so run.json is only ever
+    seen as the previous complete file or the new complete file — never a
+    half-written one, even if the process is killed mid-save. This removes the
+    partial-write corruption risk independent of any UI-thread serialization.
+    """
     base = base_path or Path(".")
     save_dir = base / SAVE_DIR
     save_dir.mkdir(parents=True, exist_ok=True)
     save_path = save_dir / SAVE_FILE
 
     data = _state_to_dict(state)
-    save_path.write_text(json.dumps(data, indent=2, default=_enum_to_str), encoding="utf-8")
+    payload = json.dumps(data, indent=2, default=_enum_to_str)
+    _atomic_write_text(save_path, payload)
 
     # Secrets go to a local-only sidecar, keyed by run_id (ledger-001/ENG-A-04).
     _write_secrets_sidecar(save_dir, state)
     return save_path
+
+
+def _atomic_write_text(target: Path, text: str) -> None:
+    """Write text to ``target`` atomically.
+
+    Writes to a uniquely-named temp file in the SAME directory (so os.replace()
+    stays on one filesystem and is truly atomic), flushes + fsyncs to durably
+    land the bytes, then os.replace()'s the temp over ``target``. On any failure
+    the temp file is removed so no leftover ``*.tmp`` is left behind.
+    """
+    target_dir = target.parent
+    fd, tmp_name = tempfile.mkstemp(
+        dir=target_dir, prefix=f"{target.name}.", suffix=".tmp"
+    )
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_path, target)
+    except BaseException:
+        # Never leave a half-written temp file behind (incl. on KeyboardInterrupt).
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def _write_secrets_sidecar(save_dir: Path, state: RunState) -> None:
