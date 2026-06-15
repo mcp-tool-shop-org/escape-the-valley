@@ -71,7 +71,7 @@ Each turn you choose an action from camp:
 
 **Escape valves** (hard ration, desperate repair, abandon cargo) exist for emergencies. They have side effects and cooldowns — last resorts, not strategies.
 
-For deeper tips, see the [Survival Guide](docs/survival-guide.md).
+For deeper tips, see the [Survival Guide](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/).
 
 ## GM Profiles
 
