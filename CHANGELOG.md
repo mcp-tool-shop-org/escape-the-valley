@@ -4,11 +4,22 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-15
+
 ### Added
 
+- **Streaming GM narration:** the storyteller now writes token-by-token, visibly composing each beat as Ollama generates it, threaded through the async TUI so the narration appears live instead of arriving in one block after a pause.
+- **Graded endings + epilogue:** a run now ends with a graded `EndingResult` — **triumphant**, **weathered**, **pyrrhic**, or **lost** — read from survivors, days-versus-par, taboo, and uncanny, and narrated as a proper epilogue rather than a bare cause-of-death line.
+- **Real stakes:** data-driven events can now wound or kill the party. A new event health path plus roughly 30 curated bodily-danger events mean a bad choice can cost a life, with attributed death causes (an event-wound death reads as *Injury*, not a generic "The trail").
+- **Run artifacts:** an end-of-run screen surfaces the XRPL postcard, the run's stats, and an export/share path, so a finished run leaves something you can keep and pass along.
+- **Cross-family GM panel simulator** (`scripts/sim_gm_panel.py`): validates GM behavior across model families, so the narrator can be checked for tone and safety on more than one backend.
 - **Multiplayer parcel trading** over XRPL: `trail parcel send <addr> <supply> <amount>`, `trail parcel list`, `trail parcel accept <id>`, `trail parcel sent`, and `trail wallet share` — send supply tokens to another traveler via a Testnet micropayment with an attached memo, and accept incoming parcels into your backpack.
 - **Ledger reconciliation proof harness** (audit mode): an on-ledger reconciliation proof that replays settlement receipts and verifies them against the XRPL Testnet, so a run's supply history can be independently audited.
 - `--gm-profile` and `--weirdness` options on `trail tui`, matching the classic `trail new` CLI, so the GM voice and weirdness band can be set when launching the TUI.
+
+### Changed
+
+- **Event time-cost is real:** `WAIT` / `DETOUR` / `REST` event choices now spend clock time, so the risk-versus-time tradeoff actually bites — playing it safe costs days, and days are not free.
 
 ### Changed (Stage-C humanization)
 
