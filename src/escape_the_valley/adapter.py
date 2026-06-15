@@ -338,11 +338,17 @@ def _build_prompt(engine: StepEngine):
 
     if engine.phase == GamePhase.GAME_OVER:
         # EC-04 / FEAT-CLITUI-01: the full ending (graded result, epilogue,
-        # postcard, diagnostics) is rendered by the dedicated end screen
-        # (see EndScreen + populate_end_data). The prompt itself is a quiet
-        # footer pointing the player at the way out.
-        title = "The valley is behind you" if engine.state.victory else "The trail ends"
-        return (title, "Press q to close.", [])
+        # postcard, diagnostics) is rendered by the dedicated end screen (see
+        # EndScreen + populate_end_data, which reads frame.postcard_lines). The
+        # prompt itself is hidden behind that screen, but we keep the trail
+        # ledger in prompt_text so any non-TUI / headless consumer of the frame
+        # still has the retelling, and the title stays the classic label.
+        if engine.state.backpack.enabled and engine.state.backpack.settlements:
+            ledger = build_xrpl_postcard(engine.state)
+        else:
+            ledger = build_trail_ledger(engine.state)
+        title = "Victory!" if engine.state.victory else "Game Over"
+        return (title, "\n".join(ledger), [])
 
     # CAMP — standard actions + conditional escape valves, from the shared
     # camp_choices() source of truth so display and dispatch never diverge.
