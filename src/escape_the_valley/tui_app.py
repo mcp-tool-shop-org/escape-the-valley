@@ -82,6 +82,26 @@ class FrameState:
     gm_degraded: bool = False
     gm_degraded_reason: str = ""
 
+    # ── End-of-run (EC-04 / FEAT-CLITUI-01) ─────────────────────────
+    # Populated only when the run is over. The end screen renders the graded
+    # ending (tier + facts), the GM epilogue, the run diagnostics, and the
+    # trail ledger / XRPL postcard. None/empty while the run is live.
+    game_over: bool = False
+    victory: bool = False
+    ending_tier: str = ""
+    ending_headline: str = ""
+    # Pre-rendered (label, value) rows for the facts table.
+    ending_facts: list[tuple[str, str]] = field(default_factory=list)
+    # The narrated epilogue (GM if available, deterministic floor otherwise).
+    # Empty string means "not computed yet" (the worker is composing it).
+    epilogue: str = ""
+    # The trail ledger / XRPL postcard lines (read-only, from ledger.py).
+    postcard_lines: list[str] = field(default_factory=list)
+    # True when the postcard carries on-ledger receipts (backpack was used).
+    is_postcard: bool = False
+    # Run diagnostics (the data the CLI `stats` command computes).
+    run_stats: list[tuple[str, str]] = field(default_factory=list)
+
 
 # ── Widgets ─────────────────────────────────────────────────────────
 
@@ -135,6 +155,21 @@ class NarrationPanel(Markdown):
     def update_from(self, s: FrameState) -> None:
         self.update(s.narration)
 
+    # gm-feat-01: progressive streaming. While a GM scene/outcome narration
+    # arrives token-by-token on the worker thread, the app marshals each delta
+    # onto the UI thread and feeds it here so the player watches the storyteller
+    # write. stream_reset() opens a fresh buffer; stream_append() grows it and
+    # repaints. The final _render_all() (after the step completes) overwrites
+    # this with the fully-parsed FrameState narration, so a streamed scene and a
+    # non-streamed one converge on identical end text.
+    def stream_reset(self) -> None:
+        self._stream_text = ""
+        self.update("")
+
+    def stream_append(self, delta: str) -> None:
+        self._stream_text = getattr(self, "_stream_text", "") + delta
+        self.update(self._stream_text)
+
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
@@ -148,15 +183,29 @@ class PartyPanel(Static):
 class EventBar(Static):
     """Bottom prompt + choices."""
 
-    def update_from(self, s: FrameState, *, busy: bool = False) -> None:
+    def update_from(
+        self, s: FrameState, *, busy: bool = False, streaming: bool = False,
+    ) -> None:
         if busy:
             # cli-tui-B-02: a step/ledger call is in flight on a worker thread.
             # Show a visible loading state so the UI never looks frozen, and
             # make it plain that input is paused.
-            self.update(
-                "[b]The storyteller is thinking...[/b]\n"
-                "[dim]Working \u2014 keys are paused for a moment.[/dim]"
-            )
+            #
+            # gm-feat-01: once the first narration token has arrived the state
+            # shifts from 'thinking' to 'writing' \u2014 the storyteller is no longer
+            # composing in silence, the words are landing in the panel. Choices
+            # stay withheld until the step completes either way.
+            if streaming:
+                self.update(
+                    "[b]The storyteller is writing...[/b]\n"
+                    "[dim]Watch the trail above \u2014 keys resume in a "
+                    "moment.[/dim]"
+                )
+            else:
+                self.update(
+                    "[b]The storyteller is thinking...[/b]\n"
+                    "[dim]Working \u2014 keys are paused for a moment.[/dim]"
+                )
             return
 
         choice_lines = []
@@ -216,6 +265,90 @@ class JournalDrawer(Static):
         self.update("[b]Journal[/b]\n" + lines)
 
 
+class EndScreen(Static):
+    """The end-of-run screen (EC-04 / FEAT-CLITUI-01).
+
+    Replaces the old clinical cause-of-death line with an ending that feels like
+    one: a tier-keyed banner, the graded result's facts, the GM-narrated
+    epilogue (or its deterministic floor), the run diagnostics, and the trail
+    ledger / XRPL postcard. Serious, not cute — period weight throughout.
+    """
+
+    # A short, period-appropriate caption per tier so the worst and best
+    # endings read differently at a glance. Serious — never a score screen.
+    _TIER_CAPTION = {
+        "lost": "The valley kept its distance.",
+        "pyrrhic": "Arrived — and counting the cost of arriving.",
+        "weathered": "Worn thin, late, and still standing.",
+        "triumphant": "Intact, on time, the vow unbroken.",
+    }
+
+    def update_from(self, s: FrameState) -> None:
+        # The end screen only has content for a finished run; while the run is
+        # live it stays hidden, so render nothing rather than a stale banner.
+        if not s.game_over:
+            self.update("")
+            return
+
+        lines: list[str] = []
+
+        # Banner — victory or defeat, then the graded headline.
+        if s.victory:
+            lines.append("[b]THE VALLEY IS BEHIND YOU[/b]")
+        else:
+            lines.append("[b]THE TRAIL CLAIMS ANOTHER[/b]")
+        caption = self._TIER_CAPTION.get(s.ending_tier, "")
+        if caption:
+            lines.append(f"[dim]{caption}[/dim]")
+        if s.ending_headline:
+            lines.append("")
+            lines.append(s.ending_headline)
+
+        # The epilogue — the storyteller's closing words. While the GM is still
+        # composing it on the worker, show a quiet placeholder rather than a
+        # blank gap.
+        lines.append("")
+        lines.append("─" * 30)
+        if s.epilogue:
+            lines.append(s.epilogue)
+        else:
+            lines.append("[dim]The storyteller gathers the last of it...[/dim]")
+        lines.append("─" * 30)
+
+        # The graded facts.
+        if s.ending_facts:
+            lines.append("")
+            lines.append("[b]The reckoning[/b]")
+            for label, value in s.ending_facts:
+                lines.append(f"  {label}: {value}")
+
+        # Run diagnostics (the CLI `stats` data).
+        if s.run_stats:
+            lines.append("")
+            lines.append("[b]The run[/b]")
+            for label, value in s.run_stats:
+                lines.append(f"  {label}: {value}")
+
+        # The trail ledger / XRPL postcard.
+        if s.postcard_lines:
+            lines.append("")
+            heading = "[b]Postcard (on-ledger)[/b]" if s.is_postcard else "[b]Trail ledger[/b]"
+            lines.append(heading)
+            for ln in s.postcard_lines:
+                lines.append(ln)
+
+        lines.append("")
+        if s.postcard_lines:
+            lines.append(
+                "[dim]Press C to copy this postcard to a file • "
+                "q to close.[/dim]"
+            )
+        else:
+            lines.append("[dim]Press q to close.[/dim]")
+
+        self.update("\n".join(lines))
+
+
 HELP_TEXT = """\
 [b]Escape the Valley: Ledger Trail[/b]
 
@@ -268,6 +401,9 @@ class LedgerTrailApp(App):
 
     show_help: reactive[bool] = reactive(False)
     show_journal: reactive[bool] = reactive(False)
+    # EC-04 / FEAT-CLITUI-01: the end-of-run screen. Shown once the engine
+    # transitions to GAME_OVER; covers the play surface with the graded ending.
+    show_end: reactive[bool] = reactive(False)
     show_ledger: reactive[bool] = reactive(False)
     show_nudge: reactive[bool] = reactive(False)
     show_enable_flow: reactive[bool] = reactive(False)
@@ -301,6 +437,21 @@ class LedgerTrailApp(App):
         # worker thread. Gameplay + ledger hotkeys are ignored while in flight
         # so queued keypresses don't pile up and double-step the engine.
         self._in_flight = False
+        # gm-feat-01: streaming render. _streaming flips True on the FIRST
+        # narration token of a step, so the event bar can drop the 'thinking'
+        # state and the narration panel can begin showing prose as it is
+        # written. The GM-off path and the deterministic fallback path never set
+        # a token sink, so they render instantly with no streaming (no
+        # regression). Set by _run_step, consumed by _on_narration_token.
+        self._streaming = False
+        self._gm_wrapped = False
+        # The live token sink for the current step (None = no streaming this
+        # step). Set by _arm_stream, cleared by _finish_step. Initialized here
+        # so the GM wrapper and _finish_step can always read it safely.
+        self._token_sink = None
+        # EC-04: the narrated epilogue once computed (empty until then). Held on
+        # the app so a frame re-sync after game-over re-applies it.
+        self._epilogue_text = ""
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -324,6 +475,8 @@ class LedgerTrailApp(App):
         with Container(id="overlays"):
             yield HelpOverlay(id="help")
             yield JournalDrawer(id="journal")
+            # EC-04 / FEAT-CLITUI-01: the full-screen end-of-run screen.
+            yield EndScreen(id="end_screen")
 
             from .backpack_ui import (
                 EnableFlowOverlay,
@@ -368,6 +521,12 @@ class LedgerTrailApp(App):
 
         self._render_all()
 
+        # EC-04: if a finished run was loaded (the CLI normally refuses this,
+        # but be robust), raise the end screen straight away.
+        if self._engine and self._engine.state.game_over and not self.show_end:
+            self._begin_end_screen()
+            return
+
         # cli-tui-B-09: confirm a resumed run so the player knows the save
         # loaded and where they are, with a pointer to the help overlay.
         if self._resumed and self._engine:
@@ -381,6 +540,13 @@ class LedgerTrailApp(App):
         from .adapter import state_to_frame
 
         self._frame = state_to_frame(self._engine)
+        # EC-04: re-apply an already-computed epilogue. _sync_frame rebuilds the
+        # frame from scratch (the adapter leaves epilogue empty on purpose,
+        # since it can block), so without this a re-sync after the epilogue
+        # landed would blank it back to the placeholder.
+        epilogue = getattr(self, "_epilogue_text", "")
+        if epilogue and self._frame.game_over:
+            self._frame.epilogue = epilogue
 
     def _save(self) -> None:
         """Persist the current run to disk after a backpack/parcel mutation.
@@ -405,9 +571,13 @@ class LedgerTrailApp(App):
         # loading state instead of the choices.
         self.query_one("#eventbar", EventBar).update_from(s, busy=self._in_flight)
         self.query_one("#journal", JournalDrawer).update_from(s)
+        # EC-04 / FEAT-CLITUI-01: keep the end screen's content fresh (the GM
+        # epilogue lands asynchronously, so this re-renders when it arrives).
+        self.query_one("#end_screen", EndScreen).update_from(s)
 
         self.query_one("#help").display = self.show_help
         self.query_one("#journal").display = self.show_journal
+        self.query_one("#end_screen").display = self.show_end
         self.query_one("#ledger_menu").display = self.show_ledger
         self.query_one("#nudge").display = self.show_nudge
         self.query_one("#enable_flow").display = self.show_enable_flow
@@ -433,6 +603,17 @@ class LedgerTrailApp(App):
         """Sync frame, render, optionally narrate, and check nudge."""
         self._sync_frame()
         self._render_all()
+
+        # EC-04 / FEAT-CLITUI-01: the run just ended — raise the end screen and
+        # kick off the (fallback-safe) GM epilogue. Done before the nudge check
+        # so a death never pops the backpack nudge over the ending.
+        if (
+            self._engine
+            and self._engine.state.game_over
+            and not self.show_end
+        ):
+            self._begin_end_screen()
+            return
 
         # Nudge: show once at first town if backpack not enabled/dismissed
         if self._engine:
@@ -535,6 +716,13 @@ class LedgerTrailApp(App):
         valve letter the gate hasn't opened resolves to nothing and is
         ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
         """
+        # On the end screen the gameplay choice keys (1-7 / e-g) are dead: the
+        # run is over and StepEngine.step short-circuits at GAME_OVER anyway, so
+        # dispatching a step worker here only spins a wasted thread + a redundant
+        # re-render. Make an end-screen gameplay keypress a clean no-op without
+        # disturbing the keys that DO work there (quit/journal/help/copy/close).
+        if self.show_end:
+            return
         if not self._engine or self._in_flight:
             return
 
@@ -556,6 +744,10 @@ class LedgerTrailApp(App):
 
     def action_intent(self, intent_str: str) -> None:
         """Map hotkeys t/r/h/p to engine intents."""
+        # End-screen gameplay keys are a no-op (see action_choose): the run is
+        # over, so t/r/h/p should not dispatch a step worker behind the ending.
+        if self.show_end:
+            return
         if not self._engine or self._in_flight:
             return
 
@@ -599,6 +791,12 @@ class LedgerTrailApp(App):
         Here we flip into a visible 'thinking' state, ignore further hotkeys,
         and hand the blocking call to a thread worker. The GM-off path is
         identical in behavior — it just returns fast.
+
+        gm-feat-01: before the step runs we arm the GM streaming sink so the
+        scene/outcome narration is shown progressively (see
+        _install_gm_stream_wrapper / _on_narration_token). The sink is a no-op
+        whenever the GM is disabled or falls back, so the GM-off and fallback
+        paths render instantly with no streaming.
         """
         # If there is no live App event loop (unit tests calling the action
         # directly), run synchronously so existing call sites keep working.
@@ -608,8 +806,177 @@ class LedgerTrailApp(App):
             return
 
         self._in_flight = True
+        self._streaming = False
+        self._arm_stream()
         self._render_all()
         self._step_worker(intent)
+
+    def _arm_stream(self) -> None:
+        """Arm the per-step GM token sink (gm-feat-01).
+
+        Installs (once) a thin wrapper around the engine's GMClient
+        scene/outcome generators that injects our on_token callback, then sets
+        the live sink for this step. When the GM is disabled, unreachable, or
+        produces nothing usable, no token ever flows and the narration is
+        rendered in one shot by the post-step _render_all — so the fallback and
+        GM-off paths are unchanged.
+        """
+        self._install_gm_stream_wrapper()
+        self._token_sink = self._on_narration_token
+
+    def _install_gm_stream_wrapper(self) -> None:
+        """Wrap the engine's GMClient generators to inject on_token (idempotent).
+
+        gm-feat-01: the StepEngine calls gm.generate_scene/outcome without an
+        on_token callback. Rather than reach into the engine (out of cli-tui
+        ownership), we wrap the GMClient instance the engine already holds so
+        that — only when a live token sink is set for the current step — the
+        streaming code path in gm.py fires. With no sink set the wrappers pass
+        on_token=None, i.e. the exact non-streamed round-trip. The wrap is a
+        plain delegation, so retries / tone-lint / fallback-never-bricks all
+        live untouched in gm.py.
+        """
+        gm = getattr(self._engine, "gm", None)
+        if gm is None or self._gm_wrapped:
+            return
+
+        orig_scene = gm.generate_scene
+        orig_outcome = gm.generate_outcome
+
+        def scene(*args, **kwargs):
+            kwargs.setdefault("on_token", self._token_sink)
+            return orig_scene(*args, **kwargs)
+
+        def outcome(*args, **kwargs):
+            kwargs.setdefault("on_token", self._token_sink)
+            return orig_outcome(*args, **kwargs)
+
+        gm.generate_scene = scene
+        gm.generate_outcome = outcome
+        self._gm_wrapped = True
+
+    def _on_narration_token(self, delta: str) -> None:
+        """GM streaming callback — runs on the WORKER thread (gm-feat-01).
+
+        Every widget mutation must be marshalled back onto the UI thread, so we
+        hand the delta to _apply_narration_token via call_from_thread. The first
+        token of a step flips _streaming True, which lets the event bar drop the
+        'thinking…' line and the narration panel begin showing prose. A buggy
+        renderer can never brick generation: gm._safe_emit already swallows any
+        exception this callback raises.
+        """
+        if not delta:
+            return
+        try:
+            self.call_from_thread(self._apply_narration_token, delta)
+        except Exception:
+            # No live loop (defensive): drop the delta; the final render still
+            # paints the complete narration.
+            pass
+
+    def _apply_narration_token(self, delta: str) -> None:
+        """UI-thread half of streaming: grow the narration panel (gm-feat-01)."""
+        first = not self._streaming
+        self._streaming = True
+        panel = self.query_one("#narration", NarrationPanel)
+        if first:
+            # First token: leave 'thinking' behind and open a fresh buffer.
+            panel.stream_reset()
+            # Repaint the event bar so the busy 'thinking' line yields to the
+            # streaming state (the choices are still withheld until completion).
+            self.query_one("#eventbar", EventBar).update_from(
+                self._frame, busy=True, streaming=True,
+            )
+        panel.stream_append(delta)
+
+    # ── End-of-run screen (EC-04 / FEAT-CLITUI-01) ─────────────────
+
+    def _begin_end_screen(self) -> None:
+        """Raise the end screen and compute the GM epilogue (fallback-safe).
+
+        The graded ending, postcard, and diagnostics are already on the frame
+        (populated by the adapter) and render instantly. The GM epilogue can
+        block on a network round-trip, so it is computed on a worker thread and
+        filled in by _finish_epilogue. generate_epilogue NEVER returns None — it
+        falls back to a deterministic floor — so a dead/disabled GM still yields
+        a real ending, just without the narrated dressing.
+        """
+        self._close_all_overlays()
+        self.show_end = True
+        self._render_all()
+
+        ending = self._engine.state.ending
+        if ending is None:
+            # Defensive: recompute deterministically so the worker always has an
+            # EndingResult to narrate (the adapter does the same).
+            from .step_engine import compute_ending
+
+            ending = compute_ending(self._engine.state)
+
+        if not self._has_worker_runtime():
+            self._epilogue_blocking(ending)
+            return
+        self._epilogue_worker(ending)
+
+    def _epilogue_blocking(self, ending) -> None:
+        """Synchronous epilogue (unit tests / no live loop)."""
+        text = self._compute_epilogue(ending)
+        self._finish_epilogue(text)
+
+    @work(thread=True, exclusive=True, group="epilogue")
+    def _epilogue_worker(self, ending) -> None:
+        text = self._compute_epilogue(ending)
+        self.call_from_thread(self._finish_epilogue, text)
+
+    def _compute_epilogue(self, ending) -> str:
+        """Call the (fallback-safe) GM epilogue API; never raises, never None.
+
+        gm.generate_epilogue computes a deterministic floor first and only
+        dresses it up if the GM is reachable, so this is safe to call with the
+        GM off. Any unexpected error still degrades to the deterministic floor
+        rather than leaving the end screen blank.
+        """
+        gm = getattr(self._engine, "gm", None)
+        if gm is None:
+            from .gm import build_deterministic_epilogue
+
+            return build_deterministic_epilogue(self._engine.state, ending)
+        try:
+            return gm.generate_epilogue(self._engine.state, ending)
+        except Exception:
+            from .gm import build_deterministic_epilogue
+
+            return build_deterministic_epilogue(self._engine.state, ending)
+
+    def _finish_epilogue(self, text: str) -> None:
+        """UI-thread completion: store the epilogue and repaint the end screen."""
+        self._epilogue_text = text
+        self._frame.epilogue = text
+        self._render_all()
+
+    def action_copy_postcard(self) -> None:
+        """Export the end-of-run postcard to a file and tell the player the path.
+
+        FEAT-CLITUI-01: the share path. Writes .trail/postcard-<run_id>.txt as
+        plain UTF-8 (no Rich markup), the same file the `trail postcard --save`
+        CLI command writes, then notifies with the path so the player can hand
+        it to a friend. A write failure is reported rather than silently lost.
+        """
+        if not self._engine or not self.show_end:
+            return
+        if not self._frame.postcard_lines:
+            self.notify("No postcard to copy for this run.")
+            return
+        from .cli import write_postcard_file
+
+        try:
+            path = write_postcard_file(
+                self._engine.state, self._frame.postcard_lines,
+            )
+        except OSError as e:
+            self.notify(f"Could not write postcard: {e}")
+            return
+        self.notify(f"Postcard saved to {path}")
 
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.
@@ -647,6 +1014,12 @@ class LedgerTrailApp(App):
     def _finish_step(self) -> None:
         """UI-thread completion: clear busy state, sync, render, narrate."""
         self._in_flight = False
+        # gm-feat-01: disarm the streaming sink and clear the flag so the next
+        # step starts clean. _after_step's _render_all repaints the narration
+        # panel from the fully-parsed FrameState, overwriting any streamed
+        # partial with the final text (streamed and non-streamed converge).
+        self._token_sink = None
+        self._streaming = False
         self._after_step()
 
     # ── Ledger Backpack actions ────────────────────────────────────
@@ -1092,6 +1465,15 @@ class LedgerTrailApp(App):
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
         key = event.key
+
+        # FEAT-CLITUI-01: on the end screen, 'c' copies the postcard to a file.
+        # Handled first so it never collides with gameplay letters (the play
+        # surface is behind the end screen and its keys are irrelevant now).
+        if self.show_end:
+            if key == "c":
+                self.action_copy_postcard()
+                event.prevent_default()
+                return
 
         # cli-tui-B-02: while a step/ledger worker is running, swallow the
         # on_key-routed gameplay/overlay letters so queued keypresses can't

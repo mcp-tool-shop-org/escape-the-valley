@@ -70,6 +70,19 @@ Screen {
   overflow-y: auto;
 }
 
+/* EC-04 / FEAT-CLITUI-01: the end-of-run screen covers the whole play
+   surface — it is an ending, not a drawer. */
+#end_screen {
+  display: none;
+  width: 90%;
+  height: 90%;
+  margin: 1 0 0 0;
+  padding: 1 3;
+  border: round #3a4b60;
+  background: #0b0f14;
+  overflow-y: auto;
+}
+
 #ledger_menu {
   display: none;
   width: 50%;

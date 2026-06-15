@@ -1915,8 +1915,12 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
                 member.health = max(0, min(100, member.health + outcome.health_delta))
                 # ENG-A-07: attribute event-caused deaths so they don't fall
                 # through to the generic "The trail" in determine_cause_of_death.
+                # from_event=True so a bandit/animal wound with food + water in
+                # stock reads as "Injury", not the generic "Exposure" fallback.
                 if member.health <= 0 and not member.death_cause:
-                    member.death_cause = _proximate_death_cause(member, state)
+                    member.death_cause = _proximate_death_cause(
+                        member, state, from_event=True
+                    )
 
     if outcome.wagon_delta != 0:
         state.wagon.condition = max(0, min(100, state.wagon.condition + outcome.wagon_delta))

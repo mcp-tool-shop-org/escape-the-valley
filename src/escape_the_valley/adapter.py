@@ -10,7 +10,7 @@ from .intent import GamePhase, IntentAction
 from .ledger import build_trail_ledger, build_xrpl_postcard
 from .physics import can_abandon_cargo, can_desperate_repair, can_hard_ration
 from .resources import RESOURCE_CATALOG, ResourceCategory
-from .step_engine import StepEngine
+from .step_engine import StepEngine, compute_ending
 from .tui_app import Choice, FrameState
 
 
@@ -156,7 +156,7 @@ def state_to_frame(engine: StepEngine) -> FrameState:
     if not s.backpack.enabled and backpack_status.strip() == "Ledger: OFF":
         backpack_status = "Ledger: OFF (press L)"
 
-    return FrameState(
+    frame = FrameState(
         day=s.day,
         location=location,
         next_stop=next_stop,
@@ -179,6 +179,130 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         # signal into the frame so the UI can show a subtle fallback notice.
         gm_degraded=msgs.gm_degraded,
         gm_degraded_reason=msgs.gm_degraded_reason,
+    )
+
+    # EC-04 / FEAT-CLITUI-01: when the run is over, fill the end-screen data so
+    # the TUI can render the graded ending, the postcard, and the diagnostics.
+    # The GM epilogue is filled in separately (it can block) by the TUI worker.
+    if s.game_over or engine.phase == GamePhase.GAME_OVER:
+        populate_end_data(frame, s)
+
+    return frame
+
+
+# ── End-of-run rendering (EC-04 / FEAT-CLITUI-01) ───────────────────
+
+
+def _ending_for(state):
+    """Return the graded ending, recomputing deterministically if absent.
+
+    EC-04: the engine grades the ending once on the GAME_OVER transition and
+    stores it on ``state.ending``. A run loaded from a save (which does not
+    serialize ``ending``) may arrive here with it unset; compute_ending is pure
+    and RNG-free, so recomputing reproduces the same ending.
+    """
+    if state.ending is not None:
+        return state.ending
+    return compute_ending(state)
+
+
+def build_ending_facts(state) -> list[tuple[str, str]]:
+    """Pre-render the ending facts as (label, value) rows for the end screen.
+
+    Reads only the graded ending's facts dict (survivors, days vs par, taboo,
+    uncanny unspent, deaths) — the same facts the GM epilogue is grounded on —
+    so the screen and the narration never disagree.
+    """
+    facts = _ending_for(state).facts
+    survivors = facts.get("survivors", 0)
+    party_size = facts.get("party_size", 0)
+    days = facts.get("days", state.day)
+    par_days = facts.get("par_days", days)
+
+    rows: list[tuple[str, str]] = []
+    rows.append(("Reached the valley", "yes" if facts.get("victory") else "no"))
+    rows.append(("Survivors", f"{survivors} of {party_size}"))
+
+    pace_note = "on time" if days <= par_days else "late"
+    rows.append(("Days on the trail", f"{days} (par {par_days}, {pace_note})"))
+
+    miles = facts.get("distance", state.distance_traveled)
+    total = facts.get("total_distance", state.total_distance)
+    rows.append(("Miles covered", f"{miles} of {total}"))
+
+    taboo = facts.get("taboo")
+    if taboo:
+        kept = facts.get("taboo_kept", True)
+        rows.append(("Vow", f"{taboo} ({'held' if kept else 'broken'})"))
+
+    unspent = facts.get("uncanny_tokens_unspent", 0)
+    rows.append(("Uncanny left unspent", str(unspent)))
+
+    deaths = facts.get("deaths_by_cause") or {}
+    if deaths:
+        causes = ", ".join(f"{n}x {c.lower()}" for c, n in deaths.items())
+        rows.append(("The fallen", causes))
+    elif facts.get("cause_of_death") and not facts.get("victory"):
+        rows.append(("Cause", facts["cause_of_death"]))
+
+    return rows
+
+
+def build_run_stats(state) -> list[tuple[str, str]]:
+    """Pre-render the run diagnostics (the data the CLI `stats` command shows).
+
+    FEAT-CLITUI-01: surface the same run statistics the `trail stats` command
+    computes, as (label, value) rows for the end screen — so a player who never
+    touches the CLI still sees the seed, journal/memory counts, twists, and the
+    distance percentage at the end of the run.
+    """
+    alive = state.party.alive_count
+    total = len(state.party.members)
+    pct = (
+        int(state.distance_traveled / state.total_distance * 100)
+        if state.total_distance
+        else 0
+    )
+    gm_profile = (
+        state.gm_profile.value
+        if hasattr(state.gm_profile, "value")
+        else str(state.gm_profile)
+    )
+    return [
+        ("Run", f"{state.run_id} (seed {state.seed})"),
+        ("Party", f"{alive}/{total} alive"),
+        ("Distance", f"{state.distance_traveled}/{state.total_distance} ({pct}%)"),
+        ("Wagon", f"{state.wagon.condition}% condition"),
+        ("Storyteller", gm_profile),
+        ("Journal", f"{len(state.journal)} entries"),
+        ("Memories", f"{len(state.memory_cards)} cards"),
+        ("Twists", str(len(state.twists))),
+        ("Events seen", str(len(state.recent_event_tags))),
+    ]
+
+
+def populate_end_data(frame: FrameState, state) -> None:
+    """Fill ``frame``'s end-screen fields from a finished run (EC-04 + FEAT-01).
+
+    The GM epilogue is intentionally left empty here: it can block on a network
+    round-trip, so the TUI fills it in on a worker thread and re-renders. The
+    deterministic facts, postcard, and diagnostics are all instant.
+    """
+    ending = _ending_for(state)
+    frame.game_over = True
+    frame.victory = bool(state.victory)
+    frame.ending_tier = ending.tier
+    frame.ending_headline = ending.headline
+    frame.ending_facts = build_ending_facts(state)
+    frame.run_stats = build_run_stats(state)
+
+    # The postcard upgrades to the XRPL-receipted variant when the backpack was
+    # used (settlements exist); otherwise the plain trail ledger. Read-only.
+    is_postcard = bool(state.backpack.enabled and state.backpack.settlements)
+    frame.is_postcard = is_postcard
+    frame.postcard_lines = (
+        build_xrpl_postcard(state) if is_postcard
+        else build_trail_ledger(state)
     )
 
 
@@ -213,6 +337,12 @@ def _build_prompt(engine: StepEngine):
         return ("Fork in the road", "Which way?", choices)
 
     if engine.phase == GamePhase.GAME_OVER:
+        # EC-04 / FEAT-CLITUI-01: the full ending (graded result, epilogue,
+        # postcard, diagnostics) is rendered by the dedicated end screen (see
+        # EndScreen + populate_end_data, which reads frame.postcard_lines). The
+        # prompt itself is hidden behind that screen, but we keep the trail
+        # ledger in prompt_text so any non-TUI / headless consumer of the frame
+        # still has the retelling, and the title stays the classic label.
         if engine.state.backpack.enabled and engine.state.backpack.settlements:
             ledger = build_xrpl_postcard(engine.state)
         else:

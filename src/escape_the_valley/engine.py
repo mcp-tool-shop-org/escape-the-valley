@@ -282,6 +282,16 @@ class GameEngine:
         outcome = resolve_event(self.state, event, choice_id, self.rng)
         apply_outcome(self.state, outcome)
 
+        # ENG-A-05 (resolved): charge the event's time_cost to the clock here (the
+        # engine clock hook that pure apply_outcome lacks). Each unit advances one
+        # time-of-day slot, additive to the per-action slot _do_travel already
+        # charged, so WAIT/DETOUR/REST choices carry a real opportunity cost
+        # (nocturnal firewood/lantern-oil drain, the day-tick spoilage check, a
+        # weather reroll) without double-charging consumption — resource costs ride
+        # on supplies_delta. _advance_time draws no RNG, so determinism holds.
+        for _ in range(max(0, outcome.time_cost)):
+            self._advance_time()
+
         # Get choice label
         choice_label = ""
         for c in choices:
@@ -443,9 +453,10 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
         parts.append(f"wagon {'+'if outcome.wagon_delta > 0 else ''}{outcome.wagon_delta}")
     if outcome.morale_delta:
         parts.append(f"morale {'+'if outcome.morale_delta > 0 else ''}{outcome.morale_delta}")
-    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
-    # clock on event resolution (time is charged per-action in the engine), so
-    # claiming a time cost in the callout would be a lie about what was charged.
+    # ENG-A-05 (resolved): the engine now advances the clock by time_cost on event
+    # resolution (see _trigger_event), so reporting "time lost" is truthful.
+    if outcome.time_cost:
+        parts.append(f"{outcome.time_cost} time lost")
 
     return ", ".join(parts) if parts else "No significant effect."
 

@@ -489,8 +489,18 @@ def hard_ration(state: RunState) -> None:
             member.health = max(0, member.health - 5)
 
 
-def _proximate_death_cause(member, state: RunState) -> str:
-    """Determine what killed a party member based on current state."""
+def _proximate_death_cause(member, state: RunState, from_event: bool = False) -> str:
+    """Determine what killed a party member based on current state.
+
+    ``from_event`` is True when the death was inflicted by an event's
+    ``health_delta`` (a bandit ambush, an animal mauling, a fall). Such a death
+    is a wound, not slow exposure — so when none of the survival heuristics
+    (dehydration/starvation/disease) apply, an event death reads as "Injury"
+    rather than falling through to the generic "Exposure". The survival
+    heuristics still take priority for their real cases: a member who starved or
+    dehydrated *and* happened to take event damage is still recorded by the true
+    cause.
+    """
     # Priority order: dehydration > starvation > disease > injury > exhaustion
     if state.supplies.water <= 0:
         return "Dehydration"
@@ -505,7 +515,11 @@ def _proximate_death_cause(member, state: RunState) -> str:
         return "Injury"
     if member.condition == Condition.EXHAUSTED:
         return "Exhaustion"
-    # Fallback — died from accumulated damage
+    # An event-inflicted death with food + water in stock is a wound, not slow
+    # exposure: attribute it as an injury so a bandit/animal kill reads true.
+    if from_event:
+        return "Injury"
+    # Fallback — died from accumulated damage (slow attrition on the trail).
     return "Exposure"
 
 

@@ -32,6 +32,7 @@ from .memory_emitters import (
     validate_gm_cards,
 )
 from .models import (
+    EndingResult,
     JournalEntry,
     Pace,
     RunState,
@@ -102,6 +103,10 @@ class StepMessages:
     # renders these so the player knows the trail's own voice is speaking.
     gm_degraded: bool = False
     gm_degraded_reason: str = ""
+    # EC-04 (CONTRACT): the graded ending, populated only on the step that
+    # transitions to GAME_OVER (victory or death). GM narrates it; cli-tui
+    # renders it on the end screen. None on every non-terminal step.
+    ending: EndingResult | None = None
 
 
 # ── Engine ──────────────────────────────────────────────────────────
@@ -728,6 +733,19 @@ class StepEngine:
         )
         apply_outcome(self.state, outcome)
 
+        # ENG-A-05 (resolved): charge the event's time_cost to the clock. ENG-A-05
+        # deferred this ("time_cost remains parsed on EventOutcome for future use")
+        # because apply_outcome is pure events.py with no engine clock hook — the
+        # hook lives here. Each unit advances one time-of-day slot (a quarter-day),
+        # applied AFTER the resource deltas, so WAIT/DETOUR/REST choices carry a
+        # real opportunity cost: nocturnal firewood/lantern-oil drain, the day-tick
+        # spoilage check, a weather reroll, and nocturnal-event eligibility. No
+        # double-charge — resource costs ride on supplies_delta, time_cost rides on
+        # the clock alone (this step charges no consumption). _advance_time draws no
+        # RNG, so determinism (rng_counter, synced at the end of this method) holds.
+        for _ in range(max(0, outcome.time_cost)):
+            self._advance_time()
+
         # Find choice label
         choice_label = ""
         for c in self._pending_event_choices:
@@ -1073,6 +1091,46 @@ class StepEngine:
                     f"The journey ends. Cause: {cause}."
                 )
             self.phase = GamePhase.GAME_OVER
+            # EC-04: grade the ending exactly once, on the terminal transition.
+            # Reads only existing state, draws no RNG → deterministic with GM off.
+            ending = compute_ending(self.state)
+            self.state.ending = ending
+            self.msgs.ending = ending
+
+    def finalize_run(self, reason: str = "timeout") -> EndingResult:
+        """Resolve a run that ended without a clean GAME_OVER transition.
+
+        A driver loop that breaks at ``max_steps`` (the proof harness, a UI that
+        caps turns, an abandoned session) leaves the run live: ``_check_game_over``
+        never fired, so ``state.ending`` stays None. This grades the ending the
+        same way a clean terminal would — pure, RNG-free, deterministic — so no
+        run is ever left without an EndingResult.
+
+        Idempotent: if the run already transitioned to GAME_OVER (victory or
+        death), the existing graded ending is returned unchanged. Otherwise the
+        run is marked over with a sensible incomplete cause, graded to the 'lost'
+        tier (the valley was never reached), and the ending is stored on state.
+        Never raises and never returns None — a timeout still ends honestly.
+        """
+        if self.state.ending is not None:
+            return self.state.ending
+
+        if not self.state.game_over and self.phase != GamePhase.GAME_OVER:
+            # The run was abandoned mid-trail. It is not a victory and not a
+            # clean death — record an honest incomplete cause and grade it.
+            self.state.game_over = True
+            if not self.state.cause_of_death:
+                self.state.cause_of_death = (
+                    "Wagon failure"
+                    if self.state.wagon.condition <= 0
+                    and self.state.supplies.parts <= 0
+                    else "The trail"
+                )
+            self.phase = GamePhase.GAME_OVER
+
+        ending = compute_ending(self.state)
+        self.state.ending = ending
+        return ending
 
     def _save(self) -> None:
         self.state.rng_counter = self.rng.counter
@@ -1099,11 +1157,155 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
     if outcome.morale_delta:
         sign = "+" if outcome.morale_delta > 0 else ""
         parts.append(f"morale {sign}{outcome.morale_delta}")
-    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
-    # clock on event resolution (time is charged per-action in the engine), so
-    # claiming a time cost in the callout would be a lie about what was charged.
+    # ENG-A-05 (resolved): the engine now advances the clock by time_cost on event
+    # resolution (see _handle_event_choice), so reporting "time lost" is truthful
+    # — it names a cost the engine actually charges.
+    if outcome.time_cost:
+        parts.append(f"{outcome.time_cost} time lost")
 
     return ", ".join(parts) if parts else "No significant effect."
+
+
+# ── EC-04: graded endings ───────────────────────────────────────────
+
+# Par is a deterministic distance->days yardstick. At STEADY pace the wagon
+# covers ~5 miles per travel-day, and a clean run mixes travel with rest/repair,
+# so we budget a little slack: par_days ≈ total_distance / 4, floored at 8 so a
+# very short map still has a meaningful target. Reading total_distance only, this
+# is pure and seed-stable.
+_PAR_MILES_PER_DAY = 4
+_PAR_DAYS_FLOOR = 8
+
+
+def compute_par_days(total_distance: int) -> int:
+    """Deterministic 'par' day count for a journey of ``total_distance`` miles."""
+    if total_distance <= 0:
+        return _PAR_DAYS_FLOOR
+    return max(_PAR_DAYS_FLOOR, -(-total_distance // _PAR_MILES_PER_DAY))
+
+
+def _taboo_kept(state: RunState) -> bool:
+    """Best-effort, deterministic read of whether the run's taboo held.
+
+    EC-04 reads ONLY existing state. There is no dedicated taboo-violation
+    counter, so we infer from observable signals:
+
+    - LEAVE_NOTHING ("leave no one behind"): kept iff every member is still
+      alive at game-over.
+    - NEVER_RIVER: kept unless the journal shows a river event resolved with a
+      ford choice (tags carry 'river'/'ford'; the chosen label mentions 'ford').
+    - NEVER_NIGHT: kept unless the journal shows an event resolved at night.
+
+    When a run has no taboo assigned, it is vacuously 'kept'. Defaulting to kept
+    is the honest call: we only flip to broken on positive evidence in state.
+    """
+    taboo = state.taboo
+    if not taboo:
+        return True
+
+    if taboo == "leave_nothing":
+        return all(m.is_alive() for m in state.party.members)
+
+    if taboo == "never_river":
+        for entry in state.journal:
+            tagset = {t.lower() for t in entry.tags}
+            choice = entry.choice_made.lower()
+            if ({"river", "ford"} & tagset) and "ford" in choice:
+                return False
+        return True
+
+    if taboo == "never_night":
+        for entry in state.journal:
+            if "night" in {t.lower() for t in entry.tags}:
+                return False
+        return True
+
+    return True
+
+
+def _deaths_by_cause(state: RunState) -> dict[str, int]:
+    """Count fallen members grouped by their attributed death_cause."""
+    counts: dict[str, int] = {}
+    for m in state.party.members:
+        if not m.is_alive():
+            cause = m.death_cause or "Unknown"
+            counts[cause] = counts.get(cause, 0) + 1
+    return counts
+
+
+def compute_ending(state: RunState) -> EndingResult:
+    """Grade the run's ending from existing state (EC-04).
+
+    Pure and RNG-free: the tier and facts are a deterministic function of the
+    party, the clock, distance, taboo, and uncanny tokens already on ``state``.
+    Called once when the engine transitions to GAME_OVER (victory or death),
+    and by ``StepEngine.finalize_run`` for a timeout/abandon terminal.
+
+    Always returns a well-defined EndingResult — never None. A run that ended
+    without reaching the valley (a death, a timeout, an abandon) grades to the
+    'lost' tier, so a driver that caps turns still resolves to a sensible
+    ending rather than leaving ``state.ending`` unset.
+    """
+    members = state.party.members
+    party_size = len(members)
+    survivors = sum(1 for m in members if m.is_alive())
+    days = state.day
+    par_days = compute_par_days(state.total_distance)
+    taboo_kept = _taboo_kept(state)
+    deaths_by_cause = _deaths_by_cause(state)
+
+    facts: dict[str, object] = {
+        "victory": state.victory,
+        "survivors": survivors,
+        "party_size": party_size,
+        "days": days,
+        "par_days": par_days,
+        "taboo": state.taboo,
+        "taboo_kept": taboo_kept,
+        "uncanny_tokens_unspent": state.uncanny_tokens,
+        "deaths_by_cause": deaths_by_cause,
+        "distance": state.distance_traveled,
+        "total_distance": state.total_distance,
+        "cause_of_death": state.cause_of_death,
+    }
+
+    # ── Tier grading ──
+    if not state.victory:
+        # The valley was never reached.
+        tier = "lost"
+        if survivors >= party_size:
+            headline = "The trail turned them back."
+        elif survivors > 0:
+            headline = (
+                f"{survivors} of {party_size} were still standing when "
+                "the journey failed."
+            )
+        else:
+            headline = "None of them reached the valley."
+    elif survivors < party_size or not taboo_kept:
+        # Reached the valley, but the cost was real.
+        tier = "pyrrhic"
+        if survivors < party_size:
+            lost = party_size - survivors
+            headline = (
+                f"The valley was reached — but {lost} did not live to see it."
+            )
+        else:
+            headline = "The valley was reached, but a vow was broken to get there."
+    elif days > par_days:
+        # Whole party alive, taboo held, but slow.
+        tier = "weathered"
+        headline = (
+            f"All {party_size} reached the valley, weathered and late "
+            f"({days} days against {par_days})."
+        )
+    else:
+        tier = "triumphant"
+        headline = (
+            f"All {party_size} reached the valley intact, on time, vow unbroken."
+        )
+
+    return EndingResult(tier=tier, facts=facts, headline=headline)
 
 
 def _find_node(state: RunState):

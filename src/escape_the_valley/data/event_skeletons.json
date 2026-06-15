@@ -57,7 +57,8 @@
           "time_days": 1,
           "animals_health": -3,
           "wagon_condition": -2,
-          "morale": -1
+          "morale": -1,
+          "health": -5
         }
       },
       {
@@ -70,7 +71,8 @@
         }
       }
     ],
-    "narration_seed": "Recent rains have turned the gentle stream into a churning beast."
+    "narration_seed": "Recent rains have turned the gentle stream into a churning beast.",
+    "severity": "high"
   },
   {
     "id": "f1_003",
@@ -90,7 +92,8 @@
           "wagon_condition": -4,
           "animals_health": -2,
           "time_days": 1,
-          "distance": 6
+          "distance": 6,
+          "health": -5
         }
       },
       {
@@ -104,7 +107,8 @@
         }
       }
     ],
-    "narration_seed": "The old bridge lies in ruins, timbers scattered by some past flood or force."
+    "narration_seed": "The old bridge lies in ruins, timbers scattered by some past flood or force.",
+    "severity": "high"
   },
   {
     "id": "f1_004",
@@ -165,7 +169,8 @@
           "animals_health": -3,
           "wagon_condition": -3,
           "time_days": 1,
-          "distance": 7
+          "distance": 7,
+          "health": -6
         }
       },
       {
@@ -187,7 +192,8 @@
         }
       }
     ],
-    "narration_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible."
+    "narration_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible.",
+    "severity": "high"
   },
   {
     "id": "f1_006",
@@ -246,7 +252,8 @@
           "animals_health": -2,
           "wagon_condition": -2,
           "time_days": 1,
-          "distance": 6
+          "distance": 6,
+          "health": -5
         }
       },
       {
@@ -258,7 +265,8 @@
         }
       }
     ],
-    "narration_seed": "Ice coats the stones at the crossing, each step a test of balance and nerve."
+    "narration_seed": "Ice coats the stones at the crossing, each step a test of balance and nerve.",
+    "severity": "high"
   },
   {
     "id": "f1_008",
@@ -634,7 +642,8 @@
         "engine_effect_profile": {
           "time_days": 1,
           "animals_health": -2,
-          "morale": -2
+          "morale": -2,
+          "health": -4
         }
       },
       {
@@ -646,7 +655,8 @@
         }
       }
     ],
-    "narration_seed": "Stones of ice batter the canvas, the sky pelting its displeasure."
+    "narration_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+    "severity": "high"
   },
   {
     "id": "f1_019",
@@ -757,7 +767,8 @@
         "engine_effect_profile": {
           "time_days": 1,
           "morale": -3,
-          "distance": 2
+          "distance": 2,
+          "health": -4
         }
       },
       {
@@ -770,7 +781,8 @@
         }
       }
     ],
-    "narration_seed": "Winds tear at the canvas as if seeking entry to the soul."
+    "narration_seed": "Winds tear at the canvas as if seeking entry to the soul.",
+    "severity": "high"
   },
   {
     "id": "f1_023",
@@ -1167,7 +1179,8 @@
         "engine_effect_profile": {
           "food": 4,
           "time_days": 1,
-          "ammo": -1
+          "ammo": -1,
+          "health": -4
         }
       },
       {
@@ -1178,7 +1191,8 @@
         }
       }
     ],
-    "narration_seed": "Fresh prints cross the path, a promise of meat if the shot holds true."
+    "narration_seed": "Fresh prints cross the path, a promise of meat if the shot holds true.",
+    "severity": "high"
   },
   {
     "id": "f1_035",
@@ -1196,7 +1210,8 @@
           "parts": -2,
           "tools": -1,
           "time_days": 2,
-          "morale": -1
+          "morale": -1,
+          "health": -4
         }
       },
       {
@@ -1208,7 +1223,8 @@
         }
       }
     ],
-    "narration_seed": "A spoke snaps with a crack like a rifle, halting the wagon mid-stride."
+    "narration_seed": "A spoke snaps with a crack like a rifle, halting the wagon mid-stride.",
+    "severity": "high"
   },
   {
     "id": "f1_036",
@@ -1378,7 +1394,8 @@
         "engine_effect_profile": {
           "animals_health": -3,
           "wagon_condition": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -1399,7 +1416,8 @@
         }
       }
     ],
-    "narration_seed": "The river bends sharp here, pulling at the wheels like a thing with purpose."
+    "narration_seed": "The river bends sharp here, pulling at the wheels like a thing with purpose.",
+    "severity": "high"
   },
   {
     "id": "f2_002",
@@ -1417,7 +1435,8 @@
         "engine_effect_profile": {
           "wagon_condition": -4,
           "animals_health": -1,
-          "time_days": 1
+          "time_days": 1,
+          "health": -5
         }
       },
       {
@@ -1430,7 +1449,8 @@
         }
       }
     ],
-    "narration_seed": "Dark shapes shift beneath the surface, patient as old sins."
+    "narration_seed": "Dark shapes shift beneath the surface, patient as old sins.",
+    "severity": "high"
   },
   {
     "id": "f2_003",
@@ -1530,7 +1550,8 @@
         "engine_effect_profile": {
           "animals_health": -4,
           "wagon_condition": -3,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -1543,7 +1564,8 @@
         }
       }
     ],
-    "narration_seed": "The ford drops sudden and black, the bottom unseen."
+    "narration_seed": "The ford drops sudden and black, the bottom unseen.",
+    "severity": "high"
   },
   {
     "id": "f2_006",
@@ -1600,7 +1622,8 @@
         "engine_effect_profile": {
           "animals_health": -2,
           "wagon_condition": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -1612,7 +1635,8 @@
         }
       }
     ],
-    "narration_seed": "The river wears a thin white mask, cracking softly under weight."
+    "narration_seed": "The river wears a thin white mask, cracking softly under weight.",
+    "severity": "high"
   },
   {
     "id": "f2_008",
@@ -1975,7 +1999,8 @@
         "engine_effect_profile": {
           "time_days": 1,
           "animals_health": -2,
-          "morale": -2
+          "morale": -2,
+          "health": -5
         }
       },
       {
@@ -1987,7 +2012,8 @@
         }
       }
     ],
-    "narration_seed": "Ice pricks the skin like accusations."
+    "narration_seed": "Ice pricks the skin like accusations.",
+    "severity": "high"
   },
   {
     "id": "f2_019",
@@ -2764,7 +2790,8 @@
         "intent_action": "FORD",
         "engine_effect_profile": {
           "wagon_condition": -3,
-          "animals_health": -3
+          "animals_health": -3,
+          "health": -6
         }
       },
       {
@@ -2776,7 +2803,8 @@
         }
       }
     ],
-    "narration_seed": "The ferry sits half-rotted at the landing, pole still in its place."
+    "narration_seed": "The ferry sits half-rotted at the landing, pole still in its place.",
+    "severity": "high"
   },
   {
     "id": "f3_003",
@@ -2872,7 +2900,8 @@
         "engine_effect_profile": {
           "wagon_condition": -4,
           "animals_health": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -2884,7 +2913,8 @@
         }
       }
     ],
-    "narration_seed": "The riverbed gives way beneath the wheels like wet bread."
+    "narration_seed": "The riverbed gives way beneath the wheels like wet bread.",
+    "severity": "high"
   },
   {
     "id": "f3_006",
@@ -2941,7 +2971,8 @@
         "engine_effect_profile": {
           "animals_health": -3,
           "wagon_condition": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -2953,7 +2984,8 @@
         }
       }
     ],
-    "narration_seed": "The ice groans a warning with every yard gained."
+    "narration_seed": "The ice groans a warning with every yard gained.",
+    "severity": "high"
   },
   {
     "id": "f3_008",
@@ -3132,7 +3164,8 @@
         "engine_effect_profile": {
           "morale": -3,
           "time_days": 1,
-          "distance": 4
+          "distance": 4,
+          "health": -4
         }
       },
       {
@@ -3145,7 +3178,8 @@
         }
       }
     ],
-    "narration_seed": "The wind cuts like a poorly honed blade."
+    "narration_seed": "The wind cuts like a poorly honed blade.",
+    "severity": "high"
   },
   {
     "id": "f3_014",
@@ -3224,7 +3258,8 @@
         "engine_effect_profile": {
           "distance": 1,
           "morale": -4,
-          "time_days": 1
+          "time_days": 1,
+          "health": -7
         }
       },
       {
@@ -3236,7 +3271,8 @@
         }
       }
     ],
-    "narration_seed": "The snow comes sideways and angry."
+    "narration_seed": "The snow comes sideways and angry.",
+    "severity": "high"
   },
   {
     "id": "f3_017",
@@ -3565,11 +3601,13 @@
         "intent_action": "DETOUR",
         "engine_effect_profile": {
           "time_days": 1,
-          "morale": -3
+          "morale": -3,
+          "health": -6
         }
       }
     ],
-    "narration_seed": "Figures step from the brush with steady hands."
+    "narration_seed": "Figures step from the brush with steady hands.",
+    "severity": "high"
   },
   {
     "id": "f3_028",
@@ -3965,7 +4003,8 @@
         "engine_effect_profile": {
           "animals_health": -3,
           "wagon_condition": -3,
-          "time_days": 1
+          "time_days": 1,
+          "health": -5
         }
       },
       {
@@ -3986,7 +4025,8 @@
         }
       }
     ],
-    "narration_seed": "The clay grips the wheels like wet hands that do not wish to let go."
+    "narration_seed": "The clay grips the wheels like wet hands that do not wish to let go.",
+    "severity": "high"
   },
   {
     "id": "f4_042",
@@ -4086,7 +4126,8 @@
         "engine_effect_profile": {
           "animals_health": -3,
           "wagon_condition": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -4099,7 +4140,8 @@
         }
       }
     ],
-    "narration_seed": "The river runs high and angry with winter\u2019s melt."
+    "narration_seed": "The river runs high and angry with winter\u2019s melt.",
+    "severity": "high"
   },
   {
     "id": "f4_045",
@@ -4117,7 +4159,8 @@
         "engine_effect_profile": {
           "wagon_condition": -3,
           "morale": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -5
         }
       },
       {
@@ -4137,7 +4180,8 @@
         }
       }
     ],
-    "narration_seed": "The stones lie where they fell years ago."
+    "narration_seed": "The stones lie where they fell years ago.",
+    "severity": "high"
   },
   {
     "id": "f4_046",
@@ -4330,7 +4374,8 @@
         "engine_effect_profile": {
           "distance": 1,
           "morale": -4,
-          "time_days": 1
+          "time_days": 1,
+          "health": -7
         }
       },
       {
@@ -4343,7 +4388,8 @@
         }
       }
     ],
-    "narration_seed": "The world is nothing but wind and white."
+    "narration_seed": "The world is nothing but wind and white.",
+    "severity": "high"
   },
   {
     "id": "f4_052",
@@ -5300,7 +5346,8 @@
         "engine_effect_profile": {
           "wagon_condition": -3,
           "time_days": 1,
-          "distance": 5
+          "distance": 5,
+          "health": -5
         }
       },
       {
@@ -5321,7 +5368,8 @@
         }
       }
     ],
-    "narration_seed": "Water laps at the broken timbers as though tasting them."
+    "narration_seed": "Water laps at the broken timbers as though tasting them.",
+    "severity": "high"
   },
   {
     "id": "f5_083",
@@ -5381,7 +5429,8 @@
         "engine_effect_profile": {
           "animals_health": -3,
           "wagon_condition": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -5394,7 +5443,8 @@
         }
       }
     ],
-    "narration_seed": "The river runs thick with winter\u2019s last anger."
+    "narration_seed": "The river runs thick with winter\u2019s last anger.",
+    "severity": "high"
   },
   {
     "id": "f5_085",
@@ -5557,7 +5607,8 @@
         "intent_action": "FORD",
         "engine_effect_profile": {
           "morale": -3,
-          "time_days": 1
+          "time_days": 1,
+          "health": -5
         }
       },
       {
@@ -5578,7 +5629,8 @@
         }
       }
     ],
-    "narration_seed": "The banks drink deep as the light fails."
+    "narration_seed": "The banks drink deep as the light fails.",
+    "severity": "high"
   },
   {
     "id": "f5_090",
@@ -5703,7 +5755,8 @@
         "engine_effect_profile": {
           "animals_health": -2,
           "morale": -3,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -5715,7 +5768,8 @@
         }
       }
     ],
-    "narration_seed": "The sky throws frozen needles without mercy."
+    "narration_seed": "The sky throws frozen needles without mercy.",
+    "severity": "high"
   },
   {
     "id": "f5_094",
@@ -5854,7 +5908,8 @@
         "engine_effect_profile": {
           "animals_health": -2,
           "time_days": 1,
-          "distance": 4
+          "distance": 4,
+          "health": -5
         }
       },
       {
@@ -5867,7 +5922,8 @@
         }
       }
     ],
-    "narration_seed": "Every leaf and blade stands rigid in the cold."
+    "narration_seed": "Every leaf and blade stands rigid in the cold.",
+    "severity": "high"
   },
   {
     "id": "f5_099",
@@ -5884,7 +5940,8 @@
         "engine_effect_profile": {
           "morale": -3,
           "distance": 3,
-          "time_days": 1
+          "time_days": 1,
+          "health": -4
         }
       },
       {
@@ -5897,7 +5954,8 @@
         }
       }
     ],
-    "narration_seed": "The gale sings through the rigging like lost souls."
+    "narration_seed": "The gale sings through the rigging like lost souls.",
+    "severity": "high"
   },
   {
     "id": "f5_100",
@@ -6323,7 +6381,8 @@
         "engine_effect_profile": {
           "food": 7,
           "ammo": -2,
-          "time_days": 1
+          "time_days": 1,
+          "health": -6
         }
       },
       {
@@ -6334,7 +6393,8 @@
         }
       }
     ],
-    "narration_seed": "The prints are wide and deep in the soft earth."
+    "narration_seed": "The prints are wide and deep in the soft earth.",
+    "severity": "high"
   },
   {
     "id": "f5_114",

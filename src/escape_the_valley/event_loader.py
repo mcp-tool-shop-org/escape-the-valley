@@ -18,8 +18,18 @@ log = logging.getLogger(__name__)
 
 _DATA_DIR = Path(__file__).parent / "data"
 
-# Keys in engine_effect_profile that map to EventOutcome fields (not supplies)
-_META_KEYS = {"time_days", "distance", "morale", "animals_health", "wagon_condition"}
+# Keys in engine_effect_profile that map to EventOutcome fields (not supplies).
+# EC-02: 'health' joins the meta keys so data events can wound or heal the party
+# (apply_outcome already applies health_delta and attributes event-caused deaths
+# via _proximate_death_cause). 'condition' is parsed as a benign no-op flag today
+# — it is accepted so curated data can label *why* a wound landed (e.g. "injured",
+# "sick") without becoming a phantom supply, and a future slice can map it onto
+# PartyMember.condition. Both are kept out of supplies so they never enter the
+# resource conservation ledger.
+_META_KEYS = {
+    "time_days", "distance", "morale", "animals_health", "wagon_condition",
+    "health", "condition",
+}
 
 # Resource key aliases (YAML name → catalog name)
 _RESOURCE_ALIASES: dict[str, str] = {
@@ -73,6 +83,16 @@ def _convert_profile(profile: dict, *, event_id: str = "") -> EventOutcome:
             distance = int(val)
         elif key == "morale":
             morale = int(val)
+        elif key == "health":
+            # EC-02: party-health delta. apply_outcome clamps to 0..100 and
+            # attributes any resulting death via _proximate_death_cause, so a
+            # negative value here wounds (and can kill) the party.
+            health = int(val)
+        elif key == "condition":
+            # EC-02: accepted but not yet mechanically applied (parsed no-op so
+            # curated data can annotate the wound kind without leaking a phantom
+            # supply). A future slice maps this onto PartyMember.condition.
+            continue
         elif key == "animals_health":
             # ENG-A-03: this is the wagon's draft team, not party health.
             animals_health = int(val)
@@ -162,12 +182,24 @@ def _convert_event(raw: dict) -> EventSkeleton:
         ))
         outcomes[cid] = outcome
 
+    # EC-02: honor an optional explicit severity from the data (defaulting to the
+    # historical "medium"). Curated bodily-danger events set "high" so the
+    # severity curve in select_event weights them up late-game, and the engine's
+    # events_high_sev diagnostic counts them. Unknown values fall back to medium.
+    severity = raw.get("severity", "medium")
+    if severity not in ("low", "medium", "high"):
+        log.warning(
+            "event %s: unknown severity %r; defaulting to 'medium'",
+            event_id, severity,
+        )
+        severity = "medium"
+
     return EventSkeleton(
         event_id=event_id,
         title=raw.get("title", ""),
         category=category,
         tags=tags,
-        severity="medium",
+        severity=severity,
         costs_uncanny_token=costs_token,
         folklore_type=folklore_type,
         fallback_narration=raw.get("narration_seed", ""),

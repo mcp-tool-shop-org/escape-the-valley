@@ -455,30 +455,41 @@ def test_cache_collected_on_arrival():
         assert engine.diagnostics["caches_found"] >= 1
 
 
-# ── ENG-A-05: time_cost is not charged, so the callout must not claim it ──
+# ── ENG-A-05 (resolved): event time_cost now advances the clock ──
+#
+# ENG-A-05 deferred event-time advancement ("time_cost remains parsed ... for
+# future use") because apply_outcome is pure events.py with no engine clock hook.
+# The hook now lives in the engine (_handle_event_choice / _trigger_event), so a
+# WAIT/DETOUR/REST choice's time_cost advances the time-of-day by that many
+# quarter-day slots. apply_outcome stays pure; the callout reports the (now real)
+# cost truthfully.
 
 
-def test_callout_does_not_claim_uncharged_time():
-    """apply_outcome never advances the clock, so the fallback callout must not
-    advertise 'time lost' for an outcome that carries a time_cost."""
+def test_callout_reports_charged_time():
+    """The engine now advances the clock by time_cost on event resolution, so the
+    fallback callout truthfully reports 'time lost' when a cost was charged — and
+    omits it when there was none."""
     from escape_the_valley.events import EventOutcome
     from escape_the_valley.step_engine import _build_fallback_callout
 
-    outcome = EventOutcome(
-        supplies_delta={"food": -3},
-        morale_delta=-2,
-        time_cost=2,
-    )
-    callout = _build_fallback_callout(outcome)
-    assert "time" not in callout.lower()
-    # Real, charged effects are still reported.
-    assert "-3 food" in callout
-    assert "morale -2" in callout
+    charged = _build_fallback_callout(EventOutcome(
+        supplies_delta={"food": -3}, morale_delta=-2, time_cost=2,
+    ))
+    assert "2 time lost" in charged
+    # Real resource/morale effects are still reported alongside it.
+    assert "-3 food" in charged
+    assert "morale -2" in charged
+
+    # No time charged → no time mention (a zero time_cost is silent).
+    free = _build_fallback_callout(EventOutcome(supplies_delta={"food": -3}))
+    assert "time" not in free.lower()
 
 
-def test_time_cost_does_not_advance_clock_on_event():
-    """Resolving an event with a time_cost must not change day/time_of_day,
-    since the engine charges time per-action, not per-event."""
+def test_apply_outcome_stays_pure_engine_owns_the_clock():
+    """apply_outcome must stay a pure state mutation with NO clock side effect —
+    the engine (_handle_event_choice / _trigger_event) owns time advancement, so
+    time_cost is charged there, not in apply_outcome. Engine-level advancement is
+    covered by test_event_time_cost_advances_clock below."""
     from escape_the_valley.events import EventOutcome, apply_outcome
 
     engine = _make_engine(seed=5)
@@ -487,8 +498,63 @@ def test_time_cost_does_not_advance_clock_on_event():
 
     apply_outcome(engine.state, EventOutcome(time_cost=3, morale_delta=-1))
 
+    # The pure mutation applied morale but did NOT touch the clock.
     assert engine.state.day == day_before
     assert engine.state.time_of_day == tod_before
+    assert engine.state.party.morale < 100  # morale delta did apply
+
+
+def test_event_time_cost_advances_clock():
+    """Resolving an event whose chosen outcome carries a time_cost advances the
+    clock by exactly that many quarter-day slots — without drawing RNG
+    (determinism intact) and without double-charging consumption."""
+    from escape_the_valley.events import (
+        EventCategory,
+        EventOutcome,
+        EventSkeleton,
+    )
+    from escape_the_valley.models import TimeOfDay
+    from escape_the_valley.step_engine import EventChoiceInfo
+
+    engine = _make_engine(seed=5)
+
+    # A controlled pending event: choice A waits 2 slots, no other effects.
+    engine._pending_event = EventSkeleton(
+        event_id="test_wait",
+        title="Test Wait",
+        category=EventCategory.SURVIVAL,
+        fallback_narration="The party waits it out.",
+        outcome_templates={"A": EventOutcome(time_cost=2)},
+    )
+    engine._pending_event_choices = [
+        EventChoiceInfo(id="A", label="Wait it out")
+    ]
+    engine._pending_event_title = "Test Wait"
+    engine._pending_event_narration = "The party waits it out."
+    engine.phase = GamePhase.EVENT
+
+    slots = list(TimeOfDay)
+
+    def _clock_index(s) -> int:
+        # Monotonic clock position across day boundaries.
+        return s.day * len(slots) + slots.index(s.time_of_day)
+
+    before_idx = _clock_index(engine.state)
+    counter_before = engine.rng.counter
+    food_before = engine.state.supplies.food
+    water_before = engine.state.supplies.water
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # Clock advanced by exactly the time_cost (2 slots).
+    assert _clock_index(engine.state) - before_idx == 2
+    # A time-only outcome draws no RNG — determinism/counter preserved.
+    assert engine.rng.counter == counter_before
+    # The event step charged no consumption (no double-charge with travel).
+    assert engine.state.supplies.food == food_before
+    assert engine.state.supplies.water == water_before
+    # Event resolved cleanly back to camp.
+    assert engine.phase == GamePhase.CAMP
 
 
 # ── ledger-006: settlement failure must never silently drop the delta ──
@@ -962,3 +1028,284 @@ def test_gm_connect_error_turn_completes_with_journal_and_fallback(monkeypatch):
     last = engine.state.journal[-1]
     assert last.choice_made.startswith("A:")
     engine.gm.close()
+
+
+# ── EC-04: graded endings (EndingResult) ─────────────────────────────
+#
+# compute_ending grades the run's shape from existing state only (no new
+# economy, no RNG): tier in {triumphant, weathered, pyrrhic, lost}, plus a facts
+# dict and a deterministic headline. It is computed once on the GAME_OVER
+# transition and exposed on both state.ending and StepMessages.ending so GM +
+# cli-tui can consume it.
+
+
+def _victory_state(seed=42, days=18):
+    """A victory state: party at the final node, distance 0, GM-off."""
+    state = create_new_run(seed=seed)
+    # Snap to the final node, journey complete.
+    state.location_id = state.map_nodes[-1].node_id
+    state.distance_remaining = 0
+    state.distance_traveled = state.total_distance
+    state.day = days
+    return state
+
+
+def test_triumphant_all_survivors_on_time():
+    from escape_the_valley.step_engine import compute_ending, compute_par_days
+
+    state = _victory_state(days=5)
+    state.victory = True
+    state.taboo = ""  # vacuously kept
+    # All four start alive.
+    assert state.party.alive_count == 4
+    # Well within par.
+    assert state.day <= compute_par_days(state.total_distance)
+
+    ending = compute_ending(state)
+    assert ending.tier == "triumphant"
+    assert ending.facts["survivors"] == 4
+    assert ending.facts["party_size"] == 4
+    assert ending.facts["taboo_kept"] is True
+    assert ending.headline
+
+
+def test_weathered_all_survive_but_slow():
+    from escape_the_valley.step_engine import compute_ending, compute_par_days
+
+    state = _victory_state()
+    state.victory = True
+    state.taboo = ""
+    par = compute_par_days(state.total_distance)
+    state.day = par + 10  # late but everyone made it
+
+    ending = compute_ending(state)
+    assert ending.tier == "weathered"
+    assert ending.facts["survivors"] == 4
+    assert ending.facts["days"] > ending.facts["par_days"]
+
+
+def test_pyrrhic_one_survivor_finish():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = _victory_state(days=5)
+    state.victory = True
+    state.taboo = ""
+    # Kill three of four — a single survivor reaches the valley.
+    for m in state.party.members[1:]:
+        m.health = 0
+        m.death_cause = "Dehydration"
+
+    ending = compute_ending(state)
+    assert ending.tier == "pyrrhic"
+    assert ending.facts["survivors"] == 1
+    assert ending.facts["party_size"] == 4
+    assert ending.facts["deaths_by_cause"].get("Dehydration") == 3
+
+
+def test_pyrrhic_when_taboo_broken_despite_full_survival():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = _victory_state(days=5)
+    state.victory = True
+    # leave_nothing taboo, but a member is dead → vow broken.
+    state.taboo = "leave_nothing"
+    state.party.members[0].health = 0
+    state.party.members[0].death_cause = "Injury"
+
+    ending = compute_ending(state)
+    # Survivors < party_size AND taboo broken — still pyrrhic.
+    assert ending.tier == "pyrrhic"
+    assert ending.facts["taboo_kept"] is False
+
+
+def test_lost_total_loss():
+    from escape_the_valley.step_engine import compute_ending
+
+    state = create_new_run(seed=42)
+    state.victory = False
+    state.cause_of_death = "Starvation"
+    for m in state.party.members:
+        m.health = 0
+        m.death_cause = "Starvation"
+
+    ending = compute_ending(state)
+    assert ending.tier == "lost"
+    assert ending.facts["survivors"] == 0
+    assert ending.facts["victory"] is False
+    assert ending.facts["deaths_by_cause"].get("Starvation") == 4
+
+
+def test_distinct_tiers_have_distinct_facts():
+    """The three headline scenarios yield three different tiers and different
+    survivor counts — the ending genuinely discriminates outcomes."""
+    from escape_the_valley.step_engine import compute_ending
+
+    # All four survive, on time → triumphant.
+    s_win = _victory_state(days=5)
+    s_win.victory = True
+    s_win.taboo = ""
+    e_win = compute_ending(s_win)
+
+    # One survivor → pyrrhic.
+    s_one = _victory_state(days=5)
+    s_one.victory = True
+    s_one.taboo = ""
+    for m in s_one.party.members[1:]:
+        m.health = 0
+        m.death_cause = "Disease"
+    e_one = compute_ending(s_one)
+
+    # Total loss → lost.
+    s_lost = create_new_run(seed=42)
+    s_lost.victory = False
+    for m in s_lost.party.members:
+        m.health = 0
+        m.death_cause = "Exposure"
+    e_lost = compute_ending(s_lost)
+
+    tiers = {e_win.tier, e_one.tier, e_lost.tier}
+    assert tiers == {"triumphant", "pyrrhic", "lost"}
+    survivors = {
+        e_win.facts["survivors"],
+        e_one.facts["survivors"],
+        e_lost.facts["survivors"],
+    }
+    assert survivors == {4, 1, 0}
+
+
+def test_compute_ending_is_deterministic_under_fixed_seed():
+    """With GM off, the same seed + same lethal mutation yields a byte-identical
+    EndingResult (no RNG in the grading)."""
+    from escape_the_valley.step_engine import compute_ending
+
+    def build():
+        s = _victory_state(seed=123, days=7)
+        s.victory = True
+        s.taboo = "never_river"
+        return compute_ending(s)
+
+    a = build()
+    b = build()
+    assert a.tier == b.tier
+    assert a.headline == b.headline
+    assert a.facts == b.facts
+
+
+def test_engine_populates_ending_on_victory():
+    """The engine computes the ending exactly when it transitions to GAME_OVER,
+    exposing it on both state.ending and the step's messages."""
+    engine = _make_engine(seed=42)
+    engine.state.location_id = engine.state.map_nodes[-1].node_id
+    engine.state.distance_remaining = 0
+    # Trigger the terminal check via a step in CAMP.
+    msgs = engine.step(PlayerIntent(IntentAction.REST))
+
+    assert engine.phase == GamePhase.GAME_OVER
+    assert engine.state.victory is True
+    assert engine.state.ending is not None
+    assert msgs.ending is not None
+    assert engine.state.ending is msgs.ending
+    assert engine.state.ending.tier in (
+        "triumphant", "weathered", "pyrrhic",
+    )
+    assert engine.state.ending.facts["victory"] is True
+
+
+def test_engine_populates_ending_on_death():
+    """A death game-over also produces a graded ('lost') ending on state+msgs."""
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("food", 0)
+    engine.state.supplies.set("water", 0)
+    for m in engine.state.party.members:
+        m.health = 1
+    # One travel should wipe the party via dehydration/starvation.
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+        msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    if engine.phase == GamePhase.GAME_OVER:
+        assert engine.state.ending is not None
+        assert engine.state.ending.tier == "lost"
+        assert engine.state.ending.facts["victory"] is False
+        # The terminal step's messages carry the ending for the UI.
+        assert msgs.ending is engine.state.ending
+
+
+def test_finalize_run_yields_ending_on_timeout():
+    """A run that hits a max_steps/timeout terminal without a clean game-over
+    still resolves to a non-None EndingResult via finalize_run()."""
+    engine = _make_engine(seed=42)
+    max_steps = 5
+
+    # Drive a short, capped loop the way a proof harness / turn-capped UI does:
+    # break at max_steps without ever waiting for a clean GAME_OVER.
+    for _ in range(max_steps):
+        if engine.phase == GamePhase.GAME_OVER:
+            break
+        if engine.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+            engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+        else:
+            engine.step(PlayerIntent(IntentAction.REST))
+
+    # The run is still live (no victory, no death) — the historical gap.
+    assert engine.state.victory is False
+
+    ending = engine.finalize_run(reason="timeout")
+
+    # The timeout terminal now resolves to a sensible, non-None ending.
+    assert ending is not None
+    assert engine.state.ending is ending
+    assert ending.tier == "lost"
+    assert ending.facts["victory"] is False
+    assert engine.phase == GamePhase.GAME_OVER
+    assert engine.state.game_over is True
+    assert engine.state.cause_of_death != ""
+
+
+def test_finalize_run_is_idempotent_and_preserves_clean_ending():
+    """finalize_run() never clobbers a clean victory/death ending; it returns
+    the already-graded one and is safe to call more than once."""
+    engine = _make_engine(seed=42)
+    engine.state.location_id = engine.state.map_nodes[-1].node_id
+    engine.state.distance_remaining = 0
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert engine.phase == GamePhase.GAME_OVER
+    clean_ending = engine.state.ending
+    assert clean_ending is not None
+
+    # Finalizing an already-terminal run returns the same graded ending.
+    again = engine.finalize_run()
+    assert again is clean_ending
+    assert engine.finalize_run() is clean_ending
+    assert engine.state.victory is True
+
+
+def test_par_days_floor_and_scaling():
+    from escape_the_valley.step_engine import compute_par_days
+
+    # Floored for tiny/zero journeys.
+    assert compute_par_days(0) == 8
+    assert compute_par_days(4) == 8
+    # Scales with distance (ceil division by 4) above the floor.
+    assert compute_par_days(120) == 30
+    assert compute_par_days(121) == 31
+
+
+def test_taboo_kept_never_river_reads_journal():
+    """never_river is broken only on positive journal evidence of a ford."""
+    from escape_the_valley.models import JournalEntry
+    from escape_the_valley.step_engine import _taboo_kept
+
+    state = create_new_run(seed=42)
+    state.taboo = "never_river"
+    # No journal yet → kept by default.
+    assert _taboo_kept(state) is True
+
+    state.journal.append(JournalEntry(
+        day=2, location="Ford", event_id="f1_005",
+        scene_title="Rapid Currents", narration="",
+        choice_made="A: Ford straight through the current",
+        outcome="", tags=["river", "ford"],
+    ))
+    assert _taboo_kept(state) is False

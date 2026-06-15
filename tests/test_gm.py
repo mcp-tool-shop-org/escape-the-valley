@@ -14,8 +14,9 @@ from escape_the_valley.gm import (
     _tone_check,
     _tone_repair,
     _validate_scene,
+    build_deterministic_epilogue,
 )
-from escape_the_valley.models import GMProfile
+from escape_the_valley.models import EndingResult, GMProfile
 from escape_the_valley.worldgen import create_new_run
 
 
@@ -28,6 +29,47 @@ class _FakeResp:
 
     def json(self) -> dict:
         return {"response": self._payload}
+
+
+class _FakeStream:
+    """Context-manager stand-in for httpx.Client.stream() returning NDJSON lines.
+
+    gm-feat-01 — Ollama streams its full JSON object as a sequence of NDJSON
+    objects, each carrying a ``response`` text fragment. This fake replays a
+    pre-split list of raw fragments so a test can prove on_token receives the
+    narration progressively while the final accumulated raw still parses.
+    """
+
+    def __init__(self, fragments: list[str], status_code: int = 200):
+        self._fragments = fragments
+        self.status_code = status_code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def read(self) -> bytes:  # drained on non-200
+        return b""
+
+    def iter_lines(self):
+        for frag in self._fragments:
+            yield json.dumps({"response": frag})
+
+
+def _stream_factory(fragments, status_code=200):
+    """Build a monkeypatch replacement for client._client.stream."""
+
+    def _stream(_method, _url, **_kwargs):
+        return _FakeStream(fragments, status_code)
+
+    return _stream
+
+
+def _chunk(text: str, size: int = 3) -> list[str]:
+    """Split a string into size-bounded fragments (to exercise partial chunks)."""
+    return [text[i : i + size] for i in range(0, len(text), size)] or [""]
 
 
 def _make_event() -> EventSkeleton:
@@ -556,3 +598,443 @@ class TestIsAvailableTimeout:
     def test_probe_default_is_short(self):
         # The default probe budget is seconds, not the 30s generation window.
         assert GMConfig().probe_timeout <= 5.0
+
+
+class TestStreamingNarration:
+    """gm-feat-01 — on_token streams narration progressively, still parses.
+
+    The invariants under test:
+      - on_token receives the narration prose in arriving order, and the
+        accumulated deltas equal the final SceneResponse.narration;
+      - the fully-parsed SceneResponse is still returned and passes tone-lint;
+      - a streaming failure (non-200 / transport / invalid JSON / tone-fail)
+        still falls through to None after the usual retry (fallback never
+        bricks), and on_token never raises into the model loop;
+      - on_token=None is byte-identical to the non-streamed path (still hits
+        client._client.post, never .stream).
+    """
+
+    def _world(self):
+        return create_new_run(seed=1), _make_event()
+
+    def test_scene_streams_progressive_narration(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The ford runs wide and cold, and the mule will not move."
+        full = _valid_scene_json(narration)
+        # Split the raw model output into many small fragments to exercise the
+        # incremental decoder across chunk boundaries.
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 4)),
+        )
+        # post must NOT be used on the streaming path.
+        monkeypatch.setattr(
+            client._client, "post",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("streaming path must not call post")
+            ),
+        )
+
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is not None
+        assert result.narration == narration
+        # The streamed deltas, concatenated, reconstruct the narration exactly.
+        assert "".join(seen) == narration
+        # Progressive: more than one delta arrived (it was not one dump).
+        assert len(seen) >= 2
+        # And the final response still passes tone-lint.
+        assert _tone_check(result.narration)
+        assert client.stats["successes"] == 1
+
+    def test_scene_stream_non200_falls_through_to_none(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _FakeStream([], status_code=500)
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is None  # fallback-never-bricks
+        assert calls["n"] == 2  # max_retries + 1
+        assert seen == []  # nothing decoded
+        assert client.stats["json_rejects"] == 2
+
+    def test_scene_stream_invalid_json_falls_through(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        monkeypatch.setattr(
+            client._client, "stream",
+            _stream_factory(_chunk("this is not json at all", 5)),
+        )
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=lambda _d: None,
+        )
+        assert result is None
+
+    def test_scene_stream_tone_fail_falls_through(self, monkeypatch):
+        # A streamed punchline still hard-fails after retries → None.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        bad = _valid_scene_json("Plot twist: the bridge gave way.")
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _FakeStream(_chunk(bad, 6))
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=lambda _d: None,
+        )
+        assert result is None
+        assert calls["n"] == 2
+        assert client.stats["tone_rejects"] >= 1
+
+    def test_on_token_exception_never_propagates(self, monkeypatch):
+        # A buggy renderer must not brick generation: the scene still parses.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The river is high and the rope is frayed."
+        monkeypatch.setattr(
+            client._client, "stream",
+            _stream_factory(_chunk(_valid_scene_json(narration), 4)),
+        )
+
+        def _explode(_delta):
+            raise RuntimeError("renderer blew up")
+
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=_explode,
+        )
+        assert result is not None  # callback failure swallowed
+        assert result.narration == narration
+        assert client.stats["successes"] == 1
+
+    def test_on_token_none_uses_post_not_stream(self, monkeypatch):
+        # gm-feat-01 — the None path is byte-identical to today: it uses post,
+        # never stream.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        good = _valid_scene_json("The wind drives the dust before it.")
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, good),
+        )
+        monkeypatch.setattr(
+            client._client, "stream",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("non-stream path must not call stream")
+            ),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is not None
+        assert "dust" in result.narration
+
+    def test_outcome_streams_progressive_narration(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = "The water takes the wagon to its knees and lets go slowly."
+        full = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": narration,
+            "callout": "You crossed, soaked but whole.",
+        })
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 5)),
+        )
+        seen: list[str] = []
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+            on_token=seen.append,
+        )
+        assert result is not None
+        assert result.outcome_narration == narration
+        assert "".join(seen) == narration
+        assert len(seen) >= 2
+        assert _tone_check(result.outcome_narration)
+
+    def test_stream_handles_escapes_across_chunks(self, monkeypatch):
+        # A narration containing escaped quotes + a unicode escape, split so
+        # the escapes straddle chunk boundaries, must still decode cleanly.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        narration = 'She said "go" and the café lamp guttered out.'
+        full = _valid_scene_json(narration)
+        # Size-1 fragments guarantee every escape is split.
+        monkeypatch.setattr(
+            client._client, "stream", _stream_factory(_chunk(full, 1)),
+        )
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is not None
+        assert result.narration == narration
+        assert "".join(seen) == narration
+
+    def test_midstream_readerror_buckets_transport_and_returns_none(
+        self, monkeypatch,
+    ):
+        # gm-feat-01b — a transport drop AFTER a 200 (httpx.ReadError raised
+        # while consuming iter_lines) must be bucketed like an open-time
+        # failure: connect_errors increments, and the scene still resolves to
+        # None (fallback-never-bricks). Before the fix it fell through the broad
+        # 'except Exception' and incremented no counter, undercounting drops.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+
+        class _DroppingStream:
+            status_code = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_a):
+                return False
+
+            def iter_lines(self):
+                # Deliver one good fragment, then drop mid-stream.
+                yield json.dumps({"response": '{"narration":"The ford '})
+                raise httpx.ReadError("connection reset mid-stream")
+
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _DroppingStream()
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        # post must not be touched on the streaming path.
+        monkeypatch.setattr(
+            client._client, "post",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("streaming path must not call post")
+            ),
+        )
+
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        # Resolves to None — the run uses its deterministic fallback text.
+        assert result is None
+        # The mid-stream drop is bucketed as a transport failure, not lost.
+        assert client.stats["connect_errors"] == 1
+        assert client.stats["timeouts"] == 0
+        # A ReadError is a transport drop, not a JSON/tone rejection.
+        assert client.stats["json_rejects"] == 0
+        assert client.stats["tone_rejects"] == 0
+        # The first transport drop returns immediately (like ConnectError);
+        # it does not burn the whole retry budget re-failing.
+        assert calls["n"] == 1
+
+
+def _ending(
+    tier: str = "triumphant",
+    *,
+    victory: bool = True,
+    survivors: int = 4,
+    party_size: int = 4,
+    days: int = 30,
+    par_days: int = 32,
+    taboo: str | None = "never_night",
+    taboo_kept: bool = True,
+    uncanny_unspent: int = 0,
+    deaths: dict | None = None,
+    headline: str = "All reached the valley.",
+) -> EndingResult:
+    return EndingResult(
+        tier=tier,
+        headline=headline,
+        facts={
+            "victory": victory,
+            "survivors": survivors,
+            "party_size": party_size,
+            "days": days,
+            "par_days": par_days,
+            "taboo": taboo,
+            "taboo_kept": taboo_kept,
+            "uncanny_tokens_unspent": uncanny_unspent,
+            "deaths_by_cause": deaths or {},
+            "distance": 600,
+            "total_distance": 600,
+            "cause_of_death": "",
+        },
+    )
+
+
+class TestDeterministicEpilogue:
+    """EC-04 — the GM-free floor: grounded, deterministic, invents nothing."""
+
+    def test_leads_with_headline(self):
+        state = create_new_run(seed=1)
+        ending = _ending(headline="They made it through.")
+        text = build_deterministic_epilogue(state, ending)
+        assert text.startswith("They made it through.")
+
+    def test_deterministic_for_same_ending(self):
+        state = create_new_run(seed=1)
+        ending = _ending()
+        a = build_deterministic_epilogue(state, ending)
+        b = build_deterministic_epilogue(state, ending)
+        assert a == b
+        assert a  # non-empty
+
+    def test_pyrrhic_names_the_loss(self):
+        state = create_new_run(seed=1)
+        ending = _ending(
+            tier="pyrrhic", survivors=3, party_size=5,
+            deaths={"starvation": 2}, headline="Reached, but at cost.",
+        )
+        text = build_deterministic_epilogue(state, ending)
+        assert "2 did not finish" in text
+        assert "starvation" in text
+
+    def test_broken_taboo_reflected(self):
+        state = create_new_run(seed=1)
+        ending = _ending(tier="pyrrhic", taboo_kept=False)
+        text = build_deterministic_epilogue(state, ending)
+        assert "vow did not survive" in text.lower()
+
+    def test_lost_tier_closer(self):
+        state = create_new_run(seed=1)
+        ending = _ending(
+            tier="lost", victory=False, survivors=0,
+            headline="None reached the valley.",
+        )
+        text = build_deterministic_epilogue(state, ending)
+        assert "silence" in text.lower()
+        # A loss epilogue passes tone-lint (no slang, no punchline).
+        assert _tone_check(text)
+
+    def test_no_resources_invented(self):
+        # The deterministic floor never references supply quantities.
+        state = create_new_run(seed=1)
+        ending = _ending()
+        text = build_deterministic_epilogue(state, ending).lower()
+        for word in ("food:", "water:", "parts:", "+", "supplies"):
+            assert word not in text
+
+
+class TestGenerateEpilogue:
+    """EC-04 (gm half) — narrated when possible, deterministic floor always."""
+
+    def test_gm_off_yields_deterministic(self):
+        client = GMClient(GMConfig(enabled=False))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+
+    def test_mocked_gm_yields_narrated(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        prose = (
+            "The valley opened below them at last, green and indifferent. "
+            "They had spent everything but the vow, and the vow had held. "
+            "No one spoke of the days behind. The fires that night were small "
+            "and warm and earned."
+        )
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, prose),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == prose
+        assert result != build_deterministic_epilogue(state, ending)
+        assert client.stats["successes"] == 1
+
+    def test_narrated_epilogue_is_tone_linted(self, monkeypatch):
+        # A punchline epilogue is hard-rejected → deterministic fallback.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        bad = "Plot twist: they all lived happily ever after."
+        calls = {"n": 0}
+
+        def _post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(200, bad)
+
+        monkeypatch.setattr(client._client, "post", _post)
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+        assert calls["n"] == 2  # retried then gave up
+        assert client.stats["tone_rejects"] >= 1
+
+    def test_slang_only_epilogue_repaired(self, monkeypatch):
+        # A slang-only epilogue is repaired locally, not dropped to fallback.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        prose = "Bro, the valley was wide and the fires burned low that night."
+        calls = {"n": 0}
+
+        def _post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(200, prose)
+
+        monkeypatch.setattr(client._client, "post", _post)
+        result = client.generate_epilogue(state, ending)
+        assert calls["n"] == 1  # repaired in one call
+        assert "bro" not in result.lower().split()
+        assert "valley" in result.lower()
+
+    def test_transport_failure_yields_deterministic(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+
+        def _refuse(*_a, **_k):
+            raise httpx.ConnectError("refused")
+
+        monkeypatch.setattr(client._client, "post", _refuse)
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+        assert client.stats["connect_errors"] == 1
+
+    def test_junk_response_yields_deterministic(self, monkeypatch):
+        # Empty/junk prose falls through to the deterministic floor.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, "   "),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+
+    def test_json_wrapped_prose_is_lifted(self, monkeypatch):
+        # A model that wraps the epilogue in JSON still yields the prose.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        wrapped = json.dumps({
+            "epilogue": "The valley held them gently after the long road down.",
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(200, wrapped),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result == "The valley held them gently after the long road down."
+
+    def test_never_returns_none(self, monkeypatch):
+        # The contract: generate_epilogue NEVER returns None.
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending(tier="lost", victory=False, survivors=0)
+        monkeypatch.setattr(
+            client._client, "post", lambda *a, **k: _FakeResp(500, ""),
+        )
+        result = client.generate_epilogue(state, ending)
+        assert result is not None
+        assert isinstance(result, str)
+        assert result  # non-empty

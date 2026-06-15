@@ -111,3 +111,30 @@ class TestPartyState:
             PartyMember(name="A", health=0, traits=[Trait.HEALER]),
         ])
         assert not p.has_trait(Trait.HEALER)
+
+
+class TestEndingResult:
+    """EC-04: the EndingResult dataclass — a graded ending shape."""
+
+    def test_fields_and_defaults(self):
+        from escape_the_valley.models import EndingResult
+
+        e = EndingResult(tier="triumphant")
+        assert e.tier == "triumphant"
+        assert e.facts == {}
+        assert e.headline == ""
+
+    def test_carries_facts_and_headline(self):
+        from escape_the_valley.models import EndingResult
+
+        facts = {"survivors": 4, "party_size": 4, "days": 22, "par_days": 30}
+        e = EndingResult(
+            tier="triumphant", facts=facts, headline="All reached the valley.",
+        )
+        assert e.facts["survivors"] == 4
+        assert e.headline == "All reached the valley."
+
+    def test_runstate_ending_defaults_none(self):
+        from escape_the_valley.models import RunState
+
+        assert RunState().ending is None
