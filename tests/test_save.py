@@ -303,3 +303,106 @@ class TestSaveLoadDeterminism:
             # Engine reconstructs via counter-replay and keeps running.
             engine2 = StepEngine(loaded, GMConfig(enabled=False))
             _drive(engine2, PlayerIntent(IntentAction.TRAVEL))
+
+
+class TestSecretsSidecar:
+    """ledger-001 / ENG-A-04 — wallet/issuer seeds never touch run.json; they
+    live in a local .trail/secrets.json sidecar and restore in-memory on load."""
+
+    def _enable_backpack(self, state):
+        bp = state.backpack
+        bp.enabled = True
+        bp.wallet_address = "rWalletAddr0000000000000000000"
+        bp.wallet_secret = "sWalletSecretSEED000000000000"
+        bp.issuer_address = "rIssuerAddr0000000000000000000"
+        bp.issuer_secret = "sIssuerSecretSEED000000000000"
+        bp.trust_lines_ready = True
+
+    def test_secrets_absent_from_run_json(self):
+        """run.json must contain neither secret, anywhere in the file."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            raw = (base / SAVE_DIR / SAVE_FILE).read_text(encoding="utf-8")
+            assert state.backpack.wallet_secret not in raw
+            assert state.backpack.issuer_secret not in raw
+            assert "wallet_secret" not in raw
+            assert "issuer_secret" not in raw
+
+            # Public addresses still round-trip in run.json.
+            data = json.loads(raw)
+            assert data["backpack"]["wallet_address"] == state.backpack.wallet_address
+            assert data["backpack"]["issuer_address"] == state.backpack.issuer_address
+
+    def test_secrets_written_to_sidecar(self):
+        """secrets.json holds the seeds keyed by run_id."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            sidecar = base / SAVE_DIR / "secrets.json"
+            assert sidecar.exists()
+            store = json.loads(sidecar.read_text(encoding="utf-8"))
+            assert store[state.run_id]["wallet_secret"] == state.backpack.wallet_secret
+            assert store[state.run_id]["issuer_secret"] == state.backpack.issuer_secret
+
+    def test_load_restores_secrets_from_sidecar(self):
+        """A load round-trip repopulates the in-memory secrets."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.wallet_secret == state.backpack.wallet_secret
+            assert loaded.backpack.issuer_secret == state.backpack.issuer_secret
+            # And the public fields too.
+            assert loaded.backpack.wallet_address == state.backpack.wallet_address
+
+    def test_load_without_sidecar_leaves_secrets_empty(self):
+        """If the sidecar is missing, load must not crash — secrets stay empty."""
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            # Remove the sidecar entirely.
+            (base / SAVE_DIR / "secrets.json").unlink()
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.backpack.wallet_secret == ""
+            assert loaded.backpack.issuer_secret == ""
+            assert loaded.backpack.enabled is True  # rest of backpack intact
+
+    def test_sidecar_preserves_other_runs(self):
+        """Saving one run must not clobber another run's secrets in the file."""
+        state_a = create_new_run(seed=1)
+        self._enable_backpack(state_a)
+        state_b = create_new_run(seed=2)
+        self._enable_backpack(state_b)
+        state_b.backpack.wallet_secret = "sDifferentWalletSEED0000000000"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state_a, base)
+            save_game(state_b, base)
+
+            store = json.loads(
+                (base / SAVE_DIR / "secrets.json").read_text(encoding="utf-8")
+            )
+            assert state_a.run_id in store
+            assert state_b.run_id in store
+            assert store[state_a.run_id]["wallet_secret"] == state_a.backpack.wallet_secret
+            assert store[state_b.run_id]["wallet_secret"] == state_b.backpack.wallet_secret
