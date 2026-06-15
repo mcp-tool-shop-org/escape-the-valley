@@ -40,6 +40,25 @@ log = logging.getLogger(__name__)
 # JsonRpcClient(url); we pass it explicitly via _TimeoutJsonRpcClient below.
 XRPL_REQUEST_TIMEOUT: float = 30.0
 
+# Wall-clock ceiling for a single write (ledger-B02 WRITE-PATH). The READ path
+# (AccountTx/AccountLines via client.request) is bounded per round-trip by
+# _TimeoutJsonRpcClient, but the WRITE path goes through xrpl-py's
+# submit_and_wait, which runs its OWN ledger-validation poll loop
+# (_wait_for_final_transaction_outcome) — recursing with a 1s sleep between Tx
+# lookups until the tx is validated OR the latest validated ledger passes the
+# tx's LastLedgerSequence. submit_and_wait exposes NO timeout/deadline param
+# (signature: transaction, client, wallet, *, check_fee, autofill, fail_hard),
+# and the inner Tx polls call client._request_impl WITHOUT a timeout, so on a
+# stalled node where ledgers stop closing the loop can spin well past
+# XRPL_REQUEST_TIMEOUT. We therefore wrap submit_and_wait in a bounded worker
+# (_submit_and_wait_bounded) whose wall-clock deadline caps the whole write,
+# raising into the same offline/pending degradation path (settle → pending,
+# send_parcel → supplies unchanged, enable → stays OFF) instead of freezing the
+# run. The ceiling is a small multiple of the per-request timeout: a healthy
+# write needs a handful of ledger closes (~4s each on testnet) plus signing, so
+# 2x gives real submissions ample headroom while still bounding a stall.
+XRPL_WRITE_DEADLINE: float = XRPL_REQUEST_TIMEOUT * 2  # 60s
+
 # ── Optional xrpl-py import ──────────────────────────────────────
 
 _HAS_XRPL = False
@@ -233,6 +252,69 @@ def _decode_parcel_memo(memo_hex: str) -> dict | None:
     return {"supply": supply, "amount": amount}
 
 
+class WriteTimeoutError(Exception):
+    """A write (submit_and_wait) exceeded its wall-clock deadline (ledger-B02).
+
+    Raised by ``_submit_and_wait_bounded`` when the worker thread driving
+    ``submit_and_wait`` does not finish within ``XRPL_WRITE_DEADLINE``. It is a
+    plain ``Exception`` subclass so the existing ``except Exception`` blocks in
+    ``settle``/``_retry_pending``/``send_parcel``/``enable`` catch it and route
+    the write into the offline/pending degradation path — never a freeze.
+    """
+
+
+def _submit_and_wait_bounded(tx, client, signer, *, deadline: float | None = None):
+    """Run ``submit_and_wait`` with a wall-clock deadline (ledger-B02 WRITE).
+
+    xrpl-py's ``submit_and_wait`` polls the ledger for transaction validation in
+    its own loop and exposes no timeout parameter, so a stalled testnet node
+    (ledgers not closing) can keep it blocked far past ``XRPL_REQUEST_TIMEOUT``.
+    Each individual round-trip is now capped by ``_TimeoutJsonRpcClient``, but
+    the *number* of round-trips is unbounded; only an outer wall-clock deadline
+    makes the WRITE path honor the "never hang, degrade to offline" guarantee.
+
+    We drive the (synchronous) ``submit_and_wait`` on a daemon worker thread and
+    wait at most ``deadline`` seconds for it. On timeout we raise
+    ``WriteTimeoutError`` so the caller degrades exactly as it would for any other
+    submit failure (settle → pending, send_parcel → supplies unchanged, enable
+    → stays OFF). The worker is a daemon: if the underlying socket is wedged
+    past the per-request timeout the thread cannot be force-killed, but it can
+    never block the run or process exit, and the next attempt (manual or
+    next-town retry) starts fresh.
+
+    ``deadline`` defaults to ``None`` and is resolved to the module-level
+    ``XRPL_WRITE_DEADLINE`` at call time (not bound at definition), so the
+    ceiling stays tunable by monkeypatching the constant. ``submit_and_wait`` is
+    likewise resolved through the module namespace so test monkeypatching of
+    ``backpack.submit_and_wait`` continues to apply.
+    """
+    import threading
+
+    if deadline is None:
+        deadline = XRPL_WRITE_DEADLINE
+
+    result: dict = {}
+
+    def _worker() -> None:
+        try:
+            result["value"] = submit_and_wait(tx, client, signer)
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the caller thread
+            result["error"] = exc
+
+    worker = threading.Thread(target=_worker, daemon=True)
+    worker.start()
+    worker.join(deadline)
+
+    if worker.is_alive():
+        raise WriteTimeoutError(
+            f"submit_and_wait exceeded {deadline:.0f}s deadline "
+            f"(testnet stalled); degrading to offline/pending"
+        )
+    if "error" in result:
+        raise result["error"]
+    return result["value"]
+
+
 # ── BackpackManager ──────────────────────────────────────────────
 
 
@@ -354,7 +436,7 @@ class BackpackManager:
                             value="999999",
                         ),
                     )
-                    submit_and_wait(trust_tx, client, player)
+                    _submit_and_wait_bounded(trust_tx, client, player)
                 # Flag set ONLY after every trust line fully succeeds
                 # (ledger-B05): a mid-loop failure leaves it False so the next
                 # enable() resumes rather than skipping straight to mint.
@@ -376,7 +458,7 @@ class BackpackManager:
                                 value=str(amount),
                             ),
                         )
-                        submit_and_wait(mint_tx, client, issuer)
+                        _submit_and_wait_bounded(mint_tx, client, issuer)
 
                 # Step 5: Record snapshot. Set ONLY after the full mint loop
                 # completes (ledger-B05) so a half-minted pack stays "incomplete"
@@ -459,7 +541,7 @@ class BackpackManager:
                         ),
                         memos=memos,
                     )
-                    resp = submit_and_wait(tx, client, player)
+                    resp = _submit_and_wait_bounded(tx, client, player)
                 else:
                     # Player gained supplies → issuer sends to player
                     tx = Payment(
@@ -472,7 +554,7 @@ class BackpackManager:
                         ),
                         memos=memos,
                     )
-                    resp = submit_and_wait(tx, client, issuer)
+                    resp = _submit_and_wait_bounded(tx, client, issuer)
 
                 txid = resp.result.get("hash", "")
                 if txid:
@@ -587,7 +669,7 @@ class BackpackManager:
                             ),
                             memos=memos,
                         )
-                        resp = submit_and_wait(tx, client, player)
+                        resp = _submit_and_wait_bounded(tx, client, player)
                     else:
                         tx = Payment(
                             account=issuer.address,
@@ -599,7 +681,7 @@ class BackpackManager:
                             ),
                             memos=memos,
                         )
-                        resp = submit_and_wait(tx, client, issuer)
+                        resp = _submit_and_wait_bounded(tx, client, issuer)
 
                     txid = resp.result.get("hash", "")
                     if txid:
@@ -714,7 +796,7 @@ class BackpackManager:
                 amount="12",  # 12 drops — minimum XRP payment
                 memos=memos,
             )
-            resp = submit_and_wait(tx, client, player)
+            resp = _submit_and_wait_bounded(tx, client, player)
             txid = resp.result.get("hash", "")
 
             # Deduct supplies

@@ -1092,6 +1092,167 @@ class TestTimeoutClient:
         assert XRPL_REQUEST_TIMEOUT == 30.0
 
 
+class TestWritePathDeadline:
+    """ledger-B02 WRITE-PATH: a stalled submit_and_wait degrades, never hangs.
+
+    xrpl-py's submit_and_wait runs its own ledger-validation poll loop and
+    exposes no timeout param, so a stalled testnet could block it past
+    XRPL_REQUEST_TIMEOUT. _submit_and_wait_bounded caps the whole write with a
+    wall-clock deadline; on timeout it raises WriteTimeout, which the existing
+    except-Exception paths route into the same offline/pending degradation as
+    any other submit failure (WriteTimeoutError is a plain Exception). These
+    tests mock a submit that blocks until the
+    test releases it (so no live thread leaks) and assert the write degrades
+    within the (tiny, monkeypatched) deadline rather than freezing.
+    """
+
+    @staticmethod
+    def _slow_submit(release_evt, *, fire_evt=None):
+        """A submit_and_wait stand-in that blocks until ``release_evt`` is set.
+
+        Simulates a stalled node: the call does not return on its own. The test
+        sets ``release_evt`` in teardown so the daemon worker thread unwinds
+        cleanly instead of leaking. ``fire_evt`` (if given) is set the moment
+        the worker actually enters the call, so the test can prove the deadline
+        fired against a genuinely in-flight submit.
+        """
+
+        def _submit(tx, client, signer):
+            if fire_evt is not None:
+                fire_evt.set()
+            release_evt.wait(timeout=10)  # released by the test; safety cap
+            return _FakeResp({"hash": "NEVER"})
+
+        return _submit
+
+    @requires_xrpl
+    def test_bounded_wrapper_raises_writetimeout_on_stall(self, monkeypatch):
+        """The wrapper itself raises WriteTimeoutError when submit blocks past
+        the deadline — and does not block the calling thread."""
+        import threading
+        import time
+
+        from escape_the_valley.backpack import (
+            WriteTimeoutError,
+            _submit_and_wait_bounded,
+        )
+
+        release = threading.Event()
+        fired = threading.Event()
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait",
+            self._slow_submit(release, fire_evt=fired),
+        )
+
+        start = time.monotonic()
+        try:
+            with pytest.raises(WriteTimeoutError):
+                _submit_and_wait_bounded(
+                    object(), _FakeClient(), _FakeWallet("rX"), deadline=0.2,
+                )
+            elapsed = time.monotonic() - start
+            # The caller was released ~at the deadline, not after the 10s stall.
+            assert elapsed < 5.0
+            assert fired.is_set()  # the slow submit was genuinely in flight
+        finally:
+            release.set()  # let the daemon worker unwind
+
+    @requires_xrpl
+    def test_stalled_settle_degrades_to_pending(self, monkeypatch):
+        """A stalled write during settle() queues a pending record (degrade),
+        does not hang, and flips the offline signal."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed",
+            staticmethod(lambda *a, **k: _FakeWallet("rPlayerAddr")),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _enabled_state()
+        state.supplies.set("food", 40)  # -10 → triggers a write that stalls
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.settle(state, "StalledTown")
+            assert res.success is False
+            assert len(state.backpack.pending_settlements) == 1
+            assert state.backpack.pending_settlements[0].status == "pending"
+            assert state.backpack.last_settle_failed is True
+            # Baseline NOT advanced — nothing reached the ledger.
+            assert state.backpack.last_settled_supplies["food"] == 50
+        finally:
+            release.set()
+
+    @requires_xrpl
+    def test_stalled_send_parcel_degrades_supplies_unchanged(self, monkeypatch):
+        """A stalled write during send_parcel() leaves supplies untouched and
+        records no parcel — degrade, not freeze."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed",
+            staticmethod(lambda *a, **k: _FakeWallet("rPlayerAddr")),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.send_parcel(state, "rRecipient", "food", 7)
+            assert res.success is False
+            assert state.supplies.food == before  # unchanged on stall
+            assert state.backpack.sent_parcels == []
+        finally:
+            release.set()
+
+    @requires_xrpl
+    def test_stalled_enable_degrades_to_off(self, monkeypatch):
+        """A stalled write during enable() (the TrustSet step) leaves the pack
+        OFF instead of hanging the faucet flow."""
+        import threading
+
+        release = threading.Event()
+        monkeypatch.setattr(backpack_mod, "XRPL_WRITE_DEADLINE", 0.2)
+
+        wallets = iter([
+            _FakeWallet("rIssuerAddr", "sIssuerSeed"),
+            _FakeWallet("rPlayerAddr", "sPlayerSeed"),
+        ])
+        monkeypatch.setattr(
+            backpack_mod, "generate_faucet_wallet",
+            lambda *a, **k: next(wallets),
+        )
+        monkeypatch.setattr(
+            backpack_mod, "submit_and_wait", self._slow_submit(release),
+        )
+
+        state = _make_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        try:
+            res = mgr.enable(state)
+            assert res.success is False
+            assert state.backpack.enabled is False
+            # Trust lines never completed — a later enable() resumes, not skips.
+            assert state.backpack.trust_lines_ready is False
+        finally:
+            release.set()
+
+
 class TestLastSettleFailedSignal:
     """ledger-B04 (CONTRACT): settle()/_retry_pending track last_settle_failed."""
 
