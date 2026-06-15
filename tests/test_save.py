@@ -10,8 +10,10 @@ from escape_the_valley.models import GMProfile, JournalEntry
 from escape_the_valley.save import (
     SAVE_DIR,
     SAVE_FILE,
+    SAVE_VERSION,
     _state_to_dict,
     load_game,
+    load_game_result,
     save_game,
 )
 from escape_the_valley.step_engine import StepEngine
@@ -406,3 +408,123 @@ class TestSecretsSidecar:
             assert state_b.run_id in store
             assert store[state_a.run_id]["wallet_secret"] == state_a.backpack.wallet_secret
             assert store[state_b.run_id]["wallet_secret"] == state_b.backpack.wallet_secret
+
+
+class TestSaveVersion:
+    """ENG-B-04: save_version is written, read, and branched on."""
+
+    def test_save_writes_version(self, tmp_path):
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        data = json.loads(
+            (tmp_path / SAVE_DIR / SAVE_FILE).read_text(encoding="utf-8")
+        )
+        assert data["save_version"] == SAVE_VERSION
+
+    def test_legacy_save_without_version_loads(self, tmp_path):
+        """A pre-versioning save (no save_version key) loads as version 0."""
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data.pop("save_version", None)
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        result = load_game_result(base_path=tmp_path)
+        assert result.ok
+        assert result.state is not None
+
+    def test_newer_version_reported_incompatible(self, tmp_path):
+        """A save from a future build is 'incompatible', not 'corrupt'."""
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["save_version"] = SAVE_VERSION + 5
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "incompatible"
+        assert result.state is None
+        # Incompatible saves are left in place (a newer build may read them).
+        assert save_path.exists()
+
+    def test_result_reason_no_save(self, tmp_path):
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "no_save"
+
+    def test_result_reason_corrupt(self, tmp_path):
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        (save_dir / SAVE_FILE).write_text("{bad json", encoding="utf-8")
+        result = load_game_result(base_path=tmp_path)
+        assert not result.ok
+        assert result.reason == "corrupt"
+
+    def test_result_ok_on_good_save(self, tmp_path):
+        state = create_new_run(seed=42)
+        save_game(state, base_path=tmp_path)
+        result = load_game_result(base_path=tmp_path)
+        assert result.ok
+        assert result.reason == ""
+        assert result.state is not None
+        assert result.state.seed == 42
+
+
+class TestCorruptSaveBackup:
+    """TCD-B-03: a corrupt run.json is preserved as run.json.corrupt-<ts>
+    BEFORE load_game returns, so the next autosave can never overwrite it."""
+
+    def _corrupt_files(self, save_dir):
+        return list(save_dir.glob(f"{SAVE_FILE}.corrupt-*"))
+
+    def test_corrupt_json_is_backed_up(self, tmp_path):
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+        save_path.write_text("{this is not valid json", encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+
+        # Original is gone (renamed), a corrupt-<ts> backup exists with content.
+        assert not save_path.exists()
+        backups = self._corrupt_files(save_dir)
+        assert len(backups) == 1
+        assert backups[0].read_text(encoding="utf-8") == "{this is not valid json"
+
+    def test_reconstruct_error_is_backed_up(self, tmp_path):
+        """Valid JSON but wrong structure → corrupt → backed up."""
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+        save_path.write_text(json.dumps({"not": "a game state"}), encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+        assert not save_path.exists()
+        assert len(self._corrupt_files(save_dir)) == 1
+
+    def test_next_save_cannot_overwrite_backup(self, tmp_path):
+        """After a corrupt load + backup, a fresh save writes a NEW run.json and
+        leaves the corrupt evidence untouched."""
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        (save_dir / SAVE_FILE).write_text("{corrupt!!!", encoding="utf-8")
+
+        assert load_game(base_path=tmp_path) is None
+        backups_before = self._corrupt_files(save_dir)
+        assert len(backups_before) == 1
+
+        # A fresh, valid save now lands.
+        save_game(create_new_run(seed=7), base_path=tmp_path)
+        assert (save_dir / SAVE_FILE).exists()
+        # The corrupt backup is still there, byte-for-byte.
+        backups_after = self._corrupt_files(save_dir)
+        assert len(backups_after) == 1
+        assert backups_after[0].read_text(encoding="utf-8") == "{corrupt!!!"
+
+    def test_good_save_is_not_backed_up(self, tmp_path):
+        save_game(create_new_run(seed=42), base_path=tmp_path)
+        assert load_game(base_path=tmp_path) is not None
+        assert self._corrupt_files(tmp_path / SAVE_DIR) == []

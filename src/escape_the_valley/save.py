@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .backpack_models import (
@@ -31,11 +34,34 @@ from .models import (
 )
 from .resources import DEFAULT_SUPPLIES
 
+log = logging.getLogger(__name__)
+
 SAVE_DIR = ".trail"
 SAVE_FILE = "run.json"
 # Wallet/issuer seeds live in a local, gitignored sidecar — never in run.json
 # (ledger-001 / ENG-A-04). .trail/ is already gitignored per the save format.
 SECRETS_FILE = "secrets.json"
+
+# ENG-B-04: save-format version. Bump when _state_to_dict changes shape in a way
+# old loaders can't read. A save with a future version loads as "incompatible".
+SAVE_VERSION = 1
+
+
+@dataclass
+class LoadResult:
+    """Structured outcome of a load attempt (ENG-B-04).
+
+    Exactly one of state / reason is meaningful:
+      * ok=True  → state is a RunState, reason="".
+      * ok=False → state is None, reason is a stable machine-readable code:
+            "no_save"      — no save file present
+            "corrupt"      — file unreadable / not valid JSON / wrong shape
+            "incompatible" — readable but from a newer SAVE_VERSION
+    """
+
+    ok: bool
+    state: RunState | None = None
+    reason: str = ""
 
 
 def _enum_to_str(obj):
@@ -114,33 +140,92 @@ def _read_secrets_sidecar(save_dir: Path, run_id: str) -> dict:
     return entry if isinstance(entry, dict) else {}
 
 
-def load_game(base_path: Path | None = None) -> RunState | None:
-    """Load a saved game state from disk."""
-    base = base_path or Path(".")
-    save_path = base / SAVE_DIR / SAVE_FILE
+def _backup_corrupt_save(save_path: Path) -> Path | None:
+    """TCD-B-03: rename a corrupt run.json to run.json.corrupt-<timestamp> so the
+    next autosave can't overwrite (and destroy) the evidence.
 
+    Returns the backup path, or None if the rename failed (best-effort — a
+    failure here must not raise into the load path).
+    """
     if not save_path.exists():
         return None
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
+    backup = save_path.with_name(f"{save_path.name}.corrupt-{ts}")
+    try:
+        save_path.rename(backup)
+        log.warning("corrupt save backed up to %s", backup.name)
+        return backup
+    except OSError as e:
+        log.warning("could not back up corrupt save %s: %s", save_path, e)
+        return None
+
+
+def load_game_result(base_path: Path | None = None) -> LoadResult:
+    """Load a saved game, returning a structured LoadResult (ENG-B-04).
+
+    On a corrupt save the original run.json is renamed to
+    run.json.corrupt-<timestamp> BEFORE returning so the next save cannot
+    overwrite it (TCD-B-03). A save from a newer SAVE_VERSION is reported as
+    "incompatible" and left in place (it may be loadable by a newer build).
+    """
+    base = base_path or Path(".")
+    save_dir = base / SAVE_DIR
+    save_path = save_dir / SAVE_FILE
+
+    if not save_path.exists():
+        return LoadResult(ok=False, reason="no_save")
 
     try:
         data = json.loads(save_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return None
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+        log.warning("save file unreadable (%s); backing up as corrupt", e)
+        _backup_corrupt_save(save_path)
+        return LoadResult(ok=False, reason="corrupt")
+
+    # Shape check before reconstruct — a non-dict (e.g. a JSON list/scalar) is
+    # corrupt, not a game state.
+    if not isinstance(data, dict):
+        log.warning("save file has wrong top-level shape; backing up as corrupt")
+        _backup_corrupt_save(save_path)
+        return LoadResult(ok=False, reason="corrupt")
+
+    # ENG-B-04: version branch. A save from a newer build is "incompatible"
+    # rather than "corrupt" — distinct, actionable reason for the caller.
+    version = data.get("save_version", 0)
+    if isinstance(version, int) and version > SAVE_VERSION:
+        log.warning(
+            "save_version %s is newer than supported %s (incompatible)",
+            version, SAVE_VERSION,
+        )
+        return LoadResult(ok=False, reason="incompatible")
 
     try:
         state = _dict_to_state(data)
-    except (KeyError, TypeError, ValueError):
-        return None
+    except (KeyError, TypeError, ValueError) as e:
+        log.warning("save could not be reconstructed (%s); backing up as corrupt", e)
+        _backup_corrupt_save(save_path)
+        return LoadResult(ok=False, reason="corrupt")
 
     # Re-populate wallet/issuer seeds from the local sidecar (ENG-A-04). If the
     # sidecar is absent, the backpack keeps empty secrets — re-derivable/
     # re-enableable; do not crash.
-    secrets = _read_secrets_sidecar(base / SAVE_DIR, state.run_id)
+    secrets = _read_secrets_sidecar(save_dir, state.run_id)
     if secrets:
         state.backpack.wallet_secret = secrets.get("wallet_secret", "")
         state.backpack.issuer_secret = secrets.get("issuer_secret", "")
 
-    return state
+    return LoadResult(ok=True, state=state)
+
+
+def load_game(base_path: Path | None = None) -> RunState | None:
+    """Load a saved game state from disk, or None if absent/corrupt/incompatible.
+
+    Thin back-compat wrapper over load_game_result() — callers that only need
+    the state keep the original RunState | None contract. Callers that need to
+    distinguish "no save" / "corrupt" / "incompatible" should use
+    load_game_result() directly.
+    """
+    return load_game_result(base_path).state
 
 
 def has_save(base_path: Path | None = None) -> bool:
@@ -152,6 +237,8 @@ def has_save(base_path: Path | None = None) -> bool:
 def _state_to_dict(state: RunState) -> dict:
     """Convert RunState to serializable dict."""
     return {
+        # ENG-B-04: format version, read+branched on load.
+        "save_version": SAVE_VERSION,
         "run_id": state.run_id,
         "seed": state.seed,
         "day": state.day,
@@ -253,7 +340,21 @@ def _state_to_dict(state: RunState) -> dict:
 
 
 def _dict_to_state(data: dict) -> RunState:
-    """Reconstruct RunState from saved dict."""
+    """Reconstruct RunState from saved dict.
+
+    ENG-B-04: branch on save_version. Version 0 (legacy / pre-versioning) and
+    version 1 share the same field-by-field reconstruction below — the .get()
+    defaults already provide forward/backward compatibility for added keys.
+    A future incompatible bump would dispatch to a dedicated reader here.
+    """
+    save_version = data.get("save_version", 0)
+    if save_version > SAVE_VERSION:
+        # Defense in depth — load_game_result() screens this first, but a direct
+        # _dict_to_state() caller must not silently misread a newer format.
+        raise ValueError(
+            f"save_version {save_version} newer than supported {SAVE_VERSION}"
+        )
+
     party_data = data["party"]
     members = [
         PartyMember(
