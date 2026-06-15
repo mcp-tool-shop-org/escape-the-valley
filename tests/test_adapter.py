@@ -657,3 +657,46 @@ class TestLedgerOffHint:
         frame = state_to_frame(engine)
         assert "press L" not in frame.backpack_status
         assert "Ledger: ON" in frame.backpack_status
+
+
+# ── cli-tui-B-06: non-color danger cues + NO_COLOR ──────────────────
+
+
+class TestAccessibilityCues:
+    """Urgency must survive a monochrome / colorblind read."""
+
+    def test_supply_cue_thresholds(self):
+        from escape_the_valley.ui import _supply_cue
+
+        assert _supply_cue(0) == " (CRITICAL)"
+        assert _supply_cue(3) == " (LOW)"
+        assert _supply_cue(5) == " (LOW)"
+        assert _supply_cue(6) == ""
+        assert _supply_cue(50) == ""
+
+    def test_no_color_env_detected(self, monkeypatch):
+        from escape_the_valley import ui
+
+        monkeypatch.setenv("NO_COLOR", "1")
+        assert ui._no_color() is True
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        assert ui._no_color() is False
+
+    def test_status_shows_text_cues_under_no_color(self, monkeypatch, capsys):
+        """With color stripped, low resources/health/morale still read as such."""
+        from escape_the_valley import ui
+
+        state = create_new_run(seed=7)
+        state.supplies.food = 0          # critical
+        state.supplies.water = 3         # low
+        state.party.members[0].health = 12   # critical health
+        state.party.morale = 10              # critical morale
+
+        # Force a monochrome console so the assertion tests the plain text,
+        # not ANSI color codes.
+        monkeypatch.setattr(ui, "console", ui.Console(no_color=True, force_terminal=False))
+        ui.show_status(state)
+        out = capsys.readouterr().out
+        assert "(CRITICAL)" in out  # food and/or morale
+        assert "(LOW)" in out       # water
+        assert "(!)" in out         # critical health marker
