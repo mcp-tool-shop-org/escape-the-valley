@@ -898,8 +898,9 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
     if outcome.morale_delta:
         sign = "+" if outcome.morale_delta > 0 else ""
         parts.append(f"morale {sign}{outcome.morale_delta}")
-    if outcome.time_cost:
-        parts.append(f"{outcome.time_cost} time lost")
+    # ENG-A-05: do NOT advertise "time lost" — apply_outcome never advances the
+    # clock on event resolution (time is charged per-action in the engine), so
+    # claiming a time cost in the callout would be a lie about what was charged.
 
     return ", ".join(parts) if parts else "No significant effect."
 

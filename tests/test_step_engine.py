@@ -453,3 +453,39 @@ def test_cache_collected_on_arrival():
     arrived = engine.state.distance_remaining <= 0
     if arrived:
         assert engine.diagnostics["caches_found"] >= 1
+
+
+# ── ENG-A-05: time_cost is not charged, so the callout must not claim it ──
+
+
+def test_callout_does_not_claim_uncharged_time():
+    """apply_outcome never advances the clock, so the fallback callout must not
+    advertise 'time lost' for an outcome that carries a time_cost."""
+    from escape_the_valley.events import EventOutcome
+    from escape_the_valley.step_engine import _build_fallback_callout
+
+    outcome = EventOutcome(
+        supplies_delta={"food": -3},
+        morale_delta=-2,
+        time_cost=2,
+    )
+    callout = _build_fallback_callout(outcome)
+    assert "time" not in callout.lower()
+    # Real, charged effects are still reported.
+    assert "-3 food" in callout
+    assert "morale -2" in callout
+
+
+def test_time_cost_does_not_advance_clock_on_event():
+    """Resolving an event with a time_cost must not change day/time_of_day,
+    since the engine charges time per-action, not per-event."""
+    from escape_the_valley.events import EventOutcome, apply_outcome
+
+    engine = _make_engine(seed=5)
+    day_before = engine.state.day
+    tod_before = engine.state.time_of_day
+
+    apply_outcome(engine.state, EventOutcome(time_cost=3, morale_delta=-1))
+
+    assert engine.state.day == day_before
+    assert engine.state.time_of_day == tod_before
