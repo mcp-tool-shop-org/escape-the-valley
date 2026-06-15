@@ -13,6 +13,12 @@ the engine cannot fake it. A mismatch means a settlement bug or state tampering.
 This is the "audit mode" the design roadmap promised: verify balances evolved per
 game deltas, detect drift.
 
+Scope note (ledger-A04): reconciliation is against POST-CLAMP supplies — the
+on-ledger truth the engine actually settled, already clamped to >= 0. The proof
+confirms the ledger matches what the engine settled; it does NOT see pre-clamp
+intent, so a clamp-masked economy bug (e.g. consumption that should have driven a
+supply negative but was floored to 0) is out of scope for this proof.
+
 Memo verification is genuinely external (ledger-003): the driver fetches the actual
 on-chain memos (hex-decoded ``MemoData`` via AccountTx) and ``reconcile()`` asserts
 the decoded on-ledger memo — bytes the engine signed but cannot retroactively
