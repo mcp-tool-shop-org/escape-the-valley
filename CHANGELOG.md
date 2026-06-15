@@ -10,6 +10,16 @@ All notable changes to Escape the Valley are documented here.
 - **Ledger reconciliation proof harness** (audit mode): an on-ledger reconciliation proof that replays settlement receipts and verifies them against the XRPL Testnet, so a run's supply history can be independently audited.
 - `--gm-profile` and `--weirdness` options on `trail tui`, matching the classic `trail new` CLI, so the GM voice and weirdness band can be set when launching the TUI.
 
+### Changed (Stage-C humanization)
+
+- **Async, non-freezing GM and ledger calls:** narration and XRPL round-trips run off the UI thread, so a slow Ollama warm-up or a flaky Testnet no longer freezes the TUI. The first narrated turn loads the model and can take 10-30s by design — this is now documented as expected, not a hang.
+- **Reachable escape valves:** hard ration, desperate repair, and abandon cargo are reachable from the TUI as genuine last resorts, with cooldowns and side effects intact.
+- **Degradation signals surfaced to the UI:** `StepMessages` carries `gm_degraded` / `gm_degraded_reason`, the engine tracks `gm_calls` / `gm_fallbacks`, `GMClient` exposes a `.stats` dict, `VoiceBridge` exposes availability/last-error status, and `BackpackState` carries `last_settle_failed` — so the player can see when the GM has fallen back, when voice is unavailable, and when a settlement failed, instead of guessing.
+- **Corrupt-save backup:** on a corrupt or unreadable `run.json`, the engine renames it to `run.json.corrupt-<timestamp>` before refusing it, so the next save can't clobber the only evidence and the file is recoverable.
+- **Robust event loading:** the event loader tolerates malformed event entries and validates resource keys, so a single bad event definition degrades to a skip instead of crashing the run.
+- **Testnet-only guard:** ledger operations assert the XRPL Testnet endpoint with a request timeout, keeping the game off mainnet and resilient to a stalled network.
+- **Troubleshooting docs:** a new Troubleshooting handbook page (plus a README section) keyed to the three real failure modes — no narration ⇒ start Ollama or use `--gm-off`; ledger pending ⇒ `trail ledger reconcile`; save won't resume ⇒ recover from the `run.json.corrupt-*` backup. `trail self-check` is documented as the first thing to run.
+
 ### Fixed (Stage-A hardening)
 
 - **Determinism across save/load:** the full PRNG state is now persisted, so resuming a saved game reproduces the same world and event stream as an uninterrupted run.
