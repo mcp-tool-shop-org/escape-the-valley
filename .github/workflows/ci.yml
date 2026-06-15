@@ -42,5 +42,13 @@ jobs:
       - name: Lint
         run: ruff check src/ tests/
 
+      - name: Dependency audit
+        # Scan installed deps for known advisories. Non-blocking (|| true) so a
+        # fresh upstream CVE doesn't red-X an unrelated PR; the report is still
+        # surfaced in the job log for triage.
+        run: |
+          pip install pip-audit
+          pip-audit || true
+
       - name: Test
         run: pytest --tb=short -q
