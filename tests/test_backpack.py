@@ -683,6 +683,113 @@ class TestRetryPendingMocked:
         assert food.sum_deltas == -15
         assert food.minted + food.sum_deltas == food.engine_settled == 35
 
+    @requires_xrpl
+    def test_fail_after_retry_chain_stays_conservation_consistent(
+        self, monkeypatch,
+    ):
+        """ENG-A-08 (adversarial, fail-AFTER-retry).
+
+        A cross-family review argued that advancing the baseline inside
+        _retry_pending corrupts state when the SAME settle() then fails. This
+        locks that exact chain and proves conservation holds end to end.
+
+        Town A: food 50->40 (-10); the FOD payment fails -> pending, baseline 50.
+        Town B: food 40->35. _retry_pending settles A's -10 (baseline 50->40),
+                then the FRESH FOD payment fails -> a new pending -5 (35-40),
+                baseline 40. reconcile() must report NOT passed (pending remains).
+        Town C: no consumption. _retry_pending settles the -5 (baseline 40->35),
+                the fresh delta is 0 -> success. reconcile() must pass; the
+                settled deltas telescope to -15 and no FOD is paid twice.
+        Pre-fix the baseline would not advance on retry, so Town B's fresh delta
+        spans the whole 50->35 interval and the -10 is paid/summed twice.
+        """
+        from escape_the_valley.backpack_models import (
+            XRPL_RESOURCES,
+            XRPL_TOKEN_MAP,
+        )
+        from escape_the_valley.ledger_proof import reconcile
+
+        state = _enabled_state()
+        minted = dict(state.backpack.last_settled_supplies)  # food=50
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(fake_from_seed),
+        )
+
+        food_moves: list[int] = []
+        hashes = iter(f"HASH{i}" for i in range(100))
+        fod_calls = {"n": 0}
+        fail_on = {"call": None}  # which FOD payment (1-indexed) should raise
+
+        def fake_submit(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            value = getattr(amount, "value", None)
+            if code == "FOD":
+                fod_calls["n"] += 1
+                if fail_on["call"] is not None and fod_calls["n"] == fail_on["call"]:
+                    raise RuntimeError("simulated FOD blip")
+                # Player->issuer means food leaving the pack (negative).
+                signed = -int(value) if tx.account == "rPlayerAddr" else int(value)
+                food_moves.append(signed)
+            return _FakeResp({"hash": next(hashes)})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit)
+
+        def _recon():
+            ledger_balances = {
+                XRPL_TOKEN_MAP[k][0]: state.backpack.last_settled_supplies.get(k, 0)
+                for k in XRPL_RESOURCES
+            }
+            return reconcile(
+                run_id=state.run_id, seed=state.seed, minted_initial=minted,
+                ledger_balances=ledger_balances,
+                last_settled_supplies=state.backpack.last_settled_supplies,
+                settlements=state.backpack.settlements,
+                pending=state.backpack.pending_settlements,
+            )
+
+        # ── Town A: the only (fresh) FOD payment fails.
+        state.supplies.set("food", 40)
+        fail_on["call"] = 1
+        assert mgr.settle(state, "TownA").success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settled_supplies["food"] == 50
+
+        # ── Town B: retry of A's -10 succeeds (2nd FOD call), fresh -5 fails (3rd).
+        state.supplies.set("food", 35)
+        fail_on["call"] = 3
+        assert mgr.settle(state, "TownB").success is False
+        # Retry advanced the baseline by the settled -10; the fresh -5 is pending.
+        assert state.backpack.last_settled_supplies["food"] == 40
+        assert len(state.backpack.pending_settlements) == 1
+        settled_food = sum(
+            r.deltas.get("food", 0) for r in state.backpack.settlements
+        )
+        assert settled_food == -10  # only the retried record is settled so far
+        assert _recon().passed is False  # a pending settlement remains
+
+        # ── Town C: no consumption; retry settles the -5, fresh delta is 0.
+        fail_on["call"] = None
+        assert mgr.settle(state, "TownC").success is True
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.last_settled_supplies["food"] == 35
+
+        # No FOD paid twice; conservation holds across the whole chain.
+        assert sum(food_moves) == -15
+        report = _recon()
+        assert report.passed is True, report.notes
+        food = next(r for r in report.resources if r.resource == "food")
+        assert food.sum_deltas == -15
+        assert food.minted + food.sum_deltas == food.engine_settled == 35
+
 
 class TestSendParcelMocked:
     @requires_xrpl
