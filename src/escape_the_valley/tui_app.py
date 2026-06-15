@@ -589,6 +589,20 @@ class LedgerTrailApp(App):
         except Exception:
             return False
 
+    # _in_flight invariant (read before touching any @work worker below):
+    #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
+    #     "ledger" group (enable/settle/wallet_info/send_parcel) are SEPARATE
+    #     groups, so Textual will happily run one of each concurrently — its
+    #     exclusivity only cancels a prior worker in the SAME group.
+    #   * The cross-action guard (a gameplay step must not race a ledger call,
+    #     and vice versa) is therefore NOT provided by exclusive=True. It is the
+    #     single self._in_flight flag, checked at the top of every dispatching
+    #     action handler and cleared in each _finish_* completion.
+    #   * That flag is safe as a plain bool ONLY because every action handler
+    #     runs on the single-threaded Textual event loop, so the read-check and
+    #     the write (self._in_flight = True) are never interleaved across
+    #     actions. The workers themselves only ever flip it back to False via
+    #     call_from_thread, i.e. marshalled back onto that same loop.
     @work(thread=True, exclusive=True, group="step")
     def _step_worker(self, intent) -> None:
         """Thread worker: the actual blocking engine step + frame sync."""
