@@ -286,6 +286,54 @@ class TestRetrieveMemories:
         results = retrieve_memories(state)
         assert results == []
 
+    def test_read_only_peek_does_not_touch_cooldown(self):
+        # gm-B-09 — mark_retrieved=False returns the same cards but leaves
+        # day_last_seen / cooldown_until untouched, so a second retrieval in
+        # the same turn is not starved of those callbacks.
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = _make_card(
+            id="fresh", tags=["river"], salience=0.7,
+            day_last_seen=2, cooldown_until=0,
+        )
+        state.memory_cards = [card]
+
+        results = retrieve_memories(state, mark_retrieved=False)
+        assert len(results) == 1
+        assert results[0].id == "fresh"
+        # Bookkeeping unchanged by the peek.
+        assert card.cooldown_until == 0
+        assert card.day_last_seen == 2
+
+    def test_peek_then_peek_returns_same_cards(self):
+        # gm-B-09 — two read-only retrievals in one turn both see the card,
+        # whereas a marking retrieval would cool it out of the second.
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = _make_card(id="r", tags=["river"], salience=0.7)
+        state.memory_cards = [card]
+
+        first = retrieve_memories(state, mark_retrieved=False)
+        second = retrieve_memories(state, mark_retrieved=False)
+        assert [c.id for c in first] == ["r"]
+        assert [c.id for c in second] == ["r"]
+
+    def test_marking_retrieval_cools_out_second_call(self):
+        # The default (marking) behavior is the source of the gm-B-09 hazard:
+        # the second call in the same turn no longer sees the cooled card.
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = _make_card(id="r", tags=["river"], salience=0.7)
+        state.memory_cards = [card]
+
+        first = retrieve_memories(state)  # marks cooldown_until = day + 3
+        second = retrieve_memories(state)  # same day → card now on cooldown
+        assert [c.id for c in first] == ["r"]
+        assert second == []
+
 
 # ── GMBrief builder ──────────────────────────────────────────────────
 
@@ -297,6 +345,24 @@ class TestBuildGMBrief:
         assert isinstance(brief, GMBrief)
         assert brief.situation
         assert brief.tone_profile == state.gm_profile.value
+
+    def test_read_only_brief_leaves_callbacks_uncooled(self):
+        # gm-B-09 — build_gm_brief(mark_retrieved=False) gives the engine a way
+        # to build the brief twice in one turn without cooling the callbacks
+        # between the scene and outcome briefs.
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = MemoryCard(
+            id="r", kind="omen", title="The Ford", text="A wide cold river.",
+            tags=["river"], day_created=1, day_last_seen=1, cooldown_until=0,
+            salience=0.7, source="engine",
+        )
+        state.memory_cards = [card]
+
+        brief = build_gm_brief(state, mark_retrieved=False)
+        assert any(c.id == "r" for c in brief.callbacks)
+        assert card.cooldown_until == 0  # not cooled by the peek
 
     def test_includes_pressures_when_starving(self):
         state = create_new_run(seed=1)
