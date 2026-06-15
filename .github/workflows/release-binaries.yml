@@ -3,8 +3,10 @@
 #   escape-the-valley-<version>-<os>-<arch>[.exe]
 #   checksums-<version>.txt
 #
-# linux-x64 + win-x64 only. macOS is dropped (≈10x runner cost; locked binary
-# convention) — mac users install via `pip install escape-the-valley`.
+# linux-x64 + win-x64 + darwin-arm64. macOS parity restored at the director's
+# request (2026-06-15): the macos runner costs ~10x Linux minutes, but keeps
+# `npx @mcptoolshop/escape-the-valley` working on Apple Silicon without a pip
+# fallback. pip/pipx remains available on every platform.
 
 name: Release Binaries
 
@@ -45,7 +47,9 @@ jobs:
           - os: ubuntu-latest
             target: linux-x64
             ext: ""
-          # macOS removed: ~10x cost, users can install via pip/pipx instead
+          - os: macos-latest
+            target: darwin-arm64
+            ext: ""
           - os: windows-latest
             target: win-x64
             ext: ".exe"
