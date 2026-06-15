@@ -38,6 +38,10 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 ```bash
 pip install escape-the-valley
 
+# Or, zero-prerequisite (no Python setup) via the npm launcher — downloads a
+# verified binary and runs it:
+#   npx @mcptoolshop/escape-the-valley tui --seed 42
+
 # Launch the full-screen TUI (recommended)
 trail tui --seed 42
 
