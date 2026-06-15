@@ -7,6 +7,12 @@ sidebar:
 
 The AI Game Master narrates your journey but never changes the mechanics. All three profiles play the same game — only the storytelling voice differs.
 
+## How the narration arrives
+
+The GM writes token-by-token. Each beat is composed live, word laid after word as the model generates it, threaded through the interface so the page fills as the story is told rather than appearing all at once after a pause. The first narrated turn loads the model and can take ten to thirty seconds; that is the model warming, not a hang. After that, the words come as fast as the model can write them.
+
+The GM never bricks a run. It is an optional voice on top of a game that stands without it. If Ollama is unreachable, slow, or refuses, the trail tells its own deterministic story from plain consequences — you keep playing, you just read fallback text in place of the narration. When the GM has fallen back, the interface says so rather than leaving you to guess.
+
 ## Profiles
 
 ### Chronicler

@@ -53,6 +53,12 @@ Towns refill water, offer a chance to trade for food (better if morale is high),
 
 Every event gives you options. Cautious choices cost time or supplies but keep you safe. Bold choices save time but risk damage. When your wagon and supplies are healthy, you can afford bold moves. When things are tight, play it safe. The game rewards reading the room, not always picking the same option.
 
+Understand that the stakes are real. Some events can wound or kill a party member outright — a bad call at a crossing or a gamble that fails can cost a life, not just morale. When a member dies, the cause is recorded plainly: injury, dysentery, exposure, whatever it was. Weigh a bold choice against who is sick or hurt before you make it.
+
+## How You Leave Matters
+
+Escaping the valley is not the whole story. A run is graded on what the escape cost you — whether you came out whole, worn down, or hollowed out, and how long it took. You can survive and still earn a hard ending. So don't only ask whether you'll make it; ask what you'll have left when you do. A few extra days of caution that bring everyone home are worth more than a fast escape with empty seats in the wagon.
+
 ## Don't Panic
 
 A smart player escapes the valley about one run in three. That's by design. Some seeds are harder than others. Some twists stack against you. But the systems are fair — the same strategy that fails on a bad seed will carry you through on a good one. Learn the patterns, adjust to what the valley gives you, and keep moving.

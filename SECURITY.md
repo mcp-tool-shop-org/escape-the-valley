@@ -22,11 +22,12 @@ Escape the Valley is a single-player terminal game. Its threat surface is minima
 
 **Network boundaries:**
 - **Ollama GM** (optional): HTTP to localhost:11434 only. No data leaves the machine unless `OLLAMA_HOST` is explicitly pointed at a remote server.
-- **XRPL Testnet** (optional): Connects to XRPL Testnet for ledger backpack features. Wallet keys are stored in the local save file only. No mainnet interaction.
+- **XRPL Testnet** (optional): Connects to XRPL Testnet for ledger backpack features. Wallet seeds are stored locally only, in a gitignored secrets sidecar (see Data at rest). No mainnet interaction.
 - **Voice narration** (optional): Local audio synthesis. No network calls.
 
 **Data at rest:**
-- Save files stored in `.trail/run.json` (local directory). Contains game state, and optionally XRPL Testnet wallet keys.
+- Save files stored in `.trail/run.json` (local directory). Contains game state only — no wallet seeds.
+- XRPL Testnet wallet/issuer seeds are kept out of `run.json` and persisted to a separate, gitignored secrets sidecar at `.trail/secrets.json`, keyed by run id. The whole `.trail/` directory is gitignored, so no save state or seeds are ever committed. The sidecar is written `0o600` where the platform supports it.
 - No telemetry, analytics, or phoning home.
 - No user accounts or authentication.
 
@@ -40,6 +41,6 @@ Escape the Valley is a single-player terminal game. Its threat surface is minima
 - No secrets hardcoded in source
 - No telemetry or tracking
 - All network features are opt-in (disabled by default)
-- XRPL wallet keys are Testnet-only and stored locally
+- XRPL wallet seeds are Testnet-only and stored locally in a gitignored secrets sidecar (`.trail/secrets.json`), never in `run.json` and never committed
 - Error messages never expose stack traces to users
 - CLI uses structured exit codes (0 success, 1 error)

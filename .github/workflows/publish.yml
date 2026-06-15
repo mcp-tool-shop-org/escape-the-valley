@@ -1,31 +1,68 @@
+# Publish escape-the-valley sdist + wheel to PyPI.
+#
+# Auth: PyPI Trusted Publisher (OIDC). No PYPI_TOKEN secret required.
+# Pre-condition (one-time, Mike-action at pypi.org — already configured for
+# v1.0.0, bound to THIS workflow filename; do not rename publish.yml):
+#   pypi.org/manage/account/publishing/ -> pending/active publisher
+#     Owner:        mcp-tool-shop-org
+#     Repository:   escape-the-valley
+#     Workflow:     publish.yml
+#     Environment:  pypi
+#
+# The npm wrapper's `pip`/`pipx install escape-the-valley` path is served from
+# here; binaries (release-binaries.yml) are a separate concern.
+
 name: Publish to PyPI
 
 on:
   release:
     types: [published]
+  # workflow_run is the load-bearing trigger. A Release created by release.yml
+  # using GITHUB_TOKEN does NOT fire `release: published` (GitHub's recursion
+  # guard against workflow-author loops), so we chain off the Release workflow
+  # COMPLETING instead (gated on success below). `release: published` is kept
+  # for manual hand-cut releases (attributed to a user, fires normally).
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch: {}  # manual fallback / re-run on transient failure
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
+    # Skip prereleases (alpha/beta/rc) — they must not land on PyPI's stable
+    # index. Under workflow_run, only proceed if the upstream Release succeeded
+    # (release / workflow_dispatch set workflow_run to null, which keeps the
+    # success check truthy — we only short-circuit FAILED workflow_run events).
+    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') && (github.event_name != 'release' || !github.event.release.prerelease) }}
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write
+      id-token: write  # required for trusted publisher OIDC exchange
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Under workflow_run, github.ref is the default branch (main), NOT the
+          # tag — build from the tag that started the Release run so the version
+          # is correct even if main has advanced past it.
+          ref: ${{ github.event.workflow_run.head_branch || github.event.release.tag_name || github.ref }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
 
-      - name: Install build tools
-        run: pip install build
-
-      - name: Build package
-        run: python -m build
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build
+          python -m build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0 (release/v1)
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          # Idempotent: a re-run or an accidental double-fire (release event +
+          # workflow_run) treats an already-uploaded file as success instead of
+          # erroring with E409 ("File already exists").
+          skip-existing: true

@@ -69,6 +69,20 @@ trail parcel sent
 
 Parcels arrive as pending and must be explicitly accepted before supplies are added to your inventory. You can also refuse parcels.
 
+## Reconciliation Proof (Audit Mode)
+
+The settlement receipts make a claim: this is what your supplies did, recorded on a public ledger. The reconciliation proof checks that claim against the ledger itself.
+
+Audit mode replays a run's settlement receipts and reads the memos back off the XRPL Testnet — pulling the transactions through `AccountTx` and verifying the on-chain memos directly, rather than trusting whatever the local save happens to say. The check is genuinely external: the engine reports against the chain, not against its own copy. The supply history of a run can be independently audited, and the engine cannot fake the ledger — anyone with the transaction IDs can walk the same trail of memos and confirm or refute it.
+
+This sits on top of the optional backpack — itself optional. It is for runs where the on-chain history is the point: proof that the supplies moved the way the journal says they did, settled and checkable by a stranger.
+
+If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed.
+
+## Run Artifacts
+
+Every finished run leaves a keepsake. The end-of-run screen surfaces an **XRPL postcard** — a small on-chain memento of the journey — alongside the run's stats and an export/share path, so a finished run leaves something you can keep and pass along. The postcard is drawn from the same ledger that recorded your supplies, which is why it lives here rather than in the engine alone.
+
 ## Requirements
 
 - `pip install -e ".[xrpl]"` for the `xrpl-py` dependency

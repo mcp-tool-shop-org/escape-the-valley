@@ -1,0 +1,44 @@
+{
+  "name": "@mcptoolshop/escape-the-valley",
+  "version": "1.1.0",
+  "description": "Oregon Trail-style survival game with AI narration and XRPL ledger — zero-prerequisite npx install",
+  "type": "commonjs",
+  "license": "MIT",
+  "author": "mcp-tool-shop",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "escape-the-valley": "bin/escape-the-valley.js",
+    "trail": "bin/escape-the-valley.js"
+  },
+  "files": [
+    "bin/",
+    "README*.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@mcptoolshop/npm-launcher": "^1.0.0"
+  },
+  "keywords": [
+    "game",
+    "survival",
+    "oregon-trail",
+    "xrpl",
+    "ollama",
+    "terminal"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcp-tool-shop-org/escape-the-valley.git"
+  },
+  "homepage": "https://mcp-tool-shop-org.github.io/escape-the-valley/",
+  "bugs": {
+    "url": "https://github.com/mcp-tool-shop-org/escape-the-valley/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

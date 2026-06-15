@@ -8,8 +8,8 @@
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/escape-the-valley/actions"><img src="https://github.com/mcp-tool-shop-org/escape-the-valley/workflows/CI/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/escape-the-valley/"><img src="https://img.shields.io/pypi/v/escape-the-valley" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
-  <img src="https://img.shields.io/badge/version-1.0.0-green" alt="Version">
   <a href="https://mcp-tool-shop-org.github.io/escape-the-valley/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
@@ -21,14 +21,26 @@
 
 ## Qu'est-ce que c'est ?
 
-Escape the Valley est un jeu de survie de type Oregon Trail qui fonctionne dans votre terminal. Guidez un groupe de colons à travers une nature générée aléatoirement. Gérez la nourriture, l'eau, l'état du chariot et le moral, tout en gérant les événements, les dangers et les choix difficiles.
+Escape the Valley est un jeu de survie de type Oregon Trail qui se déroule dans votre terminal. Menez un groupe de colons à travers une nature sauvage générée de manière procédurale. Gérez la nourriture, l’eau, l’état du chariot et le moral tout en naviguant à travers des événements, des dangers et des choix difficiles.
 
-Un Maître du Jeu IA optionnel (alimenté par Ollama) raconte votre aventure avec trois voix narratives distinctes. Un "sac à dos" de registre XRPL optionnel suit les changements de vos provisions sous forme de reçus sur la blockchain, prouvant que vous avez survécu, ou que vous avez essayé.
+Un maître de jeu IA optionnel (alimenté par Ollama) raconte votre voyage avec trois voix distinctes pour raconter l’histoire. Un registre XRPL Testnet optionnel suit les changements de vos provisions sous forme de reçus en chaîne, ce qui prouve que vous avez survécu ou que vous avez essayé.
+
+## Nouveautés dans la version 1.1.0
+
+- **Narration en continu** : le maître du jeu écrit mot par mot, composant chaque étape en direct au lieu de publier un bloc terminé après une pause.
+- **Finalités graduées** : les parties se terminent par un épilogue avec une note (triomphante, éprouvée, pyrrhique ou perdue), basé sur qui a survécu, combien de temps cela a pris et quel a été le coût du voyage – et non pas une simple cause de décès.
+- **Enjeux réels** : les événements peuvent désormais blesser ou tuer des membres du groupe. Un mauvais choix peut coûter la vie, et la mort est attribuée à sa cause réelle.
+- **Preuve de rapprochement sur le registre** : un mode d’audit qui rejoue les reçus de règlement d’une partie et les vérifie par rapport au XRPL Testnet, afin que l’historique des provisions puisse être vérifié indépendamment.
+- **Artefacts de la partie** : chaque partie terminée laisse un souvenir : une carte postale XRPL, vos statistiques et un chemin d’exportation/de partage.
 
 ## Démarrage rapide
 
 ```bash
-pip install -e ".[dev]"
+pip install escape-the-valley
+
+# Or, zero-prerequisite (no Python setup) via the npm launcher — downloads a
+# verified binary and runs it:
+#   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)
 trail tui --seed 42
@@ -39,46 +51,65 @@ trail tui --continue
 # With AI narration (requires Ollama running locally)
 trail tui --seed 42 --voice
 
+# Spoken voice narration needs the voice extra:
+#   pip install "escape-the-valley[voice]"
+
+# With voice pacing control
+trail tui --seed 42 --voice --voice-pace slow
+
 # Without AI narration (deterministic mode)
 trail tui --seed 42 --gm-off
+
+# Use a specific Ollama model
+trail tui --seed 42 --model mistral
 ```
 
 ## Comment jouer
 
-À chaque tour, vous choisissez une action au camp :
+À chaque tour, vous choisissez une action dans le camp :
 
-| Action | Ce que cela fait |
+| Action | Ce qu’elle fait |
 |--------|-------------|
-| **Travel** | Avancez vers la sortie de la vallée. Coûte de la nourriture et de l'eau. Risque de panne et d'événements. |
-| **Rest** | Soignez le groupe, améliorez le moral. Coûte des provisions, mais ne fait pas progresser. |
-| **Hunt** | Utilisez des munitions pour avoir une chance d'obtenir de la nourriture. Plus efficace dans les forêts et les plaines. |
-| **Repair** | Utilisez une pièce de rechange pour réparer le chariot. Essentiel pour la survie. |
+| **Travel** | Avancez vers la sortie de la vallée. Coûte de la nourriture et de l’eau. Risque de panne et d’événements. |
+| **Rest** | Soignez le groupe, rétablissez le moral. Coûte des provisions mais n’offre aucun progrès. |
+| **Hunt** | Dépensez des munitions pour tenter d’obtenir de la nourriture. Plus efficace dans les forêts et les plaines. |
+| **Repair** | Dépensez une pièce de rechange pour réparer le chariot. Essentiel à la survie. |
 
-**Les événements** interrompent le voyage et proposent des choix (A/B/C). Les choix prudents sont plus sûrs, mais coûtent du temps. Les choix audacieux sont plus rapides, mais risqués. Il n'y a pas toujours de bonne réponse.
+Les **événements** interrompent le voyage avec des choix (A/B/C). Les choix prudents sont plus sûrs mais coûtent du temps. Les choix audacieux sont plus rapides mais risqués. Il n’y a pas de réponse toujours correcte.
 
-**Le chariot est essentiel.** S'il tombe en panne et que vous n'avez plus de pièces, la partie est terminée. Maintenez-le en bon état (plus de la moitié) et effectuez des périodes de maintenance (repos puis réparation) pour une résistance temporaire aux pannes.
+**Le chariot est primordial.** S’il tombe en panne sans pièces, la partie est terminée. Maintenez-le à plus de la moitié de sa capacité et effectuez des opérations d’entretien (repos puis réparation) pour une résistance temporaire aux pannes.
 
-**Le rythme** contrôle la vitesse par rapport à la sécurité. Le rythme normal est le réglage par défaut. Un rythme rapide couvre plus de terrain, mais consomme plus de provisions et abîme les chariots plus rapidement.
+Le **rythme** contrôle la vitesse par rapport à la sécurité. Le rythme normal est le réglage par défaut. Un rythme soutenu permet de parcourir plus de terrain, mais consomme plus de provisions et use les chariots plus rapidement.
 
-Des **solutions de secours** (rations minimales, réparation désespérée, abandon de la cargaison) existent en cas d'urgence. Elles ont des effets secondaires et des temps de recharge ; ce sont des solutions de dernier recours, pas des stratégies.
+Les **soupapes d’échappement** (rations réduites, réparations désespérées, abandon du chargement) existent pour les situations d’urgence. Elles ont des effets secondaires et des temps de recharge – ce sont des solutions de dernier recours, pas des stratégies.
 
-Pour obtenir des conseils plus approfondis, consultez le [Guide de survie](docs/survival-guide.md).
+Pour obtenir des conseils plus approfondis, consultez le [Guide de survie](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/).
 
-## Profils du Maître du Jeu
+## Profils du maître du jeu
 
-Le narrateur IA façonne le ton, pas les mécanismes. Les trois profils jouent le même jeu.
+Le narrateur IA façonne le ton, et non la mécanique. Les trois profils jouent au même jeu.
 
-- **Chronicler** — Pragmatique, concis, terre-à-terre. Folklore minimal. Décrit ce qui s'est passé.
-- **Fireside** — Narrateur de conte de feu sérieux. Moments subtils et étranges. Le réglage par défaut.
-- **Lantern-Bearer** — Étrange et liminal, mais toujours ancré dans les conséquences. Le plus bizarre.
+- **Chroniqueur** : sobre, pragmatique, concis. Folklore minimal. Raconte ce qui s’est passé.
+- **Conte du feu de camp** : narrateur sérieux autour du feu de camp. Moments subtilement étranges. Le profil par défaut.
+- **Porteur de lanterne** : étrange et liminal, mais toujours ancré dans les conséquences. Le plus bizarre.
 
-Définissez avec `--gm-profile` : `trail tui --gm-profile lantern`
+Définissez avec `--gm-profile` : `trail tui --gm-profile lantern`
 
-## Sac à dos de registre (Optionnel)
+## Provisions
 
-Le sac à dos de registre suit vos 5 principales provisions (nourriture, eau, médicaments, munitions, pièces) sous forme de jetons sur le réseau de test XRPL. Chaque point de contrôle de la ville enregistre un reçu de transaction sur la blockchain. À la fin de votre partie, votre registre de parcours comprend les identifiants de transaction que toute personne peut vérifier.
+Le jeu suit 12 types de ressources répartis en deux catégories :
 
-Entièrement optionnel. Le jeu se déroule de la même manière avec ou sans. Activez-le depuis le menu L dans l'interface utilisateur en texte ou via la ligne de commande :
+**Consommables** : nourriture, eau, bois de chauffage, médicaments, sel, munitions, huile pour lanterne, tissu
+
+**Équipement** : pièces, corde, outils, bottes
+
+Les 5 provisions principales (nourriture, eau, médicaments, munitions, pièces) sont les plus importantes. Les provisions supplémentaires comme le bois de chauffage, le sel, l’huile pour lanterne et le tissu ajoutent de la profondeur : le bois de chauffage alimente les camps nocturnes, le sel empêche la détérioration des aliments, l’huile pour lanterne permet de voyager en toute sécurité la nuit et le tissu répare l’équipement et la bâche du chariot.
+
+## Sac à dos du registre (facultatif)
+
+Le sac à dos du registre suit vos 5 provisions principales (nourriture, eau, médicaments, munitions, pièces) sous forme de jetons sur le XRPL Testnet. Chaque point de contrôle enregistre un reçu de règlement en chaîne. À la fin de votre partie, votre registre inclut les ID de transaction que n’importe qui peut vérifier.
+
+Entièrement facultatif. Le jeu se joue de la même manière sans (le réglage par défaut). Activez-le à partir du menu L dans l’interface utilisateur ou via la ligne de commande :
 
 ```bash
 trail ledger enable
@@ -92,43 +123,59 @@ Nécessite `pip install -e ".[xrpl]"` pour la dépendance `xrpl-py`.
 
 | Commande | Description |
 |---------|-------------|
-| `trail tui` | Lance l'interface utilisateur en texte en plein écran |
-| `trail new` | Démarre une nouvelle partie (mode CLI classique) |
-| `trail play` | Continue une partie sauvegardée (mode CLI classique) |
-| `trail status` | Affiche le groupe, le chariot et les provisions |
-| `trail journal` | Affiche les entrées récentes du journal |
-| `trail self-check` | Vérifie l'état de l'environnement du jeu |
-| `trail version` | Affiche la version |
-| `trail ledger status` | Affiche l'état du sac à dos |
-| `trail ledger enable` | Active le sac à dos XRPL |
-| `trail ledger disable` | Désactive le sac à dos XRPL |
-| `trail ledger settle` | Effectue manuellement un enregistrement à un point de contrôle |
-| `trail ledger reconcile` | Réessaie les enregistrements infructueux |
-| `trail ledger wallet` | Affiche les détails du portefeuille |
-| `trail parcel list` | Liste les colis reçus |
-| `trail parcel accept <id>` | Accepte un colis en attente |
+| `trail tui` | Lancez l’interface utilisateur textuelle en plein écran |
+| `trail new` | Démarrez une nouvelle partie (mode CLI classique) |
+| `trail play` | Reprenez une partie enregistrée (mode CLI classique) |
+| `trail status` | Affichez le groupe, le chariot et les provisions |
+| `trail journal` | Affichez les entrées de journal récentes |
+| `trail self-check` | Vérifiez l’état de l’environnement du jeu |
+| `trail version` | Affichez la version |
+| `trail ledger status` | Affichez l’état du sac à dos |
+| `trail ledger enable` | Activez le sac à dos XRPL |
+| `trail ledger disable` | Désactivez le sac à dos XRPL |
+| `trail ledger settle` | Réglez manuellement un point de contrôle |
+| `trail ledger reconcile` | Réessayez les règlements ayant échoué |
+| `trail ledger wallet` | Affichez les détails du portefeuille |
+| `trail stats` | Affichez les statistiques de la partie (prend en charge `--json`) |
+| `trail parcel send <addr> <supply> <amount>` | Envoyez des provisions à un autre voyageur |
+| `trail parcel list` | Affichez les colis reçus |
+| `trail parcel accept <id>` | Acceptez un colis en attente |
+| `trail parcel sent` | Affichez les colis que vous avez envoyés |
+| `trail wallet share` | Affichez l’adresse de votre portefeuille pour le commerce |
 
-## Avertissements
+## Alertes
 
-Par défaut, le jeu affiche des avertissements détaillés pour aider les nouveaux joueurs à repérer les dangers dès le début. Les joueurs expérimentés peuvent passer en mode minimal, qui n'affiche que les avertissements de seuil critique (menaces de dernière minute) :
+Par défaut, le jeu affiche des alertes détaillées pour aider les nouveaux joueurs à détecter rapidement les dangers. Les joueurs expérimentés peuvent passer au mode minimal, qui n’affiche que les alertes de dernière minute (menaces critiques) :
 
 ```bash
 trail tui --callouts minimal
 trail new --callouts minimal
 ```
 
-## Exigences
+## Dépannage
+
+**Si quelque chose ne va pas, exécutez d’abord `trail self-check`.** Il indique si Ollama est accessible, si votre sauvegarde se charge et quel modèle est installé. Les trois problèmes courants :
+
+| Symptôme | Cause | Solution |
+|---------|-------|-----|
+| **Generic / no narration** | Ollama n’est pas en cours d’exécution (le GM est facultatif et revient à une configuration par défaut, il ne cause jamais de problèmes). | Démarrez Ollama (`ollama serve`) ou utilisez l’option `--gm-off` pour un fonctionnement déterministe. Exécutez `trail self-check` pour confirmer. |
+| **Grand livre en attente / règlement échoué** | Le réseau de test XRPL est un réseau de test public et peut parfois être instable. | `trail ledger reconcile` tente à nouveau les règlements ayant échoué ; exécutez-le à nouveau lorsque le réseau sera rétabli. Les données locales sont correctes dans tous les cas. |
+| **Save won't resume** | Le fichier `run.json` a été tronqué ou corrompu pendant son écriture. | Le moteur le met en quarantaine sous le nom `run.json.corrupt-<horodatage>` avant de le rejeter, afin que votre prochaine sauvegarde ne puisse pas remplacer les données existantes. Restaurez-le à partir de cette sauvegarde ou démarrez une nouvelle exécution à partir d’une graine. |
+
+Le premier tour narré charge le modèle et peut prendre 10 à 30 secondes ; c’est normal, ce n’est pas un blocage. Pour plus de détails : [Manuel de résolution des problèmes](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
+
+## Prérequis
 
 - Python 3.11+
 - Ollama (facultatif, pour la narration par IA)
-- xrpl-py (facultatif, pour le "ledger backpack")
+- xrpl-py (facultatif, pour le sac à dos du grand livre)
 
 ## Sécurité
 
-Aucune télémétrie. Aucun compte. Toutes les fonctionnalités réseau (Ollama, XRPL) sont facultatives et désactivées par défaut. Les opérations XRPL utilisent uniquement le réseau de test. Consultez le fichier [SECURITY.md](SECURITY.md) pour l'analyse complète des risques.
+Aucune télémétrie. Aucun compte. Toutes les fonctionnalités réseau (Ollama, XRPL) sont facultatives et désactivées par défaut. Les opérations XRPL utilisent uniquement le Testnet. Consultez [SECURITY.md](SECURITY.md) pour obtenir le modèle de menace complet.
 
 ## Licence
 
 MIT
 
-Développé par <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+Créé par <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

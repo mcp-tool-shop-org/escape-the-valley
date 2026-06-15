@@ -1,0 +1,11 @@
+# Normalize line endings. The npm wrapper bin is a shebang script — CRLF on the
+# `#!/usr/bin/env node` line breaks execution on Linux (the loader looks for
+# `node\r`). Force LF on it and the YAML/JSON tooling files regardless of the
+# committer's platform.
+* text=auto
+bin/*.js text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.sh text eol=lf

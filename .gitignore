@@ -27,5 +27,8 @@ coverage.xml
 .ruff_cache/
 site/.astro/
 node_modules/
+# npm wrapper: no committed root lockfile — CI `npm install` resolves @mcptoolshop/npm-launcher
+# against the registry digest, keeping the install honest. (site/ has its own lockfile.)
+/package-lock.json
 site/dist/
 .polyglot-cache.json
