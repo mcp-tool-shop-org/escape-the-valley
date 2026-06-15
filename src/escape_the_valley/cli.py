@@ -221,8 +221,28 @@ def journal(
     show_journal(state.journal, limit)
 
 
+def _model_present(configured: str, available: list[str]) -> bool:
+    """True if the configured game model is among Ollama's models.
+
+    Ollama reports tagged names ('llama3.2:latest'); a bare configured name
+    ('llama3.2') should match the untagged form too (cli-tui-B-05).
+    """
+    if configured in available:
+        return True
+    base = configured.split(":", 1)[0]
+    return any(
+        name == base or name.split(":", 1)[0] == base
+        for name in available
+    )
+
+
 @app.command(name="self-check")
-def self_check() -> None:
+def self_check(
+    model: str = typer.Option(
+        "llama3.2", "--model", "-m",
+        help="Game model to verify is installed in Ollama",
+    ),
+) -> None:
     """Check game environment health."""
     console.print("[bold]Escape the Valley — Self Check[/bold]\n")
     console.print(f"  {_version_string()}")
@@ -244,13 +264,29 @@ def self_check() -> None:
         resp = httpx.get(f"{host}/api/tags", timeout=5)
         if resp.status_code == 200:
             models = resp.json().get("models", [])
-            model_names = [m.get("name", "?") for m in models[:5]]
+            all_names = [m.get("name", "?") for m in models]
             console.print(f"  [green]Ollama reachable[/green] at {host}")
-            console.print(f"  Models: {', '.join(model_names)}")
+            console.print(f"  Models: {', '.join(all_names[:5])}")
+            # cli-tui-B-05: reachable but the configured game model is missing
+            # is a silent failure waiting to happen — name the exact pull.
+            if not _model_present(model, all_names):
+                console.print(
+                    f"  [yellow]model '{model}' not found[/yellow] "
+                    f"-- run: ollama pull {model}"
+                )
         else:
             console.print(f"  [yellow]Ollama returned {resp.status_code}[/yellow]")
+            console.print(
+                "  [dim]hint: the GM is optional -- play with --gm-off[/dim]"
+            )
     except Exception:
+        # cli-tui-B-05: unreachable Ollama gets an actionable next step, not
+        # just a red line. The GM is optional, so name the no-GM escape too.
         console.print(f"  [red]Ollama not reachable[/red] at {host}")
+        console.print(
+            "  [dim]hint: start Ollama (ollama serve) "
+            "or play without the GM: trail tui --gm-off[/dim]"
+        )
 
     console.print()
 

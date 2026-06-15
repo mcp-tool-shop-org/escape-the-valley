@@ -460,3 +460,62 @@ class TestNetworkHints:
         result = runner.invoke(app, ["ledger", "settle"])
         assert result.exit_code == 0
         assert "hint:" not in result.output
+
+
+class _FakeResp:
+    def __init__(self, status_code=200, models=None):
+        self.status_code = status_code
+        self._models = models or []
+
+    def json(self):
+        return {"models": [{"name": n} for n in self._models]}
+
+
+class TestSelfCheckHints:
+    """cli-tui-B-05: self-check gives actionable next steps."""
+
+    def test_model_present_matches_tagged_name(self):
+        from escape_the_valley.cli import _model_present
+
+        assert _model_present("llama3.2", ["llama3.2:latest"]) is True
+        assert _model_present("llama3.2", ["llama3.2"]) is True
+        assert _model_present("llama3.2:latest", ["llama3.2:latest"]) is True
+        assert _model_present("mistral", ["llama3.2:latest"]) is False
+
+    def test_unreachable_prints_start_or_gm_off(self, monkeypatch):
+        import httpx
+
+        def _boom(*a, **k):
+            raise httpx.ConnectError("nope")
+
+        monkeypatch.setattr(httpx, "get", _boom)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "not reachable" in result.output
+        assert "ollama serve" in result.output
+        assert "--gm-off" in result.output
+
+    def test_reachable_warns_on_missing_model(self, monkeypatch):
+        import httpx
+
+        monkeypatch.setattr(
+            httpx, "get",
+            lambda *a, **k: _FakeResp(200, models=["mistral:latest"]),
+        )
+        result = runner.invoke(app, ["self-check", "--model", "llama3.2"])
+        assert result.exit_code == 0
+        assert "reachable" in result.output
+        assert "not found" in result.output
+        assert "ollama pull llama3.2" in result.output
+
+    def test_reachable_with_model_no_warning(self, monkeypatch):
+        import httpx
+
+        monkeypatch.setattr(
+            httpx, "get",
+            lambda *a, **k: _FakeResp(200, models=["llama3.2:latest"]),
+        )
+        result = runner.invoke(app, ["self-check", "--model", "llama3.2"])
+        assert result.exit_code == 0
+        assert "reachable" in result.output
+        assert "not found" not in result.output
