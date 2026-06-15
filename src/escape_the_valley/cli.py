@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 import typer
 from rich.console import Console
@@ -16,10 +17,46 @@ from .ui import show_journal, show_status, show_title_screen
 from .worldgen import create_new_run
 
 
+def _version_string() -> str:
+    """Single source of truth for the machine-parseable version line.
+
+    Reused by --version, the `version` command, and `self-check` so automation
+    sees one consistent string instead of three divergent ones (cli-tui-006).
+    """
+    return f"trail {__version__}"
+
+
 def _version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"trail {__version__}")
+        typer.echo(_version_string())
         raise typer.Exit()
+
+
+# Classic-address shape: leading 'r', base58 alphabet, 25-35 chars total.
+# Used as a fallback when xrpl-py is not installed (cli-tui-002).
+_CLASSIC_ADDR_RE = re.compile(
+    r"^r[1-9A-HJ-NP-Za-km-z]{24,34}$"
+)
+
+
+def _is_valid_recipient(address: str) -> bool:
+    """Validate an XRPL classic address without a network call.
+
+    Prefers xrpl-py's checksum-aware validator (guarded behind the same
+    availability check the manager uses); falls back to a base58 shape regex
+    so validation still happens when xrpl-py is absent (cli-tui-002).
+    """
+    if not address:
+        return False
+
+    from .backpack import _HAS_XRPL
+
+    if _HAS_XRPL:
+        from xrpl.core.addresscodec import is_valid_classic_address
+
+        return is_valid_classic_address(address)
+
+    return bool(_CLASSIC_ADDR_RE.match(address))
 
 
 app = typer.Typer(
@@ -162,7 +199,7 @@ def journal(
 def self_check() -> None:
     """Check game environment health."""
     console.print("[bold]Escape the Valley — Self Check[/bold]\n")
-    console.print(f"  Version: {__version__}")
+    console.print(f"  {_version_string()}")
 
     # Check save directory
     if has_save():
@@ -176,7 +213,6 @@ def self_check() -> None:
 
     # Check Ollama
     host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-    GMConfig(host=host)
     try:
         import httpx
         resp = httpx.get(f"{host}/api/tags", timeout=5)
@@ -197,6 +233,15 @@ def self_check() -> None:
 def tui(
     seed: int | None = typer.Option(
         None, "--seed", "-s", help="RNG seed for new run",
+    ),
+    profile: str = typer.Option(
+        "fireside",
+        "--gm-profile",
+        "-p",
+        help="GM personality: chronicler, fireside, lantern",
+    ),
+    weirdness: int = typer.Option(
+        2, "--weirdness", "-w", help="Weirdness level 0-3",
     ),
     resume: bool = typer.Option(
         False, "--continue", help="Resume saved game",
@@ -239,7 +284,24 @@ def tui(
             )
             raise typer.Exit(0)
     else:
-        state = create_new_run(seed=seed)
+        # Parse + validate GM profile (mirrors `new`) so the documented
+        # `trail tui --gm-profile <name>` works and a TUI player can pick a
+        # grounded run (weirdness 0-1) per the D2 gate.
+        try:
+            gm_profile = GMProfile(profile.lower())
+        except ValueError:
+            console.print(
+                f"[red]Unknown profile: {profile}. "
+                "Use chronicler, fireside, or lantern.[/red]"
+            )
+            raise typer.Exit(1) from None
+
+        weirdness = max(0, min(3, weirdness))
+        state = create_new_run(
+            seed=seed,
+            gm_profile=gm_profile,
+            weirdness_level=weirdness,
+        )
 
     # Apply callout level
     callouts = callouts.lower()
@@ -281,7 +343,9 @@ def tui(
 @app.command()
 def version() -> None:
     """Show version."""
-    console.print(f"Escape the Valley: Ledger Trail v{__version__}")
+    # Human-friendly title, but the parseable token comes from the shared
+    # helper so all three version surfaces agree (cli-tui-006).
+    console.print(f"Escape the Valley: Ledger Trail ({_version_string()})")
 
 
 @app.command()
@@ -456,7 +520,10 @@ def ledger_settle() -> None:
         save_game(state)
         console.print(f"[green]{result.message}[/green]")
     else:
+        # cli-tui-003: surface settlement failure via a non-zero exit so
+        # automation can detect it (was exit 0 with only a red line).
         console.print(f"[red]{result.message}[/red]")
+        raise typer.Exit(1)
 
 
 @ledger_app.command(name="reconcile")
@@ -491,10 +558,13 @@ def ledger_reconcile() -> None:
     if remaining == 0:
         console.print(f"[green]Reconciled {settled} checkpoint(s). All clear.[/green]")
     else:
+        # cli-tui-003: settlements still pending after the retry is a failure
+        # automation must see — exit non-zero (was exit 0 with a yellow line).
         console.print(
             f"[yellow]Settled {settled}, {remaining} still pending. "
             f"Network may be down — try again later.[/yellow]"
         )
+        raise typer.Exit(1)
 
 
 @ledger_app.command(name="wallet")
@@ -547,6 +617,20 @@ def parcel_send(
 
     if not state.backpack.enabled:
         console.print("[red]Ledger Backpack not enabled. Run: trail ledger enable[/red]")
+        raise typer.Exit(1)
+
+    # Validate the recipient address shape BEFORE any network round-trip
+    # (cli-tui-002). A garbage address otherwise wastes a testnet submit and
+    # comes back as an unstructured success=False.
+    if not _is_valid_recipient(address):
+        console.print(
+            "[red]ERR_BAD_ADDRESS: '"
+            f"{address}' is not a valid XRPL classic address.[/red]"
+        )
+        console.print(
+            "[dim]hint: a classic address starts with 'r' and is 25-35 "
+            "base58 chars. Get a friend's via: trail wallet share[/dim]"
+        )
         raise typer.Exit(1)
 
     from .backpack import BackpackManager
