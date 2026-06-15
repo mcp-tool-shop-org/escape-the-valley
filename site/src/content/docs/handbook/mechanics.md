@@ -102,6 +102,12 @@ Twists are shown at the start of each run.
 
 Events aren't random — they're drawn from a seeded deck and influenced by terrain, party state, and doctrine. The same seed produces the same event sequence.
 
+## Real Stakes
+
+Events can wound and kill. A bad choice at a river, a poor camp, a gamble that fails — these can cost a party member their life, not just a slice of morale. Roughly thirty curated events carry bodily danger, and they run through the engine's health path the same way illness and exposure do.
+
+When a member dies, the death is attributed to its real cause. An event-wound death reads as **Injury**, not a generic "The trail." Dysentery, exposure, and the other named causes follow the same rule — the trail ledger records what actually killed someone, so the history of a run reads true.
+
 ## Escape Valves
 
 Emergency actions available when things get desperate. Each has side effects and a cooldown:
@@ -154,3 +160,18 @@ The game warns you when resources hit critical levels:
 - **Minimal mode** — Only cliff-edge warnings (last-moment, critical threats)
 
 Switch with `--callouts minimal` or `--callouts verbose`.
+
+## Graded Endings
+
+A run no longer simply wins or loses. It is graded, and the grade is read from the shape of the whole journey — who walked out, how long it took against par, and what the trail took from you along the way. A graded epilogue closes the run in the GM's voice, the same story told back to you one last time.
+
+There are four endings:
+
+| Ending | What it means |
+|--------|---------------|
+| **Triumphant** | A clean escape. The party came through whole, or close to it, without the trail extracting much in return. |
+| **Weathered** | You made it out, but worn down — losses absorbed, time spent, the wagon and the party showing every mile. |
+| **Pyrrhic** | An escape that cost more than it was worth. The valley is behind you, but so is much of what you started with. |
+| **Lost** | The trail won. The party did not reach the exit. |
+
+The grade is not a single number on a scoreboard. It weighs survivors, days against par, and the run's taboo and uncanny along the way, then narrates the result as a proper epilogue rather than a bare cause-of-death line. Two runs that both "escape" can earn different endings depending on what the escape cost.
