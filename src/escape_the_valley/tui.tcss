@@ -127,7 +127,10 @@ Screen {
   overflow-y: auto;
 }
 
-#parcel_notice {
+/* cli-tui-B-07: the widget id is #parcel_notify (see tui_app.compose);
+   the old #parcel_notice selector never matched, so the overlay rendered
+   unstyled. */
+#parcel_notify {
   display: none;
   width: 50%;
   height: auto;
@@ -135,6 +138,20 @@ Screen {
   margin: 2 0 0 0;
   padding: 1 2;
   border: round #604030;
+  background: #0f1620;
+  overflow-y: auto;
+}
+
+/* cli-tui-B-07: the send-parcel overlay had no rule at all, so it framed
+   inconsistently with the other overlays. Mirror their framing. */
+#send_parcel {
+  display: none;
+  width: 50%;
+  height: auto;
+  max-height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
   background: #0f1620;
   overflow-y: auto;
 }

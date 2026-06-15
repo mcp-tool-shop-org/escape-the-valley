@@ -95,3 +95,22 @@ def test_help_overlay_toggles():
             assert app.show_help is True
 
     asyncio.run(scenario())
+
+
+def test_overlay_css_selectors_apply():
+    """cli-tui-B-07: #parcel_notify and #send_parcel are styled hidden.
+
+    Both overlays default to `display: none` in tui.tcss. If the selector id
+    is wrong (the old #parcel_notice) or missing (#send_parcel had no rule),
+    the widget would not be hidden — so an initially-hidden overlay proves the
+    corrected selector actually matches.
+    """
+
+    async def scenario():
+        app = _make_app()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert app.query_one("#parcel_notify").display is False
+            assert app.query_one("#send_parcel").display is False
+
+    asyncio.run(scenario())
