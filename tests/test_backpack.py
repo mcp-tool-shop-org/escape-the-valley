@@ -591,6 +591,98 @@ class TestRetryPendingMocked:
         assert len(state.backpack.pending_settlements) == 1
         assert state.backpack.settlements == []
 
+    @requires_xrpl
+    def test_fail_then_retry_no_conservation_double_count(self, monkeypatch):
+        """ENG-A-08: a failed settle, then a successful retry-plus-fresh settle,
+        must NOT double-count the retried delta.
+
+        Town A: consume food 50→40 (delta -10) but the FOD payment fails, so a
+        pending record is enqueued and the baseline stays at 50.
+        Town B: consume more food 40→35, then settle() succeeds. settle() runs
+        _retry_pending() first (settles the -10 and, with the fix, advances the
+        baseline 50→40), then computes a fresh delta of only -5 (35 - 40).
+
+        Net on-chain food movement must equal the true net supply change
+        (50→35 = -15), and reconcile() must pass (minted + Σdeltas == final).
+        Pre-fix the baseline stayed at 50 after the retry, so the fresh settle()
+        spanned the whole -15 interval — paying the -10 twice (once in retry,
+        once folded into the fresh delta) and double-summing it in reconcile().
+        """
+        from escape_the_valley.backpack_models import (
+            XRPL_RESOURCES,
+            XRPL_TOKEN_MAP,
+        )
+        from escape_the_valley.ledger_proof import reconcile
+
+        state = _enabled_state()
+        minted = dict(state.backpack.last_settled_supplies)  # food=50, ...
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        # ── Town A: FOD payment fails → pending record, baseline NOT advanced.
+        state.supplies.set("food", 40)  # delta -10
+        _patch_signing(monkeypatch, fail_keys={"FOD"})
+        res_a = mgr.settle(state, "TownA")
+        assert res_a.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settled_supplies["food"] == 50  # un-advanced
+
+        # ── Town B: more consumption, and now FOD succeeds.
+        state.supplies.set("food", 35)  # further -5; true net since A-baseline = -15
+        # Track every on-chain food movement (signed) so we can prove no double-pay.
+        food_moves: list[int] = []
+
+        def fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        hashes = iter(f"HASH{i}" for i in range(100))
+
+        def fake_submit(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            value = getattr(amount, "value", None)
+            if code == "FOD":
+                # Player→issuer payment means food leaving the pack (negative).
+                signed = -int(value) if tx.account == "rPlayerAddr" else int(value)
+                food_moves.append(signed)
+            return _FakeResp({"hash": next(hashes)})
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(fake_from_seed),
+        )
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit)
+
+        res_b = mgr.settle(state, "TownB")
+        assert res_b.success is True
+        assert state.backpack.pending_settlements == []
+        # Baseline advanced exactly to current supplies.
+        assert state.backpack.last_settled_supplies["food"] == 35
+
+        # Net on-chain food movement equals the true net supply change: 50→35.
+        assert sum(food_moves) == -15
+
+        # reconcile(): minted + Σ(all settled deltas) == final settled supplies.
+        ledger_balances = {
+            XRPL_TOKEN_MAP[k][0]: state.backpack.last_settled_supplies.get(k, 0)
+            for k in XRPL_RESOURCES
+        }
+        report = reconcile(
+            run_id=state.run_id,
+            seed=state.seed,
+            minted_initial=minted,
+            ledger_balances=ledger_balances,
+            last_settled_supplies=state.backpack.last_settled_supplies,
+            settlements=state.backpack.settlements,
+            pending=state.backpack.pending_settlements,
+        )
+        assert report.passed is True, report.notes
+        food = next(r for r in report.resources if r.resource == "food")
+        # Σ deltas across both settled records must telescope to -15, not -25.
+        assert food.sum_deltas == -15
+        assert food.minted + food.sum_deltas == food.engine_settled == 35
+
 
 class TestSendParcelMocked:
     @requires_xrpl

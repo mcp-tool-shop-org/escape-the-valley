@@ -472,6 +472,21 @@ class BackpackManager:
                 record.timestamp = datetime.now(UTC).isoformat()
                 bp.settlements.append(record)
 
+                # Conservation fix (ENG-A-08): a failed settle() leaves the
+                # baseline un-advanced and enqueues this pending record. Now that
+                # it is settled on-chain, fold its (signed) delta into the
+                # baseline so the *next* fresh settle() measures current against a
+                # baseline that already accounts for this retried portion.
+                # Without this, settle() recomputes (current - baseline) over the
+                # WHOLE interval — including the just-retried delta — paying it
+                # on-chain twice and double-summing it in reconcile(), breaking
+                # 'minted + Σdeltas == final'. Only advance on success; a record
+                # that fails below stays pending with the baseline untouched.
+                for key, val in record.deltas.items():
+                    bp.last_settled_supplies[key] = (
+                        bp.last_settled_supplies.get(key, 0) + val
+                    )
+
             except Exception as e:
                 log.warning("Retry settlement day %d failed: %s", record.day, e)
                 still_pending.append(record)
