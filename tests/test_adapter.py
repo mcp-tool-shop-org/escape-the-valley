@@ -455,3 +455,58 @@ class TestDegradedGmSignal:
         bar.update_from(frame, busy=True)
         assert "thinking" in rendered["text"].lower()
         assert "Travel" not in rendered["text"]
+
+
+# ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─
+
+
+class TestStepWorkerFallback:
+    """Without a live Textual loop, step()/ledger calls run synchronously.
+
+    The worker path needs a real event loop; unit tests calling actions
+    directly must keep working (and stay deterministic) via the synchronous
+    fallback. The live worker path is exercised by the Pilot smoke test.
+    """
+
+    def test_no_runtime_means_synchronous_step(self):
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+
+        assert app._has_worker_runtime() is False
+
+        stepped = {"n": 0}
+        real_step = engine.step
+
+        def _spy(intent):
+            stepped["n"] += 1
+            return real_step(intent)
+
+        engine.step = _spy
+        app.action_intent("TRAVEL")
+        # Synchronous: the step ran inline and we are not stuck "in flight".
+        assert stepped["n"] == 1
+        assert app._in_flight is False
+
+    def test_in_flight_guard_blocks_reentry(self):
+        """A queued action while a worker runs is ignored, not double-stepped."""
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app.notify = lambda *a, **k: None
+
+        stepped = {"n": 0}
+        real_step = engine.step
+
+        def _spy(intent):
+            stepped["n"] += 1
+            return real_step(intent)
+
+        engine.step = _spy
+        app._in_flight = True  # simulate a worker already running
+        app.action_intent("TRAVEL")
+        app.action_choose("A")
+        assert stepped["n"] == 0  # both ignored

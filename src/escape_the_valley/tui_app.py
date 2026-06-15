@@ -581,8 +581,13 @@ class LedgerTrailApp(App):
         self._render_all()
 
     def action_ledger_enable(self) -> None:
-        """Start the backpack enable flow."""
-        if not self._engine:
+        """Start the backpack enable flow.
+
+        cli-tui-B-02 / ledger-B01: enabling creates testnet wallets, which can
+        block for 30-60s. Run that round-trip on a worker thread with the
+        enable-flow overlay's progress state visible, so the UI never freezes.
+        """
+        if not self._engine or self._in_flight:
             return
 
         self._close_all_overlays()
@@ -594,19 +599,48 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         overlay.show_progress()
 
+        if not self._has_worker_runtime():
+            # Synchronous fallback (unit tests / no live loop).
+            self._enable_blocking()
+            return
+
+        self._in_flight = True
+        self._enable_worker()
+
+    def _enable_blocking(self):
+        """The blocking enable round-trip. Returns the EnableResult."""
         from .backpack import BackpackManager
 
         mgr = BackpackManager()
         result = mgr.enable(self._engine.state)
         mgr.close()
+        if result.success:
+            self._save()
+        self._finish_enable(result)
+        return result
 
+    @work(thread=True, exclusive=True, group="ledger")
+    def _enable_worker(self) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.enable(self._engine.state)
+        mgr.close()
+        if result.success:
+            self._save()
+        self.call_from_thread(self._finish_enable, result)
+
+    def _finish_enable(self, result) -> None:
+        """UI-thread completion for the enable flow."""
+        self._in_flight = False
+        from .backpack_ui import EnableFlowOverlay
+
+        overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         if result.success:
             overlay.show_success(result.wallet_address)
-            self._save()
             self.notify("Ledger Backpack enabled")
         else:
             overlay.show_failure(result.message)
-
         self._sync_frame()
         self._render_all()
 
@@ -627,37 +661,99 @@ class LedgerTrailApp(App):
         self.notify("Ledger Backpack disabled")
 
     def action_ledger_settle(self) -> None:
-        """Manual settlement."""
-        if not self._engine:
+        """Manual settlement.
+
+        cli-tui-B-02 / ledger-B01: settlement submits to the testnet and can
+        block; run it on a worker thread with the busy state visible.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .backpack import BackpackManager
-
-        mgr = BackpackManager()
         cur = None
         for n in self._engine.state.map_nodes:
             if n.node_id == self._engine.state.location_id:
                 cur = n
                 break
         location = cur.name if cur else "Unknown"
+
+        if not self._has_worker_runtime():
+            self._settle_blocking(location)
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self._render_all()
+        self._settle_worker(location)
+
+    def _settle_blocking(self, location: str):
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
         result = mgr.settle(self._engine.state, location)
         mgr.close()
         self._save()
+        self._finish_settle(result)
+        return result
 
+    @work(thread=True, exclusive=True, group="ledger")
+    def _settle_worker(self, location: str) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.settle(self._engine.state, location)
+        mgr.close()
+        self._save()
+        self.call_from_thread(self._finish_settle, result)
+
+    def _finish_settle(self, result) -> None:
+        self._in_flight = False
         self.notify(result.message)
         self._sync_frame()
         self._render_all()
 
     def action_wallet_info(self) -> None:
-        """Show wallet info overlay."""
-        if not self._engine:
+        """Show wallet info overlay.
+
+        cli-tui-B-02 / ledger-B01: wallet_info reads balances from the testnet
+        and can block; run it on a worker with a loading state.
+        """
+        if not self._engine or self._in_flight:
             return
 
-        from .backpack import BackpackManager
+        if not self._has_worker_runtime():
+            self._wallet_info_blocking()
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self.show_wallet_info = True
         from .backpack_ui import WalletInfoOverlay
+
+        self.query_one("#wallet_info", WalletInfoOverlay).update(
+            "[b]Wallet Info[/b]\n\nReading the ledger..."
+        )
+        self._render_all()
+        self._wallet_info_worker()
+
+    def _wallet_info_blocking(self):
+        from .backpack import BackpackManager
 
         mgr = BackpackManager()
         info = mgr.wallet_info(self._engine.state)
+        self._finish_wallet_info(info)
+        return info
+
+    @work(thread=True, exclusive=True, group="ledger")
+    def _wallet_info_worker(self) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        info = mgr.wallet_info(self._engine.state)
+        self.call_from_thread(self._finish_wallet_info, info)
+
+    def _finish_wallet_info(self, info) -> None:
+        self._in_flight = False
+        from .backpack_ui import WalletInfoOverlay
 
         self._close_all_overlays()
         self.show_wallet_info = True
