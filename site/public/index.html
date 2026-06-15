@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escape the Valley: Ledger Trail</title>
+<meta name="description" content="Escape the Valley: Ledger Trail — an Oregon Trail-style survival RPG where every supply is reconciled on an on-ledger proof harness. LLM-driven Game Master, terminal UI, multiplayer parcel trading over XRPL. pip install escape-the-valley.">
+<meta property="og:title" content="Escape the Valley: Ledger Trail">
+<meta property="og:description" content="Escape the Valley: Ledger Trail — an Oregon Trail-style survival RPG where every supply is reconciled on an on-ledger proof harness. LLM-driven Game Master, terminal UI, multiplayer parcel trading over XRPL. pip install escape-the-valley.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/escape-the-valley/ev-logo.png">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-400-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-400-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-400-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-400-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-400-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-500-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-500-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-500-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-500-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-500-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-600-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-600-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-600-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-600-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/ibm-plex-mono-600-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-italic-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-italic-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-italic-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-italic-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-italic-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-400-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-500-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-500-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-500-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-500-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-500-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-600-normal-cyrillic-ext.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-600-normal-cyrillic.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-600-normal-vietnamese.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-600-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/spectral-600-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-600-italic-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-600-italic-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-700-italic-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-700-italic-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-500-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-500-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-600-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-600-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-700-normal-latin-ext.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/escape-the-valley/fonts/zilla-slab-700-normal-latin.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+  :root { --ember: #d97706; --cold: #6fa6a0; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #0b0a09; }
+  ::selection { background: rgba(217,119,6,0.30); color: #fdf3e0; }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes evBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+    .ev-cursor { animation: evBlink 1.05s steps(1) infinite; }
+    @keyframes evDrift { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
+  }
+  .ev-link { color: #b8ab90; text-decoration: none; transition: color .18s ease; }
+  .ev-link:hover { color: #ece1cb; }
+  .ev-choice { transition: background .18s ease, border-color .18s ease; }
+  .ev-choice:hover { background: rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.45); }
+  .ev-cta { transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+  .ev-cta:hover { transform: translateY(-1px); }
+  .ev-card { transition: border-color .2s ease, transform .2s ease, background .2s ease; }
+  .ev-card:hover { border-color: rgba(217,119,6,0.38); transform: translateY(-2px); }
+</style>
+
+
+<div style="--ember: #d97706; --cold: #6fa6a0; position: relative; min-height: 100vh; background: radial-gradient(120% 80% at 78% -8%, rgba(217,119,6,0.10) 0%, rgba(217,119,6,0.02) 34%, rgba(0,0,0,0) 60%), linear-gradient(180deg, #0d0b09 0%, #0b0a09 40%, #080706 100%); color: #ece1cb; font-family: 'Spectral', Georgia, serif; overflow-x: hidden;">
+
+  
+    <div aria-hidden="true" style="position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: 0.05; mix-blend-mode: overlay; background-image: url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22&gt;&lt;filter id=%22n%22&gt;&lt;feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/&gt;&lt;/filter&gt;&lt;rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/&gt;&lt;/svg&gt;');"></div>
+  
+
+  <!-- ============ NAV ============ -->
+  <header style="position: sticky; top: 0; z-index: 50; backdrop-filter: blur(10px); background: rgba(11,10,9,0.78); border-bottom: 1px solid #221b13;">
+    <nav style="max-width: 1160px; margin: 0 auto; padding: 14px 28px; display: flex; align-items: center; gap: 24px;">
+      <a href="#top" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1.5px solid var(--ember); border-radius: 5px; color: var(--ember); font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 18px; letter-spacing: 0.5px; box-shadow: inset 0 0 14px rgba(217,119,6,0.18);">EV</span>
+        <span style="display: flex; flex-direction: column; line-height: 1;">
+          <span style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 16px; letter-spacing: 0.6px; color: #ece1cb; white-space: nowrap;">ESCAPE THE VALLEY</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #8a7f6c; margin-top: 3px;">LEDGER TRAIL · v1.1</span>
+        </span>
+      </a>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 26px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.3px;">
+        <a class="ev-link" href="#features">Features</a>
+        <a class="ev-link" href="#quickstart">Quick Start</a>
+        <a class="ev-link" href="#profiles">GM Profiles</a>
+        <a class="ev-link" href="handbook/">Handbook</a>
+        <a class="ev-link" href="https://github.com/mcp-tool-shop-org/escape-the-valley" target="_blank" rel="noopener">GitHub</a>
+        <a class="ev-cta" href="#quickstart" style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 14px; letter-spacing: 0.4px; color: #1a1208; background: linear-gradient(180deg, #f0a83a, var(--ember)); padding: 9px 18px; border-radius: 5px; text-decoration: none; box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 8px 20px rgba(217,119,6,0.22);">Get started</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section id="top" style="position: relative; max-width: 1160px; margin: 0 auto; padding: 72px 28px 64px;">
+    <svg aria-hidden="true" viewBox="0 0 1200 520" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; pointer-events: none; z-index: 0;">
+      <g fill="none" stroke="var(--ember)" stroke-width="1" opacity="0.10">
+        <path d="M-40 90 C 220 30, 430 150, 660 90 S 1040 30, 1260 110"></path>
+        <path d="M-40 150 C 220 92, 430 210, 660 150 S 1040 92, 1260 168"></path>
+        <path d="M-40 214 C 240 150, 440 268, 680 206 S 1060 150, 1260 230"></path>
+        <path d="M-40 286 C 220 220, 470 338, 700 276 S 1060 222, 1260 300"></path>
+        <path d="M-40 366 C 250 300, 460 414, 700 352 S 1070 300, 1260 380"></path>
+        <path d="M-40 452 C 240 388, 470 500, 720 438 S 1080 386, 1260 466"></path>
+      </g>
+      <g stroke="var(--cold)" stroke-width="1" opacity="0.12" fill="none">
+        <path d="M-40 214 C 240 150, 440 268, 680 206 S 1060 150, 1260 230" stroke-dasharray="2 7"></path>
+      </g>
+    </svg>
+
+    <div style="position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 52px; align-items: center;">
+      <!-- left -->
+      <div style="flex: 1 1 392px; min-width: 320px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ember); border: 1px solid rgba(217,119,6,0.32); border-radius: 999px; padding: 6px 14px; background: rgba(217,119,6,0.05);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 8px var(--ember);"></span>
+          Terminal survival game · AI-narrated · on-ledger
+        </div>
+
+        <h1 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: clamp(42px, 6vw, 74px); line-height: 1.02; letter-spacing: -0.5px; margin: 22px 0 0; color: #f4ead4;">
+          Escape the Valley:<br>
+          <span style="font-style: italic; font-weight: 700; color: var(--ember); text-shadow: 0 0 28px rgba(217,119,6,0.28);">Ledger Trail.</span>
+        </h1>
+
+        <p style="font-size: 18px; line-height: 1.72; color: #c2b69b; max-width: 540px; margin: 22px 0 0;">
+          Lead a party west through procedurally-generated wilderness. The Game Master narrates your journey <strong style="color: #ece1cb; font-weight: 600;">token-by-token — the storyteller writing in real time.</strong> A deterministic engine decides who lives. An optional XRP Ledger tracks your supplies on-chain, with a reconciliation proof the engine can't fake.
+        </p>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px;">
+          <a class="ev-cta" href="#quickstart" style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 16px; letter-spacing: 0.4px; color: #1a1208; background: linear-gradient(180deg, #f3ac3c, var(--ember)); padding: 13px 26px; border-radius: 6px; text-decoration: none; box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 10px 26px rgba(217,119,6,0.26);">Get started</a>
+          <a class="ev-cta" href="handbook/" style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 16px; letter-spacing: 0.4px; color: #ece1cb; background: rgba(236,225,203,0.02); padding: 13px 24px; border-radius: 6px; text-decoration: none; border: 1px solid #3a2f21;">Read the Handbook →</a>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 32px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">
+          <div style="display: flex; align-items: center; gap: 10px; color: #9b9079;"><span style="color: var(--ember);">$</span> pip install escape-the-valley</div>
+          <div style="display: flex; align-items: center; gap: 10px; color: #9b9079;"><span style="color: var(--ember);">$</span> trail tui --seed 42</div>
+          <div style="display: flex; align-items: center; gap: 10px; color: #9b9079;"><span style="color: var(--ember);">$</span> trail tui --continue</div>
+        </div>
+      </div>
+
+      <!-- right: terminal hero -->
+      <div style="flex: 1 1 452px; min-width: 340px;">
+        <div style="border-radius: 9px; border: 1px solid #34281c; background: linear-gradient(180deg, #100d0a, #0a0807); box-shadow: 0 40px 90px -30px rgba(0,0,0,0.85), 0 0 0 1px rgba(217,119,6,0.05), 0 0 70px -20px rgba(217,119,6,0.16); overflow: hidden;">
+          <!-- title bar -->
+          <div style="display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-bottom: 1px solid #241c14; background: rgba(217,119,6,0.05);">
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 8px var(--ember);"></span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; color: #c9bda3;">trail tui — seed 42</span>
+            <span style="flex: 1;"></span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7c7261;">day 14 · steady</span>
+          </div>
+
+          <div style="padding: 18px 18px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.55;">
+            <!-- status grid -->
+            <div style="display: grid; grid-template-columns: 78px 1fr; row-gap: 9px; column-gap: 12px; color: #b9ad93;">
+              <span style="color: #6f6553; letter-spacing: 0.5px;">PARTY</span>
+              <span style="color: #d8cbb2;">Eliza · Samuel · Wren · Tom</span>
+
+              <span style="color: #6f6553; letter-spacing: 0.5px;">WAGON</span>
+              <span style="display: flex; align-items: center; gap: 10px;">
+                <span style="display: inline-flex; gap: 2px;">
+                  <span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember);"></span><span style="width: 12px; height: 9px; background: var(--ember); opacity: 0.55;"></span><span style="width: 12px; height: 9px; background: #2c2417;"></span><span style="width: 12px; height: 9px; background: #2c2417;"></span><span style="width: 12px; height: 9px; background: #2c2417;"></span>
+                </span>
+                <span style="color: #d8cbb2;">68%</span>
+              </span>
+
+              <span style="color: #6f6553; letter-spacing: 0.5px;">DIST</span>
+              <span style="color: #d8cbb2;">214 mi <span style="color: #6f6553;">·</span> 326 to the pass</span>
+
+              <span style="color: #6f6553; letter-spacing: 0.5px;">SUPPLY</span>
+              <span style="color: #d8cbb2;">food 31 · water 22 · <span style="color: #c47a4a;">meds 4</span> · ammo 19 · parts 2</span>
+            </div>
+
+            <div style="height: 1px; background: #241c14; margin: 15px 0;"></div>
+
+            <!-- narration -->
+            <div style="color: #9b9079; font-size: 11px; letter-spacing: 1px; margin-bottom: 7px;">~ FIRESIDE ~</div>
+            <div style="min-height: 92px; color: #d8cbb2; font-size: 13.5px; line-height: 1.62;"><span id="ev-narration"><span class="ev-tok" data-i="0" style="color: #d8cbb2;">The </span><span class="ev-tok" data-i="1" style="color: #6fa6a0;">fog </span><span class="ev-tok" data-i="2" style="color: #d8cbb2;">came </span><span class="ev-tok" data-i="3" style="color: #d8cbb2;">up </span><span class="ev-tok" data-i="4" style="color: #d8cbb2;">off </span><span class="ev-tok" data-i="5" style="color: #d8cbb2;">the </span><span class="ev-tok" data-i="6" style="color: #d8cbb2;">river </span><span class="ev-tok" data-i="7" style="color: #d8cbb2;">before </span><span class="ev-tok" data-i="8" style="color: #d8cbb2;">dusk </span><span class="ev-tok" data-i="9" style="color: #d8cbb2;">and </span><span class="ev-tok" data-i="10" style="color: #d8cbb2;">did </span><span class="ev-tok" data-i="11" style="color: #d8cbb2;">not </span><span class="ev-tok" data-i="12" style="color: #d8cbb2;">lift. </span><span class="ev-tok" data-i="13" style="color: #d8cbb2;">Wren </span><span class="ev-tok" data-i="14" style="color: #d8cbb2;">swears </span><span class="ev-tok" data-i="15" style="color: #d8cbb2;">she </span><span class="ev-tok" data-i="16" style="color: #d8cbb2;">heard </span><span class="ev-tok" data-i="17" style="color: #d8cbb2;">a </span><span class="ev-tok" data-i="18" style="color: #6fa6a0;">second </span><span class="ev-tok" data-i="19" style="color: #6fa6a0;">axe </span><span class="ev-tok" data-i="20" style="color: #d8cbb2;">in </span><span class="ev-tok" data-i="21" style="color: #d8cbb2;">the </span><span class="ev-tok" data-i="22" style="color: #d8cbb2;">treeline, </span><span class="ev-tok" data-i="23" style="color: #d8cbb2;">keeping </span><span class="ev-tok" data-i="24" style="color: #d8cbb2;">time </span><span class="ev-tok" data-i="25" style="color: #d8cbb2;">with </span><span class="ev-tok" data-i="26" style="color: #d8cbb2;">Samuel&#x27;s. </span><span class="ev-tok" data-i="27" style="color: #d8cbb2;">He </span><span class="ev-tok" data-i="28" style="color: #d8cbb2;">says </span><span class="ev-tok" data-i="29" style="color: #d8cbb2;">it </span><span class="ev-tok" data-i="30" style="color: #d8cbb2;">was </span><span class="ev-tok" data-i="31" style="color: #d8cbb2;">the </span><span class="ev-tok" data-i="32" style="color: #6fa6a0;">echo. </span><span class="ev-cursor" style="color: #d97706; font-weight: 600;">▋</span></span></div>
+
+            <div style="height: 1px; background: #241c14; margin: 15px 0;"></div>
+
+            <!-- choices -->
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div class="ev-choice" style="display: flex; gap: 12px; padding: 8px 11px; border: 1px solid #2a2014; border-radius: 5px; cursor: default;"><span style="color: var(--ember); font-weight: 600;">A</span><span style="color: #c6ba9f;">Press on while the light holds</span></div>
+              <div class="ev-choice" style="display: flex; gap: 12px; padding: 8px 11px; border: 1px solid #2a2014; border-radius: 5px; cursor: default;"><span style="color: var(--ember); font-weight: 600;">B</span><span style="color: #c6ba9f;">Make camp early, keep the lantern lit</span></div>
+              <div class="ev-choice" style="display: flex; gap: 12px; padding: 8px 11px; border: 1px solid #2a2014; border-radius: 5px; cursor: default;"><span style="color: var(--ember); font-weight: 600;">C</span><span style="color: #c6ba9f;">Send Wren to walk the treeline</span></div>
+            </div>
+
+            <div style="display: flex; gap: 16px; margin-top: 14px; font-size: 11px; color: #6f6553;">
+              <span>GM <span style="color: #9b9079;">Fireside</span></span>
+              <span>Ollama <span style="color: var(--cold);">✓</span></span>
+              <span>ledger <span style="color: #c47a4a;">◐ syncing</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THREE PILLARS ============ -->
+  <section style="border-top: 1px solid #1c160f; border-bottom: 1px solid #1c160f; background: rgba(0,0,0,0.25);">
+    <div style="max-width: 1160px; margin: 0 auto; padding: 30px 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: var(--ember); text-transform: uppercase;">The narrator</div>
+        <div style="font-family: 'Zilla Slab', serif; font-size: 17px; color: #e6dabf;">An Ollama Game Master tells the story</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: var(--ember); text-transform: uppercase;">The rules-lawyer</div>
+        <div style="font-family: 'Zilla Slab', serif; font-size: 17px; color: #e6dabf;">A deterministic engine decides outcomes</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: var(--ember); text-transform: uppercase;">The receipt book</div>
+        <div style="font-family: 'Zilla Slab', serif; font-size: 17px; color: #e6dabf;">The XRP Ledger keeps you honest</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section id="features" style="max-width: 1160px; margin: 0 auto; padding: 84px 28px 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 2px; color: var(--ember);">01</span>
+      <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: clamp(30px, 4vw, 42px); margin: 0; color: #f1e6cd; letter-spacing: -0.3px;">What's new on the trail</h2>
+    </div>
+    <p style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8a7f6c; margin: 0 0 38px; letter-spacing: 0.3px;">v1.1 — the highlights</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;">
+      <!-- 1 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">01 · NARRATION</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">Streaming AI narration</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">Three GM profiles — Chronicler, Fireside, Lantern-Bearer — narrate in distinct voices, now streamed token-by-token. Runs locally on Ollama, zero API cost. The GM never bricks a run: if the model's down, the trail tells its own story.</p>
+      </div>
+      <!-- 2 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">02 · ENGINE</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">The engine decides</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">Seeded, deterministic, reproducible. The GM tells the story; the engine is the rules-lawyer. Same seed plus the same choices yields the same run, every time.</p>
+      </div>
+      <!-- 3 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">03 · STAKES</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">Real stakes, graded endings</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">Events can wound and kill; deaths are attributed — injury, dysentery, exposure. Runs end <span style="color: #cdbf9f; font-style: italic;">triumphant, weathered, pyrrhic,</span> or <span style="color: var(--cold); font-style: italic;">lost</span>, with a narrated epilogue read from who survived, how long it took, and what you sacrificed.</p>
+      </div>
+      <!-- 4 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">04 · LEDGER</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">The ledger is the receipt book</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">Optional on-chain inventory on the XRP Ledger testnet: supply tokens, settlement receipts, parcels you trade with other travelers. A <strong style="color: #cdbf9f; font-weight: 600;">reconciliation proof</strong> verifies the on-chain memos themselves — the engine cannot fake the ledger.</p>
+      </div>
+      <!-- 5 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">05 · TERMINAL</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">A terminal that never freezes</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">A full-screen Textual TUI with async narration ("the storyteller is thinking…"), reachable last-resort escape valves, an end-of-run postcard, and honest signals when the AI or network is degraded.</p>
+      </div>
+      <!-- 6 -->
+      <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: linear-gradient(180deg, #14110c, #100d09); padding: 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ember); letter-spacing: 1px; margin-bottom: 12px;">06 · HARDENED</div>
+        <h3 style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 21px; margin: 0 0 9px; color: #ece1cb;">Hardened</h3>
+        <p style="font-size: 15px; line-height: 1.62; color: #afa488; margin: 0;">685 tests, <strong style="color: #cdbf9f; font-weight: 600;">0 critical / 0 high</strong>, crash-safe atomic saves, testnet-only-in-code. Forged by a full dogfood-swarm hardening pass.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUICK START ============ -->
+  <section id="quickstart" style="max-width: 1160px; margin: 0 auto; padding: 84px 28px 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 2px; color: var(--ember);">02</span>
+      <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: clamp(30px, 4vw, 42px); margin: 0; color: #f1e6cd; letter-spacing: -0.3px;">Break camp in three commands</h2>
+    </div>
+    <p style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8a7f6c; margin: 0 0 38px; letter-spacing: 0.3px;">Python 3.11+ · Ollama optional · XRPL optional</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;">
+      <!-- install -->
+      <div style="border: 1px solid #2a2118; border-radius: 8px; background: #0c0a08; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 9px; padding: 11px 16px; border-bottom: 1px solid #211a12; background: rgba(217,119,6,0.04);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--ember);"></span>
+          <span style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: #d8cbb2;">Install</span>
+        </div>
+        <div style="padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.95; color: #b9ad93;">
+          <div><span style="color: var(--ember);">$</span> pip install escape-the-valley</div>
+          <div style="color: #6f6553;"># with on-chain ledger</div>
+          <div><span style="color: var(--ember);">$</span> pip install <span style="color: #cdbf9f;">"escape-the-valley[xrpl]"</span></div>
+          <div style="color: #6f6553;"># from source, for hacking</div>
+          <div><span style="color: var(--ember);">$</span> pip install -e <span style="color: #cdbf9f;">".[dev,xrpl]"</span></div>
+        </div>
+      </div>
+      <!-- play -->
+      <div style="border: 1px solid #2a2118; border-radius: 8px; background: #0c0a08; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 9px; padding: 11px 16px; border-bottom: 1px solid #211a12; background: rgba(217,119,6,0.04);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--ember);"></span>
+          <span style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: #d8cbb2;">Play</span>
+        </div>
+        <div style="padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.95; color: #b9ad93;">
+          <div style="color: #6f6553;"># launch the full-screen TUI</div>
+          <div><span style="color: var(--ember);">$</span> trail tui --seed 42</div>
+          <div style="color: #6f6553;"># with AI narration aloud</div>
+          <div><span style="color: var(--ember);">$</span> trail tui --seed 42 --voice</div>
+          <div style="color: #6f6553;"># deterministic, GM off</div>
+          <div><span style="color: var(--ember);">$</span> trail tui --gm-off</div>
+        </div>
+      </div>
+      <!-- commands -->
+      <div style="border: 1px solid #2a2118; border-radius: 8px; background: #0c0a08; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 9px; padding: 11px 16px; border-bottom: 1px solid #211a12; background: rgba(217,119,6,0.04);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--ember);"></span>
+          <span style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: #d8cbb2;">Commands</span>
+        </div>
+        <div style="padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.95; color: #b9ad93;">
+          <div><span style="color: var(--ember);">$</span> trail tui --continue</div>
+          <div><span style="color: var(--ember);">$</span> trail status</div>
+          <div><span style="color: var(--ember);">$</span> trail journal -n 5</div>
+          <div><span style="color: var(--ember);">$</span> trail ledger enable</div>
+          <div><span style="color: var(--ember);">$</span> trail self-check</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GM PROFILES + LEDGER ============ -->
+  <section id="profiles" style="max-width: 1160px; margin: 0 auto; padding: 84px 28px 20px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start;">
+      <!-- profiles -->
+      <div style="flex: 1 1 440px; min-width: 320px;">
+        <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 2px; color: var(--ember);">03</span>
+          <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: clamp(28px, 3.4vw, 38px); margin: 0; color: #f1e6cd; letter-spacing: -0.3px;">Choose your narrator</h2>
+        </div>
+        <p style="font-size: 15px; color: #8a7f6c; margin: 0 0 28px; line-height: 1.6;">The narrator shapes the tone, not the mechanics. All three play the same game.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: #100d09; padding: 18px 20px;">
+            <div style="display: flex; align-items: baseline; gap: 12px;">
+              <h3 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 19px; margin: 0; color: #ece1cb;">Chronicler</h3>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7c7261;">--gm-profile chronicler</span>
+            </div>
+            <p style="font-size: 14.5px; color: #afa488; margin: 6px 0 0; line-height: 1.55;"><span style="font-style: italic; color: #cdbf9f;">Grounded, practical, spare.</span> Minimal folklore — reports what happened. For players who want facts.</p>
+          </div>
+          <div class="ev-card" style="border: 1px solid rgba(217,119,6,0.4); border-radius: 7px; background: linear-gradient(180deg, #16110b, #110d09); padding: 18px 20px; box-shadow: 0 0 0 1px rgba(217,119,6,0.08), 0 0 40px -22px rgba(217,119,6,0.5);">
+            <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+              <h3 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 19px; margin: 0; color: #f4ead4;">Fireside</h3>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; color: #1a1208; background: var(--ember); padding: 2px 8px; border-radius: 999px;">DEFAULT</span>
+            </div>
+            <p style="font-size: 14.5px; color: #c2b69b; margin: 6px 0 0; line-height: 1.55;"><span style="font-style: italic; color: #e0d3b6;">Serious campfire narrator.</span> Subtle uncanny moments. The place to start your first playthrough.</p>
+          </div>
+          <div class="ev-card" style="border: 1px solid #2a2118; border-radius: 7px; background: #100d09; padding: 18px 20px;">
+            <div style="display: flex; align-items: baseline; gap: 12px;">
+              <h3 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 19px; margin: 0; color: #ece1cb;">Lantern-Bearer</h3>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7c7261;">--gm-profile lantern</span>
+            </div>
+            <p style="font-size: 14.5px; color: #afa488; margin: 6px 0 0; line-height: 1.55;"><span style="font-style: italic; color: var(--cold);">Uncanny and liminal,</span> but still grounded in consequence. The weird one — for experienced travelers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- trail ledger receipt -->
+      <div style="flex: 1 1 392px; min-width: 320px;">
+        <div style="border-radius: 9px; border: 1px solid #34281c; background: linear-gradient(180deg, #100d0a, #0a0807); box-shadow: 0 30px 70px -30px rgba(0,0,0,0.8); overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-bottom: 1px solid #241c14; background: rgba(111,166,160,0.06);">
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--cold); box-shadow: 0 0 8px var(--cold);"></span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; color: #c9bda3;">trail ledger — run #42</span>
+            <span style="flex: 1;"></span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--cold);">weathered</span>
+          </div>
+          <div style="padding: 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #b9ad93;">
+            <div style="color: #d8cbb2;">Day 31 · 540 mi · 3 of 4 survived</div>
+            <div style="height: 1px; background: #241c14; margin: 13px 0;"></div>
+            <div style="color: #6f6553; font-size: 11px; letter-spacing: 1px; margin-bottom: 9px;">ON-CHAIN SETTLEMENTS · XRPL TESTNET</div>
+            <div style="display: grid; grid-template-columns: 1fr auto; row-gap: 8px; column-gap: 14px;">
+              <span style="color: #c6ba9f;">Fort Reliance <span style="color: #6f6553;">food −8 water −5</span></span>
+              <span style="color: var(--cold);">7A3F…C19</span>
+              <span style="color: #c6ba9f;">Mill Crossing <span style="color: #6f6553;">meds −2 ammo −6</span></span>
+              <span style="color: var(--cold);">9E0B…4D2</span>
+              <span style="color: #c6ba9f;">Cold Fork <span style="color: #6f6553;">parts −1</span></span>
+              <span style="color: var(--cold);">B14C…8AF</span>
+            </div>
+            <div style="height: 1px; background: #241c14; margin: 13px 0;"></div>
+            <div style="display: flex; align-items: center; gap: 8px; color: #c6ba9f;"><span style="color: var(--cold);">✓</span> reconciliation proof verified</div>
+            <div style="margin-top: 10px; color: #9b8f78; font-style: italic; font-family: 'Spectral', serif; font-size: 13.5px;">Tom — exposure, day 27. The lantern outlasted him.</div>
+          </div>
+        </div>
+        <p style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #6f6553; margin: 12px 4px 0; line-height: 1.6;">Every checkpoint writes a settlement memo anyone can verify. The engine reads the run — it can't rewrite the ledger.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CLOSING CTA ============ -->
+  <section style="max-width: 1160px; margin: 0 auto; padding: 80px 28px 70px;">
+    <div style="border: 1px solid #2a2118; border-radius: 10px; background: radial-gradient(120% 140% at 80% 0%, rgba(217,119,6,0.12), rgba(0,0,0,0) 55%), linear-gradient(180deg, #14110c, #0c0a08); padding: 48px 40px; text-align: center;">
+      <h2 style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: clamp(28px, 4vw, 44px); margin: 0; color: #f4ead4; letter-spacing: -0.4px;">The valley doesn't wait for daylight.</h2>
+      <p style="font-size: 17px; color: #b8ab90; margin: 14px auto 0; max-width: 520px; line-height: 1.6;">Seed a run, light the lantern, and see how far west your party gets before the trail decides for you.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 28px;">
+        <a class="ev-cta" href="#quickstart" style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 16px; color: #1a1208; background: linear-gradient(180deg, #f3ac3c, var(--ember)); padding: 13px 28px; border-radius: 6px; text-decoration: none; box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 10px 26px rgba(217,119,6,0.26);">Get started</a>
+        <a class="ev-cta" href="https://github.com/mcp-tool-shop-org/escape-the-valley" target="_blank" rel="noopener" style="font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 16px; color: #ece1cb; background: rgba(236,225,203,0.02); padding: 13px 26px; border-radius: 6px; text-decoration: none; border: 1px solid #3a2f21; white-space: nowrap;">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer style="border-top: 1px solid #1c160f; background: #080706;">
+    <div style="max-width: 1160px; margin: 0 auto; padding: 44px 28px; display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <div style="width: 84px; height: 84px; border-radius: 8px; overflow: hidden; border: 1px solid #2a2118; box-shadow: inset 0 0 30px rgba(0,0,0,0.5); flex-shrink: 0;">
+          <img src="/escape-the-valley/ev-logo.png" alt="Ledger Trail: Escape the Valley" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1.5px solid var(--ember); border-radius: 5px; color: var(--ember); font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 14px;">EV</span>
+            <span style="font-family: 'Zilla Slab', serif; font-weight: 700; font-size: 16px; letter-spacing: 0.5px; color: #e6dabf; white-space: nowrap;">ESCAPE THE VALLEY</span>
+          </div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6f6553;">MIT Licensed — built by MCP Tool Shop</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">
+        <a class="ev-link" href="https://github.com/mcp-tool-shop-org/escape-the-valley" target="_blank" rel="noopener" style="display: flex; align-items: center; gap: 9px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          mcp-tool-shop-org/escape-the-valley
+        </a>
+        <a class="ev-link" href="handbook/" style="display: flex; align-items: center; gap: 9px;"><span style="color: var(--ember);">→</span> Read the Handbook</a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+<script>
+(function () {
+  var wrap = document.getElementById('ev-narration');
+  if (!wrap) return;
+  var toks = Array.prototype.slice.call(wrap.querySelectorAll('.ev-tok'));
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !toks.length) return;  // leave fully revealed
+  toks.forEach(function (s) { s.style.opacity = '0'; });
+  var i = 0;
+  var iv = setInterval(function () {
+    if (i >= toks.length) { clearInterval(iv); return; }
+    toks[i].style.transition = 'opacity .18s ease';
+    toks[i].style.opacity = '1';
+    i++;
+  }, 95);
+})();
+</script>
+</body>
+</html>
