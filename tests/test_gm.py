@@ -134,9 +134,19 @@ class TestToneLint:
             "The river accepts your offering and returns it with interest."
         ) is True
 
-    def test_expanded_banned_words(self):
-        assert _tone_check("That was literally the worst crossing") is False
-        assert _tone_check("Basically, everyone died") is False
+    def test_grounded_prose_no_longer_over_rejected(self):
+        # gm-A-102 — ordinary English words that double as slang were over-
+        # rejecting grounded frontier prose. These must now pass.
+        assert _tone_check("A goat strayed from the herd.") is True
+        assert _tone_check("Snow crowned the cap of the ridge.") is True
+        assert _tone_check("They had to slay the lame ox.") is True
+        assert _tone_check("The ground was literally frozen.") is True
+        assert _tone_check("Basically, the well had run dry.") is True
+        assert _tone_check("She let out an oof as the pack landed.") is True
+
+    def test_real_slang_still_rejected(self):
+        # The genuine slang bans must remain in force.
+        assert _tone_check("Ngl that storm gave me bad vibes, bestie.") is False
 
 
 class TestIsAvailable:

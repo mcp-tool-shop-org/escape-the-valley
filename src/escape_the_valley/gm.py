@@ -74,10 +74,14 @@ OUTCOME_SCHEMA = """{
     "tags":["string"], "entities":["string"]}]
 }"""
 
-# Modern slang ban list for tone lint
+# Modern slang ban list for tone lint.
+# Only genuine modern slang belongs here. Ordinary English words that happen
+# to double as slang (goat=livestock, cap=ridge feature, slay=slaughter an
+# animal, literally/basically=adverbs, oof=an exhalation) were removed in
+# gm-A-102 after they over-rejected grounded frontier prose and forced
+# needless GM retries, then silent deterministic fallback.
 BANNED_WORDS = {
-    "bro", "lol", "meme", "vibes", "yeet", "sus", "goat", "cap",
-    "slay", "lowkey", "literally", "basically", "bruh", "oof",
+    "bro", "lol", "meme", "vibes", "yeet", "sus", "lowkey", "bruh",
     "ngl", "tbh", "fr", "bestie", "rizz",
 }
 
