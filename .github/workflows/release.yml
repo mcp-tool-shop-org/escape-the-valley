@@ -84,7 +84,7 @@ jobs:
 
       - name: Verify tag matches pyproject.toml version
         run: |
-          PY_VERSION=$(python3 -c "import tomllib; print(tomllib.loads(open('pyproject.toml','rb').read())['project']['version'])")
+          PY_VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           echo "pyproject.toml: ${PY_VERSION}"
           if [ "${PY_VERSION}" != "${TAG_VERSION}" ]; then
@@ -111,8 +111,11 @@ jobs:
           # fall back to the tag name if the section is missing.
           VERSION="${GITHUB_REF_NAME#v}"
           NOTES_FILE="$(mktemp)"
-          awk -v ver="${VERSION}" '
-            $0 ~ ("^## \\[" ver "\\]") {capture=1; next}
+          # Match the heading literally with index() — a dynamic regex with
+          # escaped brackets (\[ \]) is treated as a character class by some awk
+          # variants, which silently yields empty notes.
+          awk -v hdr="## [${VERSION}]" '
+            index($0, hdr) == 1 {capture=1; next}
             capture && /^## / {exit}
             capture {print}
           ' CHANGELOG.md > "${NOTES_FILE}"
