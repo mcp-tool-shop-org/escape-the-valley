@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -615,3 +616,43 @@ class TestAtomicSave:
             p for p in save_dir.iterdir() if p.is_file() and p.name.endswith(".tmp")
         ]
         assert leftover == []
+
+
+class TestCorruptBackupUniqueness:
+    """Stage-C: two corrupt loads that resolve to the same microsecond
+    timestamp must produce two distinct backups — the second must not silently
+    overwrite the first (Path.rename clobbers)."""
+
+    def _corrupt_files(self, save_dir):
+        return list(save_dir.glob(f"{SAVE_FILE}.corrupt-*"))
+
+    def test_two_corrupt_backups_in_same_microsecond_both_survive(
+        self, tmp_path, monkeypatch
+    ):
+        import escape_the_valley.save as save_mod
+
+        # Freeze the timestamp so both backups target the same base name,
+        # forcing the uniquifier path (the real-world collision case).
+        class _FrozenDatetime:
+            @staticmethod
+            def now(tz=None):
+                return datetime(2026, 6, 15, 12, 0, 0, 0, tzinfo=tz)
+
+        monkeypatch.setattr(save_mod, "datetime", _FrozenDatetime)
+
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir()
+        save_path = save_dir / SAVE_FILE
+
+        # First corrupt load + backup.
+        save_path.write_text("{first corrupt", encoding="utf-8")
+        assert load_game(base_path=tmp_path) is None
+
+        # Second corrupt load + backup — same frozen microsecond.
+        save_path.write_text("{second corrupt", encoding="utf-8")
+        assert load_game(base_path=tmp_path) is None
+
+        backups = self._corrupt_files(save_dir)
+        assert len(backups) == 2
+        contents = sorted(b.read_text(encoding="utf-8") for b in backups)
+        assert contents == ["{first corrupt", "{second corrupt"]

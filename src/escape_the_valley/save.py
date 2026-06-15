@@ -189,7 +189,18 @@ def _backup_corrupt_save(save_path: Path) -> Path | None:
     if not save_path.exists():
         return None
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
+    # Two corrupt loads in the same microsecond would collide on the timestamp
+    # alone, and Path.rename() silently overwrites the target — destroying the
+    # earlier backup. Append a counter and pick the first name that's free so
+    # every corrupt save is preserved.
     backup = save_path.with_name(f"{save_path.name}.corrupt-{ts}")
+    if backup.exists():
+        counter = 1
+        while True:
+            backup = save_path.with_name(f"{save_path.name}.corrupt-{ts}-{counter}")
+            if not backup.exists():
+                break
+            counter += 1
     try:
         save_path.rename(backup)
         log.warning("corrupt save backed up to %s", backup.name)
