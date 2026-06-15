@@ -83,15 +83,26 @@ def _hex_encode(text: str) -> str:
     return text.encode("utf-8").hex().upper()
 
 
-def _build_memo(run_id: str, day: int, deltas: dict[str, int]) -> list:
-    """Build XRPL memo list for a settlement transaction."""
+def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
+    """Canonical settlement memo text — the exact bytes written on-chain.
+
+    Used by both ``_build_memo`` (the on-chain Memo) and the stored
+    ``SettlementRecord.memo`` so the record matches the on-ledger memo
+    byte-for-byte (ledger-003). Begins with ``TRAIL|RUN:<id>|DAY:<n>`` so the
+    external verifier can confirm the prefix against the decoded on-chain memo.
+    """
     delta_parts = []
     for key, diff in sorted(deltas.items()):
         code = XRPL_TOKEN_MAP[key][0]
         sign = "+" if diff > 0 else ""
         delta_parts.append(f"{code}{sign}{diff}")
 
-    memo_text = f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+    return f"TRAIL|RUN:{run_id}|DAY:{day}|DELTA:{','.join(delta_parts)}"
+
+
+def _build_memo(run_id: str, day: int, deltas: dict[str, int]) -> list:
+    """Build XRPL memo list for a settlement transaction."""
+    memo_text = _settlement_memo_text(run_id, day, deltas)
     return [Memo(
         memo_data=_hex_encode(memo_text),
         memo_type=_hex_encode("text/plain"),
@@ -354,7 +365,9 @@ class BackpackManager:
             }
             bp.last_settlement_day = state.day
 
-            memo_text = f"TRAIL|RUN:{state.run_id}|DAY:{state.day}"
+            # Store the exact on-chain memo text so the record matches the
+            # on-ledger bytes (ledger-003), not a DELTA-less near-miss.
+            memo_text = _settlement_memo_text(state.run_id, state.day, deltas)
             record = SettlementRecord(
                 day=state.day,
                 location=location,
@@ -382,7 +395,7 @@ class BackpackManager:
                 deltas=deltas,
                 txids=[],
                 status="pending",
-                memo=f"TRAIL|RUN:{state.run_id}|DAY:{state.day}",
+                memo=_settlement_memo_text(state.run_id, state.day, deltas),
                 timestamp=datetime.now(UTC).isoformat(),
             )
             bp.pending_settlements.append(record)
@@ -452,6 +465,10 @@ class BackpackManager:
 
                 record.txids = txids
                 record.status = "settled"
+                # Match the on-chain memo bytes actually written above (ledger-003).
+                record.memo = _settlement_memo_text(
+                    state.run_id, record.day, record.deltas,
+                )
                 record.timestamp = datetime.now(UTC).isoformat()
                 bp.settlements.append(record)
 
@@ -660,6 +677,49 @@ class BackpackManager:
         parcel.accepted = False
         parcel.parcel_id = f"refused:{parcel.parcel_id}"
         return True
+
+    def fetch_onchain_memos(self, state: RunState) -> dict[str, str]:
+        """Read settlement memos back OFF the chain, keyed by txid (ledger-003).
+
+        The external-verifier half of the memo check: scans the issuer and
+        player accounts via AccountTx and hex-decodes each transaction's
+        ``MemoData`` so the proof driver can confirm the on-ledger memo matches
+        the expected header — independent of whatever the engine stored locally.
+
+        Returns ``{txid: decoded_memo_text}``. Empty on any error or when xrpl
+        is unavailable; the proof then reports memo integrity as unverified
+        rather than crashing.
+        """
+        bp = state.backpack
+        if not _HAS_XRPL or not bp.enabled or not bp.wallet_address:
+            return {}
+
+        memos: dict[str, str] = {}
+        accounts = [a for a in (bp.wallet_address, bp.issuer_address) if a]
+
+        try:
+            client = self._get_client()
+            for account in accounts:
+                resp = client.request(AccountTx(account=account, limit=200))
+                for tx_entry in resp.result.get("transactions", []):
+                    tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
+                    tx_hash = tx_entry.get("hash") or tx.get("hash", "")
+                    if not tx_hash or tx_hash in memos:
+                        continue
+                    tx_memos = tx.get("Memos", [])
+                    if not tx_memos:
+                        continue
+                    memo_data = tx_memos[0].get("Memo", {}).get("MemoData", "")
+                    try:
+                        decoded = _hex_decode(memo_data)
+                    except (ValueError, UnicodeDecodeError):
+                        continue
+                    memos[tx_hash] = decoded
+            return memos
+
+        except Exception as e:
+            log.warning("On-chain memo fetch failed: %s", e)
+            return {}
 
     def disable(self, state: RunState) -> None:
         """Disable the Ledger Backpack. Keep wallet for potential re-enable."""
