@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 from .backpack_models import (
@@ -118,6 +119,21 @@ def _build_parcel_memo(run_id: str, day: int, supply: str, amount: int) -> list:
     )]
 
 
+def _balance_to_int(balance: str) -> int:
+    """Parse an IOU balance string to an exact integer.
+
+    IOU balances are decimal strings; routing them through binary ``float``
+    risks precision loss before they feed ``reconcile()`` (ledger-004). Parse
+    with ``Decimal`` and require the fractional part to be zero — supplies are
+    integers only, so a non-integer on-ledger balance is itself a drift signal
+    and must not be silently truncated.
+    """
+    dec = Decimal(str(balance))
+    if dec != dec.to_integral_value():
+        raise ValueError(f"non-integer IOU balance: {balance!r}")
+    return int(dec)
+
+
 def _decode_parcel_memo(memo_hex: str) -> dict | None:
     """Decode a PARCEL memo from hex. Returns {supply, amount} or None."""
     try:
@@ -184,6 +200,20 @@ class BackpackManager:
             )
 
         bp = state.backpack
+
+        # Idempotent re-enable (ledger-002): if a wallet already exists, honor
+        # disable()'s "keep wallet for re-enable" contract — flip the flag back
+        # on in place instead of generating fresh faucet wallets and re-minting
+        # (which would orphan the old wallet's tokens while `settlements` still
+        # reference the defunct addresses). Only mint on a true first enable.
+        if bp.wallet_address and bp.issuer_secret:
+            bp.enabled = True
+            return EnableResult(
+                success=True,
+                message="Ledger Backpack re-enabled. Your existing pack is back online.",
+                wallet_address=bp.wallet_address,
+            )
+
         client = self._get_client()
 
         try:
@@ -563,7 +593,11 @@ class BackpackManager:
                 if not sender or sender == bp.wallet_address:
                     continue
 
-                tx_hash = tx.get("hash", tx_entry.get("hash", ""))
+                # tx-hash location varies by AccountTx api_version (ledger-007):
+                # api_version 2 puts `hash` on the wrapping entry alongside
+                # `tx_json`; the legacy shape nests it inside `tx`. Read the
+                # wrapper first, fall back to the inner object.
+                tx_hash = tx_entry.get("hash") or tx.get("hash", "")
                 if not tx_hash or tx_hash in known_txids:
                     continue
 
@@ -602,7 +636,15 @@ class BackpackManager:
     def accept_parcel(
         self, parcel: ParcelRecord, state: RunState, cap: int = 20,
     ) -> bool:
-        """Accept a parcel: apply contents to supplies, capped."""
+        """Accept a parcel: apply contents to supplies, capped.
+
+        Idempotent (ledger-005): a second accept is a no-op so a double-trigger
+        from any caller (the TUI path does not guard) cannot double the supplies
+        and break conservation. Mirrors refuse_parcel's `accepted` guard.
+        """
+        if parcel.accepted:
+            return False
+
         for key, amount in parcel.contents.items():
             capped_amount = min(amount, cap)
             current = state.supplies.get(key)
@@ -650,7 +692,13 @@ class BackpackManager:
                     if line.get("account") == bp.issuer_address:
                         currency = line.get("currency", "")
                         balance = line.get("balance", "0")
-                        balances[currency] = int(float(balance))
+                        # Integer/decimal-exact — no binary float (ledger-004).
+                        try:
+                            balances[currency] = _balance_to_int(balance)
+                        except (ValueError, InvalidOperation):
+                            log.warning(
+                                "Non-integer IOU balance for %s: %r", currency, balance,
+                            )
                 info["balances"] = balances
             except Exception:
                 info["balances"] = {}
