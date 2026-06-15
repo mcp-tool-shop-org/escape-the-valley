@@ -567,6 +567,134 @@ class TestEndScreen:
         asyncio.run(scenario())
 
 
+class TestPostcardCopy:
+    """FEAT-CLITUI-01: the end screen can export the postcard to a file and the
+    end screen surfaces the postcard + run diagnostics.
+    """
+
+    def _ended_app_with_receipts(self, tmp_path, monkeypatch, *, receipts=False):
+        from escape_the_valley.step_engine import compute_ending
+
+        monkeypatch.chdir(tmp_path)
+        state = create_new_run(seed=7)
+        state.game_over = True
+        state.victory = True
+        if receipts:
+            from escape_the_valley.backpack_models import SettlementRecord
+
+            state.backpack.enabled = True
+            state.backpack.wallet_address = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+            state.backpack.settlements.append(
+                SettlementRecord(
+                    day=2, location="Millford", status="settled",
+                    deltas={"food": -3}, txids=["DEADBEEF01234567"],
+                ),
+            )
+        state.ending = compute_ending(state)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        notes = []
+        app.notify = lambda msg, *a, **k: notes.append(msg)
+        app.show_end = True
+        # Populate the frame's end data so the copy action has postcard lines.
+        from escape_the_valley.adapter import populate_end_data
+
+        populate_end_data(app._frame, state)
+        return app, notes, state
+
+    def test_copy_writes_file_and_notifies_path(self, tmp_path, monkeypatch):
+        app, notes, state = self._ended_app_with_receipts(tmp_path, monkeypatch)
+        app.action_copy_postcard()
+
+        out_file = tmp_path / ".trail" / f"postcard-{state.run_id}.txt"
+        assert out_file.exists()
+        assert "TRAIL LEDGER" in out_file.read_text(encoding="utf-8")
+        assert any("Postcard saved to" in m for m in notes)
+
+    def test_copy_receipted_postcard(self, tmp_path, monkeypatch):
+        app, notes, state = self._ended_app_with_receipts(
+            tmp_path, monkeypatch, receipts=True,
+        )
+        assert app._frame.is_postcard is True
+        app.action_copy_postcard()
+        out_file = tmp_path / ".trail" / f"postcard-{state.run_id}.txt"
+        text = out_file.read_text(encoding="utf-8")
+        assert "RECEIPTS ON LEDGER" in text
+
+    def test_copy_noop_without_end_screen(self, tmp_path, monkeypatch):
+        app, notes, state = self._ended_app_with_receipts(tmp_path, monkeypatch)
+        app.show_end = False
+        app.action_copy_postcard()
+        # No end screen → no write, no notification.
+        trail_dir = tmp_path / ".trail"
+        written = list(trail_dir.glob("postcard-*.txt")) if trail_dir.exists() else []
+        assert written == []
+        assert notes == []
+
+    def test_copy_reports_write_failure(self, tmp_path, monkeypatch):
+        app, notes, state = self._ended_app_with_receipts(tmp_path, monkeypatch)
+
+        import escape_the_valley.cli as cli_mod
+
+        def _boom(*a, **k):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(cli_mod, "write_postcard_file", _boom)
+        app.action_copy_postcard()
+        assert any("Could not write postcard" in m for m in notes)
+
+    def test_end_screen_surfaces_postcard_and_stats(self, tmp_path, monkeypatch):
+        """The diagnostics (CLI `stats` data) and postcard appear on the screen."""
+        from escape_the_valley.tui_app import EndScreen
+
+        app, notes, state = self._ended_app_with_receipts(
+            tmp_path, monkeypatch, receipts=True,
+        )
+        widget = EndScreen()
+        captured = {}
+        widget.update = lambda txt: captured.setdefault("t", txt)
+        widget.update_from(app._frame)
+        text = captured["t"]
+        # Stats data the CLI computes is on the screen.
+        assert "The run" in text
+        assert f"seed {state.seed}" in text
+        assert "Journal" in text
+        # The receipted postcard heading + receipts line.
+        assert "Postcard (on-ledger)" in text
+        assert "RECEIPTS ON LEDGER" in text
+        # And the copy hint.
+        assert "Press C to copy" in text
+
+    def test_pilot_c_key_copies_postcard(self, tmp_path, monkeypatch):
+        """Live loop: pressing 'c' on the end screen writes the postcard file."""
+
+        async def scenario():
+            from escape_the_valley.step_engine import compute_ending
+
+            monkeypatch.chdir(tmp_path)
+            state = create_new_run(seed=7)
+            state.game_over = True
+            state.victory = True
+            state.ending = compute_ending(state)
+            engine = StepEngine(state, GMConfig(enabled=False))
+            app = LedgerTrailApp(engine=engine)
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app.show_end is True
+                await pilot.press("c")
+                await pilot.pause()
+            out_file = tmp_path / ".trail" / f"postcard-{state.run_id}.txt"
+            assert out_file.exists()
+            assert any("Postcard saved to" in m for m in seen)
+
+        asyncio.run(scenario())
+
+
 class TestVoiceRuntimeFailureConsumer:
     """gm-B-06 consumer: when the voice bridge self-disables on a runtime audio
     failure, the TUI must tell the player ONCE and stop claiming voice is on.

@@ -39,6 +39,41 @@ _CLASSIC_ADDR_RE = re.compile(
 )
 
 
+def _postcard_lines(state) -> list[str]:
+    """Build the end-of-run postcard lines (read-only, ledger domain).
+
+    FEAT-CLITUI-01: a run that used the Ledger Backpack (has settlements) gets
+    the XRPL-receipted postcard; otherwise the plain trail ledger. Both are pure
+    string builders in ledger.py — nothing here mutates state or hits a network.
+    """
+    from .ledger import build_trail_ledger, build_xrpl_postcard
+
+    if state.backpack.enabled and state.backpack.settlements:
+        return build_xrpl_postcard(state)
+    return build_trail_ledger(state)
+
+
+def write_postcard_file(state, lines: list[str] | None = None):
+    """Write the run's postcard to .trail/postcard-<run_id>.txt; return the path.
+
+    FEAT-CLITUI-01: the share/export path for the end-of-run postcard. Used by
+    both the `trail postcard --save` CLI command and the TUI's copy action, so
+    the file name + location are defined once. Plain UTF-8 text, no Rich markup,
+    so the file is shareable as-is. Creates the .trail directory if needed.
+    """
+    from pathlib import Path
+
+    if lines is None:
+        lines = _postcard_lines(state)
+
+    out_dir = Path(".trail")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    run_id = state.run_id or "run"
+    path = out_dir / f"postcard-{run_id}.txt"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
 def _is_valid_recipient(address: str) -> bool:
     """Validate an XRPL classic address without a network call.
 
@@ -530,6 +565,34 @@ def stats(
                 f"{c['connect_errors']} connect-err"
             )
         console.print()
+
+
+@app.command()
+def postcard(
+    save: bool = typer.Option(
+        False, "--save",
+        help="Also write the postcard to .trail/postcard-<run_id>.txt",
+    ),
+) -> None:
+    """Print the end-of-run postcard (trail ledger / XRPL receipts).
+
+    FEAT-CLITUI-01: the shareable retelling of a run. A run that used the Ledger
+    Backpack shows on-ledger receipts; otherwise the plain trail ledger. With
+    --save it is also written to a plain-text file you can hand to a friend.
+    """
+    state = load_game()
+    if state is None:
+        console.print("[dim]No saved game found.[/dim]")
+        raise typer.Exit(0)
+
+    lines = _postcard_lines(state)
+    for ln in lines:
+        console.print(ln)
+
+    if save:
+        path = write_postcard_file(state, lines)
+        console.print()
+        console.print(f"[green]Saved to {path}[/green]")
 
 
 # ── Ledger subcommands ──────────────────────────────────────────

@@ -943,6 +943,30 @@ class LedgerTrailApp(App):
         self._frame.epilogue = text
         self._render_all()
 
+    def action_copy_postcard(self) -> None:
+        """Export the end-of-run postcard to a file and tell the player the path.
+
+        FEAT-CLITUI-01: the share path. Writes .trail/postcard-<run_id>.txt as
+        plain UTF-8 (no Rich markup), the same file the `trail postcard --save`
+        CLI command writes, then notifies with the path so the player can hand
+        it to a friend. A write failure is reported rather than silently lost.
+        """
+        if not self._engine or not self.show_end:
+            return
+        if not self._frame.postcard_lines:
+            self.notify("No postcard to copy for this run.")
+            return
+        from .cli import write_postcard_file
+
+        try:
+            path = write_postcard_file(
+                self._engine.state, self._frame.postcard_lines,
+            )
+        except OSError as e:
+            self.notify(f"Could not write postcard: {e}")
+            return
+        self.notify(f"Postcard saved to {path}")
+
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.
 
@@ -1430,6 +1454,15 @@ class LedgerTrailApp(App):
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
         key = event.key
+
+        # FEAT-CLITUI-01: on the end screen, 'c' copies the postcard to a file.
+        # Handled first so it never collides with gameplay letters (the play
+        # surface is behind the end screen and its keys are irrelevant now).
+        if self.show_end:
+            if key == "c":
+                self.action_copy_postcard()
+                event.prevent_default()
+                return
 
         # cli-tui-B-02: while a step/ledger worker is running, swallow the
         # on_key-routed gameplay/overlay letters so queued keypresses can't

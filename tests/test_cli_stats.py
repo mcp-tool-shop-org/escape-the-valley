@@ -510,6 +510,82 @@ class TestNetworkHints:
         assert "hint:" not in result.output
 
 
+class TestPostcardCommand:
+    """FEAT-CLITUI-01: `trail postcard` prints the retelling and can save it."""
+
+    def test_postcard_no_save_prints_ledger(self, monkeypatch):
+        state = create_new_run(seed=5)
+        state.game_over = True
+        state.victory = True
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        result = runner.invoke(app, ["postcard"])
+        assert result.exit_code == 0
+        # The plain trail ledger header is present (no backpack → not a postcard).
+        assert "TRAIL LEDGER" in result.output
+
+    def test_postcard_no_save_does_not_write_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        state = create_new_run(seed=5)
+        state.game_over = True
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        runner.invoke(app, ["postcard"])
+        assert not (tmp_path / ".trail").exists() or not list(
+            (tmp_path / ".trail").glob("postcard-*.txt")
+        )
+
+    def test_postcard_save_writes_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        state = create_new_run(seed=5)
+        state.game_over = True
+        state.victory = True
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        result = runner.invoke(app, ["postcard", "--save"])
+        assert result.exit_code == 0
+        out_file = tmp_path / ".trail" / f"postcard-{state.run_id}.txt"
+        assert out_file.exists()
+        assert "TRAIL LEDGER" in out_file.read_text(encoding="utf-8")
+        assert "Saved to" in result.output
+
+    def test_postcard_with_receipts_uses_xrpl_variant(self, tmp_path, monkeypatch):
+        from escape_the_valley.backpack_models import SettlementRecord
+
+        monkeypatch.chdir(tmp_path)
+        state = _enabled_state()
+        state.game_over = True
+        state.victory = True
+        state.backpack.settlements.append(
+            SettlementRecord(
+                day=3, location="Millford", status="settled",
+                deltas={"food": -4}, txids=["ABCDEF0123456789"],
+            ),
+        )
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        result = runner.invoke(app, ["postcard", "--save"])
+        assert result.exit_code == 0
+        # The receipted postcard variant names the on-ledger receipts.
+        assert "RECEIPTS ON LEDGER" in result.output
+
+    def test_postcard_no_save_no_game(self, monkeypatch):
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: None)
+        result = runner.invoke(app, ["postcard"])
+        assert result.exit_code == 0
+        assert "No saved game" in result.output
+
+    def test_write_postcard_file_helper(self, tmp_path, monkeypatch):
+        from escape_the_valley.cli import write_postcard_file
+
+        monkeypatch.chdir(tmp_path)
+        state = create_new_run(seed=5)
+        state.game_over = True
+        path = write_postcard_file(state)
+        assert path.exists()
+        assert path.name == f"postcard-{state.run_id}.txt"
+        # Trailing newline, plain text, no Rich markup tags.
+        text = path.read_text(encoding="utf-8")
+        assert text.endswith("\n")
+        assert "[/" not in text
+
+
 class _FakeResp:
     def __init__(self, status_code=200, models=None):
         self.status_code = status_code
