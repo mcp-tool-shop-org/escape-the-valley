@@ -73,7 +73,12 @@ jobs:
         run: |
           REF_NAME="${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}"
           VERSION=${REF_NAME#v}
-          uv run pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
+          # --no-sync: build from the base env created by `uv pip install .`
+          # above; do NOT re-resolve the project (which would drag in optional
+          # extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and
+          # bloat the binary). The binary ships the base game only; voice is
+          # pip-install-only via `escape-the-valley[voice]`.
+          uv run --no-sync pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
             --collect-submodules rich \
             --collect-submodules textual \
             --collect-data textual \

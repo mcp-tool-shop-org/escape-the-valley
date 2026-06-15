@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "escape-the-valley"
-version = "1.1.0"
+version = "1.1.1"
 description = "Oregon Trail-style survival game powered by Ollama GM with XRPL ledger-backed inventory"
 readme = "README.md"
 license = "MIT"
@@ -39,7 +39,9 @@ dev = [
     "ruff>=0.4",
 ]
 voice = [
-    "voice-soundboard>=2.5",
+    # [kokoro] pulls the Kokoro ONNX backend so the configured voices
+    # (bm_george / bm_lewis / am_fenrir) synthesize out of the box.
+    "voice-soundboard[kokoro]>=2.5",
 ]
 xrpl = [
     "xrpl-py>=3.0",
