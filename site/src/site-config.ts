@@ -62,7 +62,7 @@ export const config: SiteConfig = {
       cards: [
         {
           title: 'Install',
-          code: '# Install the game\npip install escape-the-valley\n\n# Optional: XRPL ledger backpack\npip install "escape-the-valley[xrpl]"\n\n# Development (editable + test/lint tooling)\npip install -e ".[dev]"',
+          code: '# Install the game\npip install escape-the-valley\n\n# Optional: XRPL ledger backpack\npip install "escape-the-valley[xrpl]"\n\n# Development (editable + test/lint tooling)\npip install -e ".[dev,xrpl]"',
         },
         {
           title: 'Play',
