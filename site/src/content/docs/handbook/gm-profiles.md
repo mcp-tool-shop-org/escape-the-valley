@@ -29,7 +29,7 @@ Fireside is the default profile. It tells the story like someone recounting thei
 
 **Tone:** Uncanny and liminal, but grounded in consequences.
 
-The Lantern-Bearer narrates the same events but frames them through a stranger lens. The valley feels alive. Coincidences feel deliberate. The weird folklore percentage is higher (~15% vs Fireside's ~5%). Still grounded — no magic, no supernatural mechanics — but the tone is distinctly eerie.
+The Lantern-Bearer narrates the same events but frames them through a stranger lens. The valley feels alive. Coincidences feel deliberate. Once the uncanny is unlocked (weirdness >= 2, see below), it leans into it harder than Fireside — but a Lantern-Bearer run at weirdness 0-1 is still plain grounded survival. The profile sets the voice; the weirdness gate decides whether the uncanny is on the table at all. Still grounded either way — no magic, no supernatural mechanics — but the tone is distinctly eerie when the gate is open.
 
 **Best for:** Experienced players who want a different feel. Players who enjoy atmospheric tension.
 
@@ -50,14 +50,22 @@ trail tui --seed 42 --gm-profile lantern
 
 ## Weirdness level
 
-The `--weirdness` flag (0-3) controls how much folklore and uncanny content the GM injects. Higher values unlock more strange details. The default is 2. Each run starts with 2 uncanny tokens that the GM can spend on strong uncanny moments.
+The `--weirdness` flag (0-3) sets the band the GM is allowed to play in. The default is 2. The uncanny is **gated** — it is not a smooth gradient that turns on a little at every level:
+
+| Weirdness | Band | What the GM may do |
+|-----------|------|--------------------|
+| **0-1** | Grounded survival | Folklore stays rumor, omen, or coincidence. **No uncanny-token spend** — the run is plain survival. |
+| **2** | Uncanny enabled | The GM may inject an uncanny *hint* (default). Spends an uncanny token. |
+| **3** | Uncanny strong | The GM may inject a *strong* uncanny detail. |
+
+Each run starts with **2 uncanny tokens**. A token is only ever spent at weirdness 2 or higher and while tokens remain; below the level-2 gate, no token is spent no matter the profile. So a Lantern-Bearer run at weirdness 1 is still fully grounded — the profile changes the voice, but the level-2 gate decides whether the uncanny is on the table at all.
 
 ```bash
-# Maximum folklore (Lantern-Bearer recommended)
-trail new --seed 42 --gm-profile lantern --weirdness 3
+# Maximum uncanny (Lantern-Bearer recommended)
+trail tui --seed 42 --gm-profile lantern --weirdness 3
 
-# Minimal folklore
-trail new --seed 42 --weirdness 0
+# Grounded survival, no uncanny-token spend
+trail tui --seed 42 --weirdness 0
 ```
 
 ## Choosing a model
