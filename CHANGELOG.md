@@ -4,6 +4,20 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-15
+
+### Fixed
+
+- **Voice extra now installs.** The `voice` extra pinned `voice-soundboard>=2.5`,
+  which was never published to PyPI — so `pip install "escape-the-valley[voice]"`
+  (and the binary build, which resolved the extra) failed. `voice-soundboard`
+  2.5.2 is now on PyPI; the extra pins `voice-soundboard[kokoro]>=2.5` so the
+  configured Kokoro voices synthesize out of the box.
+- **Binary build no longer resolves optional extras.** `release-binaries.yml`
+  now uses `uv run --no-sync`, so the PyInstaller binary builds from the base
+  game only — voice's heavy backends (onnxruntime/kokoro) never bloat it. Voice
+  stays pip-install-only via `escape-the-valley[voice]`.
+
 ## [1.1.0] - 2026-06-15
 
 ### Added
