@@ -150,3 +150,83 @@ def test_overlay_css_selectors_apply():
             assert app.query_one("#send_parcel").display is False
 
     asyncio.run(scenario())
+
+
+# ── _in_flight guards the synchronous overlay saves ─────────────────
+
+
+class TestOverlaySavesRespectInFlight:
+    """Stage-C re-verify: the overlay actions that _save() synchronously must
+    drop a dispatch while a worker is in flight, exactly like the gameplay
+    step/choose handlers already do. Without the guard, a disable/accept/
+    refuse/dismiss could fire mid-worker and persist a torn snapshot.
+
+    Driven via direct action calls (no live loop), matching the synchronous
+    fallback the unit suite already uses. We spy on _save: with _in_flight
+    True, none of the four actions may reach it.
+    """
+
+    def _guarded_app(self):
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app._sync_frame = lambda: None
+        app._close_all_overlays = lambda: None
+        app.notify = lambda *a, **k: None
+
+        saves = {"n": 0}
+        app._save = lambda: saves.__setitem__("n", saves["n"] + 1)
+
+        # Give the parcel actions a real parcel so the ONLY thing that can
+        # block them is the _in_flight guard, not the missing-parcel guard.
+        parcel = ParcelRecord(
+            parcel_id="rSender:FOD:5",
+            sender="rSender",
+            contents={"food": 5},
+            accepted=False,
+            day_received=1,
+        )
+        app._engine.state.backpack.parcels.append(parcel)
+        app._current_parcel = parcel
+        return app, saves
+
+    def test_disable_dropped_in_flight(self):
+        app, saves = self._guarded_app()
+        app._engine.state.backpack.enabled = True
+        app._in_flight = True
+        app.action_ledger_disable()
+        assert saves["n"] == 0
+        # State untouched: the disable never ran.
+        assert app._engine.state.backpack.enabled is True
+
+    def test_accept_parcel_dropped_in_flight(self):
+        app, saves = self._guarded_app()
+        app._in_flight = True
+        app.action_accept_parcel()
+        assert saves["n"] == 0
+        assert app._current_parcel.accepted is False
+
+    def test_refuse_parcel_dropped_in_flight(self):
+        app, saves = self._guarded_app()
+        app._in_flight = True
+        app.action_refuse_parcel()
+        assert saves["n"] == 0
+        assert not app._current_parcel.parcel_id.startswith("refused:")
+
+    def test_nudge_dismiss_dropped_in_flight(self):
+        app, saves = self._guarded_app()
+        app._in_flight = True
+        app.action_nudge_dismiss()
+        assert saves["n"] == 0
+        assert app._engine.state.backpack.nudge_dismissed is False
+
+    def test_guards_release_when_not_in_flight(self):
+        """Sanity: with _in_flight False the same actions DO reach _save."""
+        app, saves = self._guarded_app()
+        app._engine.state.backpack.enabled = True
+        app._in_flight = False
+        app.action_ledger_disable()
+        assert saves["n"] == 1

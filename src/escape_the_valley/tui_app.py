@@ -695,7 +695,11 @@ class LedgerTrailApp(App):
 
     def action_ledger_disable(self) -> None:
         """Disable the backpack."""
-        if not self._engine:
+        # Serialize against any in-flight worker: disable mutates state and
+        # _save()s synchronously, so racing it with a step/ledger worker could
+        # persist a torn snapshot. The _in_flight flag is the cross-action
+        # guard (see the worker-invariant note above).
+        if not self._engine or self._in_flight:
             return
 
         from .backpack import BackpackManager
@@ -974,7 +978,13 @@ class LedgerTrailApp(App):
 
     def action_accept_parcel(self) -> None:
         """Accept the currently shown parcel."""
-        if not self._engine or not hasattr(self, "_current_parcel"):
+        # Serialize against any in-flight worker (accept mutates state +
+        # _save()s synchronously) — see the worker-invariant note above.
+        if (
+            not self._engine
+            or self._in_flight
+            or not hasattr(self, "_current_parcel")
+        ):
             return
 
         from .backpack import BackpackManager
@@ -993,7 +1003,13 @@ class LedgerTrailApp(App):
 
     def action_refuse_parcel(self) -> None:
         """Refuse the currently shown parcel."""
-        if not self._engine or not hasattr(self, "_current_parcel"):
+        # Serialize against any in-flight worker (refuse mutates state +
+        # _save()s synchronously) — see the worker-invariant note above.
+        if (
+            not self._engine
+            or self._in_flight
+            or not hasattr(self, "_current_parcel")
+        ):
             return
 
         from .backpack import BackpackManager
@@ -1014,6 +1030,10 @@ class LedgerTrailApp(App):
 
     def action_nudge_dismiss(self) -> None:
         """Dismiss the nudge — never show again."""
+        # Serialize against any in-flight worker: dismiss flips a flag and
+        # _save()s synchronously — see the worker-invariant note above.
+        if self._in_flight:
+            return
         if self._engine:
             self._engine.state.backpack.nudge_dismissed = True
             self._save()
