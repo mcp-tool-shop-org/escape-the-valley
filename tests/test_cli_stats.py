@@ -119,12 +119,30 @@ class TestTuiOptions:
     command errors live with `No such option`.
     """
 
-    def test_tui_help_lists_new_options(self):
-        """--help shows the documented options (no `No such option`)."""
+    def test_tui_help_lists_new_options(self, monkeypatch):
+        """--help shows the documented options (no `No such option`).
+
+        Rich renders help in a width-sensitive panel: under a narrow no-TTY
+        width (as on CI) it wraps long option lines, so a naive substring check
+        on the raw output is flaky and platform-dependent. Pin a wide Rich
+        console so the option names never wrap, then strip ANSI styling before
+        asserting — deterministic across terminal width, platform, and CI.
+        """
+        import re
+
+        from rich.console import Console
+        from typer import rich_utils
+
+        monkeypatch.setattr(
+            rich_utils,
+            "_get_rich_console",
+            lambda stderr=False: Console(width=200, force_terminal=False),
+        )
         result = runner.invoke(app, ["tui", "--help"])
         assert result.exit_code == 0
-        assert "--gm-profile" in result.output
-        assert "--weirdness" in result.output
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+        assert "--gm-profile" in clean
+        assert "--weirdness" in clean
 
     def test_tui_params_exist_on_command(self):
         """The tui command registers gm-profile + weirdness params."""
