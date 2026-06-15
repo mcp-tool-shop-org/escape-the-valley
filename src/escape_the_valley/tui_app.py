@@ -291,6 +291,9 @@ class LedgerTrailApp(App):
         self._voice_config = voice_config
         self._voice_bridge = None
         self._voice_enabled = False
+        # gm-B-06 consumer: latch so a runtime voice failure is announced to
+        # the player exactly once, not on every subsequent step/tick.
+        self._voice_failure_notified = False
         # cli-tui-B-09: True when this app was launched via `--continue`, so
         # on_mount can confirm which run + day the player picked back up.
         self._resumed = resumed
@@ -460,6 +463,37 @@ class LedgerTrailApp(App):
             )
             for event in events:
                 self._voice_bridge.enqueue(event)
+
+        # gm-B-06 consumer: voice synth/playback runs on the bridge's own
+        # worker thread, so an infra failure (no audio player, engine raised)
+        # surfaces asynchronously — often a tick or two after the enqueue that
+        # triggered it. Re-check the bridge status every step so the player is
+        # told the storyteller went quiet, instead of a silent stale ON state.
+        self._check_voice_health()
+
+    def _check_voice_health(self) -> None:
+        """If the voice bridge failed at runtime, notify once and disable.
+
+        gm-B-06 consumer for VoiceBridge.status(): when voice was on for the
+        player but the bridge self-disabled on a runtime audio failure
+        (status()['available'] is False with a last_error), surface the reason
+        a single time and flip the UI's _voice_enabled False so the footer /
+        toggle state stop claiming voice is on.
+        """
+        bridge = self._voice_bridge
+        if bridge is None or self._voice_failure_notified:
+            return
+        # Only act on a genuine runtime failure: the bridge reports a reason
+        # and is no longer available. (A bridge that was simply never started,
+        # or toggled off cleanly, has no last_error.)
+        status = bridge.status()
+        if status["available"] or not status["last_error"]:
+            return
+        self._voice_failure_notified = True
+        self._voice_enabled = False
+        self.notify(f"Voice unavailable - {status['last_error']}")
+        # Reflect the quieted state in the event bar / footer immediately.
+        self._render_all()
 
     def on_unmount(self) -> None:
         """Clean shutdown of voice worker."""

@@ -230,3 +230,89 @@ class TestOverlaySavesRespectInFlight:
         app._in_flight = False
         app.action_ledger_disable()
         assert saves["n"] == 1
+
+
+# ── gm-B-06 consumer: TUI consumes a runtime voice failure ──────────
+
+
+class _FakeVoiceBridge:
+    """Stand-in for VoiceBridge exposing just the status() contract the TUI
+    consumer reads (gm-B-06): available, last_error.
+    """
+
+    def __init__(self, *, available: bool, last_error: str | None):
+        self._available = available
+        self._last_error = last_error
+
+    def status(self) -> dict:
+        return {
+            "installed": True,
+            "available": self._available,
+            "enabled": True,
+            "last_error": self._last_error,
+        }
+
+    # _after_step also calls enqueue() when voice is enabled.
+    def enqueue(self, event) -> None:
+        pass
+
+
+class TestVoiceRuntimeFailureConsumer:
+    """gm-B-06 consumer: when the voice bridge self-disables on a runtime audio
+    failure, the TUI must tell the player ONCE and stop claiming voice is on.
+
+    voice.py fully implements the contract (status()['available'] flips False
+    with a last_error); before this fix the TUI never read it, so _voice_enabled
+    stayed stale True and the player heard silence with no explanation.
+    """
+
+    def _voice_app(self, bridge):
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine)
+        app._render_all = lambda: None
+        app._sync_frame = lambda: None
+        notes = []
+        app.notify = lambda msg, *a, **k: notes.append(msg)
+        app._voice_bridge = bridge
+        app._voice_enabled = True
+        return app, notes
+
+    def test_runtime_failure_notifies_once_and_disables(self):
+        bridge = _FakeVoiceBridge(
+            available=False, last_error="no audio player found",
+        )
+        app, notes = self._voice_app(bridge)
+
+        app._check_voice_health()
+        assert app._voice_enabled is False
+        assert len(notes) == 1
+        assert "Voice unavailable" in notes[0]
+        assert "no audio player found" in notes[0]
+
+        # Second tick: already notified, no repeat nag.
+        app._check_voice_health()
+        assert len(notes) == 1
+
+    def test_healthy_bridge_is_left_alone(self):
+        bridge = _FakeVoiceBridge(available=True, last_error=None)
+        app, notes = self._voice_app(bridge)
+        app._check_voice_health()
+        assert app._voice_enabled is True
+        assert notes == []
+
+    def test_after_step_invokes_the_consumer(self):
+        """Lock the wiring: a normal _after_step picks up the failure.
+
+        This is the real path — voice fails asynchronously on the bridge worker
+        and the next engine step's _after_step is the tick that catches it.
+        """
+        bridge = _FakeVoiceBridge(
+            available=False, last_error="voice playback failed: boom",
+        )
+        app, notes = self._voice_app(bridge)
+        # Real frame so _after_step's narration extraction has warnings to read.
+        app._sync_frame = lambda: None
+        app._after_step()
+        assert app._voice_enabled is False
+        assert any("Voice unavailable" in m for m in notes)
