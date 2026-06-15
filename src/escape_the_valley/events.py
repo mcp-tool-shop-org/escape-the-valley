@@ -1908,9 +1908,15 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
     state.supplies.apply_delta(outcome.supplies_delta)
 
     if outcome.health_delta != 0:
+        # Local import avoids a module-load cycle (physics imports from events).
+        from .physics import _proximate_death_cause
         for member in state.party.members:
             if member.is_alive():
                 member.health = max(0, min(100, member.health + outcome.health_delta))
+                # ENG-A-07: attribute event-caused deaths so they don't fall
+                # through to the generic "The trail" in determine_cause_of_death.
+                if member.health <= 0 and not member.death_cause:
+                    member.death_cause = _proximate_death_cause(member, state)
 
     if outcome.wagon_delta != 0:
         state.wagon.condition = max(0, min(100, state.wagon.condition + outcome.wagon_delta))
