@@ -780,6 +780,62 @@ class TestStreamingNarration:
         assert result.narration == narration
         assert "".join(seen) == narration
 
+    def test_midstream_readerror_buckets_transport_and_returns_none(
+        self, monkeypatch,
+    ):
+        # gm-feat-01b — a transport drop AFTER a 200 (httpx.ReadError raised
+        # while consuming iter_lines) must be bucketed like an open-time
+        # failure: connect_errors increments, and the scene still resolves to
+        # None (fallback-never-bricks). Before the fix it fell through the broad
+        # 'except Exception' and incremented no counter, undercounting drops.
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+
+        class _DroppingStream:
+            status_code = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_a):
+                return False
+
+            def iter_lines(self):
+                # Deliver one good fragment, then drop mid-stream.
+                yield json.dumps({"response": '{"narration":"The ford '})
+                raise httpx.ReadError("connection reset mid-stream")
+
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _DroppingStream()
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        # post must not be touched on the streaming path.
+        monkeypatch.setattr(
+            client._client, "post",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("streaming path must not call post")
+            ),
+        )
+
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        # Resolves to None — the run uses its deterministic fallback text.
+        assert result is None
+        # The mid-stream drop is bucketed as a transport failure, not lost.
+        assert client.stats["connect_errors"] == 1
+        assert client.stats["timeouts"] == 0
+        # A ReadError is a transport drop, not a JSON/tone rejection.
+        assert client.stats["json_rejects"] == 0
+        assert client.stats["tone_rejects"] == 0
+        # The first transport drop returns immediately (like ConnectError);
+        # it does not burn the whole retry budget re-failing.
+        assert calls["n"] == 1
+
 
 def _ending(
     tier: str = "triumphant",

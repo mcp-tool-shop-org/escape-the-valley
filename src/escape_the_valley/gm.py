@@ -477,7 +477,11 @@ class GMClient:
                     logger.info("Epilogue tone repaired locally; accepting")
                 self.stats["successes"] += 1
                 return repaired
-            except (httpx.ConnectError, httpx.TimeoutException) as e:
+            except httpx.HTTPError as e:
+                # gm-feat-01b — see _request_scene: catch the HTTPError base so
+                # a mid-stream drop (ReadError/RemoteProtocolError raised inside
+                # iter_lines after a 200) is bucketed into the transport counter
+                # instead of slipping past uncounted into the broad except.
                 self._count_transport_error(e)
                 return None
             except Exception as e:  # noqa: BLE001
@@ -593,7 +597,14 @@ class GMClient:
                 self.stats["json_rejects"] += 1
                 logger.warning("Invalid scene JSON (attempt %d)", attempt + 1)
 
-            except (httpx.ConnectError, httpx.TimeoutException) as e:
+            except httpx.HTTPError as e:
+                # gm-feat-01b — a transport failure at OPEN time (ConnectError/
+                # TimeoutException) AND a mid-stream drop after a 200 (ReadError/
+                # RemoteProtocolError/etc., raised inside iter_lines) are all
+                # httpx.HTTPError. Bucketing them here means a mid-stream drop
+                # increments connect_errors/timeouts like an open-time failure
+                # instead of falling through the broad except below uncounted —
+                # so the 'stats' reliability signal no longer undercounts drops.
                 self._count_transport_error(e)
                 logger.warning("GM connection error: %s", e)
                 return None
@@ -644,7 +655,11 @@ class GMClient:
                     "Invalid outcome JSON (attempt %d)", _attempt + 1
                 )
 
-            except (httpx.ConnectError, httpx.TimeoutException) as e:
+            except httpx.HTTPError as e:
+                # gm-feat-01b — see _request_scene: catch the HTTPError base so
+                # a mid-stream drop (ReadError/RemoteProtocolError raised inside
+                # iter_lines after a 200) is bucketed into the transport counter
+                # instead of slipping past uncounted into the broad except.
                 self._count_transport_error(e)
                 return None
             except Exception as e:
