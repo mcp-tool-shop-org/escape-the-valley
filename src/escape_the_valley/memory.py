@@ -1,6 +1,11 @@
 """Memory system — store, pressures, themes, retrieval, and GM brief builder.
 
-Pure functions operating on RunState. No side effects, no I/O.
+Operates on RunState with no I/O. Not side-effect free: store operations
+(`add_card`/`drop_lowest`) mutate `state.memory_cards`, and retrieval
+(`retrieve_memories`, reached via `build_gm_brief`) updates each returned
+card's `day_last_seen`/`cooldown_until` bookkeeping. Pure helpers
+(`compute_pressures`, `compute_themes`, `_compute_weirdness`,
+`format_brief_for_prompt`) only read state.
 """
 
 from __future__ import annotations
@@ -269,7 +274,11 @@ class GMBrief:
 
 
 def build_gm_brief(state: RunState) -> GMBrief:
-    """Pure function: compute the full GM brief from state."""
+    """Compute the full GM brief from state.
+
+    Not pure: `retrieve_memories` marks the returned callback cards as
+    retrieved, updating their `day_last_seen`/`cooldown_until` on `state`.
+    """
     pressures = compute_pressures(state)
     themes = compute_themes(state)
     callbacks = retrieve_memories(state, max_results=6)
@@ -358,12 +367,18 @@ def _build_situation(state: RunState, pressures: list[str]) -> str:
 
 
 def _compute_weirdness(state: RunState) -> str:
-    """Determine how much weird/folklore the GM may inject."""
+    """Determine how much weird/folklore the GM may inject.
+
+    Per Director decision D2, the uncanny is gated at weirdness_level >= 2:
+    below that band the run stays grounded survival only. The GM is told it
+    may inject an uncanny hint only at level >= 2 (with tokens remaining),
+    and a strong uncanny detail at level >= 3.
+    """
     if state.uncanny_tokens <= 0:
         return "none"
     if state.weirdness_level >= 3:
         return "strong"
-    if state.weirdness_level >= 1:
+    if state.weirdness_level >= 2:
         return "hint"
     return "none"
 
