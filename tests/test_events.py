@@ -223,3 +223,50 @@ class TestEventResolution:
             choice_id = event.fallback_choices[0].choice_id
             outcome = resolve_event(state, event, choice_id, rng)
             assert outcome is not None
+
+
+class TestAnimalsHealthOutcome:
+    """ENG-A-03: animals_health deltas affect the wagon team, not party health."""
+
+    def test_apply_outcome_changes_wagon_animals_not_party(self):
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        state.wagon.animals_health = 80
+        party_health_before = [m.health for m in state.party.members]
+
+        apply_outcome(state, EventOutcome(animals_health_delta=-25))
+
+        assert state.wagon.animals_health == 55
+        # Party member health is untouched.
+        assert [m.health for m in state.party.members] == party_health_before
+
+    def test_animals_health_clamped(self):
+        from escape_the_valley.events import EventOutcome, apply_outcome
+
+        state = create_new_run(seed=42)
+        state.wagon.animals_health = 10
+        apply_outcome(state, EventOutcome(animals_health_delta=-50))
+        assert state.wagon.animals_health == 0  # clamped low
+
+        state.wagon.animals_health = 90
+        apply_outcome(state, EventOutcome(animals_health_delta=50))
+        assert state.wagon.animals_health == 100  # clamped high
+
+    def test_resolve_carries_animals_health_from_template(self):
+        from escape_the_valley.events import (
+            EventOutcome,
+            EventSkeleton,
+            resolve_event,
+        )
+
+        state = create_new_run(seed=42)
+        event = EventSkeleton(
+            event_id="test_animals",
+            title="Test",
+            category=EventCategory.SURVIVAL,
+            outcome_templates={"A": EventOutcome(animals_health_delta=-12)},
+        )
+        rng = SeededRNG(42)
+        outcome = resolve_event(state, event, "A", rng)
+        assert outcome.animals_health_delta == -12

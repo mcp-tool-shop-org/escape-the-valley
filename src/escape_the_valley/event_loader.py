@@ -48,6 +48,7 @@ def _convert_profile(profile: dict) -> EventOutcome:
     supplies: dict[str, int] = {}
     health = 0
     wagon = 0
+    animals_health = 0
     morale = 0
     time_cost = 0
     distance = 0
@@ -60,7 +61,8 @@ def _convert_profile(profile: dict) -> EventOutcome:
         elif key == "morale":
             morale = int(val)
         elif key == "animals_health":
-            health = int(val)
+            # ENG-A-03: this is the wagon's draft team, not party health.
+            animals_health = int(val)
         elif key == "wagon_condition":
             wagon = int(val)
         else:
@@ -72,6 +74,7 @@ def _convert_profile(profile: dict) -> EventOutcome:
         supplies_delta=supplies,
         health_delta=health,
         wagon_delta=wagon,
+        animals_health_delta=animals_health,
         morale_delta=morale,
         time_cost=time_cost,
         distance_delta=distance,

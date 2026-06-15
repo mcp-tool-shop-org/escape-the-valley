@@ -36,6 +36,7 @@ class EventOutcome:
     supplies_delta: dict[str, int] = field(default_factory=dict)
     health_delta: int = 0
     wagon_delta: int = 0
+    animals_health_delta: int = 0  # ENG-A-03: draft-animal health (the wagon team)
     morale_delta: int = 0
     time_cost: int = 0  # extra hours/half-days
     distance_delta: int = 0
@@ -1874,6 +1875,7 @@ def resolve_event(
         supplies_delta=dict(template.supplies_delta),
         health_delta=template.health_delta,
         wagon_delta=template.wagon_delta,
+        animals_health_delta=template.animals_health_delta,
         morale_delta=template.morale_delta,
         time_cost=template.time_cost,
         distance_delta=template.distance_delta,
@@ -1902,6 +1904,13 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
 
     if outcome.wagon_delta != 0:
         state.wagon.condition = max(0, min(100, state.wagon.condition + outcome.wagon_delta))
+
+    # ENG-A-03: animal-health deltas affect the wagon's draft team (which slows
+    # travel in physics.compute_travel_distance), NOT party member health.
+    if outcome.animals_health_delta != 0:
+        state.wagon.animals_health = max(
+            0, min(100, state.wagon.animals_health + outcome.animals_health_delta)
+        )
 
     if outcome.morale_delta != 0:
         state.party.morale = max(0, min(100, state.party.morale + outcome.morale_delta))
