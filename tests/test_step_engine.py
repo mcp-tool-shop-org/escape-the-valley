@@ -489,3 +489,92 @@ def test_time_cost_does_not_advance_clock_on_event():
 
     assert engine.state.day == day_before
     assert engine.state.time_of_day == tod_before
+
+
+# ── ledger-006: settlement failure must never silently drop the delta ──
+
+
+class _RaisingManager:
+    """Stand-in BackpackManager whose settle() raises before enqueuing."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def settle(self, state, location):
+        raise RuntimeError("ledger unreachable")
+
+    def close(self):
+        pass
+
+
+class _DummyNode:
+    name = "Millford"
+
+
+def test_settlement_failure_enqueues_pending_record(monkeypatch, caplog):
+    """If settle() raises, _settle_checkpoint must log a warning AND enqueue a
+    pending SettlementRecord so the delta is retryable, never silently lost."""
+    import logging
+
+    import escape_the_valley.backpack as backpack_mod
+
+    engine = _make_engine(seed=42)
+    bp = engine.state.backpack
+    bp.enabled = True
+    # Drift the supplies away from the (empty) last-settled snapshot so there is
+    # a real, non-empty delta to lose.
+    bp.last_settled_supplies = {}
+    engine.state.supplies.set("food", 33)
+
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _RaisingManager)
+
+    assert bp.pending_settlements == []
+    with caplog.at_level(logging.WARNING):
+        engine._settle_checkpoint(_DummyNode())
+
+    # A warning was logged (not swallowed silently).
+    assert any("settlement" in r.message.lower() for r in caplog.records)
+    # A pending record now carries the unsettled delta.
+    assert len(bp.pending_settlements) == 1
+    rec = bp.pending_settlements[0]
+    assert rec.status == "pending"
+    assert rec.deltas.get("food") == 33
+    assert rec.location == "Millford"
+
+
+def test_settlement_failure_no_pending_when_no_delta(monkeypatch):
+    """If there is no unsettled delta, a failed settle() should not invent an
+    empty pending record."""
+    import escape_the_valley.backpack as backpack_mod
+
+    engine = _make_engine(seed=42)
+    bp = engine.state.backpack
+    bp.enabled = True
+    # Snapshot equals current supplies → zero delta.
+    bp.last_settled_supplies = {
+        k: engine.state.supplies.get(k)
+        for k in ("food", "water", "meds", "ammo", "parts")
+    }
+
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _RaisingManager)
+    engine._settle_checkpoint(_DummyNode())
+    assert bp.pending_settlements == []
+
+
+def test_parcel_check_failure_logs_and_continues(monkeypatch, caplog):
+    """A raising check_parcels() must log a warning and not crash the step."""
+    import logging
+
+    import escape_the_valley.backpack as backpack_mod
+
+    class _RaisingParcelManager(_RaisingManager):
+        def check_parcels(self, state):
+            raise RuntimeError("ledger unreachable")
+
+    engine = _make_engine(seed=42)
+    engine.state.backpack.enabled = True
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _RaisingParcelManager)
+
+    with caplog.at_level(logging.WARNING):
+        engine._check_parcels(_DummyNode())  # must not raise
+    assert any("parcel" in r.message.lower() for r in caplog.records)
