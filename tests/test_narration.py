@@ -42,6 +42,30 @@ class TestSanitize:
         text = "The wagon creaks forward."
         assert _sanitize(text) == text
 
+    def test_domain_word_token_survives(self):
+        # "token" is a core domain word (uncanny tokens) — prose must survive.
+        text = "The last token is spent."
+        result = _sanitize(text)
+        assert "token" in result
+        assert "The last token is spent" in result
+
+    def test_domain_word_seed_survives(self):
+        text = "A river runs through the seed of doubt."
+        result = _sanitize(text)
+        assert "seed of doubt" in result
+
+    def test_xrpl_seed_redacted(self):
+        seed = "sn3nX5JD6thLFm5ujXz5gW7m8z1Qq"
+        text = f"The courier left {seed} on the table."
+        result = _sanitize(text)
+        assert seed not in result
+
+    def test_assignment_secret_redacted(self):
+        text = "Leaked wallet_secret=hunter2 in the log."
+        result = _sanitize(text)
+        assert "hunter2" not in result
+        assert "wallet_secret" not in result
+
 
 class TestCondense:
     def test_title_plus_two_sentences(self):
