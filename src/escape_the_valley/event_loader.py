@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from .events import (
@@ -11,6 +12,9 @@ from .events import (
     EventSkeleton,
     FolkloreType,
 )
+from .resources import RESOURCE_CATALOG
+
+log = logging.getLogger(__name__)
 
 _DATA_DIR = Path(__file__).parent / "data"
 
@@ -21,6 +25,9 @@ _META_KEYS = {"time_days", "distance", "morale", "animals_health", "wagon_condit
 _RESOURCE_ALIASES: dict[str, str] = {
     "oil": "lantern_oil",
 }
+
+# Most choices map to A-D; the engine offers at most four labelled choices.
+_MAX_CHOICES = 4
 
 
 def _classify_category(tags: list[str]) -> EventCategory:
@@ -43,8 +50,14 @@ def _classify_weirdness(band: int) -> tuple[bool, FolkloreType | None]:
     return False, None
 
 
-def _convert_profile(profile: dict) -> EventOutcome:
-    """Convert engine_effect_profile dict to EventOutcome."""
+def _convert_profile(profile: dict, *, event_id: str = "") -> EventOutcome:
+    """Convert engine_effect_profile dict to EventOutcome.
+
+    ENG-B-07: supply keys are validated against RESOURCE_CATALOG (after alias
+    resolution). An unknown key (e.g. a typo'd "gold") is dropped with a warning
+    rather than silently entering the supplies dict — otherwise it would become a
+    permanent phantom supply that nothing in the game ever consumes or caps.
+    """
     supplies: dict[str, int] = {}
     health = 0
     wagon = 0
@@ -66,8 +79,15 @@ def _convert_profile(profile: dict) -> EventOutcome:
         elif key == "wagon_condition":
             wagon = int(val)
         else:
-            # It's a supply resource
+            # It's a supply resource — validate against the catalog.
             res_key = _RESOURCE_ALIASES.get(key, key)
+            if res_key not in RESOURCE_CATALOG:
+                log.warning(
+                    "event %s: dropping unknown resource key %r "
+                    "(not in RESOURCE_CATALOG)",
+                    event_id or "<unknown>", key,
+                )
+                continue
             supplies[res_key] = int(val)
 
     return EventOutcome(
@@ -93,7 +113,16 @@ def _infer_style(action: str) -> str:
 
 
 def _convert_event(raw: dict) -> EventSkeleton:
-    """Convert a raw JSON event dict to an EventSkeleton."""
+    """Convert a raw JSON event dict to an EventSkeleton.
+
+    ENG-B-03: validates raw['id'] before use (a missing/blank id raises so the
+    caller can skip+log this one entry instead of crashing the whole library)
+    and caps offered choices at four (A-D), warning on overflow.
+    """
+    event_id = raw.get("id")
+    if not event_id or not isinstance(event_id, str):
+        raise ValueError(f"event entry missing a valid 'id': {raw!r:.120}")
+
     tags = raw.get("tags", [])
     band = raw.get("weirdness_band", 0)
     costs_token, folklore_type = _classify_weirdness(band)
@@ -104,15 +133,24 @@ def _convert_event(raw: dict) -> EventSkeleton:
     if band >= 2 and category != EventCategory.FOLKLORE:
         category = EventCategory.FOLKLORE
 
+    raw_choices = raw.get("choices", [])
+    if len(raw_choices) > _MAX_CHOICES:
+        log.warning(
+            "event %s: %d choices exceed the %d-choice cap (A-D); "
+            "extra choices dropped",
+            event_id, len(raw_choices), _MAX_CHOICES,
+        )
+        raw_choices = raw_choices[:_MAX_CHOICES]
+
     choices: list[ChoiceTemplate] = []
     outcomes: dict[str, EventOutcome] = {}
 
-    for i, ch in enumerate(raw.get("choices", [])):
-        cid = chr(65 + i)  # A, B, C
+    for i, ch in enumerate(raw_choices):
+        cid = chr(65 + i)  # A, B, C, D
         action = ch.get("intent_action", "INVESTIGATE")
         style = _infer_style(action)
         profile = ch.get("engine_effect_profile", {})
-        outcome = _convert_profile(profile)
+        outcome = _convert_profile(profile, event_id=event_id)
 
         choices.append(ChoiceTemplate(
             choice_id=cid,
@@ -125,7 +163,7 @@ def _convert_event(raw: dict) -> EventSkeleton:
         outcomes[cid] = outcome
 
     return EventSkeleton(
-        event_id=raw["id"],
+        event_id=event_id,
         title=raw.get("title", ""),
         category=category,
         tags=tags,
@@ -139,9 +177,34 @@ def _convert_event(raw: dict) -> EventSkeleton:
 
 
 def load_json_events() -> list[EventSkeleton]:
-    """Load all events from the JSON data file."""
+    """Load all events from the JSON data file.
+
+    ENG-B-03: a corrupt data file (or a top-level shape that is not a list)
+    logs an error and yields an empty library instead of crashing
+    build_event_library()/StepEngine.__init__. One malformed entry is skipped
+    and logged so a single bad event never takes down the whole game.
+    """
     path = _DATA_DIR / "event_skeletons.json"
     if not path.exists():
         return []
-    raw_list = json.loads(path.read_text(encoding="utf-8"))
-    return [_convert_event(raw) for raw in raw_list]
+
+    try:
+        raw_list = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+        log.error("event_skeletons.json could not be loaded: %s", e)
+        return []
+
+    if not isinstance(raw_list, list):
+        log.error(
+            "event_skeletons.json: expected a top-level list, got %s",
+            type(raw_list).__name__,
+        )
+        return []
+
+    events: list[EventSkeleton] = []
+    for i, raw in enumerate(raw_list):
+        try:
+            events.append(_convert_event(raw))
+        except Exception as e:  # one bad entry must not break the whole load
+            log.warning("skipping malformed event at index %d: %s", i, e)
+    return events
