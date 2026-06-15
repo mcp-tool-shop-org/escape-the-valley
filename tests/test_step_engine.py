@@ -578,3 +578,116 @@ def test_parcel_check_failure_logs_and_continues(monkeypatch, caplog):
     with caplog.at_level(logging.WARNING):
         engine._check_parcels(_DummyNode())  # must not raise
     assert any("parcel" in r.message.lower() for r in caplog.records)
+
+
+# ── gm-A-101: CLI play path enforces the D2 weirdness gate in-prompt ──
+#
+# The legacy GameEngine in engine.py is reached by the CLI play/continue
+# commands. Before gm-A-101 it called generate_scene/generate_outcome with no
+# brief, so the D2 weirdness floor (uncanny only at weirdness_level >= 2 with
+# tokens remaining) was bypassed on that path — only the static LANTERN profile
+# header keyed on tokens. These tests assert the engine now passes a non-None
+# brief carrying the weirdness allowance to BOTH GM calls.
+
+
+class _FakeScene:
+    """Minimal GM scene with truthy choices so the engine takes the GM path."""
+
+    def __init__(self):
+        self.title = "A Stranger at Dusk"
+        self.narration = "The trail narrows."
+        self.choices = [
+            {"id": "A", "label": "Press on", "risk_hint": "", "cost_hint": ""},
+            {"id": "B", "label": "Make camp", "risk_hint": "", "cost_hint": ""},
+        ]
+        self.memory_proposals = []
+
+
+class _FakeOutcome:
+    outcome_narration = "You press on into the gloom."
+    outcome_title = "Onward"
+    callout = "No significant effect."
+    memory_proposals: list = []
+
+
+def _run_gameengine_event(monkeypatch, weirdness_level, uncanny_tokens):
+    """Drive GameEngine._trigger_event once with GM enabled and a mocked GM,
+    returning the brief captured from generate_scene and generate_outcome.
+
+    The rng.random gate (> 0.6 skips the event) is forced open by stubbing
+    random() to 0.0; UI prompts are stubbed so no console I/O happens.
+    """
+    from unittest.mock import MagicMock
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.gm import GMConfig
+
+    state = create_new_run(seed=42)
+    state.weirdness_level = weirdness_level
+    state.uncanny_tokens = uncanny_tokens
+
+    engine = GameEngine(state, GMConfig(enabled=True))
+
+    # Force the ~60% event-trigger gate open and keep all draws deterministic.
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+
+    # Mock the GM: capture the brief kwarg on both calls, return usable scenes.
+    captured: dict = {}
+
+    def _scene(state_, event_, weather_str, brief=None):
+        captured["scene_brief"] = brief
+        return _FakeScene()
+
+    def _outcome(state_, event_, title, choice_id, choice_label, facts, brief=None):
+        captured["outcome_brief"] = brief
+        return _FakeOutcome()
+
+    engine.gm = MagicMock()
+    engine.gm.config.enabled = True
+    engine.gm.generate_scene.side_effect = _scene
+    engine.gm.generate_outcome.side_effect = _outcome
+
+    # Stub UI so _trigger_event runs headless; player always picks "A".
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+
+    engine._trigger_event()
+    return captured
+
+
+def test_gameengine_passes_brief_to_gm_calls(monkeypatch):
+    """With GM enabled, GameEngine passes a non-None brief to BOTH
+    generate_scene and generate_outcome (the D2 gate carrier)."""
+    from escape_the_valley.memory import GMBrief
+
+    captured = _run_gameengine_event(
+        monkeypatch, weirdness_level=2, uncanny_tokens=2,
+    )
+
+    assert isinstance(captured.get("scene_brief"), GMBrief)
+    assert isinstance(captured.get("outcome_brief"), GMBrief)
+
+
+def test_gameengine_brief_allowance_present_at_high_weirdness(monkeypatch):
+    """At weirdness_level >= 2 with tokens, the brief carries a non-'none'
+    weirdness allowance on both GM calls (D2 floor satisfied)."""
+    captured = _run_gameengine_event(
+        monkeypatch, weirdness_level=2, uncanny_tokens=2,
+    )
+
+    assert captured["scene_brief"].weirdness_allowance == "hint"
+    assert captured["outcome_brief"].weirdness_allowance == "hint"
+
+
+def test_gameengine_brief_allowance_none_below_floor(monkeypatch):
+    """At weirdness_level 0, the brief's weirdness allowance is 'none' on both
+    GM calls — the CLI path enforces the D2 floor, not just token count."""
+    captured = _run_gameengine_event(
+        monkeypatch, weirdness_level=0, uncanny_tokens=2,
+    )
+
+    assert captured["scene_brief"].weirdness_allowance == "none"
+    assert captured["outcome_brief"].weirdness_allowance == "none"

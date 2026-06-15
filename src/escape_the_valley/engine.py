@@ -10,6 +10,7 @@ from .events import (
     select_event,
 )
 from .gm import GMClient, GMConfig
+from .memory import build_gm_brief
 from .models import (
     JournalEntry,
     RunState,
@@ -241,7 +242,13 @@ class GameEngine:
         scene = None
         if self.gm.config.enabled:
             weather_str = weather.value if weather else "unknown"
-            scene = self.gm.generate_scene(self.state, event, weather_str)
+            # gm-A-101: pass the GM brief so the D2 weirdness gate
+            # (uncanny only at weirdness_level >= 2 with tokens) is enforced
+            # in-prompt on the CLI play/continue path, same as the TUI.
+            brief = build_gm_brief(self.state)
+            scene = self.gm.generate_scene(
+                self.state, event, weather_str, brief=brief
+            )
 
         # Use GM scene or fallback
         if scene and scene.choices:
@@ -292,8 +299,17 @@ class GameEngine:
                 "Time cost": outcome.time_cost,
                 "Special": outcome.special_flags,
             }
+            # gm-A-101: rebuild the brief against post-outcome state so the
+            # D2 weirdness gate is enforced on the outcome prompt too.
+            outcome_brief = build_gm_brief(self.state)
             gm_outcome = self.gm.generate_outcome(
-                self.state, event, title, choice_id, choice_label, outcome_facts
+                self.state,
+                event,
+                title,
+                choice_id,
+                choice_label,
+                outcome_facts,
+                brief=outcome_brief,
             )
             if gm_outcome:
                 outcome_narration = gm_outcome.outcome_narration
