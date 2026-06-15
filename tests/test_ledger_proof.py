@@ -150,6 +150,27 @@ def test_onchain_memo_missing_txid_fails():
     assert report.onchain_memo_ok is False
 
 
+def test_settled_record_empty_txids_fails_external():
+    """ledger-A02: a settled record with no txids must NOT pass external memo
+    integrity vacuously.
+
+    When on-chain memos are supplied, the external loop iterates each record's
+    txids. A settled record with an EMPTY txids list would skip the loop and
+    leave onchain_memo_ok True with zero on-ledger evidence. The guard flags it
+    as a miss so the proof cannot pass without any verifiable settlement tx.
+    """
+    recs = _settlements()
+    # Strip the txids off the first settlement but keep it "settled".
+    recs[0].txids = []
+    # Supply on-chain memos for the OTHER record so the external block runs.
+    onchain = {"BBB222": f"TRAIL|RUN:{RUN_ID}|DAY:9|DELTA:FOD+8,WTR-6,PRT-1"}
+    report = _reconcile(settlements=recs, onchain_memos=onchain)
+    assert report.onchain_memo_ok is False
+    assert report.memo_ok is False
+    assert report.passed is False
+    assert any("no txids to verify on-chain" in n for n in report.notes)
+
+
 def test_no_onchain_memos_marks_unverified():
     """Offline reconcile reports external memo integrity as NOT verified."""
     report = _reconcile()

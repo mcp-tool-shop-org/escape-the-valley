@@ -193,6 +193,18 @@ def reconcile(
         onchain_memo_ok = True
         for rec in settlements:
             prefix = f"TRAIL|RUN:{run_id}|DAY:{rec.day}"
+            # A settled record with NO txids cannot be verified on-chain — the
+            # loop below would be empty and the record would pass external
+            # integrity vacuously (ledger-A02). Treat it as a miss so a proof
+            # cannot pass without any on-ledger evidence for a claimed
+            # settlement.
+            if not rec.txids:
+                onchain_memo_ok = False
+                notes.append(
+                    f"settlement day {rec.day}: no txids to verify on-chain "
+                    f"(external integrity)"
+                )
+                continue
             for txid in rec.txids:
                 actual = onchain_memos.get(txid)
                 if actual is None:
