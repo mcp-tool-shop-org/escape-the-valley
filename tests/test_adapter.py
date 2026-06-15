@@ -510,3 +510,121 @@ class TestStepWorkerFallback:
         app.action_intent("TRAVEL")
         app.action_choose("A")
         assert stepped["n"] == 0  # both ignored
+
+
+# ── cli-tui-B-03: the send-parcel overlay is a real, working input ──
+
+
+class _FakeInput:
+    def __init__(self, value=""):
+        self.id = "parcel_input"
+        self.value = value
+
+
+class _FakeSubmitted:
+    """Stand-in for textual.widgets.Input.Submitted."""
+
+    def __init__(self, value, input_id="parcel_input"):
+        self.value = value
+        self.input = _FakeInput(value)
+        self.input.id = input_id
+
+
+class _RecordingOverlay:
+    def __init__(self):
+        self.success = None
+        self.failure = None
+
+    def show_form(self, *a):
+        pass
+
+    def show_success(self, msg):
+        self.success = msg
+
+    def show_failure(self, msg):
+        self.failure = msg
+
+    def update(self, *a):
+        pass
+
+
+def _parcel_app(tmp_path, monkeypatch, *, send_result=None):
+    """An app wired for send-parcel testing without a live DOM."""
+    monkeypatch.chdir(tmp_path)
+    state = create_new_run(seed=5)
+    state.backpack.enabled = True
+    state.backpack.wallet_address = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+    engine = StepEngine(state, GMConfig(enabled=False))
+    app = LedgerTrailApp(engine=engine)
+    app._render_all = lambda: None
+    app._sync_frame = lambda: None
+    app.notify = lambda *a, **k: None
+    app.show_send_parcel = True
+
+    overlay = _RecordingOverlay()
+    app.query_one = lambda *a, **k: overlay
+
+    from escape_the_valley.backpack import BackpackManager, SendResult
+
+    sent = {"called": False, "args": None}
+
+    def _send(self, st, recipient, supply, amount):
+        sent["called"] = True
+        sent["args"] = (recipient, supply, amount)
+        return send_result or SendResult(
+            success=True, message="sent", txid="ABC",
+        )
+
+    monkeypatch.setattr(BackpackManager, "send_parcel", _send)
+    monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+    return app, overlay, sent
+
+
+class TestSendParcelOverlayInput:
+    def test_valid_command_sends(self, tmp_path, monkeypatch):
+        app, overlay, sent = _parcel_app(tmp_path, monkeypatch)
+        app.on_input_submitted(
+            _FakeSubmitted("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe food 10"),
+        )
+        assert sent["called"] is True
+        assert sent["args"] == ("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", "food", 10)
+        assert overlay.success == "sent"
+
+    def test_bad_address_blocks_send(self, tmp_path, monkeypatch):
+        app, overlay, sent = _parcel_app(tmp_path, monkeypatch)
+        app.on_input_submitted(_FakeSubmitted("not-an-address food 10"))
+        assert sent["called"] is False
+        assert "not a valid XRPL" in overlay.failure
+
+    def test_wrong_arity_shows_format_hint(self, tmp_path, monkeypatch):
+        app, overlay, sent = _parcel_app(tmp_path, monkeypatch)
+        app.on_input_submitted(_FakeSubmitted("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"))
+        assert sent["called"] is False
+        assert "Expected" in overlay.failure
+
+    def test_non_numeric_amount_rejected(self, tmp_path, monkeypatch):
+        app, overlay, sent = _parcel_app(tmp_path, monkeypatch)
+        app.on_input_submitted(
+            _FakeSubmitted("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe food lots"),
+        )
+        assert sent["called"] is False
+        assert "whole number" in overlay.failure
+
+    def test_cancel_closes_without_send(self, tmp_path, monkeypatch):
+        app, overlay, sent = _parcel_app(tmp_path, monkeypatch)
+        app.on_input_submitted(_FakeSubmitted("cancel"))
+        assert sent["called"] is False
+        assert app.show_send_parcel is False
+
+    def test_failed_send_surfaces_message(self, tmp_path, monkeypatch):
+        from escape_the_valley.backpack import SendResult
+
+        app, overlay, sent = _parcel_app(
+            tmp_path, monkeypatch,
+            send_result=SendResult(success=False, message="network down"),
+        )
+        app.on_input_submitted(
+            _FakeSubmitted("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe food 10"),
+        )
+        assert sent["called"] is True
+        assert overlay.failure == "network down"

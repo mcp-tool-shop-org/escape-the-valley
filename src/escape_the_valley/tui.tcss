@@ -155,3 +155,13 @@ Screen {
   background: #0f1620;
   overflow-y: auto;
 }
+
+/* cli-tui-B-03: the real parcel input rides just under the send-parcel
+   overlay; shown/hidden in lockstep with it. */
+#parcel_input {
+  display: none;
+  width: 50%;
+  margin: 0 0 0 0;
+  border: round #3a6040;
+  background: #0f1620;
+}

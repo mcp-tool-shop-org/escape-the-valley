@@ -22,7 +22,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, Markdown, Rule, Static
+from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
@@ -334,6 +334,16 @@ class LedgerTrailApp(App):
             yield WalletInfoOverlay(id="wallet_info")
             yield LearnMoreOverlay(id="learn_more")
             yield SendParcelOverlay(id="send_parcel")
+            # cli-tui-B-03: a real input so the send-parcel overlay is no
+            # longer a dead end. Shown/hidden together with #send_parcel.
+            # can_focus starts False so the hidden input doesn't steal initial
+            # focus from the gameplay key bindings; it's enabled when shown.
+            parcel_input = Input(
+                placeholder="<address> <supply> <amount>  (Esc to cancel)",
+                id="parcel_input",
+            )
+            parcel_input.can_focus = False
+            yield parcel_input
             yield ParcelNotification(id="parcel_notify")
 
         yield Footer()
@@ -389,6 +399,19 @@ class LedgerTrailApp(App):
         self.query_one("#wallet_info").display = self.show_wallet_info
         self.query_one("#learn_more").display = self.show_learn_more
         self.query_one("#send_parcel").display = self.show_send_parcel
+        # cli-tui-B-03: the parcel input rides with the send-parcel overlay.
+        # It is only focusable while shown, so it never steals focus from the
+        # gameplay keys when hidden.
+        parcel_input = self.query_one("#parcel_input", Input)
+        parcel_input.display = self.show_send_parcel
+        parcel_input.can_focus = self.show_send_parcel
+        if not self.show_send_parcel and self.focused is parcel_input:
+            # Release focus so gameplay key bindings work again once the
+            # overlay closes.
+            try:
+                self.set_focus(None)
+            except Exception:
+                pass
         self.query_one("#parcel_notify").display = self.show_parcel_notify
 
     def _after_step(self) -> None:
@@ -791,6 +814,121 @@ class LedgerTrailApp(App):
         self.query_one(
             "#send_parcel", SendParcelOverlay,
         ).show_form("\n".join(supply_lines))
+        self._render_all()
+
+        # cli-tui-B-03: clear and focus the real input so the player can type
+        # the parcel command. (No-op without a live DOM, e.g. unit tests.)
+        try:
+            inp = self.query_one("#parcel_input", Input)
+            inp.value = ""
+            inp.focus()
+        except Exception:
+            pass
+
+    def on_input_submitted(self, event) -> None:
+        """Parse + dispatch the send-parcel command (cli-tui-B-03).
+
+        Honest replacement for the dead-end overlay: the player types
+        '<address> <supply> <amount>' (or 'cancel'), we validate the address
+        with the same shape check the CLI uses, then send + persist on a
+        worker thread and report success/failure on the overlay.
+        """
+        if event.input.id != "parcel_input":
+            return
+        if not self.show_send_parcel or not self._engine:
+            return
+
+        raw = (event.value or "").strip()
+        event.input.value = ""
+
+        if not raw or raw.lower() == "cancel":
+            self.show_send_parcel = False
+            self._render_all()
+            return
+
+        from .backpack_ui import SendParcelOverlay
+
+        overlay = self.query_one("#send_parcel", SendParcelOverlay)
+
+        parts = raw.split()
+        if len(parts) != 3:
+            overlay.show_failure(
+                "Expected: <address> <supply> <amount>  "
+                "(e.g. rPT1Sjq... food 10)"
+            )
+            self._render_all()
+            return
+
+        address, supply, amount_str = parts
+        try:
+            amount = int(amount_str)
+        except ValueError:
+            overlay.show_failure(f"'{amount_str}' is not a whole number.")
+            self._render_all()
+            return
+        if amount <= 0:
+            overlay.show_failure("Amount must be a positive whole number.")
+            self._render_all()
+            return
+
+        # Same address shape check the CLI uses (cli-tui-002), so a bad
+        # address is caught before any testnet round-trip.
+        from .cli import _is_valid_recipient
+
+        if not _is_valid_recipient(address):
+            overlay.show_failure(
+                f"'{address}' is not a valid XRPL classic address "
+                "(starts with 'r', 25-35 base58 chars)."
+            )
+            self._render_all()
+            return
+
+        supply = supply.lower()
+        if self._in_flight:
+            return
+        if not self._has_worker_runtime():
+            self._send_parcel_blocking(address, supply, amount)
+            return
+        self._in_flight = True
+        overlay.update("[b]Send Parcel[/b]\n\nSending parcel...")
+        self._render_all()
+        self._send_parcel_worker(address, supply, amount)
+
+    def _send_parcel_blocking(self, address: str, supply: str, amount: int):
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.send_parcel(self._engine.state, address, supply, amount)
+        mgr.close()
+        if result.success:
+            self._save()
+        self._finish_send_parcel(result)
+        return result
+
+    @work(thread=True, exclusive=True, group="ledger")
+    def _send_parcel_worker(
+        self, address: str, supply: str, amount: int,
+    ) -> None:
+        from .backpack import BackpackManager
+
+        mgr = BackpackManager()
+        result = mgr.send_parcel(self._engine.state, address, supply, amount)
+        mgr.close()
+        if result.success:
+            self._save()
+        self.call_from_thread(self._finish_send_parcel, result)
+
+    def _finish_send_parcel(self, result) -> None:
+        self._in_flight = False
+        from .backpack_ui import SendParcelOverlay
+
+        overlay = self.query_one("#send_parcel", SendParcelOverlay)
+        if result.success:
+            overlay.show_success(result.message)
+            self.notify("Parcel sent")
+        else:
+            overlay.show_failure(result.message)
+        self._sync_frame()
         self._render_all()
 
     def action_show_parcel(self, parcel) -> None:

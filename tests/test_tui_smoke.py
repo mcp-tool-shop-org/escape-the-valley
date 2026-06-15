@@ -97,6 +97,24 @@ def test_help_overlay_toggles():
     asyncio.run(scenario())
 
 
+def test_parcel_input_does_not_steal_initial_focus():
+    """cli-tui-B-03: the hidden parcel input must not grab mount focus.
+
+    A focusable hidden Input would swallow the gameplay keys ('t' etc.). It
+    starts non-focusable and is only enabled when the overlay is shown.
+    """
+
+    async def scenario():
+        app = _make_app()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            inp = app.query_one("#parcel_input")
+            assert inp.can_focus is False
+            assert app.focused is not inp
+
+    asyncio.run(scenario())
+
+
 def test_overlay_css_selectors_apply():
     """cli-tui-B-07: #parcel_notify and #send_parcel are styled hidden.
 
