@@ -163,6 +163,32 @@ class TestAcceptParcel:
         mgr.accept_parcel(parcel, state, cap=20)
         assert state.supplies.food == 70  # 50 + 20 (capped)
 
+    def test_accept_negative_content_floored_not_applied(self):
+        """ledger-CRIT-1 receive-path mirror of test_send_negative_amount.
+
+        _decode_parcel_memo now rejects a non-positive amount before a
+        ParcelRecord is ever created from the receive path, but contents can
+        also be populated directly (tests, saves, a future non-XRPL channel).
+        accept_parcel must floor a negative content at 0 independently, so it
+        can never reduce supplies -- min(amount, cap) alone only bounds the
+        top.
+        """
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        state = _make_state()
+        before = state.supplies.food
+        parcel = ParcelRecord(
+            parcel_id="test:FOD:-999999",
+            sender="rGriefer",
+            contents={"food": -999999},
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        result = mgr.accept_parcel(parcel, state)
+        assert result is True
+        assert parcel.accepted is True
+        assert state.supplies.food == before  # floored at 0, never subtracted
+
 
 class TestSettleNoXrpl:
     def test_settle_not_enabled(self):
@@ -225,6 +251,18 @@ class TestParcelMemo:
 
     def test_decode_parcel_memo_empty(self):
         result = _decode_parcel_memo("")
+        assert result is None
+
+    def test_decode_parcel_memo_negative_amount(self):
+        """ledger-CRIT-1: a forged negative amount must never decode."""
+        memo_text = "PARCEL|RUN:abc|DAY:5|food:-999999"
+        result = _decode_parcel_memo(_hex_encode(memo_text))
+        assert result is None
+
+    def test_decode_parcel_memo_zero_amount(self):
+        """ledger-CRIT-1: zero is non-positive and must never decode."""
+        memo_text = "PARCEL|RUN:abc|DAY:5|food:0"
+        result = _decode_parcel_memo(_hex_encode(memo_text))
         assert result is None
 
 
@@ -797,6 +835,201 @@ class TestRetryPendingMocked:
         assert food.minted + food.sum_deltas == food.engine_settled == 35
 
 
+class TestSettleMultiResourcePartialFailure:
+    """ledger-CRIT-2: a settle() batch touching 2+ resources must never
+    re-pay a resource that already cleared on-chain earlier in the SAME
+    batch, when a LATER resource's Payment then fails. Prior tests only ever
+    exercised a single-resource delta per settle() call."""
+
+    @requires_xrpl
+    def test_multi_resource_partial_failure_does_not_repay_confirmed(
+        self, monkeypatch,
+    ):
+        from escape_the_valley.backpack_models import (
+            XRPL_RESOURCES,
+            XRPL_TOKEN_MAP,
+        )
+        from escape_the_valley.ledger_proof import reconcile
+
+        # XRPL_RESOURCES is a set; its iteration order is not something this
+        # test should assume. Compute the ACTUAL order settle() will process
+        # these three keys in, and fail whichever is processed LAST -- so the
+        # other two are guaranteed to have already cleared before it, no
+        # matter what that order turns out to be.
+        deltas_map = {"food": -12, "water": -6, "meds": -3}
+        order = [k for k in XRPL_RESOURCES if k in deltas_map]
+        assert len(order) == 3
+        fail_key = order[-1]
+        fail_code = XRPL_TOKEN_MAP[fail_key][0]
+        confirmed_keys = order[:-1]
+
+        state = _enabled_state()
+        minted = dict(state.backpack.last_settled_supplies)
+        state.supplies.set("food", 38)   # -12
+        state.supplies.set("water", 44)  # -6
+        state.supplies.set("meds", 2)    # -3
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        submitted: list[str] = []
+
+        def fake_submit(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            submitted.append(code)
+            if code == fail_code:
+                raise RuntimeError(f"simulated {code} blip")
+            return _FakeResp({"hash": f"HASH-{code}"})
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(fake_from_seed),
+        )
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit)
+
+        res = mgr.settle(state, "TownA")
+        assert res.success is False
+
+        # The two resources that cleared before the failure are already
+        # settled with real txids -- never left in limbo.
+        assert len(state.backpack.settlements) == 1
+        settled = state.backpack.settlements[0]
+        assert settled.deltas == {k: deltas_map[k] for k in confirmed_keys}
+        assert len(settled.txids) == 2
+        for key in confirmed_keys:
+            assert state.backpack.last_settled_supplies[key] == (
+                minted[key] + deltas_map[key]
+            )
+
+        # Only the failed resource is pending.
+        assert len(state.backpack.pending_settlements) == 1
+        pending = state.backpack.pending_settlements[0]
+        assert pending.deltas == {fail_key: deltas_map[fail_key]}
+        assert state.backpack.last_settled_supplies[fail_key] == minted[fail_key]
+
+        # Retry: the failed resource now clears. It must be the ONLY thing
+        # resubmitted -- the two confirmed above must never be paid again.
+        submitted.clear()
+
+        def fake_submit_retry(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            submitted.append(code)
+            return _FakeResp({"hash": f"RETRY-{code}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_retry)
+
+        res2 = mgr.settle(state, "TownB")
+        assert res2.success is True
+        assert submitted == [fail_code]
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.last_settled_supplies[fail_key] == (
+            minted[fail_key] + deltas_map[fail_key]
+        )
+
+        # Conservation across the whole chain, for all three resources.
+        ledger_balances = {
+            XRPL_TOKEN_MAP[k][0]: state.backpack.last_settled_supplies.get(k, 0)
+            for k in XRPL_RESOURCES
+        }
+        report = reconcile(
+            run_id=state.run_id, seed=state.seed, minted_initial=minted,
+            ledger_balances=ledger_balances,
+            last_settled_supplies=state.backpack.last_settled_supplies,
+            settlements=state.backpack.settlements,
+            pending=state.backpack.pending_settlements,
+        )
+        assert report.passed is True, report.notes
+        for key, delta in deltas_map.items():
+            check = next(r for r in report.resources if r.resource == key)
+            assert check.sum_deltas == delta
+            assert check.minted + check.sum_deltas == check.engine_settled
+
+
+class TestRetryPendingMultiKeyNarrowing:
+    """ledger-CRIT-2 extended to _retry_pending: a single pending record can
+    itself hold 2+ resources (settle() enqueues everything from the first
+    failing key onward). If an earlier key in that record clears on retry
+    but a later one fails again, the cleared key must never be resubmitted
+    by a subsequent retry pass."""
+
+    @requires_xrpl
+    def test_retry_narrows_multi_key_pending_on_partial_clear(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"food": -10, "water": -6},
+                status="pending",
+                memo=_settlement_memo_text(
+                    state.run_id, 4, {"food": -10, "water": -6},
+                ),
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(fake_from_seed),
+        )
+
+        submitted: list[str] = []
+
+        def fake_submit_pass1(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            submitted.append(code)
+            if code == "WTR":
+                raise RuntimeError("simulated WTR blip")
+            return _FakeResp({"hash": f"HASH-{code}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_pass1)
+
+        mgr._retry_pending(state)
+
+        # Food (inserted first in the dict) cleared and is already settled
+        # with a real txid; water is the only thing still pending, in a
+        # NARROWED record -- not the original 2-key one.
+        assert submitted == ["FOD", "WTR"]
+        assert len(state.backpack.settlements) == 1
+        settled = state.backpack.settlements[0]
+        assert settled.deltas == {"food": -10}
+        assert settled.txids == ["HASH-FOD"]
+        assert state.backpack.last_settled_supplies["food"] == 40  # 50 - 10
+
+        assert len(state.backpack.pending_settlements) == 1
+        pending = state.backpack.pending_settlements[0]
+        assert pending.deltas == {"water": -6}
+        assert state.backpack.last_settled_supplies["water"] == 50  # unadvanced
+
+        # Second retry: water now clears. FOD must never be resubmitted.
+        submitted.clear()
+
+        def fake_submit_pass2(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            submitted.append(code)
+            return _FakeResp({"hash": f"HASH2-{code}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_pass2)
+
+        mgr._retry_pending(state)
+
+        assert submitted == ["WTR"]
+        assert state.backpack.pending_settlements == []
+        assert len(state.backpack.settlements) == 2
+        assert state.backpack.last_settled_supplies["water"] == 44  # 50 - 6
+
+
 class TestSendParcelMocked:
     @requires_xrpl
     def test_send_success_deducts_and_records(self, monkeypatch):
@@ -1032,6 +1265,165 @@ class TestCheckParcelsTxHash:
         assert parcels[0].parcel_id == "WRAPHASH"
         assert parcels[0].txid == "WRAPHASH"
         assert parcels[0].contents == {"food": 6}
+
+
+class TestCheckParcelsRejectsForgedAmounts:
+    """ledger-CRIT-1: the receive path never turns a non-positive-amount
+    memo into an acceptable parcel, end to end through check_parcels()."""
+
+    @requires_xrpl
+    def test_negative_amount_memo_never_becomes_a_parcel(self, monkeypatch):
+        state = _enabled_state()
+        forged_memo = "PARCEL|RUN:abc|DAY:5|food:-999999"
+
+        class _TxClient(_FakeClient):
+            def request(self, req):
+                return _FakeResp({"transactions": [
+                    {
+                        "hash": "FORGEDHASH",
+                        "meta": {"TransactionResult": "tesSUCCESS"},
+                        "tx_json": {
+                            "TransactionType": "Payment",
+                            "Account": "rGriefer",
+                            "Destination": "rPlayerAddr",
+                            "Memos": [
+                                {"Memo": {"MemoData": _hex_encode(forged_memo)}},
+                            ],
+                        },
+                    },
+                ]})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _TxClient())
+
+        parcels = mgr.check_parcels(state)
+        assert parcels == []
+        assert state.backpack.parcels == []
+
+    @requires_xrpl
+    def test_zero_amount_memo_never_becomes_a_parcel(self, monkeypatch):
+        state = _enabled_state()
+        forged_memo = "PARCEL|RUN:abc|DAY:5|food:0"
+
+        class _TxClient(_FakeClient):
+            def request(self, req):
+                return _FakeResp({"transactions": [
+                    {
+                        "hash": "ZEROHASH",
+                        "meta": {"TransactionResult": "tesSUCCESS"},
+                        "tx_json": {
+                            "TransactionType": "Payment",
+                            "Account": "rSomeSender",
+                            "Destination": "rPlayerAddr",
+                            "Memos": [
+                                {"Memo": {"MemoData": _hex_encode(forged_memo)}},
+                            ],
+                        },
+                    },
+                ]})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _TxClient())
+
+        parcels = mgr.check_parcels(state)
+        assert parcels == []
+        assert state.backpack.parcels == []
+
+
+class TestCheckParcelsPagination:
+    """ledger-CRIT-4 (mirrors fetch_onchain_memos' ledger-A03 fix):
+    check_parcels() must not silently drop an incoming parcel that has
+    scrolled past page 1."""
+
+    @requires_xrpl
+    def test_paginates_via_marker(self, monkeypatch):
+        state = _enabled_state()
+        parcel_memo_p2 = "PARCEL|RUN:abc|DAY:3|food:6"
+
+        def page(tx_hash: str, memo: str) -> dict:
+            return {
+                "hash": tx_hash,
+                "meta": {"TransactionResult": "tesSUCCESS"},
+                "tx_json": {
+                    "TransactionType": "Payment",
+                    "Account": "rSomeSender",
+                    "Destination": "rPlayerAddr",
+                    "Memos": [{"Memo": {"MemoData": _hex_encode(memo)}}],
+                },
+            }
+
+        class _PagedTxClient(_FakeClient):
+            def __init__(self):
+                self._page = 0
+
+            def request(self, req):
+                idx = self._page
+                self._page += 1
+                if idx == 0:
+                    # Page 1: nothing relevant here, but a marker signals
+                    # more transactions remain.
+                    return _FakeResp({
+                        "transactions": [],
+                        "marker": {"ledger": 1, "seq": 9},
+                    })
+                # Page 2: the legitimate parcel, no marker -> done.
+                return _FakeResp({
+                    "transactions": [page("TX-PAGE2", parcel_memo_p2)],
+                })
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _PagedTxClient())
+
+        parcels = mgr.check_parcels(state)
+        assert len(parcels) == 1
+        assert parcels[0].txid == "TX-PAGE2"
+        assert parcels[0].contents == {"food": 6}
+        assert len(state.backpack.parcels) == 1
+
+    @requires_xrpl
+    def test_does_not_stop_after_first_page_when_marker_present(
+        self, monkeypatch,
+    ):
+        """A parcel present on page 1 AND another on page 2 must both surface
+        -- pagination must not stop early just because page 1 had a hit."""
+        state = _enabled_state()
+        memo_p1 = "PARCEL|RUN:abc|DAY:2|water:4"
+        memo_p2 = "PARCEL|RUN:abc|DAY:3|food:6"
+
+        def page(tx_hash: str, memo: str) -> dict:
+            return {
+                "hash": tx_hash,
+                "meta": {"TransactionResult": "tesSUCCESS"},
+                "tx_json": {
+                    "TransactionType": "Payment",
+                    "Account": "rSomeSender",
+                    "Destination": "rPlayerAddr",
+                    "Memos": [{"Memo": {"MemoData": _hex_encode(memo)}}],
+                },
+            }
+
+        class _PagedTxClient(_FakeClient):
+            def __init__(self):
+                self._page = 0
+
+            def request(self, req):
+                idx = self._page
+                self._page += 1
+                if idx == 0:
+                    return _FakeResp({
+                        "transactions": [page("TX-PAGE1", memo_p1)],
+                        "marker": {"ledger": 1, "seq": 9},
+                    })
+                return _FakeResp({
+                    "transactions": [page("TX-PAGE2", memo_p2)],
+                })
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _PagedTxClient())
+
+        parcels = mgr.check_parcels(state)
+        txids = {p.txid for p in parcels}
+        assert txids == {"TX-PAGE1", "TX-PAGE2"}
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1452,6 +1844,95 @@ class TestEnableResume:
         assert faucet_calls["n"] == 0
         assert submit_calls["n"] == 0  # no re-mint, no re-trust
         assert "back online" in res.message.lower()
+
+
+class TestEnableMintResume:
+    """ledger-CRIT-3: unlike TrustSet (idempotent on XRPL), a mint Payment is
+    NOT idempotent. If a mint fails partway through enable(), a resumed
+    enable() must not re-submit Payments for resources that already landed.
+    """
+
+    @requires_xrpl
+    def test_partial_mint_failure_does_not_remint_on_resume(self, monkeypatch):
+        state = _make_state()  # food=50, water=50, meds=5, ammo=20, parts=3
+        wallets = iter([
+            _FakeWallet("rIssuerAddr", "sIssuerSeed"),
+            _FakeWallet("rPlayerAddr", "sPlayerSeed"),
+        ])
+        monkeypatch.setattr(
+            backpack_mod, "generate_faucet_wallet",
+            lambda *a, **k: next(wallets),
+        )
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(fake_from_seed),
+        )
+
+        mint_calls: list[str] = []
+
+        def fake_submit_first(tx, client, signer):
+            # TrustSet has no `amount` attribute of this shape -> code is
+            # None and it is never counted or failed here.
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            if code is not None:
+                mint_calls.append(code)
+                if code == "AMO":
+                    raise RuntimeError("faucet blip on AMO mint")
+            return _FakeResp({"hash": f"H{len(mint_calls)}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_first)
+
+        res1 = mgr.enable(state)
+        assert res1.success is False
+        # food/water/meds minted before ammo raised; parts never reached.
+        assert mint_calls == ["FOD", "WTR", "MED", "AMO"]
+        assert state.backpack.last_settled_supplies == {
+            "food": 50, "water": 50, "meds": 5,
+        }
+        assert not state.backpack.enabled
+
+        # Resume: AMO now succeeds, and PRT still needs minting. FOD/WTR/MED
+        # must NOT be re-submitted.
+        mint_calls.clear()
+
+        def fake_submit_second(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            if code is not None:
+                mint_calls.append(code)
+            return _FakeResp({"hash": f"H2-{len(mint_calls)}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_second)
+
+        res2 = mgr.enable(state)
+        assert res2.success is True
+        assert mint_calls == ["AMO", "PRT"]
+        assert state.backpack.last_settled_supplies == {
+            "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
+        }
+        assert state.backpack.enabled is True
+
+    @requires_xrpl
+    def test_setup_complete_false_while_mint_partial(self, monkeypatch):
+        """ledger-CRIT-3: _setup_complete must require ALL resources present,
+        not merely a non-empty dict, or a half-minted pack would wrongly
+        short-circuit to 'back online' on the next enable()."""
+        from escape_the_valley.backpack import _setup_complete
+
+        state = _enabled_state()
+        # Simulate a partial mint: only 3 of 5 resources landed.
+        state.backpack.last_settled_supplies = {
+            "food": 50, "water": 50, "meds": 5,
+        }
+        assert _setup_complete(state.backpack) is False
 
 
 class TestWalletInfoBalancesError:

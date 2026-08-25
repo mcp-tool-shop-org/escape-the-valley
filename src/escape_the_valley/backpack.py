@@ -209,20 +209,37 @@ def _setup_complete(bp) -> bool:
     """True when enable() finished every step (ledger-B05).
 
     A pack is only "back online" if it has wallets, trust lines are ready, and
-    the minted snapshot is populated. A half-built pack (faucet succeeded but
-    trust lines or mint did not) returns False so enable() resumes the missing
-    steps instead of falsely declaring it online.
+    the minted snapshot is FULLY populated. A half-built pack (faucet
+    succeeded but trust lines or mint did not) returns False so enable()
+    resumes the missing steps instead of falsely declaring it online.
+
+    "Fully populated" means every XRPL-tracked resource has a snapshot entry —
+    not merely "the dict is non-empty" (ledger-CRIT-3). The mint step now
+    records each resource into ``last_settled_supplies`` as its own Payment
+    confirms (so a resumed enable() never re-mints one that already landed),
+    which means a half-minted pack has a non-empty but INCOMPLETE dict; a bare
+    truthiness check would wrongly call that "back online".
     """
     return bool(
         bp.wallet_address
         and bp.issuer_secret
         and bp.trust_lines_ready
-        and bp.last_settled_supplies
+        and XRPL_RESOURCES <= bp.last_settled_supplies.keys()
     )
 
 
 def _decode_parcel_memo(memo_hex: str) -> dict | None:
-    """Decode a PARCEL memo from hex. Returns {supply, amount} or None."""
+    """Decode a PARCEL memo from hex. Returns {supply, amount} or None.
+
+    Rejects a non-positive amount at decode time (ledger-CRIT-1): a parcel
+    memo is attacker-controlled free text from any XRPL account (a throwaway
+    testnet wallet costs nothing to create). A bare ``int()`` parse previously
+    let a memo like ``food:-999999`` reach ``accept_parcel()``, which only
+    bounded the upper side (``min(amount, cap)``) — so a single 12-drop
+    payment could zero out or drive a victim's supply negative for free. An
+    out-of-range amount is treated exactly like an unknown supply key: the
+    parcel is never created.
+    """
     try:
         text = _hex_decode(memo_hex)
     except (ValueError, UnicodeDecodeError):
@@ -244,6 +261,9 @@ def _decode_parcel_memo(memo_hex: str) -> dict | None:
     try:
         amount = int(amount_str)
     except ValueError:
+        return None
+
+    if amount <= 0:
         return None
 
     if supply not in XRPL_TOKEN_MAP:
@@ -442,11 +462,20 @@ class BackpackManager:
                 # enable() resumes rather than skipping straight to mint.
                 bp.trust_lines_ready = True
 
-            # Step 4: Mint starting supplies (issuer sends to player). Skipped
-            # when the snapshot is already populated so a resume does not
-            # double-mint.
-            if not bp.last_settled_supplies:
+            # Step 4: Mint starting supplies (issuer sends to player), one
+            # resource at a time. Unlike TrustSet (idempotent on XRPL — see
+            # Step 3), a mint Payment is NOT idempotent: re-submitting an
+            # already-successful mint on a resumed enable() would double the
+            # player's starting balance. ledger-CRIT-3 fix: each resource is
+            # recorded into last_settled_supplies the moment ITS OWN mint
+            # confirms (or immediately if it needs no mint), rather than only
+            # after the whole loop finishes — so a resource already present
+            # here already landed on a prior attempt and is skipped, and a
+            # resumed enable() mints only what is still missing.
+            if XRPL_RESOURCES - bp.last_settled_supplies.keys():
                 for key, (code, _display) in XRPL_TOKEN_MAP.items():
+                    if key in bp.last_settled_supplies:
+                        continue  # already minted (or needed none) previously
                     amount = state.supplies.get(key)
                     if amount > 0:
                         mint_tx = Payment(
@@ -459,13 +488,14 @@ class BackpackManager:
                             ),
                         )
                         _submit_and_wait_bounded(mint_tx, client, issuer)
+                    # Record ONLY after this resource's own mint confirms (or
+                    # immediately when no mint was needed) — ledger-B05 /
+                    # ledger-CRIT-3: a half-minted pack still keeps the
+                    # resources that DID land, so the next enable() resumes
+                    # exactly the ones that did not, instead of re-submitting
+                    # every mint from scratch.
+                    bp.last_settled_supplies[key] = amount
 
-                # Step 5: Record snapshot. Set ONLY after the full mint loop
-                # completes (ledger-B05) so a half-minted pack stays "incomplete"
-                # and resumes on the next enable().
-                bp.last_settled_supplies = {
-                    k: state.supplies.get(k) for k in XRPL_RESOURCES
-                }
                 bp.last_settlement_day = state.day
 
             bp.enabled = True
@@ -493,7 +523,17 @@ class BackpackManager:
             )
 
     def settle(self, state: RunState, location: str) -> SettlementResult:
-        """Settle a checkpoint: compute delta, batch Payment txs."""
+        """Settle a checkpoint: compute delta, batch Payment txs.
+
+        Per-resource progress is tracked AS EACH PAYMENT CONFIRMS
+        (ledger-CRIT-2): if an earlier resource's Payment clears on-chain and
+        a LATER resource's Payment then raises (a transient network blip),
+        the confirmed resource(s) are folded into ``bp.settlements`` and the
+        baseline immediately, with their real txids — never discarded. Only
+        the resource(s) that did NOT clear this pass are queued pending, so a
+        retry can never re-submit a Payment for something already paid for on
+        chain (the double-mint/double-burn this fix closes).
+        """
         if not _HAS_XRPL:
             return SettlementResult(success=False, message="xrpl-py not available")
 
@@ -522,13 +562,19 @@ class BackpackManager:
         client = self._get_client()
         player = Wallet.from_seed(bp.wallet_secret)
         issuer = Wallet.from_seed(bp.issuer_secret)
+        # The on-chain memo for every Payment in this batch names the FULL set
+        # of deltas being settled together (ledger-003) — unchanged even if a
+        # later key in the loop fails, since it is the exact byte string
+        # already signed and broadcast for whichever resources clear below.
         memos = _build_memo(state.run_id, state.day, deltas)
-        txids: list[str] = []
 
-        try:
-            for key, diff in deltas.items():
-                code = XRPL_TOKEN_MAP[key][0]
+        confirmed: dict[str, int] = {}
+        confirmed_txids: list[str] = []
+        failure: Exception | None = None
 
+        for key, diff in deltas.items():
+            code = XRPL_TOKEN_MAP[key][0]
+            try:
                 if diff < 0:
                     # Player lost supplies → send back to issuer
                     tx = Payment(
@@ -555,30 +601,41 @@ class BackpackManager:
                         memos=memos,
                     )
                     resp = _submit_and_wait_bounded(tx, client, issuer)
+            except Exception as e:  # noqa: BLE001 - routed into the pending split below
+                failure = e
+                break
 
-                txid = resp.result.get("hash", "")
-                if txid:
-                    txids.append(txid)
+            txid = resp.result.get("hash", "")
+            if txid:
+                confirmed_txids.append(txid)
+            confirmed[key] = diff
 
-            # Update snapshot
-            bp.last_settled_supplies = {
-                k: state.supplies.get(k) for k in XRPL_RESOURCES
-            }
-            bp.last_settlement_day = state.day
-
-            # Store the exact on-chain memo text so the record matches the
-            # on-ledger bytes (ledger-003), not a DELTA-less near-miss.
-            memo_text = _settlement_memo_text(state.run_id, state.day, deltas)
-            record = SettlementRecord(
+        # Fold whatever cleared on-chain THIS pass into the baseline and the
+        # settlement history immediately (ledger-CRIT-2) — even when a LATER
+        # key then fails, an already-confirmed Payment must never be queued
+        # for re-submission by a retry.
+        settled_record: SettlementRecord | None = None
+        if confirmed:
+            for key, diff in confirmed.items():
+                bp.last_settled_supplies[key] = (
+                    bp.last_settled_supplies.get(key, 0) + diff
+                )
+            settled_record = SettlementRecord(
                 day=state.day,
                 location=location,
-                deltas=deltas,
-                txids=txids,
+                deltas=confirmed,
+                txids=confirmed_txids,
                 status="settled",
-                memo=memo_text,
+                # Matches the actual on-chain bytes (ledger-003): every
+                # Payment in this batch — confirmed or not — carried this
+                # same full-batch memo.
+                memo=_settlement_memo_text(state.run_id, state.day, deltas),
                 timestamp=datetime.now(UTC).isoformat(),
             )
-            bp.settlements.append(record)
+            bp.settlements.append(settled_record)
+
+        if failure is None:
+            bp.last_settlement_day = state.day
 
             # Settlement reached the ledger: clear the degraded signal
             # (ledger-B04) so the status line drops back to a healthy state.
@@ -589,53 +646,69 @@ class BackpackManager:
             # traceable from the log without re-running the chain.
             log.info(
                 "settle ok: day=%d location=%s deltas=%s txids=%s",
-                state.day, location, deltas, txids,
+                state.day, location, confirmed, confirmed_txids,
             )
 
-            short_txid = txids[0][:12] + "..." if txids else "none"
+            short_txid = (
+                confirmed_txids[0][:12] + "..." if confirmed_txids else "none"
+            )
             return SettlementResult(
                 success=True,
                 message=f"Checkpoint settled. Receipt: {short_txid}",
-                txids=txids,
-                record=record,
+                txids=confirmed_txids,
+                record=settled_record,
             )
 
-        except Exception as e:
-            log.warning("Settlement failed at %s: %s", location, e)
-            record = SettlementRecord(
-                day=state.day,
-                location=location,
-                deltas=deltas,
-                txids=[],
-                status="pending",
-                memo=_settlement_memo_text(state.run_id, state.day, deltas),
-                timestamp=datetime.now(UTC).isoformat(),
-            )
-            bp.pending_settlements.append(record)
-            # Degraded signal (ledger-B04): the testnet was unreachable, this
-            # checkpoint is unsettled. status_line + cli-tui render the offline
-            # state from this so the pending count is not read as a healthy
-            # backlog.
-            bp.last_settle_failed = True
-            log.info(
-                "settle degraded: day=%d location=%s deltas=%s — "
-                "queued as pending (testnet unreachable)",
-                state.day, location, deltas,
-            )
+        # Partial or total failure: only the resource(s) that did NOT clear
+        # this pass are queued pending. The confirmed ones (if any) are
+        # already settled above and must never be retried — that would
+        # double-pay them on-chain.
+        remaining = {k: v for k, v in deltas.items() if k not in confirmed}
+        log.warning("Settlement failed at %s: %s", location, failure)
+        pending_record = SettlementRecord(
+            day=state.day,
+            location=location,
+            deltas=remaining,
+            txids=[],
+            status="pending",
+            memo=_settlement_memo_text(state.run_id, state.day, remaining),
+            timestamp=datetime.now(UTC).isoformat(),
+        )
+        bp.pending_settlements.append(pending_record)
+        # Degraded signal (ledger-B04): the testnet was unreachable, this
+        # checkpoint is unsettled. status_line + cli-tui render the offline
+        # state from this so the pending count is not read as a healthy
+        # backlog.
+        bp.last_settle_failed = True
+        log.info(
+            "settle degraded: day=%d location=%s deltas=%s — "
+            "queued as pending (testnet unreachable)",
+            state.day, location, remaining,
+        )
 
-            return SettlementResult(
-                success=False,
-                message=(
-                    "The ledger is quiet. I couldn't settle this checkpoint. "
-                    "Your run continues offline for now. "
-                    "We'll retry at the next safe moment\u2014"
-                    "or you can settle manually from the Ledger menu."
-                ),
-                record=record,
-            )
+        return SettlementResult(
+            success=False,
+            message=(
+                "The ledger is quiet. I couldn't settle this checkpoint. "
+                "Your run continues offline for now. "
+                "We'll retry at the next safe moment\u2014"
+                "or you can settle manually from the Ledger menu."
+            ),
+            txids=confirmed_txids or None,
+            record=pending_record,
+        )
 
     def _retry_pending(self, state: RunState) -> None:
-        """Retry all pending settlements. Move successful ones to settled."""
+        """Retry all pending settlements. Move successful ones to settled.
+
+        Per-resource progress WITHIN a single pending record is also tracked
+        as each Payment confirms (ledger-CRIT-2): if a record holds 2+
+        resources and one clears while a later one then fails on this same
+        retry pass, only the resource(s) that did NOT clear stay pending (in
+        a narrowed record) — the one(s) that did are folded into
+        ``bp.settlements`` and the baseline immediately, so a later retry
+        pass can never resubmit a Payment that already landed.
+        """
         bp = state.backpack
         if not bp.pending_settlements:
             return
@@ -651,13 +724,14 @@ class BackpackManager:
         moved = 0  # settlements that cleared on this retry pass (ledger-B07)
 
         for record in bp.pending_settlements:
-            try:
-                txids: list[str] = []
-                memos = _build_memo(state.run_id, record.day, record.deltas)
+            memos = _build_memo(state.run_id, record.day, record.deltas)
+            confirmed: dict[str, int] = {}
+            confirmed_txids: list[str] = []
+            failure: Exception | None = None
 
-                for key, diff in record.deltas.items():
-                    code = XRPL_TOKEN_MAP[key][0]
-
+            for key, diff in record.deltas.items():
+                code = XRPL_TOKEN_MAP[key][0]
+                try:
                     if diff < 0:
                         tx = Payment(
                             account=player.address,
@@ -682,42 +756,68 @@ class BackpackManager:
                             memos=memos,
                         )
                         resp = _submit_and_wait_bounded(tx, client, issuer)
+                except Exception as e:  # noqa: BLE001 - handled below, per key
+                    failure = e
+                    break
 
-                    txid = resp.result.get("hash", "")
-                    if txid:
-                        txids.append(txid)
+                txid = resp.result.get("hash", "")
+                if txid:
+                    confirmed_txids.append(txid)
+                confirmed[key] = diff
 
-                record.txids = txids
-                record.status = "settled"
-                # Match the on-chain memo bytes actually written above (ledger-003).
-                record.memo = _settlement_memo_text(
-                    state.run_id, record.day, record.deltas,
+            if confirmed:
+                settled_record = SettlementRecord(
+                    day=record.day,
+                    location=record.location,
+                    deltas=confirmed,
+                    txids=confirmed_txids,
+                    status="settled",
+                    # Match the on-chain memo bytes actually written above
+                    # (ledger-003): every Payment resubmitted for this record
+                    # carried the record's full (pre-narrowing) delta text.
+                    memo=_settlement_memo_text(
+                        state.run_id, record.day, record.deltas,
+                    ),
+                    timestamp=datetime.now(UTC).isoformat(),
                 )
-                record.timestamp = datetime.now(UTC).isoformat()
-                bp.settlements.append(record)
+                bp.settlements.append(settled_record)
 
-                # Conservation fix (ENG-A-08): a failed settle() leaves the
-                # baseline un-advanced and enqueues this pending record. Now that
-                # it is settled on-chain, fold its (signed) delta into the
-                # baseline so the *next* fresh settle() measures current against a
-                # baseline that already accounts for this retried portion.
-                # Without this, settle() recomputes (current - baseline) over the
-                # WHOLE interval — including the just-retried delta — paying it
-                # on-chain twice and double-summing it in reconcile(), breaking
-                # 'minted + Σdeltas == final'. Only advance on success; a record
-                # that fails below stays pending with the baseline untouched.
-                for key, val in record.deltas.items():
+                # Conservation fix (ENG-A-08, extended by ledger-CRIT-2): a
+                # failed settle() leaves the baseline un-advanced and enqueues
+                # this pending record. Now that (some or all of) it is settled
+                # on-chain, fold the CONFIRMED (signed) deltas into the
+                # baseline so the *next* fresh settle() measures current
+                # against a baseline that already accounts for this retried
+                # portion. Without this, settle() recomputes (current -
+                # baseline) over the WHOLE interval — including the
+                # just-retried delta — paying it on-chain twice and
+                # double-summing it in reconcile(), breaking
+                # 'minted + Σdeltas == final'. Only the confirmed keys
+                # advance; a key that fails below stays pending, un-advanced.
+                for key, val in confirmed.items():
                     bp.last_settled_supplies[key] = (
                         bp.last_settled_supplies.get(key, 0) + val
                     )
                 moved += 1
                 log.info(
                     "retry settled: day=%d deltas=%s txids=%s",
-                    record.day, record.deltas, txids,
+                    record.day, confirmed, confirmed_txids,
                 )
 
-            except Exception as e:
-                log.warning("Retry settlement day %d failed: %s", record.day, e)
+            if failure is not None:
+                remaining = {
+                    k: v for k, v in record.deltas.items() if k not in confirmed
+                }
+                log.warning(
+                    "Retry settlement day %d failed: %s", record.day, failure,
+                )
+                # Narrow the record to exactly what did NOT clear this pass —
+                # ledger-CRIT-2: resubmitting the confirmed keys above on a
+                # later retry would double-pay them on-chain.
+                record.deltas = remaining
+                record.memo = _settlement_memo_text(
+                    state.run_id, record.day, remaining,
+                )
                 still_pending.append(record)
 
         bp.pending_settlements = still_pending
@@ -838,74 +938,103 @@ class BackpackManager:
 
         Looks for XRP payments with PARCEL| memo prefix. Each unique
         tx hash becomes a parcel that can be accepted or refused.
+
+        Pagination (ledger-CRIT-4, mirrors ``fetch_onchain_memos``): AccountTx
+        caps results per page, and a long run can exceed that on a single
+        account (each town-checkpoint settlement can itself emit several
+        Payment txs). Each response carries a ``marker`` when more
+        transactions remain; we resubmit with that marker until the chain
+        stops returning one (bounded by a page cap) so an older incoming
+        parcel is never silently dropped off the end of page 1 — the same
+        FALSE-NEGATIVE risk ``fetch_onchain_memos`` already guards against.
         """
         bp = state.backpack
         if not _HAS_XRPL or not bp.enabled or not bp.wallet_address:
             return []
 
+        new_parcels: list[ParcelRecord] = []
+        known_txids = {p.txid for p in bp.parcels if p.txid}
+        max_pages = 100  # safety bound: mirrors fetch_onchain_memos
+
         try:
             client = self._get_client()
-            resp = client.request(AccountTx(
-                account=bp.wallet_address,
-                limit=50,
-            ))
+            marker = None
+            pages = 0
+            for _ in range(max_pages):
+                resp = client.request(AccountTx(
+                    account=bp.wallet_address,
+                    limit=200,
+                    marker=marker,
+                ))
+                pages += 1
+                result = resp.result
 
-            new_parcels: list[ParcelRecord] = []
-            known_txids = {p.txid for p in bp.parcels if p.txid}
+                for tx_entry in result.get("transactions", []):
+                    tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
+                    meta = tx_entry.get("meta", {})
 
-            for tx_entry in resp.result.get("transactions", []):
-                tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
-                meta = tx_entry.get("meta", {})
+                    # Only incoming XRP payments
+                    if tx.get("TransactionType") != "Payment":
+                        continue
+                    if tx.get("Destination") != bp.wallet_address:
+                        continue
 
-                # Only incoming XRP payments
-                if tx.get("TransactionType") != "Payment":
-                    continue
-                if tx.get("Destination") != bp.wallet_address:
-                    continue
+                    sender = tx.get("Account", "")
+                    if not sender or sender == bp.wallet_address:
+                        continue
 
-                sender = tx.get("Account", "")
-                if not sender or sender == bp.wallet_address:
-                    continue
+                    # tx-hash location varies by AccountTx api_version
+                    # (ledger-007): api_version 2 puts `hash` on the wrapping
+                    # entry alongside `tx_json`; the legacy shape nests it
+                    # inside `tx`. Read the wrapper first, fall back to the
+                    # inner object.
+                    tx_hash = tx_entry.get("hash") or tx.get("hash", "")
+                    if not tx_hash or tx_hash in known_txids:
+                        continue
 
-                # tx-hash location varies by AccountTx api_version (ledger-007):
-                # api_version 2 puts `hash` on the wrapping entry alongside
-                # `tx_json`; the legacy shape nests it inside `tx`. Read the
-                # wrapper first, fall back to the inner object.
-                tx_hash = tx_entry.get("hash") or tx.get("hash", "")
-                if not tx_hash or tx_hash in known_txids:
-                    continue
+                    # Check for PARCEL memo
+                    memos = tx.get("Memos", [])
+                    if not memos:
+                        continue
 
-                # Check for PARCEL memo
-                memos = tx.get("Memos", [])
-                if not memos:
-                    continue
+                    memo_data = memos[0].get("Memo", {}).get("MemoData", "")
+                    parsed = _decode_parcel_memo(memo_data)
+                    if parsed is None:
+                        continue
 
-                memo_data = memos[0].get("Memo", {}).get("MemoData", "")
-                parsed = _decode_parcel_memo(memo_data)
-                if parsed is None:
-                    continue
+                    # Verify transaction succeeded
+                    result_code = meta.get("TransactionResult", "")
+                    if result_code != "tesSUCCESS":
+                        continue
 
-                # Verify transaction succeeded
-                result_code = meta.get("TransactionResult", "")
-                if result_code != "tesSUCCESS":
-                    continue
+                    parcel = ParcelRecord(
+                        parcel_id=tx_hash,
+                        sender=sender,
+                        contents={parsed["supply"]: parsed["amount"]},
+                        txid=tx_hash,
+                        accepted=False,
+                        day_received=state.day,
+                    )
+                    new_parcels.append(parcel)
+                    bp.parcels.append(parcel)
+                    known_txids.add(tx_hash)
 
-                parcel = ParcelRecord(
-                    parcel_id=tx_hash,
-                    sender=sender,
-                    contents={parsed["supply"]: parsed["amount"]},
-                    txid=tx_hash,
-                    accepted=False,
-                    day_received=state.day,
-                )
-                new_parcels.append(parcel)
-                bp.parcels.append(parcel)
+                # No marker → this account is fully paged.
+                marker = result.get("marker")
+                if not marker:
+                    break
 
+            log.info(
+                "check_parcels: pages=%d new_parcels=%d", pages, len(new_parcels),
+            )
             return new_parcels
 
         except Exception as e:
+            # A page beyond the first may already have appended parcels to
+            # bp.parcels before the request failed — report exactly what was
+            # found so far rather than a misleading empty result.
             log.warning("Parcel check failed: %s", e)
-            return []
+            return new_parcels
 
     def accept_parcel(
         self, parcel: ParcelRecord, state: RunState,
@@ -917,6 +1046,14 @@ class BackpackManager:
         named design lever, not a bare literal, documenting why generosity is
         bounded — a parcel cannot trivialize the survival pressure.
 
+        Clamped on BOTH ends (ledger-CRIT-1): ``_decode_parcel_memo`` now
+        rejects a non-positive amount before a ParcelRecord is ever created
+        from the receive path, but ``contents`` can also be populated
+        directly (tests, saves, a future non-XRPL channel) — this is a
+        second, independent floor so a negative content value can never
+        reduce supplies, matching the cap's existing promise on the upper
+        side.
+
         Idempotent (ledger-005): a second accept is a no-op so a double-trigger
         from any caller (the TUI path does not guard) cannot double the supplies
         and break conservation. Mirrors refuse_parcel's `accepted` guard.
@@ -925,7 +1062,7 @@ class BackpackManager:
             return False
 
         for key, amount in parcel.contents.items():
-            capped_amount = min(amount, cap)
+            capped_amount = max(0, min(amount, cap))
             current = state.supplies.get(key)
             state.supplies.set(key, current + capped_amount)
 
