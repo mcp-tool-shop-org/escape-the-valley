@@ -471,10 +471,13 @@ class BackpackManager:
                 wallet_address=bp.wallet_address,
             )
 
-        client = self._get_client()
         resuming = bool(bp.wallet_address and bp.issuer_secret)
 
+        # F-9517936e: _get_client / from_seed / faucet / mint all live inside
+        # this try so a client-construct failure returns EnableResult
+        # (success=False), matching send_parcel / settle. Never raise out.
         try:
+            client = self._get_client()
             if resuming:
                 # Reuse the wallets a prior partial enable already created —
                 # generating new faucet wallets would strand the old addresses
