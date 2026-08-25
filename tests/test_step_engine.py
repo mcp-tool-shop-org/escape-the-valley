@@ -2955,10 +2955,9 @@ def test_gameengine_town_trade_mirrors_stepengine(monkeypatch):
 
 def test_gameengine_night_travel_spends_lantern_oil(monkeypatch):
     """F-6e017443: CLI night travel must spend lantern_oil (is_travel=True)."""
-    from escape_the_valley.models import TimeOfDay
-
     import escape_the_valley.engine as engine_mod
     from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
 
     monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
     monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
@@ -2978,10 +2977,9 @@ def test_gameengine_night_travel_spends_lantern_oil(monkeypatch):
 
 def test_gameengine_night_danger_without_oil(monkeypatch):
     """F-6e017443: GameEngine calls check_night_travel_danger after travel."""
-    from escape_the_valley.models import TimeOfDay
-
     import escape_the_valley.engine as engine_mod
     from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
 
     messages: list[str] = []
     monkeypatch.setattr(
@@ -3013,10 +3011,9 @@ def test_gameengine_night_danger_without_oil(monkeypatch):
 def test_gameengine_fixed_seed_reproduces(monkeypatch):
     """Same seed on the fixed CLI engine must still reproduce (the note
     that trail-play seeds diverge from *pre-fix* GameEngine is expected)."""
-    from escape_the_valley.models import TimeOfDay
-
     import escape_the_valley.engine as engine_mod
     from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
 
     monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
     monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)

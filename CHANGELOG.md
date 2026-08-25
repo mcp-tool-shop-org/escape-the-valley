@@ -6,6 +6,22 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **Loaded supplies go through `SuppliesState.set` clamps.** A hostile or
+  legacy save with negative stacks no longer loads illegal values.
+- **Malformed `rng_state` degrades to counter-replay.** Load no longer
+  bricks `trail play` on `SeededRNG.setstate`.
+- **GameEngine gained StepEngine's arrival/travel extras** (water refill,
+  supply cache, town trade, night-oil danger). Pairwise port, not a merge.
+  Same seed on the fixed CLI engine still reproduces.
+- **GM journal tags and scene narration no longer TypeError** on None /
+  non-list tags or a list-shaped narration. GM-JSON still never bricks a run.
+- **Ledger settle wraps `Wallet.from_seed` / memo build** into
+  `SettlementResult` failure. Testnet only. No invented txid-skipping.
+- **Missing `event_skeletons.json` still returns `[]` but logs ERROR.**
+- **`trail self-check` probes event-library count, voice, and xrpl extra.**
+  No third `__main__.py` env hook.
+- **SECURITY.md matches the live CLI:** GM on by default (local Ollama;
+  `--gm-off` to disable); XRPL off until enable.
 - **TUI markup splices neutralize leftover `[`.** `textual.markup.escape()`
   leaves an unmatched `[` intact, so a GM choice label like `Look [ west`
   crashed EventBar on chrome `[/i]`. Same class as the ledger overlay fix;
