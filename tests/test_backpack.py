@@ -2373,3 +2373,217 @@ class TestSettleCrashWindow:
 
         assert submitted == ["WTR"]
         assert reloaded.backpack.pending_settlements == []
+
+
+# ──────────────────────────────────────────────────────────────────────
+# F-9d7eb977: the per-key ``self._persist_state(state)`` call inside BOTH
+# settle()'s and _retry_pending()'s inner per-key loop used to fire BEFORE
+# the bookkeeping that makes that snapshot internally consistent -- the
+# settlement receipt (bp.settlements.append) and the pending-queue
+# narrowing/removal both used to happen only once, in a single pass AFTER
+# the whole inner loop finished, not atomically with the key that
+# triggered them. A crash between a per-key persist call and that later
+# bookkeeping durably persists a key that is simultaneously "already
+# folded into the baseline" and "still owed" (per the pending queue) or
+# "unreceipted" (per bp.settlements) -- the next retry/settle resubmits a
+# real duplicate on-chain Payment. TestSettleCrashWindow above proves the
+# END-TO-END, post-return behavior is correct; these tests use the
+# finding's own repro method -- a snapshotting persist hook that records
+# state at EVERY call, not just the last one -- because the bug is
+# invisible to any assertion that only looks at the method's final
+# return value.
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _snapshotting_persist(snapshots: list[dict]):
+    """Build a ``persist`` callable that appends a deep-ish copy of every
+    ledger-relevant field to ``snapshots`` on each call, so a test can
+    inspect exactly what would have hit disk at EACH crash point during
+    settle()/_retry_pending(), not only after the method returns.
+    """
+
+    def _persist(state) -> None:
+        bp = state.backpack
+        snapshots.append({
+            "last_settled_supplies": dict(bp.last_settled_supplies),
+            "settlement_deltas": [dict(r.deltas) for r in bp.settlements],
+            "pending_deltas": [dict(r.deltas) for r in bp.pending_settlements],
+        })
+
+    return _persist
+
+
+def _assert_every_snapshot_self_consistent(
+    snapshots: list[dict], pre_baseline: dict[str, int],
+):
+    """F-9d7eb977's acceptance bar, checked against EVERY persisted
+    snapshot (not just the final one): a key that has advanced past its
+    pre-call baseline in ``last_settled_supplies`` must, in that SAME
+    snapshot, (a) already have a matching settlement record, and (b)
+    never still appear in any pending record's deltas. Either violation
+    means a crash immediately after that snapshot leaves the key durably
+    in a state a later retry pass cannot tell apart from "never
+    attempted" -- a genuine duplicate on-chain settlement.
+    """
+    for i, snap in enumerate(snapshots):
+        advanced = {
+            key for key, baseline in pre_baseline.items()
+            if snap["last_settled_supplies"].get(key, baseline) != baseline
+        }
+        if not advanced:
+            continue
+
+        recorded: set[str] = set()
+        for deltas in snap["settlement_deltas"]:
+            recorded.update(deltas.keys())
+        missing_receipt = advanced - recorded
+        assert not missing_receipt, (
+            f"snapshot #{i}: {sorted(missing_receipt)} advanced in the "
+            f"baseline with NO matching settlement record -- "
+            f"F-9d7eb977 duplicate-payment window (last_settled_supplies="
+            f"{snap['last_settled_supplies']!r}, settlements="
+            f"{snap['settlement_deltas']!r})"
+        )
+
+        still_pending: set[str] = set()
+        for deltas in snap["pending_deltas"]:
+            still_pending.update(deltas.keys())
+        overlap = advanced & still_pending
+        assert not overlap, (
+            f"snapshot #{i}: {sorted(overlap)} advanced in the baseline "
+            f"while STILL listed as pending -- F-9d7eb977 "
+            f"duplicate-payment window (last_settled_supplies="
+            f"{snap['last_settled_supplies']!r}, pending="
+            f"{snap['pending_deltas']!r})"
+        )
+
+
+_PRE_BASELINE = {"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3}
+
+
+class TestPersistOrderingAtomicity:
+    """Reproduces F-9d7eb977's three repro scenarios with a snapshotting
+    persist hook, proving the reorder actually closes the window rather
+    than merely rearranging comments. Each test fails against the
+    pre-fix ordering (persist called before the receipt/narrowing
+    bookkeeping) and passes against the fix (persist called after it).
+    """
+
+    @requires_xrpl
+    def test_settle_multi_key_batch_never_snapshots_advanced_without_receipt(
+        self, monkeypatch,
+    ):
+        """Repro 3: a fresh 2-key batch where BOTH Payments confirm.
+        Pre-fix, the combined SettlementRecord was only built and
+        appended to bp.settlements in a single pass AFTER the whole
+        per-key loop -- so 2 of the pass's persist calls showed
+        last_settled_supplies fully advanced for one or both keys while
+        bp.settlements was still completely empty.
+        """
+        state = _enabled_state()
+        state.supplies.set("food", 40)   # -10
+        state.supplies.set("water", 44)  # -6
+
+        snapshots: list[dict] = []
+        mgr = BackpackManager(persist=_snapshotting_persist(snapshots))
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["BURN-A", "BURN-B"])
+
+        res = mgr.settle(state, "TownA")
+
+        assert res.success is True
+        # One persist call per confirmed key -- not one extra, batched
+        # call after the loop on top of the per-key ones.
+        assert len(snapshots) == 2
+        _assert_every_snapshot_self_consistent(snapshots, _PRE_BASELINE)
+
+        # End-to-end sanity: the final snapshot is fully resolved.
+        final = snapshots[-1]
+        assert final["last_settled_supplies"]["food"] == 40
+        assert final["last_settled_supplies"]["water"] == 44
+        assert final["settlement_deltas"] == [{"food": -10, "water": -6}]
+
+    @requires_xrpl
+    def test_retry_pending_single_key_never_snapshots_advanced_while_pending(
+        self, monkeypatch,
+    ):
+        """Repro 1 ("the common case"): a single-key pending record
+        {food: -10}. Pre-fix, folding food's confirmation into the
+        baseline and persisting happened strictly BEFORE the post-loop
+        queue narrowing/removal -- so the FIRST of two persist calls
+        showed food already advanced in last_settled_supplies while
+        bp.pending_settlements STILL listed the unchanged, un-narrowed
+        record for it.
+        """
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"food": -10},
+                status="pending",
+                memo=_settlement_memo_text(state.run_id, 4, {"food": -10}),
+            ),
+        ]
+
+        snapshots: list[dict] = []
+        mgr = BackpackManager(persist=_snapshotting_persist(snapshots))
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["BURN-RETRY-FOOD"])
+
+        mgr._retry_pending(state)
+
+        # One persist call for the fold+narrow+receipt, one more for the
+        # now-empty record's removal from the live queue.
+        assert len(snapshots) == 2
+        _assert_every_snapshot_self_consistent(snapshots, _PRE_BASELINE)
+
+        final = snapshots[-1]
+        assert final["last_settled_supplies"]["food"] == 40
+        assert final["pending_deltas"] == []
+        assert final["settlement_deltas"] == [{"food": -10}]
+
+    @requires_xrpl
+    def test_retry_pending_partial_failure_never_snapshots_inconsistent_state(
+        self, monkeypatch,
+    ):
+        """Repro 2: a 2-key pending record where food clears and water
+        then fails on the SAME retry pass. Pre-fix, the mid-pass persist
+        (right after food confirms) showed food folded into the baseline
+        while the record still listed BOTH food and water un-narrowed,
+        and bp.settlements was still empty -- a crash there loses both
+        the eventual settled_record for food and the narrowing, so the
+        next pass would replay food.
+        """
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"food": -10, "water": -6},
+                status="pending",
+                memo=_settlement_memo_text(
+                    state.run_id, 4, {"food": -10, "water": -6},
+                ),
+            ),
+        ]
+
+        snapshots: list[dict] = []
+        mgr = BackpackManager(persist=_snapshotting_persist(snapshots))
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(
+            monkeypatch, submit_hashes=["BURN-RETRY-FOOD2"], fail_keys={"WTR"},
+        )
+
+        mgr._retry_pending(state)
+
+        # One persist for food's fold+narrow+receipt, one more for the
+        # post-loop memo refresh on the still-narrowed (water-only) record.
+        assert len(snapshots) == 2
+        _assert_every_snapshot_self_consistent(snapshots, _PRE_BASELINE)
+
+        final = snapshots[-1]
+        assert final["last_settled_supplies"]["food"] == 40
+        assert "water" not in final["last_settled_supplies"] or (
+            final["last_settled_supplies"]["water"] == 50
+        )
+        assert final["pending_deltas"] == [{"water": -6}]
+        assert final["settlement_deltas"] == [{"food": -10}]

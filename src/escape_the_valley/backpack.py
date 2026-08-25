@@ -10,10 +10,11 @@ reports unavailable and all operations are no-ops.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from .backpack_models import (
@@ -591,12 +592,18 @@ class BackpackManager:
         conservation math could not detect, because the crashed session's
         record was simply never persisted, so it was never summed either
         (F-d178410b). When this manager was constructed with a ``persist``
-        hook, the baseline fold below now calls it immediately after EACH
-        resource confirms — before moving to the next one — and again after
-        this batch's SettlementRecord is appended, so a crash can lose at
-        most the resource(s) not yet attempted this pass, never replay one
-        already confirmed. Without a ``persist`` hook (the default), this
-        method's observable behavior is byte-for-byte unchanged from before.
+        hook, the baseline fold below calls it immediately after EACH
+        resource confirms — but only AFTER that SAME resource's slice of the
+        settlement receipt has also been folded into ``bp.settlements``
+        in-memory (F-9d7eb977: the receipt is now built incrementally,
+        one resource at a time, inside this same loop — never as a single
+        pass after the loop ends). Ordering the persist call last within
+        each iteration means every snapshot it writes is self-consistent: a
+        resource is never seen advanced in the baseline without a matching
+        settlement record, which matters the moment a crash lands between
+        two resources of a multi-resource batch. Without a ``persist`` hook
+        (the default), this method's observable behavior is byte-for-byte
+        unchanged from before.
         """
         if not _HAS_XRPL:
             return SettlementResult(success=False, message="xrpl-py not available")
@@ -635,6 +642,7 @@ class BackpackManager:
         confirmed: dict[str, int] = {}
         confirmed_txids: list[str] = []
         failure: Exception | None = None
+        settled_record: SettlementRecord | None = None
 
         for key, diff in deltas.items():
             code = XRPL_TOKEN_MAP[key][0]
@@ -674,42 +682,44 @@ class BackpackManager:
                 confirmed_txids.append(txid)
             confirmed[key] = diff
 
-            # Fold THIS resource's confirmation into the baseline, and
-            # persist, immediately — before moving to the next resource
-            # (F-d178410b). Relocated here from a single post-loop pass so a
-            # crash after this point (including one before the batch's
-            # SettlementRecord below is built) can lose at most the
-            # resource(s) not yet attempted, never cause a later run to
-            # recompute and resubmit a Payment for one that already cleared.
+            # Fold THIS resource's confirmation into the baseline —
+            # before moving to the next resource (F-d178410b). Relocated
+            # here from a single post-loop pass so a crash after this point
+            # can lose at most the resource(s) not yet attempted, never
+            # cause a later run to recompute and resubmit a Payment for one
+            # that already cleared.
             bp.last_settled_supplies[key] = (
                 bp.last_settled_supplies.get(key, 0) + diff
             )
-            self._persist_state(state)
 
-        # Record the settlement history for whatever cleared on-chain THIS
-        # pass (ledger-CRIT-2) — even when a LATER key then fails, an
-        # already-confirmed Payment must never be queued for re-submission by
-        # a retry. The baseline itself was already folded (and persisted)
-        # per-resource above; this only builds the receipt.
-        settled_record: SettlementRecord | None = None
-        if confirmed:
-            settled_record = SettlementRecord(
-                day=state.day,
-                location=location,
-                deltas=confirmed,
-                txids=confirmed_txids,
-                status="settled",
-                # Matches the actual on-chain bytes (ledger-003): every
-                # Payment in this batch — confirmed or not — carried this
-                # same full-batch memo.
-                memo=_settlement_memo_text(state.run_id, state.day, deltas),
-                timestamp=datetime.now(UTC).isoformat(),
-            )
-            bp.settlements.append(settled_record)
-            # Persist again so the receipt and the baseline it corresponds
-            # to are never durable at different times (F-d178410b) — without
-            # this, a crash between the two could leave a persisted baseline
-            # with no matching settlement record to explain it.
+            # Extend (or start) this batch's settlement receipt with THIS
+            # key's confirmation — BEFORE persisting (F-9d7eb977). Building
+            # the receipt once, in a single pass after the whole loop ends,
+            # meant every per-key persist call above captured a baseline
+            # already advanced for this key while ``bp.settlements`` still
+            # had no record at all for it — a crash there durably persisted
+            # "paid but not recorded," and the very next retry pass would
+            # have no pending record to stop it from resubmitting. Building
+            # the SAME settled_record incrementally — reusing the
+            # ``confirmed``/``confirmed_txids`` objects by reference, so
+            # later per-key appends to them are already visible here — means
+            # this key's slice of the receipt is durable in the SAME
+            # snapshot as its baseline advance, every time.
+            if settled_record is None:
+                settled_record = SettlementRecord(
+                    day=state.day,
+                    location=location,
+                    deltas=confirmed,
+                    txids=confirmed_txids,
+                    status="settled",
+                    # Matches the actual on-chain bytes (ledger-003): every
+                    # Payment in this batch — confirmed or not — carries
+                    # this same full-batch memo.
+                    memo=_settlement_memo_text(state.run_id, state.day, deltas),
+                    timestamp=datetime.now(UTC).isoformat(),
+                )
+                bp.settlements.append(settled_record)
+
             self._persist_state(state)
 
         if failure is None:
@@ -793,12 +803,19 @@ class BackpackManager:
         but before the caller's next save reverted BOTH the baseline and
         ``bp.pending_settlements`` back to their stale, wider shape — so the
         next retry pass resubmitted a Payment that had already cleared.
-        With a ``persist`` hook, ``bp.pending_settlements`` is now rebuilt
-        incrementally (a resolved record is removed or narrowed in the live
-        list the moment it resolves, not just once at the end of the whole
-        pass) and persisted right after each record resolves — settled or
-        still-pending — so the same key can never be replayed. Without a
-        ``persist`` hook (the default), behavior is unchanged from before.
+
+        With a ``persist`` hook, each key's fold, its removal from the live
+        pending record, and its slice of the settlement receipt are all
+        applied to memory BEFORE that key's persist call fires (F-9d7eb977) —
+        not once per whole record after its inner loop ends. Sequencing
+        persist any earlier let it write a snapshot with the baseline
+        already advanced for a key while ``bp.pending_settlements`` still
+        listed that same key as outstanding and ``bp.settlements`` had no
+        record of it at all — exactly the ambiguous state a crash-recovery
+        read cannot tell apart from "never attempted," so the next retry
+        pass would resubmit a Payment that had already cleared on-chain.
+        Without a ``persist`` hook (the default), behavior is unchanged from
+        before.
         """
         bp = state.backpack
         if not bp.pending_settlements:
@@ -818,12 +835,20 @@ class BackpackManager:
         moved = 0  # settlements that cleared on this retry pass (ledger-B07)
 
         for record in to_process:
-            memos = _build_memo(state.run_id, record.day, record.deltas)
+            # Snapshot the pre-narrowing deltas ONCE, before this record's
+            # inner loop starts narrowing ``record.deltas`` in place below
+            # (F-9d7eb977) — both the tx-level memo and the eventual
+            # settled_record's memo must match the full set every Payment in
+            # this pass actually carried on-chain, not whatever remains
+            # after some keys have already been removed.
+            original_deltas = dict(record.deltas)
+            memos = _build_memo(state.run_id, record.day, original_deltas)
             confirmed: dict[str, int] = {}
             confirmed_txids: list[str] = []
             failure: Exception | None = None
+            settled_record: SettlementRecord | None = None
 
-            for key, diff in record.deltas.items():
+            for key, diff in original_deltas.items():
                 code = XRPL_TOKEN_MAP[key][0]
                 try:
                     if diff < 0:
@@ -859,39 +884,57 @@ class BackpackManager:
                     confirmed_txids.append(txid)
                 confirmed[key] = diff
 
-                # Fold THIS key's confirmation into the baseline, and
-                # persist, immediately — same rationale as settle() above
-                # (F-d178410b). Conservation fix (ENG-A-08, extended by
-                # ledger-CRIT-2): a failed settle() leaves the baseline
-                # un-advanced and enqueues this pending record; now that this
-                # key is settled on-chain, fold its signed delta into the
-                # baseline so the *next* fresh settle() measures current
-                # against a baseline that already accounts for it. Without
-                # this, settle() would recompute (current - baseline) over
-                # the WHOLE interval — including the just-retried delta —
-                # paying it on-chain twice and double-summing it in
-                # reconcile(), breaking 'minted + Σdeltas == final'.
+                # Fold THIS key's confirmation into the baseline — same
+                # rationale as settle() above (F-d178410b). Conservation fix
+                # (ENG-A-08, extended by ledger-CRIT-2): a failed settle()
+                # leaves the baseline un-advanced and enqueues this pending
+                # record; now that this key is settled on-chain, fold its
+                # signed delta into the baseline so the *next* fresh
+                # settle() measures current against a baseline that already
+                # accounts for it. Without this, settle() would recompute
+                # (current - baseline) over the WHOLE interval — including
+                # the just-retried delta — paying it on-chain twice and
+                # double-summing it in reconcile(), breaking
+                # 'minted + Σdeltas == final'.
                 bp.last_settled_supplies[key] = (
                     bp.last_settled_supplies.get(key, 0) + diff
                 )
+
+                # Narrow the LIVE record — ``record`` is the SAME object
+                # bp.pending_settlements still holds, so removing this key
+                # here is visible there too, immediately — ledger-CRIT-2:
+                # resubmitting an already-confirmed key on a later retry
+                # would double-pay it on-chain.
+                del record.deltas[key]
+
+                # Extend (or start) this pass's settlement receipt with THIS
+                # key — BEFORE persisting (F-9d7eb977), for the identical
+                # reason settle() now does the same: a persist call that
+                # fires before both of these updates can write a snapshot
+                # with the baseline advanced, the key still listed pending,
+                # and no settlement record to explain either — the exact
+                # ambiguity a crash-recovery read cannot resolve.
+                if settled_record is None:
+                    settled_record = SettlementRecord(
+                        day=record.day,
+                        location=record.location,
+                        deltas=confirmed,
+                        txids=confirmed_txids,
+                        status="settled",
+                        # Match the on-chain memo bytes actually written
+                        # above (ledger-003): every Payment resubmitted for
+                        # this record carried the record's full
+                        # (pre-narrowing) delta text.
+                        memo=_settlement_memo_text(
+                            state.run_id, record.day, original_deltas,
+                        ),
+                        timestamp=datetime.now(UTC).isoformat(),
+                    )
+                    bp.settlements.append(settled_record)
+
                 self._persist_state(state)
 
-            if confirmed:
-                settled_record = SettlementRecord(
-                    day=record.day,
-                    location=record.location,
-                    deltas=confirmed,
-                    txids=confirmed_txids,
-                    status="settled",
-                    # Match the on-chain memo bytes actually written above
-                    # (ledger-003): every Payment resubmitted for this record
-                    # carried the record's full (pre-narrowing) delta text.
-                    memo=_settlement_memo_text(
-                        state.run_id, record.day, record.deltas,
-                    ),
-                    timestamp=datetime.now(UTC).isoformat(),
-                )
-                bp.settlements.append(settled_record)
+            if settled_record is not None:
                 moved += 1
                 log.info(
                     "retry settled: day=%d deltas=%s txids=%s",
@@ -899,27 +942,23 @@ class BackpackManager:
                 )
 
             if failure is not None:
-                remaining = {
-                    k: v for k, v in record.deltas.items() if k not in confirmed
-                }
                 log.warning(
                     "Retry settlement day %d failed: %s", record.day, failure,
                 )
-                # Narrow the record to exactly what did NOT clear this pass —
-                # ledger-CRIT-2: resubmitting the confirmed keys above on a
-                # later retry would double-pay them on-chain. Mutated in
-                # place (not a copy), so this is visible through
-                # bp.pending_settlements too — the record stays in the live
-                # queue, just narrowed.
-                record.deltas = remaining
+                # record.deltas was already narrowed incrementally above —
+                # each confirmed key was removed from it the moment that key
+                # cleared — so it already holds exactly what did NOT clear
+                # this pass. Refresh the memo to match the narrowed shape.
                 record.memo = _settlement_memo_text(
-                    state.run_id, record.day, remaining,
+                    state.run_id, record.day, record.deltas,
                 )
             else:
-                # Fully confirmed: drop it from the LIVE queue now — not just
-                # from a local list reassigned once at the end of the whole
-                # pass (F-d178410b) — so the persisted state right after this
-                # record can never show it as still needing a retry.
+                # Fully confirmed: record.deltas is now empty (every key was
+                # removed above as it cleared) — drop the emptied record
+                # from the LIVE queue. This still runs strictly after every
+                # per-key persist call above, so the persisted state right
+                # after this record can never show it as still needing a
+                # retry.
                 bp.pending_settlements = [
                     r for r in bp.pending_settlements if r is not record
                 ]
