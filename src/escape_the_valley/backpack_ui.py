@@ -43,30 +43,26 @@ def _token_display_label(code: str) -> str:
 
 # ── Ledger Menu Overlay ──────────────────────────────────────────
 
+# 80x24 inner box is 34x9 (width 50%, height 60%, padding 1 2). E/L/Esc
+# (OFF) and W/P/S/D/Esc (ON) sit in the first painted lines so wrapping
+# body copy cannot push them below the fold. Do not rely on overflow-y.
 LEDGER_OFF_TEXT = """\
 [b]Ledger Backpack: OFF[/b]
-
-Track your 5 core supplies (FOOD, WATR, MEDS, AMMO, PART)
-as receipted tokens on XRPL Testnet.
-
-Optional. The trail is the same either way.
-
   [b]E[/b]) Enable Backpack
   [b]L[/b]) Learn what this does
   [b]Esc[/b]) Close
+Track FOOD, WATR, MEDS, AMMO, PART on XRPL Testnet.
+Optional. The trail is the same either way.
 """
 
 LEDGER_ON_TEXT = """\
 [b]Ledger Backpack: ON[/b]  (Testnet)
-
-Supplies are receipted at town checkpoints.
-Parcels may arrive from other travelers.
-
   [b]W[/b]) Wallet info
   [b]P[/b]) Send parcel to traveler
   [b]S[/b]) Settle now
   [b]D[/b]) Disable Backpack
   [b]Esc[/b]) Close
+Supplies settle at town. Parcels may arrive.
 """
 
 
@@ -79,15 +75,14 @@ class LedgerMenuOverlay(Static):
 
 # ── Nudge Overlay ────────────────────────────────────────────────
 
+# A/R-style packed actions: max-height 40% at 80x24 is inner 34x4.
+# E/N/L must sit in those painted lines. This overlay offers no Esc row
+# (Escape still closes via on_key).
 NUDGE_TEXT = """\
 [b]Ledger Backpack available[/b]
-
-Track your supplies on XRPL Testnet.
-Optional — the trail works the same either way.
-
-  [b]E[/b]) Enable now
-  [b]N[/b]) Not now (won't ask again)
+  [b]E[/b]) Enable now   [b]N[/b]) Not now
   [b]L[/b]) Learn more
+Optional. Same trail either way.
 """
 
 
@@ -100,15 +95,15 @@ class NudgeOverlay(Static):
 
 # ── Enable Flow Overlay ─────────────────────────────────────────
 
-ENABLE_PROGRESS_TEXT = """\
-[b]Enabling Ledger Backpack...[/b]
-
-Creating wallets on XRPL Testnet...
-This may take a moment.
-"""
-
 # No spare blank rows: at 80x24 the overlay is 34x7 inner (50% x max-height
 # 50%, padding 1 2). Esc must sit in those painted lines, not below the fold.
+ENABLE_PROGRESS_TEXT = """\
+[b]Enabling Ledger Backpack...[/b]
+Creating wallets on XRPL Testnet...
+This may take a moment.
+Press [b]Esc[/b] to close.
+"""
+
 ENABLE_SUCCESS_TEXT = """\
 [b]Ledger Backpack: Enabled[/b]
 Wallet: {address}
@@ -116,11 +111,13 @@ Your pack is now receipted. Supplies settle at town checkpoints.
 Press [b]Esc[/b] to continue.
 """
 
+# Esc above wrapping {message}: production faucet / extra-missing copy
+# used to paint only heading + wrapped body, with Esc in visual.plain.
+# Trailer restated the faucet sentence — dropped so the message itself fits.
 ENABLE_FAILURE_TEXT = """\
 [b]Couldn't enable right now[/b]
-{message}
-The trail continues. Try again at the next town from the Ledger menu (L).
 Press [b]Esc[/b] to continue.
+{message}
 """
 
 
@@ -234,28 +231,20 @@ class WalletInfoOverlay(Static):
 
 # ── Learn More Overlay ───────────────────────────────────────────
 
+# 80x24 inner box is 42x11 (width 60%, height 70%, padding 1 2). Esc sits
+# after the FOOD mapping, not after the quote, so it paints at 80x24 and
+# 120x30. Do not rely on overflow-y: auto.
 LEARN_TEXT = """\
 [b]What is the Ledger Backpack?[/b]
-
-The Ledger Backpack tracks your 5 core supplies
-as tokens on the XRPL Testnet:
-
+Tracks 5 core supplies as tokens on XRPL Testnet:
   FOOD (FOD) • WATR (WTR) • MEDS (MED)
   AMMO (AMO) • PART (PRT)
-
-At each town, your supply changes are "settled" —
-recorded as transactions on a public ledger.
-
-Other travelers can send you parcels (bonus supplies)
-using your wallet address. Parcels are capped
-so they don't break the game balance.
-
-This is testnet — no real money. Just receipts.
-
+Press [b]Esc[/b] to close.
+Settled at each town as public receipts.
+Travelers can send capped parcels to your wallet.
+Testnet — no real money. Just receipts.
 "Receipts don't make the trail kinder.
  They just make it honest."
-
-Press [b]Esc[/b] to close.
 """
 
 
@@ -268,37 +257,25 @@ class LearnMoreOverlay(Static):
 
 # ── Send Parcel Overlay ────────────────────────────────────────
 
+# 80x24 inner box is 34x8 (width 50%, max-height 60%, padding 1 2).
+# cancel / Esc sit above wrapping supplies or error copy.
 SEND_PARCEL_TEXT = """\
 [b]Send Parcel[/b]
-
-Send supplies to another traveler's wallet.
-They'll find your parcel at their next town.
-
-Supply types: food, water, meds, ammo, parts
-
-Current supplies:
-{supplies_text}
-
-Enter command in the format:
-  [b]<address> <supply> <amount>[/b]
-
 Type [b]cancel[/b] to go back.
+Format: [b]<address> <supply> <amount>[/b]
+{supplies_text}
 """
 
 SEND_PARCEL_SUCCESS_TEXT = """\
 [b]Parcel sent![/b]
-
-{message}
-
 Press [b]Esc[/b] to continue.
+{message}
 """
 
 SEND_PARCEL_FAILURE_TEXT = """\
 [b]Send failed[/b]
-
-{message}
-
 Press [b]Esc[/b] to try again.
+{message}
 """
 
 
