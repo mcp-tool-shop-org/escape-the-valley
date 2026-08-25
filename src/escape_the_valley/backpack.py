@@ -22,6 +22,8 @@ from .backpack_models import (
     PARCEL_ACCEPT_CAP,
     TESTNET_HOSTS,
     TESTNET_URL,
+    XRPL_EXTRA_MISSING_MSG,
+    XRPL_EXTRA_PIP,
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
     ParcelRecord,
@@ -445,10 +447,7 @@ class BackpackManager:
         if not _HAS_XRPL:
             return EnableResult(
                 success=False,
-                message=(
-                    "xrpl-py is not installed. "
-                    "Install with: pip install escape-the-valley[xrpl]"
-                ),
+                message=XRPL_EXTRA_MISSING_MSG,
             )
 
         bp = state.backpack
@@ -612,7 +611,9 @@ class BackpackManager:
         unchanged from before.
         """
         if not _HAS_XRPL:
-            return SettlementResult(success=False, message="xrpl-py not available")
+            return SettlementResult(
+                success=False, message=XRPL_EXTRA_MISSING_MSG,
+            )
 
         bp = state.backpack
         if not bp.enabled or not bp.wallet_address:
@@ -1065,11 +1066,11 @@ class BackpackManager:
         if recipient == bp.wallet_address:
             return SendResult(success=False, message="Cannot send to yourself.")
 
-        # XRPL required for actual send
+        # XRPL required for actual send (F-64e78470: same pip extra as enable)
         if not _HAS_XRPL:
             return SendResult(
                 success=False,
-                message="xrpl-py is not installed.",
+                message=XRPL_EXTRA_MISSING_MSG,
             )
 
         # Build memo and send XRP micropayment (12 drops = minimum)
@@ -1369,7 +1370,15 @@ class BackpackManager:
         }
 
         # Query live balances if available
-        if _HAS_XRPL and bp.enabled:
+        if not _HAS_XRPL:
+            # F-64e78470: extra gone after an enabled save must not look
+            # like an empty wallet or a network miss. Testnet extra, not
+            # a wallet/mainnet issue. Overlay keys extra_missing so it
+            # can name the pip extra instead of "Balances: unavailable".
+            info["balances"] = {}
+            info["balances_error"] = True
+            info["extra_missing"] = True
+        elif bp.enabled:
             try:
                 client = self._get_client()
                 resp = client.request(AccountLines(
@@ -1410,6 +1419,11 @@ class BackpackManager:
         backlog. The cli-tui renders this string verbatim.
         """
         bp = state.backpack
+        if not _HAS_XRPL and bp.enabled:
+            # F-64e78470: extra gone after an enabled save must not leave
+            # "Ledger: ON". Name the pip extra; this is not a wallet miss
+            # and not the B04 testnet-unreachable signal.
+            return f"Ledger: extra missing — {XRPL_EXTRA_PIP}"
         if bp.enabled:
             pending = len(bp.pending_settlements)
             if pending and bp.last_settle_failed:

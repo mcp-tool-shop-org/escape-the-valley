@@ -444,7 +444,8 @@ def run_proof(
     mgr = BackpackManager()
     if not mgr.available:
         raise RuntimeError(
-            "xrpl-py is not installed. Install with: pip install escape-the-valley[xrpl]"
+            "xrpl-py is not installed. "
+            'Install with: pip install "escape-the-valley[xrpl]"'
         )
 
     state = create_new_run(seed=seed)

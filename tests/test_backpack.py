@@ -73,16 +73,18 @@ class TestBackpackManagerAvailability:
         line = mgr.status_line(state)
         assert "OFF" in line
 
-    def test_status_line_on(self):
+    def test_status_line_on(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         mgr = BackpackManager()
         line = mgr.status_line(state)
         assert "ON" in line
 
-    def test_status_line_unsettled(self):
+    def test_status_line_unsettled(self, monkeypatch):
         from escape_the_valley.backpack_models import SettlementRecord
 
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         state.backpack.pending_settlements = [
@@ -93,9 +95,10 @@ class TestBackpackManagerAvailability:
         assert "Unsettled: 1 checkpoint" in line
         assert "checkpoints" not in line  # singular
 
-    def test_status_line_unsettled_plural(self):
+    def test_status_line_unsettled_plural(self, monkeypatch):
         from escape_the_valley.backpack_models import SettlementRecord
 
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         state.backpack.pending_settlements = [
@@ -234,12 +237,13 @@ class TestAcceptParcel:
 
 
 class TestSettleNoXrpl:
-    def test_settle_not_enabled(self):
+    def test_settle_not_enabled(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         mgr = BackpackManager()
         result = mgr.settle(state, "TestTown")
         assert result.success is False
-        assert "not enabled" in result.message.lower() or "not available" in result.message.lower()
+        assert "not enabled" in result.message.lower()
 
     def test_enable_without_xrpl(self):
         """Enable should fail gracefully if xrpl-py not installed."""
@@ -249,6 +253,7 @@ class TestSettleNoXrpl:
             result = mgr.enable(state)
             assert result.success is False
             assert "xrpl" in result.message.lower()
+            assert 'pip install "escape-the-valley[xrpl]"' in result.message
 
 
 class TestParcelMemo:
@@ -2062,7 +2067,8 @@ class TestClientAndFromSeedSweep:
 class TestStatusLineDegraded:
     """ledger-B04: status_line renders a distinct offline state."""
 
-    def test_degraded_line_when_failed_and_pending(self):
+    def test_degraded_line_when_failed_and_pending(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -2077,7 +2083,8 @@ class TestStatusLineDegraded:
         assert "testnet unreachable" in line.lower()
         assert "2 unsettled checkpoints" in line
 
-    def test_singular_unsettled_checkpoint(self):
+    def test_singular_unsettled_checkpoint(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -2090,9 +2097,10 @@ class TestStatusLineDegraded:
         assert "1 unsettled checkpoint" in line
         assert "checkpoints" not in line  # singular
 
-    def test_pending_without_failure_uses_plain_count(self):
+    def test_pending_without_failure_uses_plain_count(self, monkeypatch):
         """A backlog that did NOT fail (last_settle_failed False) reads plainly,
         not as 'testnet unreachable'."""
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -2317,6 +2325,106 @@ class TestWalletInfoBalancesError:
         info = mgr.wallet_info(state)
         assert info["balances_error"] is False
         assert info["balances"] == {"FOD": 38}
+
+
+class TestExtraMissingRecovery:
+    """F-64e78470: extra gone after an already-enabled save must not
+    claim Ledger: ON, and must name the pip extra (testnet, not wallet).
+    """
+
+    _PIP = 'pip install "escape-the-valley[xrpl]"'
+
+    def test_status_line_does_not_claim_on(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        line = mgr.status_line(state)
+        assert "Ledger: ON" not in line
+        assert "ON (Testnet)" not in line
+        assert self._PIP in line
+        assert "extra missing" in line.lower()
+        assert "wallet" not in line.lower()
+        assert "mainnet" not in line.lower()
+
+    def test_settle_names_pip_extra_and_does_not_fold(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        state.supplies.set("food", 40)  # delta vs last_settled 50
+        mgr = BackpackManager()
+        result = mgr.settle(state, "TestTown")
+        assert result.success is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert not result.txids
+        assert state.backpack.last_settled_supplies["food"] == 50
+        assert state.backpack.last_settle_failed is False
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.enabled is True  # save flag unchanged
+
+    def test_send_parcel_names_pip_extra_supplies_unchanged(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 5)
+        assert result.success is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert state.supplies.food == before
+
+    def test_wallet_info_sets_extra_missing_not_empty_balances(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        info = mgr.wallet_info(state)
+        assert info.get("balances") == {}
+        assert info.get("balances_error") is True
+        assert info.get("extra_missing") is True
+
+    def test_wallet_overlay_names_pip_extra_not_ambiguous_unavailable(
+        self, monkeypatch,
+    ):
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info(mgr.wallet_info(state))
+        rendered = overlay.visual.plain
+        assert "Couldn't reach the ledger" not in rendered
+        assert "couldn't reach the ledger" not in rendered
+        assert "xrpl extra missing" in rendered
+        assert self._PIP in rendered
+        assert "Wallet Info" in rendered
+        # Ambiguous empty-wallet line is not used on its own.
+        assert "Balances: unavailable\n" not in rendered + "\n" or (
+            "xrpl extra missing" in rendered
+        )
+
+    def test_send_overlay_shows_pip_command(self, monkeypatch):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 5)
+        overlay = SendParcelOverlay()
+        overlay.show_failure(result.message)
+        rendered = overlay.visual.plain
+        assert "Send failed" in rendered
+        assert self._PIP in rendered
+
+    def test_enable_still_names_pip_extra_and_stays_off(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _make_state()
+        mgr = BackpackManager()
+        result = mgr.enable(state)
+        assert result.success is False
+        assert state.backpack.enabled is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert mgr.status_line(state) == "Ledger: OFF"
 
 
 class TestParcelCapConstant:

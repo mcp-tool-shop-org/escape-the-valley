@@ -7,6 +7,8 @@ import re
 from textual.markup import escape
 from textual.widgets import Static
 
+from .backpack_models import XRPL_EXTRA_PIP
+
 
 def _escape_dynamic(text: str) -> str:
     """Escape a fragment spliced into a markup template.
@@ -176,6 +178,13 @@ class WalletInfoOverlay(Static):
                 f"  {code}: {amount}" for code, amount in balances.items()
             )
             balances_text = f"Balances:\n{bal_lines}"
+        elif info.get("extra_missing"):
+            # F-64e78470: extra gone after an enabled save is not the
+            # empty-wallet case and not a network miss. Name the pip extra.
+            balances_text = (
+                f"Balances: unavailable (xrpl extra missing). "
+                f"Install with: {XRPL_EXTRA_PIP}"
+            )
         elif info.get("balances_error"):
             # ledger-B08: an empty balances dict alone is ambiguous — it could be
             # a genuinely empty wallet OR an unreachable ledger. The error flag

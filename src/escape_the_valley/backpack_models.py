@@ -8,6 +8,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+# Player-facing extra-missing copy (F-64e78470). Quoted so shells do not
+# glob [xrpl]. Reused by enable/settle/send_parcel/status_line/wallet_info
+# so a recovery launch (save was enabled, extra later gone) names the
+# same pip extra as first-run enable-fail, and never claims Ledger: ON.
+# Testnet extra — not a wallet or mainnet issue.
+XRPL_EXTRA_PIP = 'pip install "escape-the-valley[xrpl]"'
+XRPL_EXTRA_MISSING_MSG = (
+    f"xrpl-py is not installed. Install with: {XRPL_EXTRA_PIP}"
+)
+
 
 @dataclass
 class SettlementRecord:
