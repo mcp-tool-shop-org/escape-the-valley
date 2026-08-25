@@ -817,18 +817,37 @@ class StepEngine:
         emit_event_card(self.state, event)
 
         # Validate GM-proposed memory cards
+        # F-b6d0a4bc: a malformed-but-schema-legal proposal batch (or any
+        # other shape validate_gm_cards/add_card doesn't defend against)
+        # must not crash the whole step() call for a GM-enabled run -- the
+        # GM-side retry/fallback logic already counted this as a success by
+        # the time it reaches here, so the engine call site is the last line
+        # of defense. Graceful degradation -- game continues -- matching the
+        # pattern already used a few hundred lines away in
+        # _settle_checkpoint/_check_parcels: log and skip the malformed
+        # batch rather than propagate.
         if scene and hasattr(scene, "memory_proposals"):
             from .memory import add_card
-            for card in validate_gm_cards(
-                self.state, scene.memory_proposals,
-            ):
-                add_card(self.state, card)
+            try:
+                for card in validate_gm_cards(
+                    self.state, scene.memory_proposals,
+                ):
+                    add_card(self.state, card)
+            except Exception as e:  # graceful degradation -- game continues
+                log.warning(
+                    "Scene memory-card validation/add failed: %s", e,
+                )
         if gm_out and hasattr(gm_out, "memory_proposals"):
             from .memory import add_card
-            for card in validate_gm_cards(
-                self.state, gm_out.memory_proposals,
-            ):
-                add_card(self.state, card)
+            try:
+                for card in validate_gm_cards(
+                    self.state, gm_out.memory_proposals,
+                ):
+                    add_card(self.state, card)
+            except Exception as e:  # graceful degradation -- game continues
+                log.warning(
+                    "Outcome memory-card validation/add failed: %s", e,
+                )
 
         # Check resource crises after outcome applied
         check_resource_crises(self.state)
