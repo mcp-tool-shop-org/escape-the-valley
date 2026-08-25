@@ -6,6 +6,14 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **TUI HUD reflows at 80×24 and 120×30** so supplies and status stay on
+  screen. Title is Escape the Valley, not the class name. CLI `(CRITICAL)`
+  is the full word at 80 columns.
+- **Wallet Info and the XRPL postcard print the full classic r-address.**
+  Parcel `From:` uses first-4…last-4 so prefix-8 senders no longer collide.
+  Overlay balances use FOOD not FOD.
+- **Handbook dark tokens apply only under a dark media/class**, so Starlight’s
+  light palette is not beaten.
 - **EVENT/ROUTE retry copy names offered letters** (`A/B`), not `(1-4)` / `(1/2)`.
   CLI `Choose` is letters too. Keyboard and prompt are the same document.
 - **Live death line names the cause:** `{name} has died ({cause}).` Both engines.
