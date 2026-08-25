@@ -122,12 +122,24 @@ jobs:
         # running -- this is precisely why F-a4d8291c's 100%-reproducible
         # crash shipped undetected through two tagged releases. Runs once per
         # matrix leg so a platform-specific packaging regression is also
-        # caught. Asserts both process startup (--help) AND the loaded event
-        # count (260, not the 60-hardcoded-only quarter-game floor) -- see
-        # scripts/smoke_test_binary.py for why a startup-only check isn't
-        # enough.
+        # caught. Asserts process startup (--help), the loaded event count
+        # against a FLOOR of 200 (not an exact 260 -- see MIN_EXPECTED_EVENTS
+        # in scripts/smoke_test_binary.py: a floor sits above the
+        # 60-hardcoded-only quarter-game failure mode while not breaking on
+        # ordinary content growth/trimming of the JSON library the way an
+        # exact-equality check would), and (F-03194eb2) that tui.tcss itself
+        # actually loads -- see scripts/smoke_test_binary.py for why a
+        # startup-only check catches neither bundled-file failure mode.
+        #
+        # F-cbe6aac9: read the shell env var directly ($ASSET_NAME, already
+        # exported by $GITHUB_ENV two steps up) -- never re-enter it into a
+        # run: block via ${{ }}. ASSET_NAME traces back to VERSION, derived
+        # from the same unvalidated workflow_dispatch `tag` input REF_NAME_RAW
+        # guards above; template substitution happens before bash parses this
+        # script, so doing that a second time here would silently undo
+        # F-812f18ad's fix.
         shell: bash
-        run: uv run --no-sync python scripts/smoke_test_binary.py "dist/${{ env.ASSET_NAME }}"
+        run: uv run --no-sync python scripts/smoke_test_binary.py "dist/$ASSET_NAME"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

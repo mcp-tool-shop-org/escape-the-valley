@@ -2,6 +2,9 @@
 """Post-build smoke test for the PyInstaller-frozen release binary.
 
 Added for F-a4d8291c / F-a6fa29e0 (dogfood-swarm wave 2, ci-tooling domain).
+Extended for F-03194eb2 (wave 4) to close the stylesheet gap checks 1-2
+leave open -- see that check's docstring note below before assuming this
+script's coverage from its wave-2 history alone.
 
 release-binaries.yml previously went straight from `pyinstaller` to
 `upload-artifact` with nothing that actually *ran* the binary it just built.
@@ -19,6 +22,18 @@ cleanly and silently runs a quarter-game -- so this script asserts the
 *loaded* event count via __main__.py's ESCAPE_THE_VALLEY_SMOKE_EVENT_COUNT
 hook, not just the process exit code of an argument-parsing path that never
 touches game content.
+
+F-03194eb2: for one full wave, checks 1-2 above were (mis)described as
+covering *both* bundled files from F-a4d8291c. They do not: `--help` exits
+before constructing LedgerTrailApp (Click/Typer resolves it without running
+any subcommand body), and the event-count hook calls build_event_library()
+directly -- neither ever touches Textual's CSS_PATH. A missing or typo'd
+tui.tcss --add-data passed both checks and would only break once a player
+opened the `tui` subcommand. Check 3 below closes that gap via __main__.py's
+ESCAPE_THE_VALLEY_SMOKE_TUI_CHECK hook, which constructs LedgerTrailApp()
+and forces its stylesheet to actually be read off disk (Textual does not do
+this at __init__ time -- only at mount/run, which a CI runner has no
+terminal to reach).
 
 Usage:
     python scripts/smoke_test_binary.py <path-to-binary>
@@ -110,6 +125,27 @@ def main() -> int:
             "likely missing from the bundle (check --add-data in "
             "release-binaries.yml's 'Build binary' step)."
         )
+
+    # 3. Does the TUI's stylesheet actually load? (F-03194eb2) Neither check
+    #    above touches it: `--help` exits before constructing LedgerTrailApp,
+    #    and the event-count hook only calls build_event_library(). A binary
+    #    missing tui.tcss -- or built with a typo'd/dropped --add-data DEST
+    #    for it -- passes checks 1-2 above and only breaks once a player
+    #    actually opens the `tui` subcommand.
+    print("[smoke] running TUI stylesheet self-test "
+          "(ESCAPE_THE_VALLEY_SMOKE_TUI_CHECK=1)")
+    env = dict(os.environ)
+    env["ESCAPE_THE_VALLEY_SMOKE_TUI_CHECK"] = "1"
+    result = _run(binary, env=env)
+    if result.returncode != 0:
+        return _fail(f"TUI stylesheet self-test exited {result.returncode}", result)
+    if "TUI_CHECK_OK" not in result.stdout:
+        return _fail(
+            "TUI stylesheet self-test exited 0 but did not print the "
+            "expected OK marker -- treating as inconclusive, not a pass",
+            result,
+        )
+    print("[smoke] tui.tcss loads OK")
 
     print("[smoke] PASS")
     return 0
