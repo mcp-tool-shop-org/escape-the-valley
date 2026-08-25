@@ -147,6 +147,10 @@ class StepEngine:
             # ENG-B-05 (CONTRACT): GM call accounting, surfaced by cli-tui 'stats'.
             "gm_calls": 0,
             "gm_fallbacks": 0,
+            # F-886d2c1e: a GM-proposed memory card that failed validation
+            # or add_card(), mirroring gm_fallbacks' visibility pattern --
+            # see _apply_memory_proposals.
+            "memory_card_failures": 0,
         }
 
         # ENG-B-05: emit the "GM narration unavailable" note only once per session.
@@ -180,8 +184,10 @@ class StepEngine:
         ):
             if self._build_route_choices(node):
                 self.phase = GamePhase.ROUTE
-            # else: F-3abad222 fallback already recovered a valid
-            # destination/distance_remaining -- stay in CAMP.
+            # else: no legitimate route exists here (F-dd6869ca/
+            # F-0877c51a) -- _build_route_choices already logged and
+            # queued the stuck message. Stay in CAMP; there is nothing to
+            # advance toward.
 
     def step(self, intent: PlayerIntent) -> StepMessages:
         """Process one player action. Returns messages for the UI."""
@@ -258,11 +264,15 @@ class StepEngine:
                 self.msgs.lines.append(
                     "The trail forks ahead. Choose your path."
                 )
-                return
-            # else: F-3abad222 fallback already recovered a valid
-            # destination/distance_remaining -- fall through and auto-advance
-            # this TRAVEL action toward it instead of returning into a dead
-            # ROUTE prompt with nothing pickable.
+            # else: no legitimate route exists here (F-dd6869ca/
+            # F-0877c51a) -- _build_route_choices already logged and
+            # queued the stuck message and deliberately left
+            # destination_id/distance_remaining untouched. Do NOT fall
+            # through to a fake travel leg: no distance, no supplies, no
+            # time, no RNG draws for a journey that can't happen. Return
+            # either way -- entering ROUTE and staying in CAMP both mean
+            # "nothing left to advance this action."
+            return
 
         distance = compute_travel_distance(self.state)
 
@@ -621,6 +631,51 @@ class StepEngine:
                 "GM narration unavailable -- using the trail's own voice."
             )
 
+    def _apply_memory_proposals(self, proposals, source: str) -> None:
+        """Validate and commit one batch of GM-proposed memory cards.
+
+        F-886d2c1e: the previous version wrapped validate_gm_cards() AND
+        the add_card() loop in a single try/except. The schema allows up
+        to 2 memory_proposals per GM response, so a batch that partially
+        landed (validation passes, the first add_card() succeeds, the
+        second raises) looked identical in the log to a batch that failed
+        outright -- the log line ("...validation/add failed") read as if
+        nothing was saved, when the first card was already permanently
+        committed to state.memory. Validating once, then adding each card
+        in its own try, lets the log distinguish "validation itself
+        failed" (nothing committed) from "N of M failed to add" (the
+        first N-1 already landed) -- and every failure bumps
+        memory_card_failures, mirroring _note_gm_fallback's diagnostic
+        pattern (a dedicated counter bumped on every occurrence) so this
+        degradation is visible on the same stats surface GM fallbacks
+        already use, instead of being a bare, invisible log.warning. Bare
+        `except Exception` is kept deliberately -- narrowing scope to
+        validation vs. add is the fix for the log-message ambiguity, not
+        the exception type -- matching this codebase's established "never
+        let a GM-adjacent payload crash step()" convention already used
+        at _settle_checkpoint/_check_parcels, which catch just as broadly
+        on their own exception paths.
+        """
+        from .memory import add_card
+
+        try:
+            cards = validate_gm_cards(self.state, proposals)
+        except Exception as e:  # graceful degradation -- game continues
+            self.diagnostics["memory_card_failures"] += 1
+            log.warning("%s memory-card validation failed: %s", source, e)
+            return
+
+        for i, card in enumerate(cards):
+            try:
+                add_card(self.state, card)
+            except Exception as e:  # graceful degradation -- game continues
+                self.diagnostics["memory_card_failures"] += 1
+                log.warning(
+                    "%s memory-card %d/%d add failed (any earlier cards "
+                    "in this batch remain committed): %s",
+                    source, i + 1, len(cards), e,
+                )
+
     # ── EVENT phase ─────────────────────────────────────────────────
 
     def _maybe_trigger_event(self) -> None:
@@ -825,29 +880,13 @@ class StepEngine:
         # of defense. Graceful degradation -- game continues -- matching the
         # pattern already used a few hundred lines away in
         # _settle_checkpoint/_check_parcels: log and skip the malformed
-        # batch rather than propagate.
+        # batch rather than propagate. See _apply_memory_proposals
+        # (F-886d2c1e) for why validation and each add_card() call are no
+        # longer sharing one try/except.
         if scene and hasattr(scene, "memory_proposals"):
-            from .memory import add_card
-            try:
-                for card in validate_gm_cards(
-                    self.state, scene.memory_proposals,
-                ):
-                    add_card(self.state, card)
-            except Exception as e:  # graceful degradation -- game continues
-                log.warning(
-                    "Scene memory-card validation/add failed: %s", e,
-                )
+            self._apply_memory_proposals(scene.memory_proposals, "Scene")
         if gm_out and hasattr(gm_out, "memory_proposals"):
-            from .memory import add_card
-            try:
-                for card in validate_gm_cards(
-                    self.state, gm_out.memory_proposals,
-                ):
-                    add_card(self.state, card)
-            except Exception as e:  # graceful degradation -- game continues
-                log.warning(
-                    "Outcome memory-card validation/add failed: %s", e,
-                )
+            self._apply_memory_proposals(gm_out.memory_proposals, "Outcome")
 
         # Check resource crises after outcome applied
         check_resource_crises(self.state)
@@ -867,20 +906,39 @@ class StepEngine:
     def _build_route_choices(self, node) -> bool:
         """Build fork options from a node with multiple connections.
 
-        Returns True when at least one option resolved and the caller should
-        enter GamePhase.ROUTE. Returns False when every connection id was
+        Returns True when at least one non-self option resolved and the
+        caller should enter GamePhase.ROUTE. Returns False when there is
+        no legitimate route to offer: every raw connection id is either
         dangling (F-3abad222: a corrupted/altered save whose connections
-        don't match state.map_nodes -- generate_map() never produces this).
-        In that case entering ROUTE would be an unrecoverable softlock:
-        _handle_route_choice can never satisfy idx < len(_pending_routes)
-        against an empty list, and _check_initial_phase would rebuild the
-        same broken ROUTE state on every reload. Instead, mirror the
-        ENG-B-09 recovery already used for a dangling destination_id: warn,
-        skip the fork, and snap to the last known map node so the caller can
-        fall through to a normal travel step instead of a dead prompt.
+        don't match state.map_nodes -- generate_map() never produces this)
+        or a self-edge pointing back at `node` itself (F-0877c51a: a
+        self-edge is never a legitimate route -- offering it as the sole
+        ROUTE option, or auto-taking it, both reproduce the original
+        infinite-travel bug this method exists to close).
+
+        Entering ROUTE with zero options would be an unrecoverable
+        softlock: _handle_route_choice can never satisfy
+        idx < len(_pending_routes) against an empty list, and
+        _check_initial_phase would rebuild the same broken ROUTE state on
+        every reload. This method avoids that the same way it always
+        has -- return False and don't enter ROUTE -- but F-dd6869ca
+        forbids the map_nodes[-1] beeline that used to live in the False
+        branch (it can silently skip unvisited content and manufacture a
+        VICTORY the party never earned). So the False branch now invents
+        no destination at all: it only logs and queues a player-facing
+        message. The caller (_do_travel / _check_initial_phase) must NOT
+        fall through to a normal travel step when this returns False --
+        there is nothing legitimate to advance toward, so falling through
+        would fake a travel leg exactly like the self-edge case would.
         """
         options = []
         for conn_id in node.connections:
+            if conn_id == node.node_id:
+                # F-0877c51a: a connection back to this same node is never
+                # a legitimate route -- exclude it before counting how
+                # many resolved, the same way engine.py's
+                # _check_route_choice now does.
+                continue
             for n in self.state.map_nodes:
                 if n.node_id == conn_id:
                     dist = node.distance_to.get(conn_id, 15)
@@ -889,20 +947,16 @@ class StepEngine:
 
         if not options and node.connections:
             log.warning(
-                "node %r has %d connection(s) but none resolve to a real "
-                "map node; skipping fork and recovering",
+                "node %r has %d connection(s) but none resolve to a real, "
+                "non-self map node; no legitimate route exists -- staying "
+                "put instead of fabricating progress",
                 node.node_id, len(node.connections),
             )
             self.msgs.lines.append(
-                "The trail forks, but the routes don't match the map. "
-                "Pressing on toward the last known waypoint."
+                "The trail forks, but every route is broken or leads "
+                f"nowhere. The party can't press on from {node.name} "
+                "this way."
             )
-            if self.state.map_nodes:
-                dest = self.state.map_nodes[-1]
-                self.state.destination_id = dest.node_id
-                self.state.distance_remaining = node.distance_to.get(
-                    dest.node_id, 15,
-                )
             self._pending_routes = []
             self.msgs.route_options = []
             return False
