@@ -420,8 +420,75 @@ class GameEngine:
 
         if len(connections) > 1:
             chosen_id = show_route_choice(connections)
+            # F-6e5e72a8: validate chosen_id against the options actually
+            # offered rather than trusting the caller (ui.show_route_choice)
+            # alone -- mirrors step_engine.py._handle_route_choice's post-
+            # F-7d3e005b rejection. The engine, not the UI, is the
+            # enforcement boundary for what constitutes a valid choice.
+            # (ui.show_route_choice's own input loop already can't return an
+            # out-of-range index today, so this is a no-op on the real
+            # terminal path and only bites a misbehaving/future caller.)
+            valid_ids = [c[0] for c in connections]
+            if chosen_id not in valid_ids:
+                log.warning(
+                    "show_route_choice returned unrecognized choice_id %r; "
+                    "expected one of %r -- defaulting to first route",
+                    chosen_id, valid_ids,
+                )
+                chosen_id = valid_ids[0]
             self.state.destination_id = chosen_id
             self.state.distance_remaining = node.distance_to.get(chosen_id, 15)
+        else:
+            # F-803bd813: node.connections was non-empty (a fork), but 0 or 1
+            # of the raw connection ids resolved to a real map node (a
+            # corrupted/altered save -- generate_map() never produces this
+            # shape). The old code had no else branch here at all, so
+            # destination_id/distance_remaining were left exactly as they
+            # were on arrival (destination_id == this node's OWN id,
+            # distance_remaining == 0): a permanent, silent, self-referential
+            # travel loop. Every subsequent TRAVEL action would decrement
+            # distance_remaining further negative, re-trigger
+            # _arrive_at_next_node on the SAME node (dest_node IS found, it's
+            # just self-referential, so the ENG-B-09 "dest not found"
+            # recovery there never fires), and burn a full day's supplies for
+            # zero progress -- forever. Mirror StepEngine's
+            # _build_route_choices / the ENG-B-09 pattern used a few lines
+            # away in _arrive_at_next_node: recover to a resolvable node,
+            # log a warning, tell the player -- instead of silently leaving
+            # state unchanged.
+            if connections:
+                # Exactly one raw connection resolved to a real node. That
+                # is a legitimate route (not a corrupted one) -- take it
+                # directly, same outcome StepEngine reaches for this shape
+                # (a single pending route is still offered and, once
+                # chosen, committed verbatim; no reason to discard real
+                # route data in favor of an unrelated fallback node here).
+                dest_id, _dest_name, dist = connections[0]
+                reason = "only one resolves to a real map node"
+            elif self.state.map_nodes:
+                # Zero raw connections resolved -- no real candidate route
+                # exists at all. Fall back to the last known map node so the
+                # journey can still conclude, exactly like ENG-B-09.
+                dest = self.state.map_nodes[-1]
+                dest_id = dest.node_id
+                dist = node.distance_to.get(dest_id, 15)
+                reason = "none resolve to a real map node"
+            else:
+                # No map at all -- nothing to recover to; leave state
+                # untouched (mirrors ENG-B-09's own "no map_nodes" guard).
+                return
+
+            log.warning(
+                "node %r has %d connection(s) but %s; recovering to %r",
+                node.node_id, len(node.connections), reason, dest_id,
+            )
+            show_message(
+                "The trail forks, but the routes don't match the map. "
+                "Pressing on toward the last known waypoint.",
+                "yellow",
+            )
+            self.state.destination_id = dest_id
+            self.state.distance_remaining = dist
 
     def _advance_time(self) -> None:
         """Advance time of day and day counter."""

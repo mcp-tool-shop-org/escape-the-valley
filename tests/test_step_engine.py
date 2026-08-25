@@ -1579,3 +1579,198 @@ def test_dangling_route_connections_recover_mid_travel():
     engine._do_travel()
     assert engine.phase != GamePhase.ROUTE
     assert engine.state.destination_id == "end"
+
+
+# ── F-803bd813 / F-6e5e72a8: engine.py ROUTE fixes ported from StepEngine ──
+#
+# GameEngine (engine.py) is the engine behind the primary `trail play` /
+# `trail new` CLI commands (cli.py) and had NO test coverage at all for its
+# ROUTE fork-resolution code before this wave (GameEngine appears elsewhere
+# in this file only for the unrelated GM-brief tests above). These mirror
+# the StepEngine dangling-connections tests directly above, driven through
+# GameEngine's synchronous (non-phase) _check_route_choice instead.
+
+
+def test_gameengine_dangling_route_connections_recover_mid_travel(monkeypatch):
+    """F-803bd813: GameEngine._check_route_choice had no else branch at all
+    for the `len(connections) <= 1` case -- a corrupted-but-loadable fork
+    node left destination_id/distance_remaining exactly as they were on
+    arrival (destination_id == the fork node's own id, distance_remaining ==
+    0). Every subsequent TRAVEL action re-arrived at the SAME node forever:
+    distance_traveled kept climbing (a fake progress metric) while
+    location_id never advanced and a full day's supplies were charged for
+    zero real progress, silently, every action. Mirrors
+    test_dangling_route_connections_recover_mid_travel above."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _dangling_fork_state(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # Keep every probabilistic branch (events, breakdown, health, town-trade)
+    # closed so this test isolates the route-recovery path from unrelated
+    # RNG-gated systems that _do_travel also exercises.
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    assert engine.state.location_id == "start"
+
+    # Drive several travel actions, mirroring the finding's own repro
+    # ("across 6 consecutive _do_travel() calls"). Before the fix, none of
+    # these ever leave "start".
+    for _ in range(4):
+        engine._do_travel()
+
+    # Recovered instead of looping forever on "start": both raw connections
+    # ("ghost-1"/"ghost-2") are dangling, so this lands on the ENG-B-09-style
+    # fallback (the last map node), exactly like StepEngine's own recovery
+    # for this identical corrupted shape. Four travel actions are enough to
+    # actually reach it (not just point toward it), which is the strongest
+    # possible proof this isn't the old self-referential loop.
+    assert engine.state.destination_id == "end"
+    assert engine.state.location_id == "end"
+    assert engine.state.distance_traveled > 0
+
+
+def test_gameengine_route_choice_single_resolvable_connection_used_directly():
+    """F-803bd813, the length-1 sub-case: if exactly one of the raw
+    connections resolves to a real map node, that IS a legitimate route (not
+    a corrupted one) -- recovery must take it directly rather than
+    discarding real route data in favor of the generic last-map-node
+    fallback (which would otherwise be a regression vs. what the data
+    actually supports)."""
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost", "real"],
+        distance_to={"ghost": 10, "real": 8},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    last = MapNode(
+        node_id="last", name="Last", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=3)
+    state.map_nodes = [fork, real, last]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine._check_route_choice()
+
+    # Took the real, resolvable connection -- NOT the generic "last map
+    # node" fallback ("last" would be the wrong, data-discarding answer).
+    assert engine.state.destination_id == "real"
+    assert engine.state.distance_remaining == 8
+
+
+def test_gameengine_rejects_unrecognized_route_choice_id(monkeypatch, caplog):
+    """F-6e5e72a8: chosen_id from show_route_choice() must be validated
+    against the options actually offered before being committed to
+    destination_id -- the engine, not ui.show_route_choice, is the
+    enforcement boundary for what constitutes a valid choice. Mirrors
+    step_engine.py._handle_route_choice's post-F-7d3e005b rejection;
+    adapted to GameEngine's synchronous (non-phase) resolution, where there
+    is no ROUTE phase to re-prompt from, so an unrecognized id falls back to
+    the first offered route instead of being committed verbatim."""
+    import logging
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["north", "south"],
+        distance_to={"north": 10, "south": 14},
+    )
+    north = MapNode(
+        node_id="north", name="Northern Pass", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    south = MapNode(
+        node_id="south", name="Southern Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=7)
+    state.map_nodes = [fork, north, south]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    # ui.py's real show_route_choice already can't return an out-of-range
+    # index (it loops on bad input) -- simulate a misbehaving/future caller
+    # to prove the ENGINE, not the UI, enforces this.
+    monkeypatch.setattr(
+        engine_mod, "show_route_choice", lambda conns: "bogus-id",
+    )
+
+    with caplog.at_level(logging.WARNING):
+        engine._check_route_choice()
+
+    assert engine.state.destination_id in ("north", "south")
+    assert engine.state.destination_id != "bogus-id"
+    assert any("choice_id" in r.message for r in caplog.records)
+
+
+# ── F-b6d0a4bc: step_engine.py memory-card validation must not crash step() ──
+
+
+class _MemoryCardGM:
+    """GM stub whose scene AND outcome both carry memory_proposals, so both
+    validate_gm_cards() call sites in _handle_event_choice execute."""
+
+    def __init__(self):
+        self.config = GMConfig(enabled=True)
+
+    def generate_scene(self, *a, **k):
+        return _FakeScene()
+
+    def generate_outcome(self, *a, **k):
+        return _FakeOutcome()
+
+    def close(self):
+        pass
+
+
+def test_malformed_gm_memory_proposals_do_not_crash_step(monkeypatch, caplog):
+    """F-b6d0a4bc: neither validate_gm_cards() call site in
+    _handle_event_choice (scene.memory_proposals, gm_out.memory_proposals)
+    was wrapped in exception handling, and step() itself has no exception
+    handling around phase dispatch either. A malformed-but-schema-legal GM
+    payload that survives validate_gm_cards's own checks -- or any future
+    shape it doesn't defend against -- would crash the entire step() call
+    for any GM-enabled run, no corrupted save required (F-9b0797f9's named
+    escalation condition). Graceful degradation now matches the pattern
+    already used at _settle_checkpoint/_check_parcels: log and skip the
+    malformed batch, game continues."""
+    import logging
+
+    import escape_the_valley.step_engine as step_engine_mod
+
+    engine = _force_event_engine(seed=42, gm=_MemoryCardGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+
+    def _raise(*a, **k):
+        raise ValueError("simulated malformed memory_proposals shape")
+
+    monkeypatch.setattr(step_engine_mod, "validate_gm_cards", _raise)
+
+    with caplog.at_level(logging.WARNING):
+        msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # Must not raise -- and the event still resolves normally (CAMP) despite
+    # the malformed memory-card batch being skipped at both call sites.
+    assert engine.phase == GamePhase.CAMP
+    assert msgs is not None
+    assert any("memory-card" in r.message.lower() for r in caplog.records)
