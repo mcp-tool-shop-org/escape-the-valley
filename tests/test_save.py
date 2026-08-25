@@ -809,3 +809,106 @@ class TestDanglingDestinationIdRoundTrip:
             assert not engine.state.victory
 
         assert engine.state.distance_traveled < engine.state.total_distance
+
+
+class TestLoadSuppliesClamp:
+    """F-cfcd07e0: _load_supplies must overlay through SuppliesState.set
+    (floor 0) and drop keys not in RESOURCE_CATALOG. A hostile/legacy
+    save with negatives or phantom stacks must still load (ok=True) with
+    the save file left in place — crash-with-save-intact was the HIGH."""
+
+    def _write_supplies(self, tmp_path, overlay: dict):
+        state = create_new_run(seed=42)
+        save_game(state, tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["supplies"].update(overlay)
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        return save_path
+
+    def test_negative_and_phantom_keys_do_not_load(self, tmp_path, caplog):
+        import logging
+
+        save_path = self._write_supplies(
+            tmp_path, {"ammo": 9999, "gold": 7, "food": -5},
+        )
+
+        with caplog.at_level(logging.WARNING):
+            result = load_game_result(tmp_path)
+
+        assert result.ok is True
+        assert result.state is not None
+        assert result.state.supplies.food == 0
+        assert result.state.supplies.ammo == 9999
+        assert "gold" not in result.state.supplies.items
+        assert save_path.exists()
+        assert not list(save_path.parent.glob("*.corrupt-*"))
+        assert any("gold" in r.message for r in caplog.records)
+
+    def test_legacy_five_key_save_still_fills_defaults(self, tmp_path):
+        """Old saves have only the original 5 keys; catalog defaults remain."""
+        state = create_new_run(seed=3)
+        save_game(state, tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["supplies"] = {
+            "food": 12, "water": 8, "meds": 1, "ammo": 4, "parts": 2,
+        }
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert loaded.supplies.food == 12
+        assert loaded.supplies.water == 8
+        assert loaded.supplies.get("lantern_oil") > 0
+        assert loaded.supplies.get("salt") > 0
+
+
+class TestMalformedRngStateFallback:
+    """F-76bab66d: a parseable save with a bad rng_state must load ok
+    and degrade to counter-replay. The file is not quarantined."""
+
+    def _write_rng(self, tmp_path, rng_state):
+        state = create_new_run(seed=11)
+        state.rng_counter = 4
+        save_game(state, tmp_path)
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["rng_state"] = rng_state
+        data["rng_counter"] = 4
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        return save_path
+
+    def test_list_payload_loads_and_constructs(self, tmp_path):
+        save_path = self._write_rng(tmp_path, [1, 2, 3])
+        result = load_game_result(tmp_path)
+        assert result.ok is True
+        assert result.state is not None
+        assert result.state.rng_state is None
+        assert result.state.rng_counter == 4
+        assert save_path.exists()
+        assert not list(save_path.parent.glob("*.corrupt-*"))
+
+        step = StepEngine(result.state, GMConfig(enabled=False))
+        game = GameEngine(result.state, GMConfig(enabled=False))
+        assert step.rng.counter == 4
+        assert game.rng.counter == 4
+
+    def test_string_payload_loads_and_constructs(self, tmp_path):
+        save_path = self._write_rng(tmp_path, "nope")
+        result = load_game_result(tmp_path)
+        assert result.ok is True
+        assert result.state is not None
+        assert result.state.rng_state is None
+        assert save_path.exists()
+        StepEngine(result.state, GMConfig(enabled=False))
+        GameEngine(result.state, GMConfig(enabled=False))
+
+    def test_direct_construct_with_garbage_rng_state_does_not_brick(self):
+        """Engine constructors must not raise even if rng_state was not
+        sanitized by the loader (hand-built RunState / older caller)."""
+        state = create_new_run(seed=5)
+        state.rng_state = [1, 2, 3]
+        StepEngine(state, GMConfig(enabled=False))
+        state.rng_state = "nope"
+        GameEngine(state, GMConfig(enabled=False))

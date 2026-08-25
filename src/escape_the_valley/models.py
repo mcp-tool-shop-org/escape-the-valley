@@ -413,7 +413,15 @@ class SeededRNG:
         Accepts either a tuple (native) or a list-of-lists (as it
         round-trips through JSON), normalizing the nested internal-state
         sequence back to a tuple as ``random.Random.setstate`` requires.
+
+        F-76bab66d: a malformed payload (e.g. [1,2,3] or 'nope') used to
+        raise TypeError/ValueError from unpacking or Random.setstate.
+        Re-raise as ValueError so engine constructors can fall back to
+        counter-replay instead of bricking trail play.
         """
-        version, internal, gauss_next = state
-        # JSON turns the inner state tuple into a list — restore the tuple.
-        self._rng.setstate((version, tuple(internal), gauss_next))
+        try:
+            version, internal, gauss_next = state
+            # JSON turns the inner state tuple into a list — restore the tuple.
+            self._rng.setstate((version, tuple(internal), gauss_next))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("malformed rng_state") from exc

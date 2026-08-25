@@ -14,6 +14,7 @@ from .events import (
 from .gm import GMClient, GMConfig
 from .memory import build_gm_brief
 from .models import (
+    DOCTRINE_MODIFIERS,
     JournalEntry,
     RunState,
     SeededRNG,
@@ -26,6 +27,7 @@ from .physics import (
     check_breakdown,
     check_game_over,
     check_health_effects,
+    check_night_travel_danger,
     compute_daily_consumption,
     compute_travel_distance,
     halve_consumption,
@@ -74,7 +76,16 @@ class GameEngine:
         # serialized Mersenne-Twister state when the save carries it. Legacy
         # saves without rng_state fall back to counter-replay (unchanged).
         if state.rng_state is not None:
-            self.rng.setstate(state.rng_state)
+            try:
+                self.rng.setstate(state.rng_state)
+            except (TypeError, ValueError):
+                # F-76bab66d: SeededRNG(seed, counter) above already replayed
+                # from rng_counter. A malformed payload must not brick construct.
+                log.warning(
+                    "malformed rng_state; falling back to counter-replay "
+                    "(rng_counter=%s)",
+                    state.rng_counter,
+                )
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config)
 
@@ -140,8 +151,9 @@ class GameEngine:
         self.state.distance_remaining -= distance
         self.state.distance_traveled += distance
 
-        # Consume supplies
-        consumption = compute_daily_consumption(self.state)
+        # Consume supplies. F-6e017443: is_travel=True so night travel
+        # spends lantern_oil, matching StepEngine._do_travel.
+        consumption = compute_daily_consumption(self.state, is_travel=True)
         self.state.supplies.apply_delta(consumption)
 
         # Check for arrival
@@ -168,6 +180,17 @@ class GameEngine:
                 )
             else:
                 show_message(f"Wagon breakdown! No parts for repair. Damage: {damage}", "red bold")
+
+        # F-6e017443: night travel without lantern oil, matching
+        # StepEngine._do_travel (after breakdown, after _advance_time).
+        night_danger = check_night_travel_danger(self.state, self.rng)
+        if night_danger:
+            damage = night_danger["wagon_damage"]
+            apply_breakdown(self.state, damage)
+            show_message(
+                f"Dark travel mishap! Wagon damage: {damage}",
+                "yellow",
+            )
 
         # Health effects
         effects = check_health_effects(self.state, self.rng)
@@ -478,8 +501,44 @@ class GameEngine:
         self.state.distance_remaining = 0
         show_message(f"Arrived at {dest_node.name}!", "bold green")
 
+        # F-6e017443: port StepEngine arrival extras (pairwise, not a merge).
+        # Water refill at nodes with water sources
+        if dest_node.water_available:
+            old_water = self.state.supplies.water
+            refill = min(20, 50 - old_water)  # Up to 20, capped at 50
+            if refill > 0:
+                self.state.supplies.water += refill
+                show_message(f"Found water. +{refill} water.", "green")
+
+        # Supply cache pickup (one-time)
+        if dest_node.cache_supplies:
+            cache = dest_node.cache_supplies
+            self.state.supplies.apply_delta(cache)
+            cache_items = ", ".join(
+                f"+{v} {k}" for k, v in cache.items()
+            )
+            show_message(f"Found a supply cache! {cache_items}", "green")
+            dest_node.cache_supplies = None  # consumed
+
         if dest_node.is_town:
-            show_message("  This is a settlement. You may find supplies or trade.", "dim")
+            # Town trade: morale-gated + doctrine-boosted (mirrors StepEngine)
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            trade_chance = 0.30 + doc_mods.get("trade_bonus", 0)
+            if (
+                self.state.party.morale > 60
+                and self.rng.random() < trade_chance
+            ):
+                food_offer = self.rng.randint(3, 9)
+                self.state.supplies.food += food_offer
+                show_message(
+                    f"Traded at the settlement. +{food_offer} food.",
+                    "green",
+                )
+            else:
+                show_message(
+                    "This is a settlement. Supplies may be available.",
+                    "dim",
+                )
 
         # Set up next destination
         if dest_node.connections:
