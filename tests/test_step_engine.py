@@ -2856,3 +2856,189 @@ def test_autosave_false_still_tracks_rng_state():
 
     assert engine.state.rng_counter == engine.rng.counter
     assert engine.state.rng_state is not None
+
+
+# ── F-6e017443: GameEngine arrival/travel extras (pairwise, not a merge) ──
+
+
+def _dest_town_state(seed: int = 42, morale: int = 50):
+    """3-node map matching the finding's empirical shape: start -> DestTown
+    with cache_supplies={food:6, water:5}, water_available, is_town."""
+    from escape_the_valley.models import Biome, MapNode
+
+    state = create_new_run(seed=seed)
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15, is_town=False,
+        connections=["DestTown"],
+        distance_to={"DestTown": 5},
+    )
+    dest = MapNode(
+        node_id="DestTown", name="DestTown", biome=Biome.PLAINS, hazard=1,
+        water_available=True, temperature=15, is_town=True,
+        connections=["end"],
+        distance_to={"end": 10},
+        cache_supplies={"food": 6, "water": 5},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15, is_town=False,
+    )
+    state.map_nodes = [start, dest, end]
+    state.location_id = "start"
+    state.destination_id = "DestTown"
+    state.distance_remaining = 0
+    state.supplies.food = 40
+    state.supplies.water = 20
+    state.party.morale = morale
+    return state
+
+
+def test_gameengine_arrival_refills_water_and_consumes_cache(monkeypatch):
+    """F-6e017443: GameEngine._arrive_at_next_node now refills water and
+    picks up the cache, matching StepEngine. Morale 50 skips the trade
+    draw so food is cache-only."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+
+    engine = GameEngine(_dest_town_state(morale=50), GMConfig(enabled=False))
+    dest = engine.state.map_nodes[1]
+    assert dest.cache_supplies == {"food": 6, "water": 5}
+
+    engine._arrive_at_next_node()
+
+    # water 20 + refill min(20, 50-20)=20 + cache 5 → 45
+    assert engine.state.supplies.water == 45
+    # food 40 + cache 6 → 46 (no trade: morale <= 60)
+    assert engine.state.supplies.food == 46
+    assert dest.cache_supplies is None
+    assert engine.state.location_id == "DestTown"
+
+
+def test_stepengine_arrival_same_water_cache_on_dest_town():
+    """Pairwise: StepEngine on the same 3-node map must not grow a third
+    arrival rule. Morale 50 skips trade."""
+    engine = StepEngine(_dest_town_state(morale=50), GMConfig(enabled=False))
+    dest = engine.state.map_nodes[1]
+    engine._arrive_at_next_node()
+    assert engine.state.supplies.water == 45
+    assert engine.state.supplies.food == 46
+    assert dest.cache_supplies is None
+
+
+def test_gameengine_town_trade_mirrors_stepengine(monkeypatch):
+    """F-6e017443: morale-gated town trade on GameEngine, same formula as
+    StepEngine. Force the trade roll to hit so food includes randint(3,9)."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+
+    ge_state = _dest_town_state(seed=7, morale=80)
+    se_state = _dest_town_state(seed=7, morale=80)
+    ge = GameEngine(ge_state, GMConfig(enabled=False))
+    se = StepEngine(se_state, GMConfig(enabled=False), autosave=False)
+    # Hit the trade roll; randint(3, 9) still uses each engine's real RNG.
+    monkeypatch.setattr(ge.rng, "random", lambda: 0.0)
+    monkeypatch.setattr(se.rng, "random", lambda: 0.0)
+
+    ge._arrive_at_next_node()
+    se._arrive_at_next_node()
+
+    assert ge.state.supplies.food == se.state.supplies.food
+    assert ge.state.supplies.water == se.state.supplies.water
+    assert ge.state.supplies.food >= 46 + 3
+    assert ge.state.supplies.food <= 46 + 9
+
+
+def test_gameengine_night_travel_spends_lantern_oil(monkeypatch):
+    """F-6e017443: CLI night travel must spend lantern_oil (is_travel=True)."""
+    from escape_the_valley.models import TimeOfDay
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+
+    state = create_new_run(seed=21)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine.state.time_of_day = TimeOfDay.EVENING
+    engine.state.distance_remaining = 80
+    engine.state.supplies.set("lantern_oil", 5)
+    # Close breakdown / night-danger / event rolls.
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+
+    assert engine.state.supplies.get("lantern_oil") == 4
+
+
+def test_gameengine_night_danger_without_oil(monkeypatch):
+    """F-6e017443: GameEngine calls check_night_travel_danger after travel."""
+    from escape_the_valley.models import TimeOfDay
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    messages: list[str] = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda text, *a, **k: messages.append(text),
+    )
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "check_breakdown", lambda *a, **k: None)
+
+    state = create_new_run(seed=21)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine.state.time_of_day = TimeOfDay.EVENING
+    engine.state.distance_remaining = 80
+    engine.state.supplies.set("lantern_oil", 0)
+    engine.state.supplies.set("parts", 0)
+    wagon_before = engine.state.wagon.condition
+    # random()=0.0 opens night danger (15%) and the event gate; event UI
+    # is stubbed above. randint still runs for wagon_damage 5-15.
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+
+    engine._do_travel()
+
+    assert any("Dark travel mishap" in m for m in messages)
+    assert engine.state.wagon.condition < wagon_before
+
+
+def test_gameengine_fixed_seed_reproduces(monkeypatch):
+    """Same seed on the fixed CLI engine must still reproduce (the note
+    that trail-play seeds diverge from *pre-fix* GameEngine is expected)."""
+    from escape_the_valley.models import TimeOfDay
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+
+    def _snap(engine: GameEngine):
+        return (
+            engine.state.supplies.food,
+            engine.state.supplies.water,
+            engine.state.supplies.get("lantern_oil"),
+            engine.state.wagon.condition,
+            engine.state.distance_traveled,
+            engine.rng.counter,
+        )
+
+    snaps = []
+    for _ in range(2):
+        engine = GameEngine(create_new_run(seed=31337), GMConfig(enabled=False))
+        engine.state.time_of_day = TimeOfDay.EVENING
+        engine.state.distance_remaining = 80
+        engine._do_travel()
+        snaps.append(_snap(engine))
+
+    assert snaps[0] == snaps[1]

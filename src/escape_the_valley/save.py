@@ -28,13 +28,14 @@ from .models import (
     PartyMember,
     PartyState,
     RunState,
+    SeededRNG,
     SuppliesState,
     TimeOfDay,
     Trait,
     TwistModifier,
     WagonState,
 )
-from .resources import DEFAULT_SUPPLIES
+from .resources import DEFAULT_SUPPLIES, RESOURCE_CATALOG
 
 log = logging.getLogger(__name__)
 
@@ -467,7 +468,9 @@ def _dict_to_state(data: dict) -> RunState:
         rng_counter=data.get("rng_counter", 0),
         # Legacy saves predate rng_state → None triggers counter-replay fallback
         # in the engine (no regression: those runs were already non-deterministic).
-        rng_state=data.get("rng_state"),
+        # F-76bab66d: a parseable-but-malformed rng_state must not survive into
+        # engine construction (SeededRNG.setstate would raise). Same fallback.
+        rng_state=_coerce_rng_state(data.get("rng_state")),
         recent_event_tags=data.get("recent_event_tags", []),
         party=PartyState(members=members, morale=party_data.get("morale", 70)),
         wagon=WagonState(
@@ -540,12 +543,53 @@ def _dict_to_state(data: dict) -> RunState:
     )
 
 
+def _coerce_rng_state(raw) -> object | None:
+    """Return a restorable rng_state, or None to trigger counter-replay.
+
+    F-76bab66d: load_game_result only catches KeyError/TypeError/ValueError
+    inside _dict_to_state, which used to store rng_state verbatim. A
+    well-shaped JSON save with rng_state=[1,2,3] / 'nope' then crashed
+    StepEngine/GameEngine on setstate. Degrade to the same None fallback
+    legacy saves already use; do not quarantine the file as corrupt.
+    """
+    if raw is None:
+        return None
+    try:
+        SeededRNG(0).setstate(raw)
+    except (TypeError, ValueError):
+        log.warning(
+            "malformed rng_state; falling back to counter-replay"
+        )
+        return None
+    return raw
+
+
 def _load_supplies(data: dict) -> SuppliesState:
-    """Load supplies with backward compat — old saves have only 5 keys."""
-    # Start with full defaults, then overlay saved values
-    items = dict(DEFAULT_SUPPLIES)
-    items.update(data)
-    return SuppliesState(items=items)
+    """Load supplies with backward compat — old saves have only 5 keys.
+
+    F-cfcd07e0: overlay saved values through SuppliesState.set (floor 0)
+    and drop keys not in RESOURCE_CATALOG. Dict.update onto defaults
+    bypassed the only clamp, so hostile/legacy negatives (food=-5) and
+    phantom stacks (gold) could load.
+    """
+    supplies = SuppliesState(items=dict(DEFAULT_SUPPLIES))
+    if not isinstance(data, dict):
+        return supplies
+    for key, val in data.items():
+        if key not in RESOURCE_CATALOG:
+            log.warning(
+                "dropping unknown supply key %r on load "
+                "(not in RESOURCE_CATALOG)",
+                key,
+            )
+            continue
+        try:
+            supplies.set(key, int(val))
+        except (TypeError, ValueError):
+            log.warning(
+                "dropping non-integer supply %r=%r on load", key, val,
+            )
+    return supplies
 
 
 def _backpack_to_dict(bp: BackpackState) -> dict:

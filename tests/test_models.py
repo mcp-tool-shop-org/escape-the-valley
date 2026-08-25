@@ -38,6 +38,34 @@ class TestSeededRNG:
         weights = [0.0, 0.0, 1.0]
         assert rng.weighted_choice(items, weights) == "c"
 
+    def test_setstate_roundtrip(self):
+        rng1 = SeededRNG(42)
+        [rng1.random() for _ in range(7)]
+        snapshot = rng1.getstate()
+        rng2 = SeededRNG(99)
+        rng2.setstate(snapshot)
+        assert rng2.random() == rng1.random()
+
+    def test_setstate_json_list_form(self):
+        """JSON turns the inner tuple into a list; setstate must re-tuple it."""
+        import json
+
+        rng1 = SeededRNG(7)
+        [rng1.random() for _ in range(3)]
+        raw = json.loads(json.dumps(rng1.getstate()))
+        rng2 = SeededRNG(1)
+        rng2.setstate(raw)
+        assert rng2.random() == rng1.random()
+
+    def test_setstate_rejects_malformed(self):
+        """F-76bab66d: garbage rng_state raises ValueError, not a raw unpack crash."""
+        import pytest
+
+        rng = SeededRNG(1)
+        for bad in ([1, 2, 3], "nope", [], [3], {"version": 3}):
+            with pytest.raises(ValueError, match="malformed rng_state"):
+                rng.setstate(bad)
+
 
 class TestSuppliesState:
     def test_apply_delta(self):

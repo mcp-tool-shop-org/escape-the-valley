@@ -159,7 +159,16 @@ class StepEngine:
         # serialized Mersenne-Twister state when the save carries it. Legacy
         # saves without rng_state fall back to counter-replay (unchanged).
         if state.rng_state is not None:
-            self.rng.setstate(state.rng_state)
+            try:
+                self.rng.setstate(state.rng_state)
+            except (TypeError, ValueError):
+                # F-76bab66d: SeededRNG(seed, counter) above already replayed
+                # from rng_counter. A malformed payload must not brick construct.
+                log.warning(
+                    "malformed rng_state; falling back to counter-replay "
+                    "(rng_counter=%s)",
+                    state.rng_counter,
+                )
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config or GMConfig())
         self.phase = GamePhase.CAMP
