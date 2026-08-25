@@ -1854,6 +1854,13 @@ def _assert_region_on_screen(widget, screen, label: str) -> None:
     )
 
 
+def _painted_text(widget) -> str:
+    """Visible strips only — widget.render_line, not visual.plain overflow."""
+    return "\n".join(
+        widget.render_line(y).text for y in range(widget.size.height)
+    )
+
+
 def _assert_hud_readable(app: LedgerTrailApp) -> None:
     """F-a0f79af3: status + supplies regions stay on-screen; labels visible."""
     screen = app.screen
@@ -1924,6 +1931,32 @@ class TestHudReflow:
 
         asyncio.run(scenario())
 
+    def test_default_camp_eventbar_paints_repair_at_80x24(self):
+        """F-23cf9a9a: D) Repair must be in the painted EventBar at 80x24.
+
+        visual.plain is overflow and is not proof — a max-height: 5 dock with
+        a leftover tall border greens on plain while clipping Repair.
+        """
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                bar = app.query_one("#eventbar", EventBar)
+                border_top = bar.styles.border.top
+                # tui.tcss leftover is ('tall', ...); App.CSS must win.
+                assert border_top is None or border_top[0] in ("", "none"), (
+                    border_top
+                )
+                painted = _painted_text(bar)
+                assert "A) Travel" in painted, painted
+                assert "B) Rest" in painted, painted
+                assert "C) Hunt" in painted, painted
+                assert "D) Repair" in painted, painted
+                _assert_hud_readable(app)
+
+        asyncio.run(scenario())
+
     def test_seven_choice_eventbar_stays_on_screen_at_80x24(self):
         """A 7-choice EventBar (A–G valves) must not push the HUD off-screen."""
 
@@ -1945,7 +1978,12 @@ class TestHudReflow:
                 _assert_hud_readable(app)
                 bar = app.query_one("#eventbar", EventBar)
                 assert bar.region.height <= 6
-                assert "Travel" in bar.visual.plain or "A" in bar.visual.plain
+                painted = _painted_text(bar)
+                assert "D) Repair" in painted, painted
+                # E/F/G may still sit in overflow (visual.plain), not the dock.
+                assert "Abandon Cargo" in bar.visual.plain
+                assert "Desperate Repair" in bar.visual.plain
+                assert "Hard Ration" in bar.visual.plain
 
         asyncio.run(scenario())
 
