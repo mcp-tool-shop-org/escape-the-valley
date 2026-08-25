@@ -7,6 +7,7 @@ import re
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 from . import __version__
 from .engine import GameEngine
@@ -271,6 +272,12 @@ def _model_present(configured: str, available: list[str]) -> bool:
     )
 
 
+# Same floor as scripts/smoke_test_binary.MIN_EXPECTED_EVENTS. Missing JSON
+# loads the ~60 hardcoded events (quarter-game). Self-check reports the count
+# so we do not add a third __main__.py env hook (F-6af2cd01).
+_EVENT_LIBRARY_FLOOR = 200
+
+
 @app.command(name="self-check")
 def self_check(
     model: str = typer.Option(
@@ -322,6 +329,86 @@ def self_check(
             "  [dim]hint: start Ollama (ollama serve) "
             "or play without the GM: trail tui --gm-off[/dim]"
         )
+
+    # F-6af2cd01: event-library count, voice extra import/liveness, xrpl extra
+    # present/absent, tui.tcss. Non-failing probes — skip/degraded lines and
+    # the extra to install, matching the GM-optional hint. Do not start() the
+    # voice worker and do not save_game. Not a third __main__.py env hook.
+    try:
+        from .events import build_event_library
+
+        event_count = len(build_event_library())
+        if event_count >= _EVENT_LIBRARY_FLOOR:
+            console.print(
+                f"  [green]Event library:[/green] {event_count} events"
+            )
+        else:
+            console.print(
+                f"  [yellow]Event library:[/yellow] {event_count} events "
+                f"(expected >= {_EVENT_LIBRARY_FLOOR}; "
+                "data/event_skeletons.json may be missing)"
+            )
+    except Exception:
+        console.print("  [yellow]Event library could not be loaded.[/yellow]")
+
+    try:
+        from .backpack import _HAS_XRPL
+
+        if _HAS_XRPL:
+            console.print("  [green]xrpl extra present[/green]")
+        else:
+            console.print("  [yellow]xrpl extra absent[/yellow]")
+            console.print(
+                "  [dim]hint: pip install "
+                f'"{escape("escape-the-valley[xrpl]")}"[/dim]'
+            )
+    except Exception:
+        console.print("  [yellow]xrpl extra absent[/yellow]")
+        console.print(
+            "  [dim]hint: pip install "
+            f'"{escape("escape-the-valley[xrpl]")}"[/dim]'
+        )
+
+    try:
+        from .voice import VoiceBridge, VoiceConfig
+
+        voice_status = VoiceBridge(VoiceConfig(enabled=False)).status()
+        if voice_status.get("installed"):
+            if voice_status.get("available"):
+                console.print("  [green]voice extra present[/green] (live)")
+            else:
+                reason = voice_status.get("last_error") or "unavailable"
+                console.print(
+                    f"  [yellow]voice extra present but not live:[/yellow] "
+                    f"{reason}"
+                )
+        else:
+            console.print("  [yellow]voice extra absent[/yellow]")
+            console.print(
+                "  [dim]hint: pip install "
+                f'"{escape("escape-the-valley[voice]")}"[/dim]'
+            )
+    except Exception:
+        console.print("  [yellow]voice extra absent[/yellow]")
+        console.print(
+            "  [dim]hint: pip install "
+            f'"{escape("escape-the-valley[voice]")}"[/dim]'
+        )
+
+    try:
+        from pathlib import Path
+
+        from .tui_app import _resolve_css_path
+
+        css_path = Path(_resolve_css_path())
+        if css_path.is_file():
+            console.print("  [green]TUI stylesheet found:[/green] tui.tcss")
+        else:
+            console.print(
+                "  [yellow]TUI stylesheet missing:[/yellow] tui.tcss"
+            )
+    except Exception:
+        console.print("  [yellow]TUI stylesheet missing:[/yellow] tui.tcss")
 
     console.print()
 
