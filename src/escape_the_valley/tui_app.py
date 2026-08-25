@@ -333,8 +333,9 @@ class EventBar(Static):
         # engine/ledger-derived text (also dynamic); both are escaped. The
         # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
-        # F-a0f79af3: keep the docked bar short so a 7-choice camp still
-        # leaves room for the HUD at 80x24 (overflow-y: auto on #eventbar).
+        # F-a0f79af3 / F-23cf9a9a: docked bar budget is App.CSS #eventbar
+        # (height: auto; max-height: 5; no border). Title + A–D fit five
+        # painted rows at 80x24; E/F/G valves scroll (overflow-y: auto).
         text = (
             f"[b]{_escape_dynamic(s.prompt_title)}[/b]  "
             f"{_escape_dynamic(s.prompt_text)}\n"
@@ -539,6 +540,9 @@ class LedgerTrailApp(App):
     CSS_PATH = _resolve_css_path()
     # Loaded after CSS_PATH, so these rules win over tui.tcss #main / #eventbar
     # without editing the stylesheet (outside this domain's owned globs).
+    # #eventbar is fully specified here (height/max-height/padding/border/
+    # background) so tui.tcss leftover `height: 9` + `border-top: tall` cannot
+    # eat a content row of the max-height budget (F-23cf9a9a).
     CSS = """
     #main {
         height: 1fr;
@@ -606,6 +610,9 @@ class LedgerTrailApp(App):
         max-height: 5;
         overflow-y: auto;
         padding: 0 1;
+        border: none;
+        border-top: none;
+        background: #0f1620;
     }
     """
 
