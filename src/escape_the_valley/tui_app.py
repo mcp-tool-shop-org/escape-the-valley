@@ -6,7 +6,7 @@ Run:
     # or: python -m escape_the_valley.tui_app
 
 Keys:
-    t travel | r rest | h hunt | p repair
+    t travel | r rest | h hunt | p repair | c cycle pace
     1-7 choose option (A-G); e/f/g pick E/F/G
     Shift+J toggle journal drawer
     L ledger | V voice | ? help | q quit
@@ -75,6 +75,18 @@ class FrameState:
     wagon: str = ""
     party_summary: str = ""
 
+    # F-42243a2c: run identity the handbook says the start screen shows.
+    run_id: str = ""
+    seed: int = 0
+    gm_profile: str = ""
+    doctrine: str = ""
+    taboo: str = ""
+    twists: list[str] = field(default_factory=list)
+
+    # F-9f5f308e: morale 0-100 with the same LOW/CRITICAL bands as CLI.
+    morale: int = 70
+    morale_cue: str = ""
+
     supplies: dict[str, int] = field(default_factory=dict)
 
     # Center column
@@ -139,15 +151,29 @@ class StatusPanel(Static):
             wagon = f"[bold red]{wagon}[/]"
         elif "(LOW)" in s.wagon:
             wagon = f"[yellow]{wagon}[/]"
+        seed_bit = f"  \u2022  seed {s.seed}" if s.seed else ""
         lines = [
-            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}",
+            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}{seed_bit}",
             f"Next: {_escape_dynamic(s.next_stop)}",
             f"{_escape_dynamic(s.weather)}  \u2022  {_escape_dynamic(s.biome)}",
-            f"Pace: {_escape_dynamic(s.pace)}",
+            f"Pace: {_escape_dynamic(s.pace)}  (c cycles)",
+        ]
+        # Compact run-rules line: doctrine, taboo, twist names (F-42243a2c).
+        rules_parts = []
+        if s.doctrine:
+            rules_parts.append(f"Doctrine: {_escape_dynamic(s.doctrine)}")
+        if s.taboo:
+            rules_parts.append(f"Taboo: {_escape_dynamic(s.taboo)}")
+        if s.twists:
+            names = ", ".join(_escape_dynamic(t) for t in s.twists)
+            rules_parts.append(f"Twists: {names}")
+        if rules_parts:
+            lines.append(" \u2022 ".join(rules_parts))
+        lines.extend([
             "",
             _escape_dynamic(s.party_summary),
             wagon,
-        ]
+        ])
         if s.backpack_status:
             lines.append("")
             lines.append(_escape_dynamic(s.backpack_status))
@@ -233,7 +259,14 @@ class PartyPanel(Static):
                 member_lines.append(f"[bold red]{esc}[/]")
             else:
                 member_lines.append(esc)
-        body = "[b]Party[/b]\n" + "\n".join(member_lines)
+        # F-9f5f308e: same Party header + morale/100 bands as ui.show_status.
+        cue = _escape_dynamic(s.morale_cue)
+        morale = f"Morale: {s.morale}/100{cue}"
+        if s.morale <= 20:
+            morale = f"[bold red]{morale}[/]"
+        elif s.morale <= 40:
+            morale = f"[yellow]{morale}[/]"
+        body = f"[b]Party[/b]  {morale}\n" + "\n".join(member_lines)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
             body += "\n".join(f"\u2022 {_escape_dynamic(w)}" for w in s.warnings)
@@ -311,7 +344,7 @@ class EventBar(Static):
         else:
             pick_hint = ""
         hint_line = (
-            f"[i]{pick_hint}Actions: t/r/h/p. "
+            f"[i]{pick_hint}Actions: t/r/h/p/c. "
             "L ledger \u2022 V voice \u2022 Shift+J journal \u2022 "
             "? help \u2022 q quit[/i]"
         )
@@ -454,6 +487,7 @@ HELP_TEXT = """\
 
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
+\u2022 c Cycle pace (Slow / Steady / Hard)
 \u2022 1\u20137 Choose option (A\u2013G)
 \u2022 e/f/g pick E/F/G when no overlay is open
 \u2022 E/F/G are last-resort moves (Abandon Cargo, Desperate
@@ -626,6 +660,7 @@ class LedgerTrailApp(App):
         Binding("r", "intent('REST')", "Rest", group=_CAMP_KEYS),
         Binding("h", "intent('HUNT')", "Hunt", group=_CAMP_KEYS),
         Binding("p", "intent('REPAIR')", "Repair", group=_CAMP_KEYS),
+        Binding("c", "change_pace", "Pace", group=_CAMP_KEYS),
         Binding("1", "choose('A')", "A", group=_CHOICE_KEYS),
         Binding("2", "choose('B')", "B", group=_CHOICE_KEYS),
         Binding("3", "choose('C')", "C", group=_CHOICE_KEYS),
@@ -802,6 +837,27 @@ class LedgerTrailApp(App):
             st = self._engine.state
             self.notify(
                 f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+                markup=False,
+            )
+        elif self._engine:
+            # F-42243a2c: new-game mount names the seed, profile, doctrine,
+            # taboo, and twists the survival guide says this run is using.
+            st = self._engine.state
+            profile = (
+                st.gm_profile.value
+                if hasattr(st.gm_profile, "value")
+                else str(st.gm_profile)
+            )
+            twists = ", ".join(
+                t.value if hasattr(t, "value") else str(t)
+                for t in st.twists
+            ) or "none"
+            doctrine = st.doctrine or "none"
+            taboo = st.taboo or "none"
+            self.notify(
+                f"Run {st.run_id} -- seed {st.seed} -- {profile}. "
+                f"Doctrine: {doctrine}. Taboo: {taboo}. "
+                f"Twists: {twists}. Press ? for keys.",
                 markup=False,
             )
 
@@ -1099,6 +1155,34 @@ class LedgerTrailApp(App):
             return
 
         self._run_step(PlayerIntent(action=action))
+
+    def action_change_pace(self) -> None:
+        """Cycle Slow → Steady → Hard through StepEngine.CHANGE_PACE.
+
+        F-f50297bc: the recommended TUI never wired the existing camp
+        intent. ``c`` is the live control; the engine's pace enum is the
+        only system. On the end screen ``c`` still copies the postcard.
+        """
+        if self.show_end:
+            self.action_copy_postcard()
+            return
+        if not self._engine or self._in_flight:
+            return
+
+        from .intent import GamePhase, IntentAction, PlayerIntent
+        from .models import Pace
+
+        if self._engine.phase != GamePhase.CAMP:
+            return
+
+        order = (Pace.SLOW, Pace.STEADY, Pace.HARD)
+        current = self._engine.state.wagon.pace
+        try:
+            idx = order.index(current)
+        except ValueError:
+            idx = order.index(Pace.STEADY)
+        nxt = order[(idx + 1) % len(order)]
+        self._run_step(PlayerIntent(action=IntentAction.CHANGE_PACE, pace=nxt.value))
 
     # ── Worker-driven stepping (cli-tui-B-02) ──────────────────────
 

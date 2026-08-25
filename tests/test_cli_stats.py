@@ -253,6 +253,27 @@ class TestTuiOptions:
         assert result.exit_code == 1
         assert "Unknown profile" in result.output
 
+    def test_new_prints_doctrine_and_taboo(self, monkeypatch):
+        """F-42243a2c: trail new names doctrine + taboo next to twists."""
+        monkeypatch.setattr("escape_the_valley.cli.has_save", lambda: False)
+
+        class _FakeEngine:
+            def __init__(self, *a, **k):
+                pass
+
+            def run(self):
+                pass
+
+        monkeypatch.setattr("escape_the_valley.cli.GameEngine", _FakeEngine)
+        result = runner.invoke(app, ["new", "--seed", "7", "--gm-off"])
+        assert result.exit_code == 0
+        assert "Twists:" in result.output
+        assert "sick_season" in result.output
+        assert "Doctrine:" in result.output
+        assert "travel_light" in result.output
+        assert "Taboo:" in result.output
+        assert "leave_nothing" in result.output
+
     def test_tui_weirdness_clamped(self, monkeypatch):
         """Out-of-range weirdness is clamped to 0-3 before create_new_run."""
         captured = {}

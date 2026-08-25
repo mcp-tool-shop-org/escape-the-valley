@@ -571,6 +571,7 @@ class TestDegradedGmSignal:
         assert "Shift+J journal" in text
         assert " J journal" not in text
         assert "number keys also work" not in lower
+        assert "t/r/h/p/c" in text
 
 
 # ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─
@@ -790,6 +791,15 @@ class TestAccessibilityCues:
         assert _supply_cue(6) == ""
         assert _supply_cue(50) == ""
 
+    def test_morale_cue_matches_cli_bands(self):
+        from escape_the_valley.ui import _morale_cue
+
+        assert _morale_cue(70) == ""
+        assert _morale_cue(40) == " (LOW)"
+        assert _morale_cue(21) == " (LOW)"
+        assert _morale_cue(20) == " (CRITICAL)"
+        assert _morale_cue(0) == " (CRITICAL)"
+
     def test_no_color_env_detected(self, monkeypatch):
         from escape_the_valley import ui
 
@@ -866,3 +876,60 @@ class TestAccessibilityCues:
         assert "CRITICAL" in out
         assert "CRITI…" not in out
         assert "(CRITI" not in out.replace("CRITICAL", "")
+
+
+# ── Wave 34: run identity + morale on the frame ─────────────────────
+
+
+class TestRunIdentityOnFrame:
+    """F-42243a2c: FrameState carries seed, doctrine, taboo, twist names."""
+
+    def test_seed_7_identity_reaches_the_frame(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.seed == 7
+        assert frame.run_id == state.run_id
+        assert frame.gm_profile == "fireside"
+        assert frame.doctrine == "travel_light"
+        assert frame.taboo == "leave_nothing"
+        assert frame.twists == ["sick_season", "flood_year"]
+
+
+class TestMoraleOnFrame:
+    """F-9f5f308e: morale 0-100 copies onto the frame with CLI cue bands."""
+
+    def test_default_morale_on_fresh_run(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.morale == 70
+        assert frame.morale_cue == ""
+        assert "Morale: 70/100" in frame.party_summary
+
+    def test_low_and_critical_bands_match_cli(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        engine.state.party.morale = 40
+        frame = state_to_frame(engine)
+        assert frame.morale == 40
+        assert frame.morale_cue == " (LOW)"
+        assert "Morale: 40/100 (LOW)" in frame.party_summary
+
+        engine.state.party.morale = 15
+        frame = state_to_frame(engine)
+        assert frame.morale == 15
+        assert frame.morale_cue == " (CRITICAL)"
+        assert "Morale: 15/100 (CRITICAL)" in frame.party_summary
