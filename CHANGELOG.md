@@ -6,6 +6,17 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **EVENT/ROUTE retry copy names offered letters** (`A/B`), not `(1-4)` / `(1/2)`.
+  CLI `Choose` is letters too. Keyboard and prompt are the same document.
+- **Live death line names the cause:** `{name} has died ({cause}).` Both engines.
+- **Hard-ration refusals split:** food not low / cooldown remaining / already min.
+- **Ollama HTTP 404 is model-missing**, not a JSON reject. Player sees `ollama pull`
+  and `--gm-off`.
+- **Extra-missing ledger cannot stay ON.** Message names
+  `pip install "escape-the-valley[xrpl]"`.
+- **TUI help matches live keys:** 1–7 and Shift+J. `--voice` mount toasts ON or
+  an honest fail, never silence then OFF.
+- **Handbook beginners keys match that TUI.**
 - **`enable()` `_get_client()` lives inside the EnableResult try.** Every
   `_get_client()` / `Wallet.from_seed` in `backpack.py` degrades to a result
   object. Sweep leftover: found none.
