@@ -2940,9 +2940,20 @@ Screen {
 """
 
     def _painted(self, widget) -> str:
-        return "".join(
+        # Concatenated render_line strips — the inner painted viewport,
+        # not visual.plain (which still holds overflow below the fold).
+        return "\n".join(
             widget.render_line(y).text for y in range(widget.size.height)
         )
+
+    def _on_screen(self, widget, cols: int, rows: int):
+        from textual.geometry import Region
+
+        visible = widget.region.intersection(Region(0, 0, cols, rows))
+        assert visible.width > 0 and visible.height > 0, (
+            f"overlay region {widget.region} misses screen {cols}x{rows}"
+        )
+        return visible
 
     def test_identity_overlays_at_80x24_and_120x30(self):
         import asyncio
@@ -2959,6 +2970,7 @@ Screen {
         classic = _CLASSIC_R
         short = _CLASSIC_R_SHORT
         painted_fn = self._painted
+        on_screen = self._on_screen
 
         def _recover(widget) -> str:
             return "".join(painted_fn(widget).split())
@@ -3001,8 +3013,17 @@ Screen {
                 await pilot.pause()
                 assert wallet.size.width <= cols
                 assert wallet.size.height <= rows
+                on_screen(wallet, cols, rows)
+                painted = painted_fn(wallet)
+                # visual.plain still contains FOOD when the painted region
+                # clips — that is a failed fix. Assert the strips.
+                assert "FOOD (FOD)" in painted
+                assert "WATR (WTR)" in painted
+                assert "MEDS (MED)" in painted
+                assert "AMMO (AMO)" in painted
+                assert "PART (PRT)" in painted
+                assert "Esc" in painted
                 assert classic in wallet.visual.plain
-                assert "FOOD" in wallet.visual.plain
                 assert "[b]" not in wallet.visual.plain
                 assert classic in _recover(wallet)
 
@@ -3013,6 +3034,9 @@ Screen {
                 await pilot.pause()
                 assert enable.size.width <= cols
                 assert enable.size.height <= rows
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted
                 assert classic in enable.visual.plain
                 assert classic in _recover(enable)
 
@@ -3023,6 +3047,10 @@ Screen {
                 await pilot.pause()
                 assert parcel.size.width <= cols
                 assert parcel.size.height <= rows
+                on_screen(parcel, cols, rows)
+                painted = painted_fn(parcel)
+                assert "A) Accept" in painted
+                assert "R) Refuse" in painted
                 assert f"From: {short}" in parcel.visual.plain
                 assert short in _recover(parcel)
 
