@@ -70,22 +70,64 @@ jobs:
 
       - name: Build binary
         shell: bash
+        env:
+          # F-812f18ad: route the event-derived ref through env instead of
+          # inline ${{ }} interpolation into this run: block. Template
+          # substitution happens BEFORE bash parses the script, so a value
+          # containing shell metacharacters (possible here: on workflow_dispatch,
+          # github.event.inputs.tag is a free-form, unvalidated string anyone
+          # with Actions-trigger rights can set) would otherwise become part of
+          # the executed command. Env-var substitution happens after the script
+          # text is fixed, so metacharacters are inert data.
+          REF_NAME_RAW: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}
         run: |
-          REF_NAME="${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}"
+          REF_NAME="$REF_NAME_RAW"
           VERSION=${REF_NAME#v}
+          # F-a4d8291c: PyInstaller's --add-data separator is OS-specific (`;`
+          # on Windows, `:` elsewhere) -- this step runs under bash on every
+          # matrix leg via `shell: bash`, but PyInstaller itself is a native
+          # Windows Python process on windows-latest and parses the
+          # SRC<sep>DEST spec using the target OS's separator, not the
+          # invoking shell's.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            DATA_SEP=";"
+          else
+            DATA_SEP=":"
+          fi
           # --no-sync: build from the base env created by `uv pip install .`
           # above; do NOT re-resolve the project (which would drag in optional
           # extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and
           # bloat the binary). The binary ships the base game only; voice is
           # pip-install-only via `escape-the-valley[voice]`.
+          #
+          # F-a4d8291c: --add-data bundles the two non-Python files the game
+          # needs at runtime that PyInstaller cannot discover on its own:
+          # tui.tcss (TrailApp.CSS_PATH) and data/event_skeletons.json (~200
+          # of the game's ~260 events -- event_loader.load_json_events()
+          # silently returns [] if this is missing, so an unbundled JSON
+          # ships a binary that starts cleanly and plays a quarter-game).
           uv run --no-sync pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
             --collect-submodules rich \
             --collect-submodules textual \
             --collect-data textual \
+            --add-data "src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley" \
+            --add-data "src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data" \
             "${{ env.ENTRYPOINT }}"
           OUTNAME="${{ env.TOOL_NAME }}-${VERSION}-${{ matrix.target }}${{ matrix.ext }}"
           mv "dist/${{ env.TOOL_NAME }}${{ matrix.ext }}" "dist/${OUTNAME}"
           echo "ASSET_NAME=${OUTNAME}" >> "$GITHUB_ENV"
+
+      - name: Smoke test binary
+        # F-a6fa29e0: the build succeeding is not the same as the binary
+        # running -- this is precisely why F-a4d8291c's 100%-reproducible
+        # crash shipped undetected through two tagged releases. Runs once per
+        # matrix leg so a platform-specific packaging regression is also
+        # caught. Asserts both process startup (--help) AND the loaded event
+        # count (260, not the 60-hardcoded-only quarter-game floor) -- see
+        # scripts/smoke_test_binary.py for why a startup-only check isn't
+        # enough.
+        shell: bash
+        run: uv run --no-sync python scripts/smoke_test_binary.py "dist/${{ env.ASSET_NAME }}"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -108,8 +150,15 @@ jobs:
 
       - name: Generate checksums
         shell: bash
+        env:
+          # F-812f18ad: same env-indirection fix as the build job's "Build
+          # binary" step -- see the comment there for the full rationale.
+          # This job additionally holds `permissions: contents: write` and
+          # calls softprops/action-gh-release, so an injection here could
+          # tamper with the release or exfiltrate GITHUB_TOKEN.
+          REF_NAME_RAW: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}
         run: |
-          REF_NAME="${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}"
+          REF_NAME="$REF_NAME_RAW"
           VERSION=${REF_NAME#v}
           cd artifacts
           sha256sum * > "checksums-${VERSION}.txt"

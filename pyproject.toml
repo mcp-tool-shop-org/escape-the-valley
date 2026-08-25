@@ -59,3 +59,13 @@ select = ["E", "F", "W", "I", "N", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Windows: pytest's tmp_path bookkeeping maintains a `pytest-current`
+# symlink pointing at the newest numbered temp dir and prunes older session
+# dirs at teardown. That teardown path (_pytest.pathlib.cleanup_dead_symlinks
+# / maybe_delete_a_numbered_dir) can raise `PermissionError: [WinError 5]
+# Access is denied` on this platform even when every test in the run passed,
+# which fails the whole pytest process on a green suite. "none" stops
+# retaining old session tmp dirs, shrinking the amount of historical
+# `%TEMP%\pytest-of-<user>\` state pytest has to reconcile (and therefore can
+# collide on) at teardown.
+tmp_path_retention_policy = "none"
