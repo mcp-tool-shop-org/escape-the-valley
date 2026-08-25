@@ -15,6 +15,7 @@ from escape_the_valley.gm import (
     _profile_header,
     _tone_check,
     _tone_repair,
+    _validate_outcome,
     _validate_scene,
     build_deterministic_epilogue,
 )
@@ -154,6 +155,42 @@ class TestSceneValidation:
             "choices": [{"label": "ok"}, {"id": "B", "label": "ok"}],
         }
         assert _validate_scene(data) is False
+
+    def test_list_narration_is_coerced_to_str(self):
+        # F-621ef743 — a truthy list used to pass validation then TypeError
+        # in _tone_repair. Join array-of-sentences into usable prose.
+        data = {
+            "scene_id": "s1",
+            "narration": ["The ford runs wide.", "The mule will not move."],
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        }
+        assert _validate_scene(data) is True
+        assert data["narration"] == "The ford runs wide. The mule will not move."
+        assert isinstance(data["narration"], str)
+
+    def test_non_str_narration_rejected(self):
+        data = {
+            "narration": {"text": "nope"},
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait"},
+            ],
+        }
+        assert _validate_scene(data) is False
+
+    def test_list_choice_label_is_coerced_to_str(self):
+        data = {
+            "narration": "The ford runs wide.",
+            "choices": [
+                {"id": "A", "label": ["Ford it", "now"]},
+                {"id": "B", "label": "Wait"},
+            ],
+        }
+        assert _validate_scene(data) is True
+        assert data["choices"][0]["label"] == "Ford it now"
 
 
 class TestToneLint:
@@ -426,6 +463,112 @@ class TestGMFallbackNeverBricks:
         assert client.generate_outcome(
             state, event, "The Ford", "A", "Ford it", {},
         ) is None
+
+
+class TestNarrationMustBeStr:
+    """F-621ef743 — array-of-sentences narration must not TypeError
+    `_tone_repair`. Coerce list/tuple of str; un-coerceable shapes
+    increment json_rejects so stats still explain the miss.
+    """
+
+    def test_generate_scene_array_narration_succeeds(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "narration": ["The ford runs wide.", "The mule will not move."],
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is not None
+        assert result.narration == "The ford runs wide. The mule will not move."
+        assert client.stats["successes"] == 1
+        assert client.stats["json_rejects"] == 0
+        assert client.stats["tone_rejects"] == 0
+
+    def test_generate_scene_object_narration_json_rejects(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "narration": {"text": "The ford runs wide."},
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is None
+        assert client.stats["attempts"] == 1
+        assert client.stats["successes"] == 0
+        assert client.stats["json_rejects"] == 1
+        assert client.stats["tone_rejects"] == 0
+
+    def test_generate_outcome_array_narration_succeeds(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": [
+                "The ford runs wide.",
+                "The mule will not move.",
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+        assert result is not None
+        assert result.outcome_narration == (
+            "The ford runs wide. The mule will not move."
+        )
+        assert client.stats["successes"] == 1
+        assert client.stats["json_rejects"] == 0
+
+    def test_generate_outcome_object_narration_json_rejects(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": {"text": "The water takes the wagon."},
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+        assert result is None
+        assert client.stats["attempts"] == 1
+        assert client.stats["json_rejects"] == 1
+        assert client.stats["tone_rejects"] == 0
+
+    def test_validate_outcome_list_is_coerced_to_str(self):
+        data = {
+            "outcome_narration": [
+                "The ford runs wide.",
+                "The mule will not move.",
+            ],
+        }
+        assert _validate_outcome(data) is True
+        assert data["outcome_narration"] == (
+            "The ford runs wide. The mule will not move."
+        )
 
 
 class TestMemoryProposalsNullSafety:
