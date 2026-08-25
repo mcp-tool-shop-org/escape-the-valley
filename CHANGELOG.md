@@ -6,6 +6,11 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **EventBar paints D) Repair at 80×24.** App.CSS fully specifies `#eventbar`
+  so leftover `tui.tcss` `height: 9` + tall border cannot clip the dock.
+  Proof is `render_line` strips, not `visual.plain`.
+- **Ledger overlays at 80×24 paint Accept/Refuse, FOOD rows, and Esc.**
+  Compact templates; proof is painted strips ∩ screen.
 - **TUI HUD reflows at 80×24 and 120×30** so supplies and status stay on
   screen. Title is Escape the Valley, not the class name. CLI `(CRITICAL)`
   is the full word at 80 columns.
