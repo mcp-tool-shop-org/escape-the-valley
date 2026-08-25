@@ -147,8 +147,9 @@ def state_to_frame(engine: StepEngine) -> FrameState:
 
     # Backpack status line
     from .backpack import BackpackManager
+    from .save import save_game
 
-    bp_mgr = BackpackManager()
+    bp_mgr = BackpackManager(persist=save_game)
     backpack_status = bp_mgr.status_line(s)
     # cli-tui-B-10: when the optional ledger is off, name the key that turns it
     # on so a curious player can find it — the bare "Ledger: OFF" was a

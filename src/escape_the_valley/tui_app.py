@@ -224,11 +224,17 @@ class EventBar(Static):
                 )
             return
 
-        # F-2f661eea: c.label/risk_hint/cost_hint are EventChoiceInfo fields
-        # built straight from the GM's own scene.choices[] JSON (step_engine
-        # .py) -- confirmed GM-authored free text, escaped before
-        # interpolation. c.id is the constrained ChoiceId literal (A-G) set
-        # by the engine, not the GM, so it is left as-is.
+        # F-d4a8ed17: c.label/risk_hint/cost_hint AND c.id are all
+        # EventChoiceInfo fields built straight from the GM's own
+        # scene.choices[] JSON on the primary EVENT path
+        # (step_engine.py's _maybe_trigger_event -> EventChoiceInfo(id=
+        # c.get('id', '?'), ...) -> adapter.py's _build_prompt(id=c.id) ->
+        # here). gm.py's _validate_scene only checks choice['id'] for
+        # truthiness, never that it's one of A-G, short, or bracket-free.
+        # Only the ROUTE/CAMP phases mint id via chr(65+i) / a fixed table
+        # (adapter.py) -- EVENT's id is exactly as GM-controlled as the
+        # sibling fields, so it is escaped the same way. The [b]...[/b]
+        # wrapper stays literal chrome authored right here, untouched.
         choice_lines = []
         for c in s.choices:
             hints = []
@@ -238,14 +244,18 @@ class EventBar(Static):
                 hints.append(f"cost: {escape(c.cost_hint)}")
             hint_txt = f"  ({'; '.join(hints)})" if hints else ""
             choice_lines.append(
-                f"[b]{c.id}[/b]) {escape(c.label)}{hint_txt}"
+                f"[b]{escape(c.id)}[/b]) {escape(c.label)}{hint_txt}"
             )
 
         # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
         # choices (so the conditional valves E/F/G are named), and the
         # persistent hint is now complete \u2014 every always-available key,
-        # including ledger, voice, and quit.
-        choice_letters = ", ".join(c.id for c in s.choices) if s.choices else ""
+        # including ledger, voice, and quit. c.id is escaped here too (same
+        # F-d4a8ed17 rationale above) since it folds into the [i]...[/i]
+        # -wrapped hint_line below.
+        choice_letters = (
+            ", ".join(escape(c.id) for c in s.choices) if s.choices else ""
+        )
         pick_hint = (
             f"Choose {choice_letters} (number keys also work). "
             if choice_letters
@@ -1242,8 +1252,9 @@ class LedgerTrailApp(App):
     def _enable_blocking(self):
         """The blocking enable round-trip. Returns the EnableResult."""
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.enable(self._engine.state)
         mgr.close()
         if result.success:
@@ -1254,9 +1265,10 @@ class LedgerTrailApp(App):
     @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _enable_worker(self) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
         try:
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=save_game)
             result = mgr.enable(self._engine.state)
             mgr.close()
             if result.success:
@@ -1290,8 +1302,9 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.disable(self._engine.state)
         self._save()
 
@@ -1327,8 +1340,9 @@ class LedgerTrailApp(App):
 
     def _settle_blocking(self, location: str):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.settle(self._engine.state, location)
         mgr.close()
         self._save()
@@ -1338,9 +1352,10 @@ class LedgerTrailApp(App):
     @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _settle_worker(self, location: str) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
         try:
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=save_game)
             result = mgr.settle(self._engine.state, location)
             mgr.close()
             self._save()
@@ -1381,8 +1396,9 @@ class LedgerTrailApp(App):
 
     def _wallet_info_blocking(self):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         info = mgr.wallet_info(self._engine.state)
         self._finish_wallet_info(info)
         return info
@@ -1390,9 +1406,10 @@ class LedgerTrailApp(App):
     @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _wallet_info_worker(self) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
         try:
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=save_game)
             info = mgr.wallet_info(self._engine.state)
         except Exception as exc:
             self.call_from_thread(self._worker_failed, "wallet info", exc)
@@ -1521,8 +1538,9 @@ class LedgerTrailApp(App):
 
     def _send_parcel_blocking(self, address: str, supply: str, amount: int):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.send_parcel(self._engine.state, address, supply, amount)
         mgr.close()
         if result.success:
@@ -1535,9 +1553,10 @@ class LedgerTrailApp(App):
         self, address: str, supply: str, amount: int,
     ) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
         try:
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=save_game)
             result = mgr.send_parcel(self._engine.state, address, supply, amount)
             mgr.close()
             if result.success:
@@ -1587,8 +1606,9 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.accept_parcel(self._current_parcel, self._engine.state)
         self._save()
 
@@ -1612,8 +1632,9 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.refuse_parcel(self._current_parcel)
         self._save()
 
