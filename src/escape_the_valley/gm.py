@@ -636,6 +636,10 @@ class GMClient:
                 logger.warning("GM connection error: %s", e)
                 return None
             except Exception as e:
+                # F-621ef743 — a shape miss that still TypeErrors (e.g. in
+                # _tone_repair) must count as a json reject so stats explain
+                # the miss; fallback-never-bricks still holds.
+                self.stats["json_rejects"] += 1
                 logger.warning("GM error: %s", e)
 
         return None
@@ -664,7 +668,7 @@ class GMClient:
                     continue
 
                 data = _parse_json(text)
-                if data and "outcome_narration" in data:
+                if data and _validate_outcome(data):
                     narration = data.get("outcome_narration", "")
                     repaired = _tone_repair(narration)
                     if repaired is None:
@@ -690,6 +694,9 @@ class GMClient:
                 self._count_transport_error(e)
                 return None
             except Exception as e:
+                # F-621ef743 — same as _request_scene: bucket leftover shape
+                # TypeErrors so json_rejects still explains the miss.
+                self.stats["json_rejects"] += 1
                 logger.warning("GM outcome error: %s", e)
 
         return None
@@ -738,18 +745,80 @@ def _parse_json(text: str) -> dict | None:
     return None
 
 
+def _as_prose(value: object) -> str | None:
+    """Coerce a narration-like field to str, or None if it cannot be.
+
+    F-621ef743 — a local model may emit narration as an array of sentences.
+    A truthy list used to pass `if not data.get("narration")` and then
+    TypeError in `_tone_repair` (`re.search` on a list).
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        if not value or not all(isinstance(part, str) for part in value):
+            return None
+        joined = " ".join(part.strip() for part in value if part.strip())
+        return joined or None
+    return None
+
+
 def _validate_scene(data: dict) -> bool:
-    """Validate scene response has required fields."""
+    """Validate scene response has required fields.
+
+    F-621ef743 — narration/title/labels must be str. A list/tuple of str is
+    joined with spaces so array-of-sentences GM-JSON is usable prose, not a
+    TypeError in `_tone_repair`.
+    """
     if not isinstance(data, dict):
         return False
-    if not data.get("narration"):
+    narration = _as_prose(data.get("narration"))
+    if not narration:
         return False
+    data["narration"] = narration
+
+    title = data.get("title")
+    if title is not None and title != "":
+        coerced_title = _as_prose(title)
+        if coerced_title is None:
+            return False
+        data["title"] = coerced_title
+
     choices = data.get("choices", [])
     if not isinstance(choices, list) or len(choices) < 2 or len(choices) > 4:
         return False
     for choice in choices:
-        if not isinstance(choice, dict) or not choice.get("id") or not choice.get("label"):
+        if not isinstance(choice, dict) or not choice.get("id"):
             return False
+        label = _as_prose(choice.get("label"))
+        if not label:
+            return False
+        choice["label"] = label
+    return True
+
+
+def _validate_outcome(data: dict) -> bool:
+    """Validate outcome response has outcome_narration as str.
+
+    F-621ef743 — same shape guard as `_validate_scene`. Empty string still
+    counts (previous `in data` contract); a list of sentences is joined.
+    """
+    if not isinstance(data, dict):
+        return False
+    if "outcome_narration" not in data:
+        return False
+    raw = data.get("outcome_narration")
+    if not isinstance(raw, str):
+        narration = _as_prose(raw)
+        if narration is None:
+            return False
+        data["outcome_narration"] = narration
+
+    title = data.get("outcome_title")
+    if title is not None and title != "":
+        coerced_title = _as_prose(title)
+        if coerced_title is None:
+            return False
+        data["outcome_title"] = coerced_title
     return True
 
 

@@ -88,17 +88,25 @@ def add_card(state: RunState, card: MemoryCard) -> None:
         drop_lowest(state, len(state.memory_cards) - MEMORY_BUDGET)
 
 
+def _as_number(value: object, default: float) -> float:
+    """Numeric default for poison-save None/str fields (F-6001ae9a)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    return float(value)
+
+
 def drop_lowest(state: RunState, count: int) -> None:
     """Evict the N lowest-salience cards (prefer expired cooldowns first)."""
     if count <= 0 or not state.memory_cards:
         return
 
-    # Sort candidates: expired cooldown first, then lowest salience
+    # Sort candidates: expired cooldown first, then lowest salience.
+    # F-6001ae9a — JSON null salience/cooldown_until must not TypeError the sort.
     scored = sorted(
         state.memory_cards,
         key=lambda c: (
-            0 if c.cooldown_until <= state.day else 1,  # expired first
-            c.salience,  # lowest salience first
+            0 if _as_number(c.cooldown_until, 0) <= state.day else 1,
+            _as_number(c.salience, 0.5),
         ),
     )
 
@@ -199,16 +207,17 @@ def compute_themes(state: RunState) -> list[str]:
     """Derive 1-3 theme tags from recent journal entries + event tags."""
     raw_tags: list[str] = []
 
-    # Last 5 journal entries
+    # Last 5 journal entries. F-6001ae9a — tags may be JSON null (save.py
+    # e.get("tags", []) passes None through when the key is present), so
+    # never raw-extend; _lowered_str_tags already returns [] for non-lists.
     for entry in state.journal[-5:]:
-        raw_tags.extend(entry.tags)
+        raw_tags.extend(_lowered_str_tags(entry.tags))
 
-    # Recent event tags from variety guard
-    raw_tags.extend(state.recent_event_tags)
+    raw_tags.extend(_lowered_str_tags(state.recent_event_tags))
 
-    # Map to themes
+    # Map to themes (already lowered/filtered)
     theme_counts: dict[str, int] = {}
-    for tag in _lowered_str_tags(raw_tags):
+    for tag in raw_tags:
         theme = TAG_TO_THEME.get(tag)
         if theme:
             theme_counts[theme] = theme_counts.get(theme, 0) + 1
@@ -256,8 +265,9 @@ def retrieve_memories(
     scored: list[tuple[float, MemoryCard]] = []
 
     for card in state.memory_cards:
-        # Skip cards on cooldown
-        if card.cooldown_until > state.day:
+        # Skip cards on cooldown. F-6001ae9a — None/str cooldown must not
+        # TypeError the comparison; treat non-numeric as 0 (not on cooldown).
+        if _as_number(card.cooldown_until, 0) > state.day:
             continue
 
         score = 0.0
@@ -268,14 +278,14 @@ def retrieve_memories(
         score += overlap * 0.2
 
         # Recency bonus
-        days_ago = state.day - card.day_last_seen
+        days_ago = state.day - _as_number(card.day_last_seen, 1)
         if days_ago <= 3:
             score += 0.3
         elif days_ago <= 5:
             score += 0.15
 
-        # Salience weight
-        score *= card.salience
+        # Salience weight (None → dataclass default 0.5, never multiply by None)
+        score *= _as_number(card.salience, 0.5)
 
         # Small bonus for engine cards (more reliable)
         if card.source == "engine":
