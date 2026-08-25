@@ -7,9 +7,11 @@ from pathlib import Path
 
 import pytest
 
+from escape_the_valley.engine import GameEngine
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
 from escape_the_valley.models import GMProfile, JournalEntry
+from escape_the_valley.physics import check_game_over
 from escape_the_valley.save import (
     SAVE_DIR,
     SAVE_FILE,
@@ -720,3 +722,90 @@ class TestCorruptBackupUniqueness:
         assert len(backups) == 2
         contents = sorted(b.read_text(encoding="utf-8") for b in backups)
         assert contents == ["{first corrupt", "{second corrupt"]
+
+
+class TestDanglingDestinationIdRoundTrip:
+    """F-e86c2e71: destination_id hand-edited in an otherwise-pristine save
+    (map_nodes/connections left untouched) must not manufacture a false
+    VICTORY once the save is loaded and played back. A REAL
+    save_game()/load_game() round trip -- not a hand-built in-memory
+    RunState -- mirroring the finding's own reproduction, in BOTH engines
+    independently (they are deliberately not unified).
+
+    This save is loaded successfully, not rejected as corrupt: save.py's
+    _dict_to_state deliberately does not add a referential check on
+    destination_id (see the comment at its assignment) precisely because
+    the engine-side fail-safe exercised below already closes the false-
+    victory bug unconditionally, and a load-time reject would only add a
+    strictly worse failure mode on top."""
+
+    def _write_tampered_save(
+        self, tmp_path, seed, node_index=3, distance_remaining=5,
+    ):
+        """Create a run, park the party mid-map, save it for real, then
+        hand-edit ONLY destination_id in the written run.json to a
+        dangling id -- map_nodes/connections stay 100% pristine, exactly
+        the finding's own repro shape (a single hand-edited scalar field,
+        not a corrupted graph)."""
+        state = create_new_run(seed=seed)
+        state.location_id = state.map_nodes[node_index].node_id
+        state.distance_remaining = distance_remaining
+        save_game(state, tmp_path)
+
+        save_path = tmp_path / SAVE_DIR / SAVE_FILE
+        data = json.loads(save_path.read_text(encoding="utf-8"))
+        data["destination_id"] = "does-not-exist-in-map-nodes"
+        save_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    def test_stepengine_tampered_destination_id_never_wins(self, tmp_path):
+        self._write_tampered_save(tmp_path, seed=7)
+
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert loaded.destination_id == "does-not-exist-in-map-nodes"
+
+        # _do_travel() directly, bypassing step()'s phase dispatch, same
+        # technique test_dangling_route_connections_recover_mid_travel uses
+        # -- safe here regardless of whether the tampered node's own
+        # connections happen to be a fork or a single connection: neither
+        # shape ever calls blocking console I/O in step_engine.py.
+        engine = StepEngine(loaded, GMConfig(enabled=False))
+        for _ in range(10):
+            engine._do_travel()
+            assert check_game_over(engine.state) != "VICTORY"
+            assert not engine.state.victory
+
+        # Never silently skipped ahead to (or past) the end of the route.
+        assert engine.state.distance_traveled < engine.state.total_distance
+
+    def test_gameengine_tampered_destination_id_never_wins(
+        self, tmp_path, monkeypatch,
+    ):
+        self._write_tampered_save(tmp_path, seed=11)
+
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert loaded.destination_id == "does-not-exist-in-map-nodes"
+
+        import escape_the_valley.engine as engine_mod
+
+        engine = GameEngine(loaded, GMConfig(enabled=False))
+        # Keep the run headless/deterministic: close the ~60% event gate
+        # (avoids a blocking show_event_scene console prompt on an
+        # unrelated RNG path) and hand a real, valid pick to
+        # show_route_choice in case the tampered node's own connections
+        # happen to be a fork (GameEngine, unlike StepEngine, resolves
+        # forks synchronously via a blocking console prompt).
+        monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+        monkeypatch.setattr(
+            engine_mod, "show_route_choice", lambda conns: conns[0][0],
+        )
+        monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+
+        for _ in range(10):
+            engine._do_travel()
+            assert check_game_over(engine.state) != "VICTORY"
+            assert not engine.state.victory
+
+        assert engine.state.distance_traveled < engine.state.total_distance
