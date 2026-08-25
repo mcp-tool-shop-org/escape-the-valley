@@ -648,6 +648,16 @@ class LedgerTrailApp(App):
         border-top: none;
         background: #0f1620;
     }
+    #ledger_proof {
+        display: none;
+        width: 50%;
+        height: 60%;
+        margin: 2 0 0 0;
+        padding: 1 2;
+        border: round #3a4b60;
+        background: #0f1620;
+        overflow-y: auto;
+    }
     """
 
     BINDINGS = [
@@ -685,6 +695,7 @@ class LedgerTrailApp(App):
     show_learn_more: reactive[bool] = reactive(False)
     show_send_parcel: reactive[bool] = reactive(False)
     show_parcel_notify: reactive[bool] = reactive(False)
+    show_ledger_proof: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -758,6 +769,7 @@ class LedgerTrailApp(App):
                 LedgerMenuOverlay,
                 NudgeOverlay,
                 ParcelNotification,
+                ProofOverlay,
                 SendParcelOverlay,
                 WalletInfoOverlay,
             )
@@ -779,6 +791,7 @@ class LedgerTrailApp(App):
             parcel_input.can_focus = False
             yield parcel_input
             yield ParcelNotification(id="parcel_notify")
+            yield ProofOverlay(id="ledger_proof")
 
         yield Footer(show_command_palette=False, compact=True)
 
@@ -924,6 +937,7 @@ class LedgerTrailApp(App):
             except Exception:
                 pass
         self.query_one("#parcel_notify").display = self.show_parcel_notify
+        self.query_one("#ledger_proof").display = self.show_ledger_proof
 
     def _after_step(self) -> None:
         """Sync frame, render, optionally narrate, and check nudge."""
@@ -1466,7 +1480,7 @@ class LedgerTrailApp(App):
 
     # _in_flight invariant (read before touching any @work worker below):
     #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
-    #     "ledger" group (enable/settle/wallet_info/send_parcel) are SEPARATE
+    #     "ledger" group (enable/settle/wallet_info/send_parcel/proof) are SEPARATE
     #     groups, so Textual will happily run one of each concurrently — its
     #     exclusivity only cancels a prior worker in the SAME group.
     #   * The cross-action guard (a gameplay step must not race a ledger call,
@@ -1719,6 +1733,55 @@ class LedgerTrailApp(App):
         ).update_from_info(info)
         self._render_all()
 
+    def action_ledger_proof(self) -> None:
+        """Proof the loaded save (F-ff0e4af0). Does not Rest, faucet, or settle."""
+        if not self._engine or self._in_flight:
+            return
+
+        if not self._has_worker_runtime():
+            self._ledger_proof_blocking()
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self.show_ledger_proof = True
+        from .backpack_ui import ProofOverlay
+
+        self.query_one("#ledger_proof", ProofOverlay).update(
+            "[b]Ledger Proof[/b]\n\nProving this save..."
+        )
+        self._render_all()
+        self._ledger_proof_worker()
+
+    def _ledger_proof_blocking(self):
+        from .ledger_proof import proof_player_save
+
+        result = proof_player_save(self._engine.state)
+        self._finish_ledger_proof(result)
+        return result
+
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
+    def _ledger_proof_worker(self) -> None:
+        from .ledger_proof import proof_player_save
+
+        try:
+            result = proof_player_save(self._engine.state)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger proof", exc)
+            return
+        self.call_from_thread(self._finish_ledger_proof, result)
+
+    def _finish_ledger_proof(self, result) -> None:
+        self._in_flight = False
+        from .backpack_ui import ProofOverlay
+
+        self._close_all_overlays()
+        self.show_ledger_proof = True
+        self.query_one(
+            "#ledger_proof", ProofOverlay,
+        ).update_from_proof(result.to_overlay_dict())
+        self._render_all()
+
     def action_send_parcel(self) -> None:
         """Show the send parcel overlay with wallet + supply info."""
         if not self._engine:
@@ -1966,6 +2029,7 @@ class LedgerTrailApp(App):
         self.show_learn_more = False
         self.show_send_parcel = False
         self.show_parcel_notify = False
+        self.show_ledger_proof = False
 
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
@@ -1989,6 +2053,7 @@ class LedgerTrailApp(App):
                 self.show_enable_flow, self.show_wallet_info,
                 self.show_learn_more, self.show_help,
                 self.show_send_parcel, self.show_parcel_notify,
+                self.show_ledger_proof,
             ])
             if no_overlay and key in ("e", "f", "g"):
                 event.prevent_default()
@@ -2001,6 +2066,7 @@ class LedgerTrailApp(App):
                 self.show_enable_flow, self.show_wallet_info,
                 self.show_learn_more, self.show_help,
                 self.show_send_parcel, self.show_parcel_notify,
+                self.show_ledger_proof,
             ]):
                 self._close_all_overlays()
                 self.show_help = False
@@ -2041,6 +2107,12 @@ class LedgerTrailApp(App):
                 self.action_ledger_settle()
                 event.prevent_default()
                 return
+            if key == "r":
+                # Overlay-scoped: Binding r is CAMP REST. prevent_default
+                # so the menu's "R) Proof this save" does not steal a rest.
+                event.prevent_default()
+                self.action_ledger_proof()
+                return
 
         # Nudge keys
         if self.show_nudge:
@@ -2069,6 +2141,7 @@ class LedgerTrailApp(App):
             self.show_enable_flow, self.show_wallet_info,
             self.show_learn_more, self.show_help,
             self.show_send_parcel, self.show_parcel_notify,
+            self.show_ledger_proof,
         ])
         if no_overlay and key in ("e", "f", "g"):
             self.action_choose(key.upper())

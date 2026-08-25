@@ -2125,3 +2125,129 @@ class TestWave34HudIdentityMoralePace:
             getattr(b, "action", "") for b in LedgerTrailApp.BINDINGS
         }
         assert "change_pace" in actions
+
+
+class TestWave36LedgerProofOverlay:
+    """F-ff0e4af0: ledger-menu R proofs the loaded save; it does not Rest."""
+
+    def _canned_pass(self, *_a, **_k):
+        from escape_the_valley.ledger_proof import PlayerProofResult
+
+        return PlayerProofResult(
+            verdict="PASS", report=None, markdown="PASS", notes=["test"],
+        )
+
+    def test_compose_yields_ledger_proof(self):
+        async def scenario():
+            from escape_the_valley.backpack_ui import ProofOverlay
+
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                overlay = app.query_one("#ledger_proof", ProofOverlay)
+                assert overlay is not None
+                assert overlay.display is False
+
+        asyncio.run(scenario())
+
+    def test_l_opens_on_menu_with_proof_this_save(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            app._engine.state.backpack.enabled = True
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("l")
+                await pilot.pause()
+                assert app.show_ledger is True
+                menu = app.query_one("#ledger_menu")
+                assert "R) Proof this save" in menu.visual.plain
+
+        asyncio.run(scenario())
+
+    def test_ledger_r_proofs_save_and_does_not_rest(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "escape_the_valley.ledger_proof.proof_player_save",
+            self._canned_pass,
+        )
+
+        async def scenario():
+            from escape_the_valley.backpack_ui import ProofOverlay
+
+            app = _make_app(seed=7)
+            app._engine.state.backpack.enabled = True
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("l")
+                await pilot.pause()
+                assert app.show_ledger is True
+                before = app._engine.state.time_of_day
+
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                assert app._engine.state.time_of_day == before
+                assert app.show_ledger_proof is True
+                proof = app.query_one("#ledger_proof", ProofOverlay)
+                assert proof.display is True
+                text = proof.visual.plain
+                assert "PASS" in text
+                assert any(v in text for v in ("PASS", "FAIL", "INCONCLUSIVE"))
+
+                await pilot.press("escape")
+                await pilot.pause()
+                assert app.show_ledger_proof is False
+                assert proof.display is False
+
+        asyncio.run(scenario())
+
+    def test_camp_r_still_rests_without_ledger_menu(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                before = app._engine.state.time_of_day
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.time_of_day != before
+                assert app.show_ledger_proof is False
+
+        asyncio.run(scenario())
+
+    def test_parcel_r_still_refuses_not_proof(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "escape_the_valley.ledger_proof.proof_player_save",
+            self._canned_pass,
+        )
+
+        async def scenario():
+            from escape_the_valley.backpack_models import ParcelRecord
+
+            app = _make_app(seed=7)
+            parcel = ParcelRecord(
+                parcel_id="rSender:FOD:5",
+                sender="rSender",
+                contents={"food": 5},
+                accepted=False,
+                day_received=1,
+            )
+            app._engine.state.backpack.parcels.append(parcel)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.action_show_parcel(parcel)
+                await pilot.pause()
+                assert app.show_parcel_notify is True
+                before = app._engine.state.time_of_day
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.time_of_day == before
+                assert app.show_ledger_proof is False
+                assert parcel.parcel_id.startswith("refused:")
+
+        asyncio.run(scenario())
