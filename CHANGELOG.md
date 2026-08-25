@@ -6,6 +6,11 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **`enable()` `_get_client()` lives inside the EnableResult try.** Every
+  `_get_client()` / `Wallet.from_seed` in `backpack.py` degrades to a result
+  object. Sweep leftover: found none.
+- **README Security sentence matches SECURITY.md:** GM on by default
+  (`--gm-off` to disable); XRPL off until `trail ledger enable`; voice opt-in.
 - **Loaded supplies go through `SuppliesState.set` clamps.** A hostile or
   legacy save with negative stacks no longer loads illegal values.
 - **Malformed `rng_state` degrades to counter-replay.** Load no longer
