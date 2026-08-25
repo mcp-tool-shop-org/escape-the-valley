@@ -2070,7 +2070,27 @@ class TestOverlayFailureMarkupSafety:
     would also pass a naive "does not crash" check while silently killing
     that bold heading, so each test asserts the heading's bold span
     survives, not just the absence of an exception.
+
+    F-25704f7e: the leftover sibling sinks (show_parcel, show_success,
+    show_form, update_from_info) use the same Static.update() path and
+    must be covered here too, still without mocking update/from_markup.
     """
+
+    def _assert_heading_still_bold(self, overlay, heading: str) -> str:
+        rendered = overlay.visual.plain
+        # Markup was not disabled wholesale: a literal, unparsed "[b]"
+        # would only appear in .plain if markup parsing were turned off
+        # for the whole widget instead of just escaping the dynamic part.
+        assert "[b]" not in rendered
+        assert "[/b]" not in rendered
+        assert heading in rendered
+        start = rendered.index(heading)
+        bold_spans = [s for s in overlay.visual.spans if s.style == "b"]
+        assert any(
+            s.start == start and s.end == start + len(heading)
+            for s in bold_spans
+        ), bold_spans
+        return rendered
 
     def test_send_parcel_failure_survives_orphan_closing_tag(self):
         from escape_the_valley.backpack_ui import SendParcelOverlay
@@ -2137,6 +2157,79 @@ class TestOverlayFailureMarkupSafety:
         overlay.show_failure("Not enough food (have 3, need 10).")
         rendered = overlay.visual.plain
         assert "Not enough food (have 3, need 10)." in rendered
+
+    def test_parcel_survives_orphan_closing_tag_in_sender_and_contents(self):
+        from escape_the_valley.backpack_ui import ParcelNotification
+
+        overlay = ParcelNotification()
+        # Empirical wave-11 repro: sender is >12 chars so it is shortened
+        # to 'rSender[...' before update(). textual.markup.escape() does not
+        # wrap that leftover '[' (it only covers complete tag-shaped runs),
+        # so the truncated sender used to unbalance the chrome [b] tags.
+        overlay.show_parcel("rSender[/pwn]", "5 food [/pwn]")
+
+        rendered = self._assert_heading_still_bold(overlay, "Parcel arrived!")
+        assert "rSender[..." in rendered
+        assert "5 food [/pwn]" in rendered
+
+    def test_send_parcel_success_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        overlay = SendParcelOverlay()
+        malicious = "Sent 5 food to rN7q[/pwn]. Receipt: ABCDEF123456..."
+
+        overlay.show_success(malicious)
+
+        rendered = self._assert_heading_still_bold(overlay, "Parcel sent!")
+        assert malicious in rendered
+
+    def test_send_parcel_form_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        overlay = SendParcelOverlay()
+        supplies = "food: 50 [/pwn]"
+
+        overlay.show_form(supplies)
+
+        rendered = self._assert_heading_still_bold(overlay, "Send Parcel")
+        assert supplies in rendered
+
+    def test_wallet_info_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info({
+            "address_short": "rABC[/pwn]",
+            "issuer": "rISS[/pwn]",
+            "trust_lines": True,
+            "settlements": 3,
+            "pending": 0,
+            "balances": {"FOOD": "12[/pwn]"},
+        })
+
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "rABC[/pwn]" in rendered
+        assert "rISS[/pwn]" in rendered
+        assert "FOOD: 12[/pwn]" in rendered
+
+    def test_production_shaped_parcel_and_success_unaffected(self):
+        """Classic r-address + catalog labels must still render as before."""
+        from escape_the_valley.backpack_ui import (
+            ParcelNotification,
+            SendParcelOverlay,
+        )
+
+        parcel = ParcelNotification()
+        parcel.show_parcel("rN7qKvMzTdmhcjbw1234567890xKp", "5 food")
+        rendered = self._assert_heading_still_bold(parcel, "Parcel arrived!")
+        assert "rN7qKvMz..." in rendered
+        assert "5 food" in rendered
+
+        overlay = SendParcelOverlay()
+        success = "Sent 5 food to rN7q...xKp. Receipt: ABCDEF123456..."
+        overlay.show_success(success)
+        rendered = self._assert_heading_still_bold(overlay, "Parcel sent!")
+        assert success in rendered
 
 
 # ──────────────────────────────────────────────────────────────────────
