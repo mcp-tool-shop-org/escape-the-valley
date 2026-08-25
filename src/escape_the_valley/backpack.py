@@ -151,7 +151,10 @@ def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
     """
     delta_parts = []
     for key, diff in sorted(deltas.items()):
-        code = XRPL_TOKEN_MAP[key][0]
+        mapped = XRPL_TOKEN_MAP.get(key)
+        if mapped is None:
+            continue
+        code = mapped[0]
         sign = "+" if diff > 0 else ""
         delta_parts.append(f"{code}{sign}{diff}")
 
@@ -630,23 +633,32 @@ class BackpackManager:
                 message="No changes to settle.",
             )
 
-        client = self._get_client()
-        player = Wallet.from_seed(bp.wallet_secret)
-        issuer = Wallet.from_seed(bp.issuer_secret)
-        # The on-chain memo for every Payment in this batch names the FULL set
-        # of deltas being settled together (ledger-003) — unchanged even if a
-        # later key in the loop fails, since it is the exact byte string
-        # already signed and broadcast for whichever resources clear below.
-        memos = _build_memo(state.run_id, state.day, deltas)
-
         confirmed: dict[str, int] = {}
         confirmed_txids: list[str] = []
         failure: Exception | None = None
         settled_record: SettlementRecord | None = None
+        client = None
+        player = None
+        issuer = None
+        memos = None
 
-        for key, diff in deltas.items():
-            code = XRPL_TOKEN_MAP[key][0]
+        # F-86a4c19c: wrap client/from_seed/memo into the same pending
+        # split as a submit failure — ValueError/KeyError must not escape.
+        try:
+            client = self._get_client()
+            player = Wallet.from_seed(bp.wallet_secret)
+            issuer = Wallet.from_seed(bp.issuer_secret)
+            # The on-chain memo for every Payment in this batch names the FULL set
+            # of deltas being settled together (ledger-003) — unchanged even if a
+            # later key in the loop fails, since it is the exact byte string
+            # already signed and broadcast for whichever resources clear below.
+            memos = _build_memo(state.run_id, state.day, deltas)
+        except Exception as e:  # noqa: BLE001 - routed into the pending split below
+            failure = e
+
+        for key, diff in (deltas.items() if failure is None else ()):
             try:
+                code = XRPL_TOKEN_MAP[key][0]
                 if diff < 0:
                     # Player lost supplies → send back to issuer
                     tx = Payment(
@@ -824,9 +836,34 @@ class BackpackManager:
         if not _HAS_XRPL:
             return
 
-        client = self._get_client()
-        player = Wallet.from_seed(bp.wallet_secret)
-        issuer = Wallet.from_seed(bp.issuer_secret)
+        # F-86a4c19c: skip unknown pending keys like accept_parcel so a
+        # stale {gold: N} record cannot KeyError out of retry/settle.
+        stripped = False
+        for record in list(bp.pending_settlements):
+            unknown = [k for k in record.deltas if k not in XRPL_TOKEN_MAP]
+            if not unknown:
+                continue
+            for k in unknown:
+                del record.deltas[k]
+            stripped = True
+            if not record.deltas:
+                bp.pending_settlements = [
+                    r for r in bp.pending_settlements if r is not record
+                ]
+        if stripped:
+            self._persist_state(state)
+        if not bp.pending_settlements:
+            bp.last_settle_failed = False
+            return
+
+        try:
+            client = self._get_client()
+            player = Wallet.from_seed(bp.wallet_secret)
+            issuer = Wallet.from_seed(bp.issuer_secret)
+        except Exception as e:  # noqa: BLE001 - degrade; retry later
+            log.warning("Retry settlement setup failed: %s", e)
+            bp.last_settle_failed = True
+            return
 
         # Snapshot to iterate; bp.pending_settlements itself is rebuilt
         # incrementally below (F-d178410b) as each record resolves, rather
@@ -842,15 +879,22 @@ class BackpackManager:
             # this pass actually carried on-chain, not whatever remains
             # after some keys have already been removed.
             original_deltas = dict(record.deltas)
-            memos = _build_memo(state.run_id, record.day, original_deltas)
             confirmed: dict[str, int] = {}
             confirmed_txids: list[str] = []
             failure: Exception | None = None
             settled_record: SettlementRecord | None = None
+            try:
+                memos = _build_memo(state.run_id, record.day, original_deltas)
+            except Exception as e:  # noqa: BLE001 - abort this pass, keep pending
+                log.warning(
+                    "Retry settlement day %d failed: %s", record.day, e,
+                )
+                bp.last_settle_failed = True
+                return
 
             for key, diff in original_deltas.items():
-                code = XRPL_TOKEN_MAP[key][0]
                 try:
+                    code = XRPL_TOKEN_MAP[key][0]
                     if diff < 0:
                         tx = Payment(
                             account=player.address,
