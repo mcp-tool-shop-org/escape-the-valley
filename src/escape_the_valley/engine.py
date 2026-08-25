@@ -28,6 +28,7 @@ from .physics import (
     check_health_effects,
     compute_daily_consumption,
     compute_travel_distance,
+    halve_consumption,
     rest_day,
     update_morale,
 )
@@ -194,8 +195,9 @@ class GameEngine:
         else:
             show_message("The hunt yielded nothing. 1 ammo spent.", "yellow")
 
-        # Half-day action — partial consumption
-        half_consumption = {k: v // 2 for k, v in compute_daily_consumption(self.state).items()}
+        # Half-day action — partial consumption (F-4d750550: round toward
+        # zero, not floor -- see physics.halve_consumption)
+        half_consumption = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half_consumption)
 
         update_morale(self.state)
@@ -218,8 +220,9 @@ class GameEngine:
             "green",
         )
 
-        # Half-day action
-        half_consumption = {k: v // 2 for k, v in compute_daily_consumption(self.state).items()}
+        # Half-day action (F-4d750550: round toward zero, not floor -- see
+        # physics.halve_consumption)
+        half_consumption = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half_consumption)
 
         show_status(self.state)

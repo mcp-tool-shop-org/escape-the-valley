@@ -87,6 +87,25 @@ def compute_daily_consumption(
     return deltas
 
 
+def halve_consumption(deltas: dict[str, int]) -> dict[str, int]:
+    """Halve a consumption-delta dict for a half-day action (HUNT/REPAIR).
+
+    F-4d750550: compute_daily_consumption() returns NEGATIVE deltas (e.g.
+    {"food": -1}). Plain floor division (``v // 2``) floors toward negative
+    infinity, not toward zero, so it silently rounds AWAY from zero on odd
+    negatives -- ``-1 // 2 == -1`` (a FULL day's cost charged for a half-day
+    action, 0% reduction) and ``-7 // 2 == -4`` (more than half). Halving the
+    magnitude and re-negating rounds toward zero instead, so -1 -> 0 and
+    -7 -> -3, matching "at most half a day's consumption". Single canonical
+    implementation shared by step_engine.py and the legacy engine.py so the
+    two engines can't drift out of sync on this again.
+    """
+    return {
+        key: -(-val // 2) if val < 0 else val // 2
+        for key, val in deltas.items()
+    }
+
+
 def compute_travel_distance(state: RunState) -> int:
     """How far the party travels in one day based on pace and conditions."""
     base = PACE_DISTANCE[state.wagon.pace]
@@ -340,10 +359,23 @@ def update_morale(state: RunState, event_mood: int = 0) -> None:
 
 
 def check_spoilage(state: RunState, rng: SeededRNG) -> dict[str, int]:
-    """If salt == 0 and day % 3 == 0, some food spoils."""
+    """If salt == 0 and day % 3 == 0, some food spoils -- at most once per
+    qualifying day.
+
+    F-ec4745c1: a single calendar day spans multiple TRAVEL actions (each
+    advances time_of_day by one quarter-day), and this used to be checked
+    fresh on every one of them -- so a day%3==0 day with 2-3 travels rolled
+    2-3x the intended loss. state.last_spoilage_day records the day this
+    last fired so later TRAVEL actions on the same day are a no-op; it only
+    advances forward (day is monotonic), so it never suppresses a later,
+    genuinely new qualifying day.
+    """
     if state.supplies.get("salt") > 0 or state.day % 3 != 0:
         return {}
+    if state.day == state.last_spoilage_day:
+        return {}
 
+    state.last_spoilage_day = state.day
     loss = rng.randint(2, 4)
     actual = min(loss, state.supplies.food)
     if actual > 0:
