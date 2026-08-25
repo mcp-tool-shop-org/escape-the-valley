@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 from urllib.parse import urlparse
 
 from .backpack_models import (
@@ -345,7 +345,13 @@ class BackpackManager:
     degradation. The game never blocks on network failures.
     """
 
-    def __init__(self, url: str = TESTNET_URL, *, allow_non_testnet: bool = False):
+    def __init__(
+        self,
+        url: str = TESTNET_URL,
+        *,
+        allow_non_testnet: bool = False,
+        persist: Callable[[RunState], None] | None = None,
+    ) -> None:
         """Create a manager bound to an XRPL endpoint.
 
         Testnet-only by default (ledger-B03 / SAFETY): the URL host must be on
@@ -355,6 +361,19 @@ class BackpackManager:
         never move value off a real account. ``allow_non_testnet=True`` is the
         single, explicit escape hatch (e.g. a local standalone rippled in CI);
         it is honored but logs a loud warning so the choice is never silent.
+
+        ``persist`` (F-d178410b): an optional hook called with the full
+        ``RunState`` immediately after each resource's Payment confirms
+        inside ``settle()``/``_retry_pending()`` — see those methods'
+        docstrings. Defaults to ``None``: both methods still mutate
+        ``state.backpack`` purely in memory and rely on the caller to save
+        afterward, exactly as before this fix, so passing nothing changes
+        no existing behavior (and no existing test needs to account for
+        surprise disk I/O). Every current call site constructs
+        ``BackpackManager()`` with no arguments, so making the fix live for
+        real players means passing e.g. ``persist=save_game`` (from
+        ``.save``) at those call sites — a caller-side change outside this
+        module's domain, not made here.
         """
         host = (urlparse(url).hostname or "").lower()
         if host not in TESTNET_HOSTS and not allow_non_testnet:
@@ -374,6 +393,37 @@ class BackpackManager:
             )
         self._url = url
         self._client: JsonRpcClient | None = None
+        self._persist = persist
+
+    def _persist_state(self, state: RunState) -> None:
+        """Invoke the ``persist`` hook, if any, tolerating its failure.
+
+        A local disk error here must never undo or hide a Payment that has
+        ALREADY confirmed on-chain, nor crash the caller mid-settlement — it
+        only means this particular resource's fold stays exactly as durable
+        as it was before this fix (in-memory only, saved whenever the caller
+        next saves). That is strictly no worse than the pre-fix baseline, so
+        degrading to it on a persist error is safe.
+
+        Logs only the exception TYPE, never ``str(exc)`` or ``exc_info``
+        (SAFETY): ``persist`` is caller-supplied and receives the full
+        ``RunState``, including ``bp.wallet_secret``/``bp.issuer_secret`` —
+        wallet secrets must never leave the gitignored sidecar into a log
+        line (a hard product rule), and this module cannot verify a
+        caller-supplied callable's exception messages never embed them.
+        ``save_game`` (the intended hook — see ``__init__``) never does,
+        but the wrapper stays defensive for any other callable passed here.
+        """
+        if self._persist is None:
+            return
+        try:
+            self._persist(state)
+        except Exception as exc:
+            log.warning(
+                "BackpackManager: persist hook raised %s; continuing with "
+                "the in-memory fold only (F-d178410b)",
+                type(exc).__name__,
+            )
 
     @property
     def available(self) -> bool:
@@ -533,6 +583,20 @@ class BackpackManager:
         the resource(s) that did NOT clear this pass are queued pending, so a
         retry can never re-submit a Payment for something already paid for on
         chain (the double-mint/double-burn this fix closes).
+
+        That fold used to be purely in-memory: every real caller (tui_app.py,
+        cli.py) saves separately, strictly AFTER this method returns. A crash
+        anywhere in that gap replayed an already-confirmed Payment on the
+        next run — a real duplicate on-chain settlement that local
+        conservation math could not detect, because the crashed session's
+        record was simply never persisted, so it was never summed either
+        (F-d178410b). When this manager was constructed with a ``persist``
+        hook, the baseline fold below now calls it immediately after EACH
+        resource confirms — before moving to the next one — and again after
+        this batch's SettlementRecord is appended, so a crash can lose at
+        most the resource(s) not yet attempted this pass, never replay one
+        already confirmed. Without a ``persist`` hook (the default), this
+        method's observable behavior is byte-for-byte unchanged from before.
         """
         if not _HAS_XRPL:
             return SettlementResult(success=False, message="xrpl-py not available")
@@ -610,16 +674,25 @@ class BackpackManager:
                 confirmed_txids.append(txid)
             confirmed[key] = diff
 
-        # Fold whatever cleared on-chain THIS pass into the baseline and the
-        # settlement history immediately (ledger-CRIT-2) — even when a LATER
-        # key then fails, an already-confirmed Payment must never be queued
-        # for re-submission by a retry.
+            # Fold THIS resource's confirmation into the baseline, and
+            # persist, immediately — before moving to the next resource
+            # (F-d178410b). Relocated here from a single post-loop pass so a
+            # crash after this point (including one before the batch's
+            # SettlementRecord below is built) can lose at most the
+            # resource(s) not yet attempted, never cause a later run to
+            # recompute and resubmit a Payment for one that already cleared.
+            bp.last_settled_supplies[key] = (
+                bp.last_settled_supplies.get(key, 0) + diff
+            )
+            self._persist_state(state)
+
+        # Record the settlement history for whatever cleared on-chain THIS
+        # pass (ledger-CRIT-2) — even when a LATER key then fails, an
+        # already-confirmed Payment must never be queued for re-submission by
+        # a retry. The baseline itself was already folded (and persisted)
+        # per-resource above; this only builds the receipt.
         settled_record: SettlementRecord | None = None
         if confirmed:
-            for key, diff in confirmed.items():
-                bp.last_settled_supplies[key] = (
-                    bp.last_settled_supplies.get(key, 0) + diff
-                )
             settled_record = SettlementRecord(
                 day=state.day,
                 location=location,
@@ -633,6 +706,11 @@ class BackpackManager:
                 timestamp=datetime.now(UTC).isoformat(),
             )
             bp.settlements.append(settled_record)
+            # Persist again so the receipt and the baseline it corresponds
+            # to are never durable at different times (F-d178410b) — without
+            # this, a crash between the two could leave a persisted baseline
+            # with no matching settlement record to explain it.
+            self._persist_state(state)
 
         if failure is None:
             bp.last_settlement_day = state.day
@@ -708,6 +786,19 @@ class BackpackManager:
         a narrowed record) — the one(s) that did are folded into
         ``bp.settlements`` and the baseline immediately, so a later retry
         pass can never resubmit a Payment that already landed.
+
+        That fold, and the queue narrowing itself, used to be purely
+        in-memory, with the same caller-saves-later gap as ``settle()``
+        (F-d178410b): a crash right after this method folded a confirmed key
+        but before the caller's next save reverted BOTH the baseline and
+        ``bp.pending_settlements`` back to their stale, wider shape — so the
+        next retry pass resubmitted a Payment that had already cleared.
+        With a ``persist`` hook, ``bp.pending_settlements`` is now rebuilt
+        incrementally (a resolved record is removed or narrowed in the live
+        list the moment it resolves, not just once at the end of the whole
+        pass) and persisted right after each record resolves — settled or
+        still-pending — so the same key can never be replayed. Without a
+        ``persist`` hook (the default), behavior is unchanged from before.
         """
         bp = state.backpack
         if not bp.pending_settlements:
@@ -720,10 +811,13 @@ class BackpackManager:
         player = Wallet.from_seed(bp.wallet_secret)
         issuer = Wallet.from_seed(bp.issuer_secret)
 
-        still_pending: list[SettlementRecord] = []
+        # Snapshot to iterate; bp.pending_settlements itself is rebuilt
+        # incrementally below (F-d178410b) as each record resolves, rather
+        # than only once at the end of the whole pass.
+        to_process = list(bp.pending_settlements)
         moved = 0  # settlements that cleared on this retry pass (ledger-B07)
 
-        for record in bp.pending_settlements:
+        for record in to_process:
             memos = _build_memo(state.run_id, record.day, record.deltas)
             confirmed: dict[str, int] = {}
             confirmed_txids: list[str] = []
@@ -765,6 +859,23 @@ class BackpackManager:
                     confirmed_txids.append(txid)
                 confirmed[key] = diff
 
+                # Fold THIS key's confirmation into the baseline, and
+                # persist, immediately — same rationale as settle() above
+                # (F-d178410b). Conservation fix (ENG-A-08, extended by
+                # ledger-CRIT-2): a failed settle() leaves the baseline
+                # un-advanced and enqueues this pending record; now that this
+                # key is settled on-chain, fold its signed delta into the
+                # baseline so the *next* fresh settle() measures current
+                # against a baseline that already accounts for it. Without
+                # this, settle() would recompute (current - baseline) over
+                # the WHOLE interval — including the just-retried delta —
+                # paying it on-chain twice and double-summing it in
+                # reconcile(), breaking 'minted + Σdeltas == final'.
+                bp.last_settled_supplies[key] = (
+                    bp.last_settled_supplies.get(key, 0) + diff
+                )
+                self._persist_state(state)
+
             if confirmed:
                 settled_record = SettlementRecord(
                     day=record.day,
@@ -781,23 +892,6 @@ class BackpackManager:
                     timestamp=datetime.now(UTC).isoformat(),
                 )
                 bp.settlements.append(settled_record)
-
-                # Conservation fix (ENG-A-08, extended by ledger-CRIT-2): a
-                # failed settle() leaves the baseline un-advanced and enqueues
-                # this pending record. Now that (some or all of) it is settled
-                # on-chain, fold the CONFIRMED (signed) deltas into the
-                # baseline so the *next* fresh settle() measures current
-                # against a baseline that already accounts for this retried
-                # portion. Without this, settle() recomputes (current -
-                # baseline) over the WHOLE interval — including the
-                # just-retried delta — paying it on-chain twice and
-                # double-summing it in reconcile(), breaking
-                # 'minted + Σdeltas == final'. Only the confirmed keys
-                # advance; a key that fails below stays pending, un-advanced.
-                for key, val in confirmed.items():
-                    bp.last_settled_supplies[key] = (
-                        bp.last_settled_supplies.get(key, 0) + val
-                    )
                 moved += 1
                 log.info(
                     "retry settled: day=%d deltas=%s txids=%s",
@@ -813,14 +907,24 @@ class BackpackManager:
                 )
                 # Narrow the record to exactly what did NOT clear this pass —
                 # ledger-CRIT-2: resubmitting the confirmed keys above on a
-                # later retry would double-pay them on-chain.
+                # later retry would double-pay them on-chain. Mutated in
+                # place (not a copy), so this is visible through
+                # bp.pending_settlements too — the record stays in the live
+                # queue, just narrowed.
                 record.deltas = remaining
                 record.memo = _settlement_memo_text(
                     state.run_id, record.day, remaining,
                 )
-                still_pending.append(record)
+            else:
+                # Fully confirmed: drop it from the LIVE queue now — not just
+                # from a local list reassigned once at the end of the whole
+                # pass (F-d178410b) — so the persisted state right after this
+                # record can never show it as still needing a retry.
+                bp.pending_settlements = [
+                    r for r in bp.pending_settlements if r is not record
+                ]
 
-        bp.pending_settlements = still_pending
+            self._persist_state(state)
 
         # Retry-pass lifecycle log + degraded signal (ledger-B04 / ledger-B07):
         # report how many cleared vs how many remain, and keep last_settle_failed
@@ -828,9 +932,9 @@ class BackpackManager:
         # drains (a fresh failing settle() re-sets it).
         log.info(
             "retry pending pass: moved=%d still_pending=%d",
-            moved, len(still_pending),
+            moved, len(bp.pending_settlements),
         )
-        if still_pending:
+        if bp.pending_settlements:
             bp.last_settle_failed = True
         elif moved:
             bp.last_settle_failed = False
