@@ -253,10 +253,31 @@ def validate_gm_cards(
     - Title ≤ 40 chars, text ≤ 300 chars
     - Must not reference supply quantities
     - Salience forced to 0.5
+    - Card id is always engine-computed (F-778637b3): the GM does not own
+      engine keys, so a model-supplied "id" — a field neither SCENE_SCHEMA
+      nor OUTCOME_SCHEMA documents or requests — is never honored. Engine
+      emitters mint deterministic ids (e.g. ``eng_crisis_<resource>_d<day>``)
+      and ``add_card`` dedupes purely by id equality; honoring a model id
+      would let untrusted output silently suppress a legitimate
+      engine-authored card that happens to collide with it later.
+
+    Defense in depth (F-9b0797f9): ``gm.py``'s ``SceneResponse.from_dict`` /
+    ``OutcomeResponse.from_dict`` already normalize a top-level JSON `null`
+    for ``memory_proposals`` to ``[]``, but this function must not assume
+    every caller does the same, nor that every list element is a
+    well-formed dict, nor that a proposal's ``tags``/``entities`` are lists
+    rather than an explicit `null` — so shape is re-validated here rather
+    than trusted from the input.
     """
     accepted: list[MemoryCard] = []
 
+    if not isinstance(proposed, list):
+        return accepted
+
     for proposal in proposed[:_GM_MAX_PER_PROPOSAL]:
+        if not isinstance(proposal, dict):
+            continue
+
         kind = proposal.get("kind", "")
         if kind not in _GM_ALLOWED_KINDS:
             continue
@@ -271,20 +292,21 @@ def validate_gm_cards(
         if _mentions_supply_numbers(text):
             continue
 
-        card_id = proposal.get(
-            "id",
-            f"gm_{kind}_{state.day}_{len(accepted)}",
-        )
+        # Never honor a model-supplied "id" — see docstring (F-778637b3).
+        card_id = f"gm_{kind}_{state.day}_{len(accepted)}"
+
+        tags = proposal.get("tags") or []
+        entities = proposal.get("entities") or []
 
         card = MemoryCard(
             id=card_id,
             kind=kind,
             title=title,
             text=text,
-            tags=proposal.get("tags", [])[:5],
+            tags=tags[:5] if isinstance(tags, list) else [],
             day_created=state.day,
             day_last_seen=state.day,
-            entities=proposal.get("entities", [])[:5],
+            entities=entities[:5] if isinstance(entities, list) else [],
             salience=0.5,  # Forced for GM cards
             cooldown_until=0,
             source="gm",

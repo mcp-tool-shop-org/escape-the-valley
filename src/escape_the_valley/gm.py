@@ -143,7 +143,13 @@ class SceneResponse:
             tags=data.get("tags", []),
             gm_aside=data.get("gm_aside", ""),
             raw_json=data,
-            memory_proposals=data.get("memory_proposals", []),
+            # F-9b0797f9 — a small local model may emit an explicit JSON
+            # `null` for this optional field to mean "nothing to add". The
+            # key IS present, so `dict.get(key, [])` returns None instead of
+            # the default — `or []` normalizes that to an empty list so a
+            # GM "success" response can never hand the caller a None where a
+            # list is required (validate_gm_cards does `proposed[:2]`).
+            memory_proposals=data.get("memory_proposals") or [],
         )
 
 
@@ -164,7 +170,9 @@ class OutcomeResponse:
             outcome_narration=data.get("outcome_narration", ""),
             callout=data.get("callout", ""),
             oregon_nod=data.get("oregon_nod", ""),
-            memory_proposals=data.get("memory_proposals", []),
+            # F-9b0797f9 — see SceneResponse.from_dict: an explicit JSON
+            # `null` must degrade to [], not None.
+            memory_proposals=data.get("memory_proposals") or [],
         )
 
 
