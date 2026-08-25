@@ -2579,14 +2579,14 @@ class TestOverlayFailureMarkupSafety:
         from escape_the_valley.backpack_ui import ParcelNotification
 
         overlay = ParcelNotification()
-        # Empirical wave-11 repro: sender is >12 chars so it is shortened
-        # to 'rSender[...' before update(). textual.markup.escape() does not
-        # wrap that leftover '[' (it only covers complete tag-shaped runs),
-        # so the truncated sender used to unbalance the chrome [b] tags.
+        # Canonical short form is first-4 + last-4. textual.markup.escape()
+        # does not wrap leftover '[' in a truncated sender, so splicing it
+        # used to unbalance the chrome [b] tags. Contents still carry the
+        # orphan closing tag; sender short form is now rSen...pwn].
         overlay.show_parcel("rSender[/pwn]", "5 food [/pwn]")
 
         rendered = self._assert_heading_still_bold(overlay, "Parcel arrived!")
-        assert "rSender[..." in rendered
+        assert "rSen...pwn]" in rendered
         assert "5 food [/pwn]" in rendered
 
     def test_send_parcel_success_survives_orphan_closing_tag(self):
@@ -2689,7 +2689,7 @@ class TestOverlayFailureMarkupSafety:
         parcel = ParcelNotification()
         parcel.show_parcel("rN7qKvMzTdmhcjbw1234567890xKp", "5 food")
         rendered = self._assert_heading_still_bold(parcel, "Parcel arrived!")
-        assert "rN7qKvMz..." in rendered
+        assert "rN7q...0xKp" in rendered
         assert "5 food" in rendered
 
         overlay = SendParcelOverlay()
@@ -2701,7 +2701,7 @@ class TestOverlayFailureMarkupSafety:
         enable = EnableFlowOverlay()
         enable.show_success("rN7qKvMzTdmhcjbw1234567890xKp")
         rendered = self._assert_heading_still_bold(enable, "Ledger Backpack: Enabled")
-        assert "rN7q...0xKp" in rendered
+        assert "rN7qKvMzTdmhcjbw1234567890xKp" in rendered
 
     def test_leftover_open_bracket_raises_under_escape_not_escape_dynamic(self):
         """Truncating a tag-shaped sender to 'rSender[...' leaves a raw '['.
@@ -2760,8 +2760,8 @@ class TestOverlayFailureMarkupSafety:
         assert "[/pwn]" in rendered
 
     def test_enable_flow_success_survives_leftover_open_bracket(self):
-        """Address truncation (len>10 -> first 4 + '...' + last 4) can
-        leave a raw '[' in the fragment spliced before Press [b]Esc[/b].
+        """A leftover '[' in the full address spliced before Press [b]Esc[/b]
+        must not unbalance chrome markup.
         """
         from escape_the_valley.backpack_ui import EnableFlowOverlay
 
@@ -2771,13 +2771,263 @@ class TestOverlayFailureMarkupSafety:
         rendered = self._assert_heading_still_bold(
             overlay, "Ledger Backpack: Enabled",
         )
-        assert "r[/p...XXXX" in rendered
+        assert "r[/p]XXXXXXXXXX" in rendered
 
         overlay.show_success("rSender[...")
         rendered = self._assert_heading_still_bold(
             overlay, "Ledger Backpack: Enabled",
         )
-        assert "rSen...[..." in rendered
+        assert "rSender[..." in rendered
+
+
+# ──────────────────────────────────────────────────────────────────────
+# F-83d0832c / F-b7eeb393 / F-a95177ae: identity overlays must show a
+# usable classic r-address, a unique From stem, and 4-char token labels.
+# Live renderer — no mock of Static.update / Content.from_markup.
+# Visual proof at 80x24 and 120x30 (50% overlay width, matching tui.tcss).
+# ──────────────────────────────────────────────────────────────────────
+
+_CLASSIC_R = "rPT1Sjq2YGrBMTttX4gzHjKu9dyFZYYXrg"  # 34-char production r-address
+_CLASSIC_R_SHORT = "rPT1...YXrg"
+
+
+class TestOverlayIdentityReadability:
+    """Full address + unique From + FOOD labels on the live renderer."""
+
+    def _assert_heading_still_bold(self, overlay, heading: str) -> str:
+        rendered = overlay.visual.plain
+        assert "[b]" not in rendered
+        assert "[/b]" not in rendered
+        assert heading in rendered
+        start = rendered.index(heading)
+        bold_spans = [s for s in overlay.visual.spans if s.style == "b"]
+        assert any(
+            s.start == start and s.end == start + len(heading)
+            for s in bold_spans
+        ), bold_spans
+        return rendered
+
+    def test_wallet_and_enable_show_full_classic_address(self):
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            WalletInfoOverlay,
+        )
+
+        wallet = WalletInfoOverlay()
+        wallet.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 1,
+            "pending": 0,
+            "balances": {},
+        })
+        rendered = self._assert_heading_still_bold(wallet, "Wallet Info")
+        assert _CLASSIC_R in rendered
+        assert _CLASSIC_R_SHORT in rendered
+        assert f"Address: {_CLASSIC_R_SHORT}" in rendered
+
+        enable = EnableFlowOverlay()
+        enable.show_success(_CLASSIC_R)
+        rendered = self._assert_heading_still_bold(
+            enable, "Ledger Backpack: Enabled",
+        )
+        assert _CLASSIC_R in rendered
+        assert f"Wallet: {_CLASSIC_R}" in rendered
+
+    def test_wallet_balances_use_four_char_display_labels(self):
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 0,
+            "pending": 0,
+            "balances": {
+                "FOD": 40, "WTR": 50, "MED": 3, "AMO": 10, "PRT": 2,
+            },
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "FOOD (FOD): 40" in rendered
+        assert "WATR (WTR): 50" in rendered
+        assert "MEDS (MED): 3" in rendered
+        assert "AMMO (AMO): 10" in rendered
+        assert "PART (PRT): 2" in rendered
+        assert "FOD: 40" not in rendered
+
+    def test_parcel_from_distinguishes_prefix8_colliding_senders(self):
+        from escape_the_valley.backpack_ui import (
+            ParcelNotification,
+            WalletInfoOverlay,
+        )
+
+        a = "rN7qKvMzAAAAAAAAAAAAAAAAaaaa"
+        b = "rN7qKvMzBBBBBBBBBBBBBBBBbbbb"
+        parcel_a = ParcelNotification()
+        parcel_a.show_parcel(a, "5 food")
+        parcel_b = ParcelNotification()
+        parcel_b.show_parcel(b, "5 food")
+        from_a = self._assert_heading_still_bold(parcel_a, "Parcel arrived!")
+        from_b = self._assert_heading_still_bold(parcel_b, "Parcel arrived!")
+        assert "From: rN7q...aaaa" in from_a
+        assert "From: rN7q...bbbb" in from_b
+        assert "From: rN7q...aaaa" not in from_b
+        assert "From: rN7qKvMz..." not in from_a
+        assert "From: rN7qKvMz..." not in from_b
+
+        parcel = ParcelNotification()
+        parcel.show_parcel(_CLASSIC_R, "5 food")
+        rendered = self._assert_heading_still_bold(parcel, "Parcel arrived!")
+        assert f"From: {_CLASSIC_R_SHORT}" in rendered
+
+        wallet = WalletInfoOverlay()
+        wallet.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 0,
+            "pending": 0,
+            "balances": {},
+        })
+        wallet_text = self._assert_heading_still_bold(wallet, "Wallet Info")
+        assert _CLASSIC_R_SHORT in wallet_text
+        assert _CLASSIC_R_SHORT in rendered
+
+
+class TestOverlayIdentityVisualSizes:
+    """Coordinator: a layout that only works maximized is a failed fix."""
+
+    _SIZES = ((80, 24), (120, 30))
+    _OVERLAY_CSS = """
+Screen {
+  background: #0b0f14;
+  color: #e7ecef;
+}
+#wallet_info {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#enable_flow {
+  width: 50%;
+  height: auto;
+  max-height: 50%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#parcel_notify {
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #604030;
+  background: #0f1620;
+  overflow-y: auto;
+}
+"""
+
+    def _painted(self, widget) -> str:
+        return "".join(
+            widget.render_line(y).text for y in range(widget.size.height)
+        )
+
+    def test_identity_overlays_at_80x24_and_120x30(self):
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            ParcelNotification,
+            WalletInfoOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        classic = _CLASSIC_R
+        short = _CLASSIC_R_SHORT
+        painted_fn = self._painted
+
+        def _recover(widget) -> str:
+            return "".join(painted_fn(widget).split())
+
+        class _WalletApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield WalletInfoOverlay(id="wallet_info")
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        class _ParcelApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield ParcelNotification(id="parcel_notify")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            wallet_app = _WalletApp()
+            async with wallet_app.run_test(size=size) as pilot:
+                wallet = wallet_app.query_one("#wallet_info", WalletInfoOverlay)
+                wallet.update_from_info({
+                    "address": classic,
+                    "address_short": short,
+                    "issuer": "rIss...XXYY",
+                    "trust_lines": True,
+                    "settlements": 1,
+                    "pending": 0,
+                    "balances": {
+                        "FOD": 40, "WTR": 50, "MED": 3, "AMO": 10, "PRT": 2,
+                    },
+                })
+                await pilot.pause()
+                assert wallet.size.width <= cols
+                assert wallet.size.height <= rows
+                assert classic in wallet.visual.plain
+                assert "FOOD" in wallet.visual.plain
+                assert "[b]" not in wallet.visual.plain
+                assert classic in _recover(wallet)
+
+            enable_app = _EnableApp()
+            async with enable_app.run_test(size=size) as pilot:
+                enable = enable_app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_success(classic)
+                await pilot.pause()
+                assert enable.size.width <= cols
+                assert enable.size.height <= rows
+                assert classic in enable.visual.plain
+                assert classic in _recover(enable)
+
+            parcel_app = _ParcelApp()
+            async with parcel_app.run_test(size=size) as pilot:
+                parcel = parcel_app.query_one("#parcel_notify", ParcelNotification)
+                parcel.show_parcel(classic, "5 food")
+                await pilot.pause()
+                assert parcel.size.width <= cols
+                assert parcel.size.height <= rows
+                assert f"From: {short}" in parcel.visual.plain
+                assert short in _recover(parcel)
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
 
 
 # ──────────────────────────────────────────────────────────────────────

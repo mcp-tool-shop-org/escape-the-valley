@@ -7,7 +7,7 @@ import re
 from textual.markup import escape
 from textual.widgets import Static
 
-from .backpack_models import XRPL_EXTRA_PIP
+from .backpack_models import XRPL_EXTRA_PIP, XRPL_TOKEN_MAP
 
 
 def _escape_dynamic(text: str) -> str:
@@ -18,6 +18,28 @@ def _escape_dynamic(text: str) -> str:
     tag into the chrome and raises MarkupError. Neutralize those after escape.
     """
     return re.sub(r"(?<!\\)\[", r"\\[", escape(text))
+
+
+def _short_r_address(addr: str) -> str:
+    """Canonical short form (rN7q...4xKp). Same rule as backpack._shorten_address."""
+    if len(addr) <= 10:
+        return addr
+    return f"{addr[:4]}...{addr[-4:]}"
+
+
+def _token_display_label(code: str) -> str:
+    """4-char overlay label for an on-chain ticker (FOOD not FOD).
+
+    Wallet balances arrive as XRPL 3-char codes. Sibling overlays use the
+    4-char display names; LEARN_TEXT pairs them as ``FOOD (FOD)``.
+    """
+    for key, (ticker, display) in XRPL_TOKEN_MAP.items():
+        if code == ticker:
+            return f"{display} ({ticker})"
+        if code == display or code.lower() == key:
+            return display
+    return code
+
 
 # ── Ledger Menu Overlay ──────────────────────────────────────────
 
@@ -88,10 +110,10 @@ This may take a moment.
 ENABLE_SUCCESS_TEXT = """\
 [b]Ledger Backpack: Enabled[/b]
 
+Wallet: {address}
+
 Your pack is now receipted.
 Supplies will settle at town checkpoints.
-
-Wallet: {address}
 
 Press [b]Esc[/b] to continue.
 """
@@ -115,8 +137,11 @@ class EnableFlowOverlay(Static):
         self.update(ENABLE_PROGRESS_TEXT)
 
     def show_success(self, address: str) -> None:
-        short = f"{address[:4]}...{address[-4:]}" if len(address) > 10 else address
-        self.update(ENABLE_SUCCESS_TEXT.format(address=_escape_dynamic(short)))
+        # Full classic r-address, not the 4...4 short form. Escape the
+        # fragment so chrome [b]Esc[/b] stays a real bold span.
+        self.update(ENABLE_SUCCESS_TEXT.format(
+            address=_escape_dynamic(address),
+        ))
 
     def show_failure(self, message: str) -> None:
         # message may carry caller-supplied text (e.g. an exception string
@@ -145,9 +170,9 @@ class ParcelNotification(Static):
     """Town parcel notification."""
 
     def show_parcel(self, sender: str, contents: str) -> None:
-        short_sender = f"{sender[:8]}..." if len(sender) > 12 else sender
+        # Same rN7q...4xKp stem as Wallet/Enable — prefix-8 collided.
         self.update(PARCEL_TEXT.format(
-            sender=_escape_dynamic(short_sender),
+            sender=_escape_dynamic(_short_r_address(sender)),
             contents=_escape_dynamic(contents),
         ))
 
@@ -157,7 +182,8 @@ class ParcelNotification(Static):
 WALLET_TEXT = """\
 [b]Wallet Info[/b]
 
-Address: {address}
+Address: {address_short}
+{address}
 Issuer:  {issuer}
 Trust lines: {trust_lines}
 Settlements: {settlements}
@@ -175,7 +201,8 @@ class WalletInfoOverlay(Static):
         balances = info.get("balances", {})
         if balances:
             bal_lines = "\n".join(
-                f"  {code}: {amount}" for code, amount in balances.items()
+                f"  {_token_display_label(code)}: {amount}"
+                for code, amount in balances.items()
             )
             balances_text = f"Balances:\n{bal_lines}"
         elif info.get("extra_missing"):
@@ -193,8 +220,11 @@ class WalletInfoOverlay(Static):
         else:
             balances_text = "Balances: unavailable"
 
+        full_addr = info.get("address") or info.get("address_short", "?")
+        short_addr = info.get("address_short") or _short_r_address(str(full_addr))
         self.update(WALLET_TEXT.format(
-            address=_escape_dynamic(info.get("address_short", "?")),
+            address_short=_escape_dynamic(str(short_addr)),
+            address=_escape_dynamic(str(full_addr)),
             issuer=_escape_dynamic(info.get("issuer", "?")),
             trust_lines="Yes" if info.get("trust_lines") else "No",
             settlements=_escape_dynamic(str(info.get("settlements", 0))),
