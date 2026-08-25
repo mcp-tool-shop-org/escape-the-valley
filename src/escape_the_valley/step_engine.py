@@ -306,7 +306,8 @@ class StepEngine:
         # subsequent travel action, not just the first -- instead of
         # silently re-arriving at this same node forever (F-803bd813) or,
         # once a stale distance_remaining ran out on a leg that was never
-        # real, hitting the ENG-B-09 map_nodes[-1] beeline.
+        # real, hitting _arrive_at_next_node's dest-not-found fail-safe
+        # (F-e86c2e71; pre-wave-10 this beelined to map_nodes[-1]).
         if (
             node
             and len(node.connections) == 1
@@ -1088,24 +1089,59 @@ class StepEngine:
                 break
 
         if not dest:
-            # ENG-B-09: the destination_id points at no real node (corrupt save,
-            # data drift, or a fork that never resolved). Don't silently strand
-            # the party at distance 0 with nowhere to go — warn, log, and recover
-            # by snapping to the final node so the journey can still conclude.
+            # F-e86c2e71: destination_id points at no real node. ENG-B-09 used
+            # to "recover" by snapping to map_nodes[-1] -- but that fabricates
+            # arrival at an arbitrary node, including the FINAL one, which
+            # check_game_over() reads as an outright win. That beeline is
+            # reachable purely by hand-editing destination_id in a save with
+            # the map/connections left pristine (save.py loads it with no
+            # referential check), so no amount of connections-graph validation
+            # elsewhere in this method can ever close it -- the write that
+            # mattered here was never a write this engine ever guarded.
+            #
+            # Director's policy: fail safe to the party's CURRENT node, don't
+            # stall, don't map_nodes[-1]. By this point location_id has NOT
+            # been overwritten yet -- it still holds the node the party
+            # departed from, which is guaranteed valid -- so leave it exactly
+            # as is. distance_remaining is clamped to 0: this leg's distance/
+            # supply cost already ran above (in _do_travel, before this
+            # method was even called), so there is nothing left to refuse
+            # retroactively -- only where the party ends up is still ours to
+            # decide.
+            #
+            # destination_id is repointed at THIS node (self-reference)
+            # rather than left holding the original dangling value -- a
+            # deliberate departure from "leave it untouched". That matters,
+            # not just cosmetics: this method's OWN "Set up next leg" tail
+            # below already uses the identical self-reference idiom for its
+            # sibling "can't safely proceed" case (a declined single
+            # connection leaves destination_id/distance_remaining "pointed at
+            # THIS node"), and _do_travel's single-connection guard validates
+            # dest.connections[0] in isolation -- it never compares against
+            # destination_id. Left dangling, a garbage destination_id can
+            # never satisfy that comparison on any later call, so a node with
+            # one perfectly valid onward connection (~80% of generated nodes)
+            # would pay this leg's cost, fail to arrive, and repeat forever:
+            # an unbounded resource drain that eventually manufactures a
+            # false DEATH, the mirror-image of the false VICTORY this fix
+            # closes. Self-referencing lets the very next travel action match
+            # itself in the search above, run this method's own arrival tail
+            # against itself (harmless — a re-arrival at an unchanged node),
+            # and have THAT tail wire the real next hop from this node's
+            # actual connections: one bounded extra step, then real progress
+            # resumes.
             log.warning(
-                "destination_id %r not found among map_nodes; recovering",
-                self.state.destination_id,
+                "destination_id %r not found among map_nodes; failing safe "
+                "to current location %r instead of fabricating arrival",
+                self.state.destination_id, self.state.location_id,
             )
             self.msgs.lines.append(
-                "The way ahead doesn't match the map. "
-                "Pressing on toward the last known waypoint."
+                "The way ahead doesn't match the map. The party holds "
+                "its ground rather than press on blind."
             )
-            if self.state.map_nodes:
-                dest = self.state.map_nodes[-1]
-                self.state.destination_id = dest.node_id
-            else:
-                # No map at all — nothing to recover to; leave state untouched.
-                return
+            self.state.distance_remaining = 0
+            self.state.destination_id = self.state.location_id
+            return
 
         self.state.location_id = dest.node_id
         self.state.distance_remaining = 0
@@ -1180,9 +1216,10 @@ class StepEngine:
                 # reachable via a corrupted/altered save; generate_map()
                 # never produces this) would sail through here unnoticed,
                 # then get "discovered" on a LATER leg by this method's own
-                # ENG-B-09 recovery above, which beelines to map_nodes[-1]
-                # and manufactures a false VICTORY. Apply the same policy
-                # here: if the sole connection is a self-edge or doesn't
+                # dest-not-found fail-safe above (F-e86c2e71; pre-wave-10
+                # that beelined to map_nodes[-1] and manufactured a false
+                # VICTORY). Apply the same policy here: if the sole
+                # connection is a self-edge or doesn't
                 # resolve, leave destination_id/distance_remaining exactly
                 # as already set above (this node, distance 0) instead of
                 # committing to it. _do_travel's matching guard turns that

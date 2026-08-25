@@ -896,22 +896,138 @@ def test_invalid_choice_retains_event(monkeypatch):
     assert engine.phase == GamePhase.CAMP
 
 
-# ── ENG-B-09: dangling destination recovers instead of stranding ──
+# ── F-e86c2e71 (wave 10): dangling destination fails safe, not victory ──
+#
+# ENG-B-09 originally "recovered" a dangling destination_id by snapping to
+# map_nodes[-1] -- which, since map_nodes[-1] is exactly what
+# check_game_over() reads as VICTORY, manufactured a false, unearned win any
+# time destination_id didn't resolve (reachable purely by hand-editing that
+# one field in a save; the map/connections stay pristine). The policy below
+# supersedes test_dangling_destination_recovers' old assertion that snapping
+# to the final node was the correct recovery -- it was the bug.
 
 
-def test_dangling_destination_recovers(monkeypatch, caplog):
+def test_dangling_destination_fails_safe_not_victory(monkeypatch, caplog):
     import logging
 
     engine = _make_engine(seed=42)
     engine.state.destination_id = "does_not_exist"
     engine.state.distance_remaining = 0
+    location_before = engine.state.location_id
+    assert location_before != engine.state.map_nodes[-1].node_id
 
     with caplog.at_level(logging.WARNING):
         engine._arrive_at_next_node()
 
-    # Snapped to the final node, not left stranded.
-    assert engine.state.location_id == engine.state.map_nodes[-1].node_id
-    assert any("doesn't match the map" in line for line in engine.msgs.lines)
+    # Held at the CURRENT node -- never snapped to the final one, never a
+    # manufactured victory.
+    assert engine.state.location_id == location_before
+    assert engine.state.location_id != engine.state.map_nodes[-1].node_id
+    assert engine.state.distance_remaining == 0
+    # destination_id is repointed at the party's own (now-current) node --
+    # see _arrive_at_next_node's own comment for why this is required
+    # (avoids an unbounded resource-drain loop) rather than left dangling.
+    assert engine.state.destination_id == location_before
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
+    assert any("holds its ground" in line for line in engine.msgs.lines)
+    assert any("not found" in r.message for r in caplog.records)
+
+
+def test_dangling_destination_single_valid_connection_self_heals_bounded():
+    """The realistic shape (~80% of generated nodes have exactly one
+    connection): a dangling destination_id fails safe onto a node whose own
+    single connection is perfectly valid. _do_travel's single-connection
+    guard validates that connection in isolation and never compares it
+    against destination_id, so a destination_id left dangling could never
+    satisfy that check on any later action -- it would pay every subsequent
+    leg's cost, never arrive, and drain supplies toward a manufactured false
+    DEATH (the mirror-image of the false VICTORY this fix closes) instead of
+    the bounded, self-healing single echo asserted below."""
+    from escape_the_valley.models import Biome, MapNode
+
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["mid"], distance_to={"mid": 5},
+    )
+    mid = MapNode(
+        node_id="mid", name="Mid", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["far_end"], distance_to={"far_end": 5},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=42)
+    state.map_nodes = [start, mid, far_end]
+    state.location_id = "mid"
+    state.destination_id = "totally-unrelated-garbage-id"
+    state.distance_remaining = 5
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # Leg 1: cost was already committed before arrival is even checked
+    # (matches the Director's framing -- nothing left to refuse
+    # retroactively). Arrival fails to resolve -> fails safe at "mid".
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+    assert check_game_over(engine.state) != "VICTORY"
+
+    food_after_failsafe = engine.state.supplies.food
+    traveled_after_failsafe = engine.state.distance_traveled
+
+    # Leg 2: the ONE bounded echo -- destination_id (== "mid") matches
+    # itself, the arrival tail re-runs harmlessly, and wires the real next
+    # hop ("far_end") from mid's actual connections.
+    engine._do_travel()
+    assert engine.state.destination_id == "far_end"
+
+    # Leg 3+: real progress resumes toward far_end -- not stalled, not
+    # draining forever. compute_travel_distance floors at 1/day even under
+    # worst-case pace/wagon-condition penalties, so a 5-mile remaining leg
+    # is bounded at 5 more calls no matter what breakdown RNG does; this
+    # loop bound is a generous margin above that, not a tuned exact count.
+    for _ in range(8):
+        if engine.state.location_id == "far_end":
+            break
+        engine._do_travel()
+
+    assert engine.state.location_id == "far_end"
+    assert check_game_over(engine.state) == "VICTORY"
+    # The party actually reached the end on its own supplies -- a bounded
+    # one-leg echo cost, not an unbounded drain.
+    assert engine.state.supplies.food <= food_after_failsafe
+    assert engine.state.distance_traveled > traveled_after_failsafe
+
+
+def test_gameengine_dangling_destination_fails_safe_not_victory(monkeypatch, caplog):
+    """GameEngine (engine.py) mirror of
+    test_dangling_destination_fails_safe_not_victory -- same policy, applied
+    independently in the legacy engine (engines are not unified)."""
+    import logging
+
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine.state.destination_id = "does_not_exist"
+    engine.state.distance_remaining = 0
+    location_before = engine.state.location_id
+    assert location_before != engine.state.map_nodes[-1].node_id
+
+    with caplog.at_level(logging.WARNING):
+        engine._arrive_at_next_node()
+
+    assert engine.state.location_id == location_before
+    assert engine.state.location_id != engine.state.map_nodes[-1].node_id
+    assert engine.state.distance_remaining == 0
+    assert engine.state.destination_id == location_before
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
     assert any("not found" in r.message for r in caplog.records)
 
 
@@ -1899,6 +2015,55 @@ def test_gameengine_rejects_unrecognized_route_choice_id(monkeypatch, caplog):
 
     assert engine.state.destination_id in ("north", "south")
     assert engine.state.destination_id != "bogus-id"
+    assert any("choice_id" in r.message for r in caplog.records)
+
+
+def test_gameengine_rejects_unrecognized_event_choice_id(monkeypatch, caplog):
+    """F-d10a2a2f: choice_id from show_event_scene() must be validated
+    against the choices actually offered before being passed to
+    resolve_event() -- the exact sibling of F-6e5e72a8's route-choice fix
+    directly above, in this SAME file, now closed the same way. Before this
+    fix, GameEngine._trigger_event trusted choice_id unconditionally (the
+    'trust the caller/UI' shape F-6e5e72a8 already closed for
+    _check_route_choice, and that step_engine.py's own ENG-B-06
+    _handle_event_choice already closed for its event-choice path) --
+    GameEngine is synchronous with no EVENT phase to re-prompt from, so an
+    unrecognized id falls back to the first offered choice instead of
+    sailing through to resolve_event() unchecked."""
+    import logging
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=7)
+    engine = GameEngine(state, GMConfig(enabled=False))
+
+    # Force the ~60% event-trigger gate open so an event actually fires.
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # ui.py's real show_event_scene can't return an id outside the rendered
+    # choices today -- simulate a misbehaving/future caller (or unvalidated
+    # GM JSON on the scene.choices branch, which is exactly as unvalidated
+    # as show_route_choice's return was before F-6e5e72a8) to prove the
+    # ENGINE, not the UI, is the enforcement boundary.
+    monkeypatch.setattr(
+        engine_mod, "show_event_scene", lambda *a, **k: "bogus-id",
+    )
+
+    with caplog.at_level(logging.WARNING):
+        engine._trigger_event()
+
+    # Externally observable proof that a REAL, offered choice was
+    # committed -- not the pre-fix symptom the finding calls out:
+    # resolve_event() no-ops on an unmatched id (F-fa99f19f) and the label
+    # lookup below it comes up empty, leaving choice_made="bogus-id: " with
+    # nothing after the colon.
+    assert len(engine.state.journal) == 1
+    entry = engine.state.journal[0]
+    assert not entry.choice_made.startswith("bogus-id")
+    assert ": " in entry.choice_made
+    assert entry.choice_made.split(": ", 1)[1] != ""
     assert any("choice_id" in r.message for r in caplog.records)
 
 
