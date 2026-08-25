@@ -66,14 +66,16 @@ class TestXrplPostcard:
 
     def test_includes_wallet_address(self):
         state = _make_state()
+        addr = "rPT1Sjq2YGrBMTttX4gzHjKu9dyFZYYXrg"
         state.backpack = BackpackState(
             enabled=True,
-            wallet_address="rTestWalletABCD1234",
+            wallet_address=addr,
         )
         postcard = build_xrpl_postcard(state)
         text = "\n".join(postcard)
-        assert "rTes" in text  # first 4
-        assert "1234" in text  # last 4
+        assert addr in text
+        assert f"Wallet: {addr}" in text
+        assert f"{addr[:4]}...{addr[-4:]}" not in text
         assert "XRPL Testnet" in text
 
     def test_includes_tagline(self):

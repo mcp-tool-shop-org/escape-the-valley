@@ -52,10 +52,9 @@ def build_xrpl_postcard(state: RunState) -> list[str]:
         lines.append("")
 
     if bp.wallet_address:
-        lines.append(
-            f"Wallet: {bp.wallet_address[:4]}..."
-            f"{bp.wallet_address[-4:]}"
-        )
+        # Full classic r-address — same copyable value as Wallet Info.
+        # Truncating here left a sharing surface with no usable recipient.
+        lines.append(f"Wallet: {bp.wallet_address}")
         lines.append("Network: XRPL Testnet")
         lines.append("")
 
