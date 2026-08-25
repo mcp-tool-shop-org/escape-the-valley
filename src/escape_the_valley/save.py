@@ -384,6 +384,7 @@ def _state_to_dict(state: RunState) -> dict:
         "escape_valve_cooldown": state.escape_valve_cooldown,
         "last_action": state.last_action,
         "maintained_turns_remaining": state.maintained_turns_remaining,
+        "last_spoilage_day": state.last_spoilage_day,
         "backpack": _backpack_to_dict(state.backpack),
         "callout_level": state.callout_level,
     }
@@ -507,6 +508,10 @@ def _dict_to_state(data: dict) -> RunState:
         maintained_turns_remaining=data.get(
             "maintained_turns_remaining", 0,
         ),
+        # Legacy saves predate this guard -> 0 ("never fired"), same as a
+        # fresh run. Worst case for an old in-flight save is one extra
+        # spoilage roll on the very next qualifying day, not a regression.
+        last_spoilage_day=data.get("last_spoilage_day", 0),
         backpack=_load_backpack(data.get("backpack", {})),
         callout_level=data.get("callout_level", "verbose"),
     )

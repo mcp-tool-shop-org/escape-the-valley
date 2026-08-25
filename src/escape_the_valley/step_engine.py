@@ -56,6 +56,7 @@ from .physics import (
     compute_travel_distance,
     desperate_repair,
     determine_cause_of_death,
+    halve_consumption,
     hard_ration,
     rest_day,
     update_morale,
@@ -177,8 +178,10 @@ class StepEngine:
             and len(node.connections) > 1
             and self.state.distance_remaining <= 0
         ):
-            self._build_route_choices(node)
-            self.phase = GamePhase.ROUTE
+            if self._build_route_choices(node):
+                self.phase = GamePhase.ROUTE
+            # else: F-3abad222 fallback already recovered a valid
+            # destination/distance_remaining -- stay in CAMP.
 
     def step(self, intent: PlayerIntent) -> StepMessages:
         """Process one player action. Returns messages for the UI."""
@@ -250,12 +253,16 @@ class StepEngine:
             and len(node.connections) > 1
             and self.state.distance_remaining <= 0
         ):
-            self._build_route_choices(node)
-            self.phase = GamePhase.ROUTE
-            self.msgs.lines.append(
-                "The trail forks ahead. Choose your path."
-            )
-            return
+            if self._build_route_choices(node):
+                self.phase = GamePhase.ROUTE
+                self.msgs.lines.append(
+                    "The trail forks ahead. Choose your path."
+                )
+                return
+            # else: F-3abad222 fallback already recovered a valid
+            # destination/distance_remaining -- fall through and auto-advance
+            # this TRAVEL action toward it instead of returning into a dead
+            # ROUTE prompt with nothing pickable.
 
         distance = compute_travel_distance(self.state)
 
@@ -409,11 +416,8 @@ class StepEngine:
                 "The hunt yielded nothing. -1 ammo."
             )
 
-        # Half-day consumption
-        half = {
-            k: v // 2
-            for k, v in compute_daily_consumption(self.state).items()
-        }
+        # Half-day consumption (F-4d750550: round toward zero, not floor)
+        half = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half)
         update_morale(self.state)
 
@@ -452,11 +456,8 @@ class StepEngine:
             "-1 part."
         )
 
-        # Half-day consumption
-        half = {
-            k: v // 2
-            for k, v in compute_daily_consumption(self.state).items()
-        }
+        # Half-day consumption (F-4d750550: round toward zero, not floor)
+        half = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half)
 
     def _do_change_pace(self, pace_str: str) -> None:
@@ -844,8 +845,21 @@ class StepEngine:
 
     # ── ROUTE phase ─────────────────────────────────────────────────
 
-    def _build_route_choices(self, node) -> None:
-        """Build fork options from a node with multiple connections."""
+    def _build_route_choices(self, node) -> bool:
+        """Build fork options from a node with multiple connections.
+
+        Returns True when at least one option resolved and the caller should
+        enter GamePhase.ROUTE. Returns False when every connection id was
+        dangling (F-3abad222: a corrupted/altered save whose connections
+        don't match state.map_nodes -- generate_map() never produces this).
+        In that case entering ROUTE would be an unrecoverable softlock:
+        _handle_route_choice can never satisfy idx < len(_pending_routes)
+        against an empty list, and _check_initial_phase would rebuild the
+        same broken ROUTE state on every reload. Instead, mirror the
+        ENG-B-09 recovery already used for a dangling destination_id: warn,
+        skip the fork, and snap to the last known map node so the caller can
+        fall through to a normal travel step instead of a dead prompt.
+        """
         options = []
         for conn_id in node.connections:
             for n in self.state.map_nodes:
@@ -853,8 +867,30 @@ class StepEngine:
                     dist = node.distance_to.get(conn_id, 15)
                     options.append(RouteOption(conn_id, n.name, dist))
                     break
+
+        if not options and node.connections:
+            log.warning(
+                "node %r has %d connection(s) but none resolve to a real "
+                "map node; skipping fork and recovering",
+                node.node_id, len(node.connections),
+            )
+            self.msgs.lines.append(
+                "The trail forks, but the routes don't match the map. "
+                "Pressing on toward the last known waypoint."
+            )
+            if self.state.map_nodes:
+                dest = self.state.map_nodes[-1]
+                self.state.destination_id = dest.node_id
+                self.state.distance_remaining = node.distance_to.get(
+                    dest.node_id, 15,
+                )
+            self._pending_routes = []
+            self.msgs.route_options = []
+            return False
+
         self._pending_routes = options
         self.msgs.route_options = options
+        return True
 
     def _handle_route_choice(self, intent: PlayerIntent) -> None:
         """Pick a fork."""
@@ -863,27 +899,36 @@ class StepEngine:
             self.msgs.route_options = self._pending_routes
             return
 
-        # Map choice_id to route option
+        # F-7d3e005b: mirror ENG-B-06 (_handle_event_choice) -- an
+        # unrecognized or out-of-range choice_id must be REJECTED, not
+        # silently treated as "pick route A". Garbage, an empty string, or
+        # the PlayerIntent dataclass default choice_id="" used to map via
+        # idx_map.get(intent.choice_id, 0) straight to index 0, silently
+        # committing the run to the first route with no warning.
         idx_map = {"A": 0, "B": 1, "C": 2, "D": 3}
-        idx = idx_map.get(intent.choice_id, 0)
+        idx = idx_map.get(intent.choice_id)
+        offered_letters = list(idx_map.keys())[: len(self._pending_routes)]
 
-        if idx < len(self._pending_routes):
-            route = self._pending_routes[idx]
-            node = _find_node(self.state)
-            self.state.destination_id = route.node_id
-            self.state.distance_remaining = (
-                node.distance_to.get(route.node_id, 15)
-                if node
-                else 15
-            )
+        if idx is None or idx >= len(self._pending_routes):
             self.msgs.lines.append(
-                f"Heading toward {route.name} "
-                f"({route.distance} miles)."
+                "That option isn't available -- choose one of: "
+                f"{'/'.join(offered_letters)}."
             )
-        else:
-            self.msgs.lines.append("Invalid choice.")
             self.msgs.route_options = self._pending_routes
             return
+
+        route = self._pending_routes[idx]
+        node = _find_node(self.state)
+        self.state.destination_id = route.node_id
+        self.state.distance_remaining = (
+            node.distance_to.get(route.node_id, 15)
+            if node
+            else 15
+        )
+        self.msgs.lines.append(
+            f"Heading toward {route.name} "
+            f"({route.distance} miles)."
+        )
 
         self._pending_routes = []
         self.phase = GamePhase.CAMP

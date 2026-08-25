@@ -339,6 +339,12 @@ class RunState:
     last_action: str = ""
     maintained_turns_remaining: int = 0
 
+    # ENG fix (F-ec4745c1): day on which the per-3-day spoilage roll last
+    # fired. 0 means "never" (day starts at 1, so 0 never collides with a
+    # real day). Guards check_spoilage() against firing more than once on a
+    # calendar day that spans multiple TRAVEL actions.
+    last_spoilage_day: int = 0
+
     # Ledger Backpack (Phase 2 — optional XRPL inventory)
     backpack: BackpackState = field(default_factory=BackpackState)
 

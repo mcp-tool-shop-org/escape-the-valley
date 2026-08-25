@@ -1309,3 +1309,273 @@ def test_taboo_kept_never_river_reads_journal():
         outcome="", tags=["river", "ford"],
     ))
     assert _taboo_kept(state) is False
+
+
+# ── F-ec4745c1: spoilage fires at most once per qualifying day ────────
+
+
+def test_spoilage_fires_at_most_once_per_day():
+    """A calendar day spans multiple TRAVEL actions (each advances
+    time_of_day by one quarter-day). Before the fix, check_spoilage() rolled
+    fresh on every one of them whenever state.day % 3 == 0, so a day with
+    3 travels could spoil food 2-3x. Drives the real StepEngine._do_travel()
+    directly (bypassing phase dispatch) so an EVENT trigger mid-sequence
+    can't block subsequent travel calls; food is kept plentiful so a firing
+    roll always yields a non-zero, message-producing loss."""
+    from escape_the_valley.models import TimeOfDay
+
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("salt", 0)
+    engine.state.supplies.food = 500
+    engine.state.distance_remaining = 10_000
+    engine.state.total_distance = max(engine.state.total_distance, 10_000)
+    engine.state.day = 3
+    engine.state.time_of_day = TimeOfDay.MORNING
+
+    spoil_messages = 0
+    for _ in range(3):
+        engine.msgs.lines.clear()
+        engine._do_travel()
+        spoil_messages += sum(
+            1 for line in engine.msgs.lines if "spoiled" in line.lower()
+        )
+
+    # All three travels stayed within calendar day 3 (day only increments on
+    # the NIGHT -> MORNING wrap, which would be a 4th call).
+    assert engine.state.day == 3
+    assert spoil_messages == 1
+
+
+def test_spoilage_guard_advances_to_the_next_qualifying_day():
+    """The per-day guard must not permanently suppress spoilage -- day 6
+    (the next day % 3 == 0) must roll again after day 3 already fired."""
+    from escape_the_valley.physics import check_spoilage
+
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("salt", 0)
+    engine.state.supplies.food = 500
+    engine.state.day = 3
+
+    first = check_spoilage(engine.state, engine.rng)
+    assert first != {}
+
+    engine.state.day = 6
+    second = check_spoilage(engine.state, engine.rng)
+    assert second != {}
+
+
+# ── F-4d750550: half-day HUNT/REPAIR consumption rounds toward zero ───
+
+
+def test_repair_half_day_consumption_rounds_toward_zero():
+    """Reproduces the empirically-confirmed regression: a 3-person party's
+    full daily consumption is magnitude 1 ({'food': -1, ...}); the buggy
+    `v // 2` floor charged the FULL -1 (0% reduction) instead of 0."""
+    from escape_the_valley.models import Pace, PartyMember
+    from escape_the_valley.physics import compute_daily_consumption
+
+    engine = _make_engine(seed=42)
+    engine.state.doctrine = ""  # isolate from doctrine consumption_mult
+    engine.state.party.members = [
+        PartyMember(name="A"), PartyMember(name="B"), PartyMember(name="C"),
+    ]
+    engine.state.wagon.pace = Pace.STEADY
+    engine.state.wagon.condition = 50  # needs repair
+    engine.state.supplies.set("parts", 3)
+    engine.state.supplies.food = 100
+
+    full = compute_daily_consumption(engine.state)
+    assert full["food"] == -1  # confirms the magnitude-1 scenario
+
+    food_before = engine.state.supplies.food
+    engine.step(PlayerIntent(IntentAction.REPAIR))
+
+    # attempt_repair() only ever touches "parts" -- any food change here
+    # comes solely from the half-day consumption tail, which must be 0.
+    assert food_before - engine.state.supplies.food == 0
+
+
+def test_hunt_half_day_consumption_rounds_toward_zero():
+    """Same rounding fix, isolated via water: attempt_hunt() never touches
+    water (only ammo and, on success, food), so any water loss here is
+    purely the half-day consumption tail."""
+    from escape_the_valley.models import Pace, PartyMember
+    from escape_the_valley.physics import compute_daily_consumption
+
+    engine = _make_engine(seed=42)
+    engine.state.doctrine = ""
+    engine.state.party.members = [
+        PartyMember(name="A"), PartyMember(name="B"), PartyMember(name="C"),
+    ]
+    engine.state.wagon.pace = Pace.STEADY
+    engine.state.supplies.set("ammo", 5)
+    engine.state.supplies.water = 100
+
+    full = compute_daily_consumption(engine.state)
+    assert full["water"] == -1
+
+    water_before = engine.state.supplies.water
+    engine.step(PlayerIntent(IntentAction.HUNT))
+
+    assert water_before - engine.state.supplies.water == 0
+
+
+# ── F-7d3e005b: invalid ROUTE choice_id must be rejected ───────────────
+
+
+def test_invalid_route_choice_id_rejected():
+    """An unrecognized choice_id in ROUTE phase must be rejected, not
+    silently treated as 'pick route A' (mirrors ENG-B-06 for events)."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+        RouteOption(node_id="node-b", name="Southern Trail", distance=14),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+    engine.state.distance_remaining = 999
+
+    msgs = engine.step(
+        PlayerIntent(IntentAction.CHOOSE, choice_id="ZZZ-not-a-real-choice")
+    )
+
+    # Rejected -- state untouched, still in ROUTE, options re-presented.
+    assert engine.state.destination_id == "unset"
+    assert engine.state.distance_remaining == 999
+    assert engine.phase == GamePhase.ROUTE
+    assert engine._pending_routes  # not cleared
+    assert any("isn't available" in line for line in msgs.lines)
+    assert msgs.route_options
+
+    # A valid retry then resolves it correctly (picks B, not A-by-default).
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="B"))
+    assert engine.state.destination_id == "node-b"
+    assert engine.phase == GamePhase.CAMP
+
+
+def test_route_choice_id_out_of_range_rejected():
+    """A syntactically valid letter ('C') with no corresponding pending
+    route (only 2 offered) must also be rejected, not wrap or clamp."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+        RouteOption(node_id="node-b", name="Southern Trail", distance=14),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="C"))
+
+    assert engine.state.destination_id == "unset"
+    assert engine.phase == GamePhase.ROUTE
+
+    # Empty default choice_id ("") must also be rejected, not default to A.
+    engine.step(PlayerIntent(IntentAction.CHOOSE))
+    assert engine.state.destination_id == "unset"
+    assert engine.phase == GamePhase.ROUTE
+
+
+# ── F-3abad222: dangling route connections must not softlock ROUTE ────
+
+
+def _dangling_fork_state(seed: int = 42):
+    """A 3-node map where the current node's connections don't resolve to
+    any real map_node -- the corrupted-save shape generate_map() itself
+    never produces, but load_game_result()'s shape check would accept."""
+    from escape_the_valley.models import Biome, MapNode
+
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [start, end]
+    state.location_id = "start"
+    state.destination_id = "start"
+    state.distance_remaining = 0
+    return state
+
+
+def test_dangling_route_connections_recover_at_construction():
+    """Constructing a StepEngine against a save where the current node's
+    connections are all dangling must NOT enter GamePhase.ROUTE with an
+    empty pending-routes list (0 < 0 is always False -> permanent softlock,
+    and one that would re-occur on every reload)."""
+    state = _dangling_fork_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    assert engine.phase != GamePhase.ROUTE
+    assert engine._pending_routes == []
+    # Recovered to a real, resolvable destination (ENG-B-09 style: last node).
+    assert engine.state.destination_id == "end"
+    assert engine.state.distance_remaining > 0
+
+    # The engine is still usable afterward -- no dead end.
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase != GamePhase.ROUTE
+    assert len(msgs.lines) > 0
+
+    # Reload-stability: constructing a SECOND engine from the same corrupted
+    # shape recovers the same way every time (not a first-time fluke).
+    state2 = _dangling_fork_state()
+    engine2 = StepEngine(state2, GMConfig(enabled=False))
+    assert engine2.phase != GamePhase.ROUTE
+    assert engine2._pending_routes == []
+
+
+def test_dangling_route_connections_recover_mid_travel():
+    """The other call site: a node whose connections are all dangling is
+    discovered mid-travel (on arrival), not at construction. The following
+    TRAVEL action must auto-advance instead of entering a dead ROUTE.
+
+    Drives _do_travel() directly (bypassing phase dispatch), the same
+    technique used in test_spoilage_fires_at_most_once_per_day, so a random
+    EVENT trigger on the first travel can't swallow the second TRAVEL --
+    step() would reroute it into the EVENT handler (CHOOSE-only) instead of
+    running _do_travel()'s fork check at all."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["start"], distance_to={"start": 1},
+    )
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=42)
+    state.map_nodes = [prev, start, end]
+    state.location_id = "prev"
+    state.destination_id = "start"
+    state.distance_remaining = 1
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+    assert engine.phase != GamePhase.ROUTE  # "prev" has only 1 connection
+
+    # First travel arrives at "start" (the dangling-fork node).
+    engine._do_travel()
+    assert engine.state.location_id == "start"
+    assert engine.phase != GamePhase.ROUTE  # fork check is next-travel, not this one
+
+    # Second travel hits the fork check on "start" and must recover instead
+    # of entering ROUTE with nothing pickable.
+    engine._do_travel()
+    assert engine.phase != GamePhase.ROUTE
+    assert engine.state.destination_id == "end"

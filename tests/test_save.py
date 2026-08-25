@@ -111,6 +111,50 @@ class TestSaveLoad:
 
             assert loaded.rationing_steps == 2
 
+    def test_roundtrip_last_spoilage_day(self):
+        """F-ec4745c1: the per-day spoilage guard marker must survive a
+        save/load round trip, or a reload on the same spoilage day would
+        forget it fired and roll again."""
+        state = create_new_run(seed=42)
+        state.last_spoilage_day = 3
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+
+            assert loaded.last_spoilage_day == 3
+
+    def test_spoilage_guard_survives_save_load(self):
+        """F-ec4745c1 end-to-end: if spoilage already fired on the current
+        day before a save, reloading and checking again on the SAME day must
+        not re-roll it -- the guard must actually protect a real
+        save/continue, not just round-trip the raw field."""
+        from escape_the_valley.physics import check_spoilage
+
+        engine = StepEngine(create_new_run(seed=42), GMConfig(enabled=False))
+        engine.state.supplies.set("salt", 0)
+        engine.state.supplies.food = 500
+        engine.state.day = 3
+
+        first = check_spoilage(engine.state, engine.rng)
+        assert first != {}
+        assert engine.state.last_spoilage_day == 3
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            engine.state.rng_counter = engine.rng.counter
+            engine.state.rng_state = engine.rng.getstate()
+            save_game(engine.state, base)
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.last_spoilage_day == 3
+
+            engine2 = StepEngine(loaded, GMConfig(enabled=False))
+            second = check_spoilage(engine2.state, engine2.rng)
+            assert second == {}
+
     def test_corrupted_json_returns_none(self):
         """Corrupted save file should return None, not crash."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -231,6 +275,26 @@ class TestSaveLoad:
             assert loaded.doctrine == ""
             assert loaded.taboo == ""
             assert loaded.rationing_steps == 0
+
+    def test_backward_compat_missing_last_spoilage_day(self):
+        """Saves predating the F-ec4745c1 per-day spoilage guard lack this
+        key entirely; they must load as 0 ('never fired'), same as a fresh
+        run -- not a KeyError, and not mistaken for 'fired on day 0'."""
+        state = create_new_run(seed=42)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+
+            save_path = base / SAVE_DIR / SAVE_FILE
+            data = json.loads(save_path.read_text(encoding="utf-8"))
+            data.pop("last_spoilage_day", None)
+            save_path.write_text(
+                json.dumps(data, indent=2), encoding="utf-8",
+            )
+
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.last_spoilage_day == 0
 
 
 class TestSaveLoadDeterminism:
