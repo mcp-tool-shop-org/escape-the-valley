@@ -225,6 +225,13 @@ class TestComputeThemes:
         themes = compute_themes(state)
         assert themes == []
 
+    def test_skips_non_string_tags(self):
+        # F-bcf0063c defense in depth — .lower() must not see None/int.
+        state = create_new_run(seed=1)
+        state.recent_event_tags = ["river", None, 7, "", "crossing"]
+        themes = compute_themes(state)
+        assert "river" in themes
+
 
 # ── Retrieval ────────────────────────────────────────────────────────
 
@@ -239,6 +246,22 @@ class TestRetrieveMemories:
         results = retrieve_memories(state)
         assert len(results) == 1
         assert results[0].id == "river_card"
+
+    def test_skips_non_string_card_tags(self):
+        # F-bcf0063c defense in depth — a poison card already in the store
+        # (e.g. loaded from a save that did not sanitize list elements)
+        # must not raise in retrieve_memories / build_gm_brief.
+        state = create_new_run(seed=1)
+        state.recent_event_tags = ["river"]
+        card = _make_card(
+            id="poison", tags=["river", None, 7, ""], salience=0.7,
+        )
+        state.memory_cards = [card]
+
+        results = retrieve_memories(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in results)
+        brief = build_gm_brief(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in brief.callbacks)
 
     def test_respects_cooldown(self):
         state = create_new_run(seed=1)

@@ -188,6 +188,13 @@ def compute_pressures(state: RunState) -> list[str]:
     return [label for _, label in pressures]
 
 
+def _lowered_str_tags(tags: object) -> list[str]:
+    """Lowercase only non-empty str tags; skip None/int/dict/'' (F-bcf0063c)."""
+    if not isinstance(tags, list):
+        return []
+    return [t.lower() for t in tags if isinstance(t, str) and t]
+
+
 def compute_themes(state: RunState) -> list[str]:
     """Derive 1-3 theme tags from recent journal entries + event tags."""
     raw_tags: list[str] = []
@@ -201,8 +208,8 @@ def compute_themes(state: RunState) -> list[str]:
 
     # Map to themes
     theme_counts: dict[str, int] = {}
-    for tag in raw_tags:
-        theme = TAG_TO_THEME.get(tag.lower())
+    for tag in _lowered_str_tags(raw_tags):
+        theme = TAG_TO_THEME.get(tag)
         if theme:
             theme_counts[theme] = theme_counts.get(theme, 0) + 1
 
@@ -238,8 +245,8 @@ def retrieve_memories(
     # Current context tags for scoring
     context_tags: set[str] = set()
     for entry in state.journal[-3:]:
-        context_tags.update(t.lower() for t in entry.tags)
-    context_tags.update(t.lower() for t in state.recent_event_tags)
+        context_tags.update(_lowered_str_tags(entry.tags))
+    context_tags.update(_lowered_str_tags(state.recent_event_tags))
 
     # Add pressure-derived tags
     pressures = compute_pressures(state)
@@ -256,7 +263,7 @@ def retrieve_memories(
         score = 0.0
 
         # Tag overlap: 0.2 per matching tag
-        card_tags = {t.lower() for t in card.tags}
+        card_tags = set(_lowered_str_tags(card.tags))
         overlap = len(card_tags & context_tags)
         score += overlap * 0.2
 

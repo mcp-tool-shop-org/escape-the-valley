@@ -271,8 +271,10 @@ def validate_gm_cards(
     for ``memory_proposals`` to ``[]``, but this function must not assume
     every caller does the same, nor that every list element is a
     well-formed dict, nor that a proposal's ``tags``/``entities`` are lists
-    rather than an explicit `null` — so shape is re-validated here rather
-    than trusted from the input.
+    rather than an explicit `null`, nor that list elements are strings —
+    so shape is re-validated here rather than trusted from the input.
+    Non-empty ``str`` elements are kept; ``None``, ints, dicts, and empty
+    strings are dropped before they hit a MemoryCard (F-bcf0063c).
     """
     accepted: list[MemoryCard] = []
 
@@ -339,10 +341,10 @@ def validate_gm_cards(
             kind=kind,
             title=title,
             text=text,
-            tags=tags[:5] if isinstance(tags, list) else [],
+            tags=_nonempty_str_items(tags),
             day_created=state.day,
             day_last_seen=state.day,
-            entities=entities[:5] if isinstance(entities, list) else [],
+            entities=_nonempty_str_items(entities),
             salience=0.5,  # Forced for GM cards
             cooldown_until=0,
             source="gm",
@@ -350,6 +352,20 @@ def validate_gm_cards(
         accepted.append(card)
 
     return accepted
+
+
+def _nonempty_str_items(value: object, *, limit: int = 5) -> list[str]:
+    """Keep only non-empty str list elements, capped at *limit* (F-bcf0063c).
+
+    A list of tags is not a list of str: a small local model can emit
+    optional array emptiness as a null element (``["river", null]``).
+    Field-level ``None`` / non-list are already rejected by the caller;
+    this is the list-element sibling. Drop ``None``, ints, dicts, and
+    empty strings so they never reach a MemoryCard.
+    """
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str) and item][:limit]
 
 
 def _mentions_supply_numbers(text: str) -> bool:
