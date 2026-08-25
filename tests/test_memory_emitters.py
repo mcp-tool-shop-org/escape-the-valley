@@ -1,7 +1,7 @@
 """Tests for memory emitters — engine cards + GM validation."""
 
 from escape_the_valley.events import EventCategory, EventSkeleton
-from escape_the_valley.memory import add_card
+from escape_the_valley.memory import add_card, build_gm_brief
 from escape_the_valley.memory_emitters import (
     check_resource_crises,
     emit_arrival_card,
@@ -373,6 +373,42 @@ class TestValidateGMCards:
         assert len(cards) == 1
         assert cards[0].tags == []
         assert cards[0].entities == []
+
+    def test_non_string_tag_and_entity_elements_are_dropped(self):
+        """F-bcf0063c — a list of tags is not a list of str.
+
+        Field-level None / non-list are already covered above; this is the
+        list-element sibling. A small local model can emit optional array
+        emptiness as a null element (``["river", null]``). Non-empty strings
+        are kept; None, ints, dicts, and empty strings are dropped before
+        they hit a MemoryCard. The poison must not persist, and
+        ``build_gm_brief`` (which always calls ``retrieve_memories``) must
+        still run after the sanitized card is added.
+        """
+        state = create_new_run(seed=1)
+        proposed = [{
+            "kind": "npc",
+            "title": "The Ferryman",
+            "text": "A gaunt figure waits at the crossing.",
+            "tags": ["river", None, "", 7, {"k": 1}, "crossing"],
+            "entities": ["Ferryman", None, "", 3, {"n": "x"}],
+        }]
+        cards = validate_gm_cards(state, proposed)
+        assert len(cards) == 1
+        assert cards[0].tags == ["river", "crossing"]
+        assert cards[0].entities == ["Ferryman"]
+        assert None not in cards[0].tags
+        assert "" not in cards[0].tags
+        assert None not in cards[0].entities
+
+        add_card(state, cards[0])
+        stored = next(c for c in state.memory_cards if c.id == cards[0].id)
+        assert stored.tags == ["river", "crossing"]
+        assert stored.entities == ["Ferryman"]
+
+        brief = build_gm_brief(state)
+        assert brief is not None
+        assert any(c.id == stored.id for c in state.memory_cards)
 
 
 class TestGMCardIdCrossCallUniqueness:
