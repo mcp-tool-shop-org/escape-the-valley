@@ -18,7 +18,11 @@ from pathlib import Path
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.tui_app import (
+    Choice,
+    EndScreen,
     EventBar,
+    FrameState,
+    JournalDrawer,
     LedgerTrailApp,
     MapPanel,
     NarrationPanel,
@@ -511,6 +515,12 @@ class TestEndScreen:
         assert app._epilogue_text == "The country kept its silence."
 
     def test_endscreen_widget_renders_all_sections(self):
+        # F-2f661eea: previously `widget.update = lambda txt: ...`, which
+        # swaps out the real Static.update() -- the method that calls
+        # Content.from_markup() and is the actual MarkupError crash site. A
+        # lambda mock captures the string but can never observe that crash.
+        # This calls the real (unmocked) update_from() and reads the
+        # widget's own stored content back afterward.
         from escape_the_valley.adapter import populate_end_data
         from escape_the_valley.tui_app import EndScreen, FrameState
 
@@ -520,10 +530,8 @@ class TestEndScreen:
         frame.epilogue = "They had earned the quiet at the end."
 
         widget = EndScreen()
-        captured = {}
-        widget.update = lambda txt: captured.setdefault("t", txt)
         widget.update_from(frame)
-        text = captured["t"]
+        text = widget.content
 
         assert "THE VALLEY IS BEHIND YOU" in text
         assert frame.ending_headline in text
@@ -536,11 +544,9 @@ class TestEndScreen:
         from escape_the_valley.tui_app import EndScreen, FrameState
 
         widget = EndScreen()
-        captured = {}
-        widget.update = lambda txt: captured.setdefault("t", txt)
         widget.update_from(FrameState(game_over=False))
         # Live run → no content (the widget is hidden anyway).
-        assert captured["t"] == ""
+        assert widget.content == ""
 
     def test_sync_frame_reapplies_epilogue_after_game_over(self, tmp_path, monkeypatch):
         """A frame re-sync after the epilogue landed must not blank it."""
@@ -726,11 +732,12 @@ class TestPostcardCopy:
         app, notes, state = self._ended_app_with_receipts(
             tmp_path, monkeypatch, receipts=True,
         )
+        # F-2f661eea: real (unmocked) update_from() -- see the comment on
+        # test_endscreen_widget_renders_all_sections above for why the old
+        # `widget.update = lambda ...` mock could not see a render crash.
         widget = EndScreen()
-        captured = {}
-        widget.update = lambda txt: captured.setdefault("t", txt)
         widget.update_from(app._frame)
-        text = captured["t"]
+        text = widget.content
         # Stats data the CLI computes is on the screen.
         assert "The run" in text
         assert f"seed {state.seed}" in text
@@ -908,6 +915,190 @@ class TestPhantomChoiceGuard:
         from escape_the_valley.intent import GamePhase
 
         return GamePhase.EVENT
+
+
+# ── F-2f661eea: every Static.update() site must survive a stray '[/...]' ──
+
+
+class TestMarkupSafety:
+    """F-2f661eea: wave 4 (F-82f88b31) set markup=False on all 16 notify()
+    call sites, but every Static subclass in this file is *also* constructed
+    with Textual's markup=True default and none override it -- so the same
+    Content.from_markup()-raises-on-a-stray-'[/...]' mechanism notify() had
+    is still live on every .update() call below. Verified directly against
+    the installed textual: Static.update() always calls
+    visualize(self, content, markup=self._render_markup) synchronously
+    (textual.widgets._static.visualize / Static.update source), and
+    Static.__init__ defaults markup=True; Markdown.update() takes a
+    completely different path (MarkdownIt("gfm-like").parse(), never
+    Content.from_markup()) so NarrationPanel is genuinely immune and is not
+    covered here.
+
+    Every test below calls the REAL (unmocked) update()/update_from() -- the
+    exact anti-pattern this wave was told to fix in the six tests that used
+    to replace widget.update with a capturing lambda (three in this file,
+    three in test_adapter.py): a lambda mock records the string but can
+    never observe Content.from_markup() raising, so it cannot see this crash
+    class by construction. These tests read back widget.visual (the
+    Content object Static.update() itself builds and caches) so a
+    regression here fails loudly instead of passing silently.
+    """
+
+    # The exact stray-closing-tag shape from the finding's own repro
+    # (matches F-82f88b31's notify() repro too): a GM-authored aside in
+    # brackets with no matching open tag anywhere in the string.
+    STRAY = "the guide mutters something [/uncanny] under her breath"
+
+    def test_journal_drawer_survives_stray_closing_tag(self):
+        """The brief's own worked example. Escaping must not blank or mangle
+        the real message -- the player must still see what the GM wrote."""
+        widget = JournalDrawer()
+        frame = FrameState(journal=[f"Day 3 — {self.STRAY}: A"])
+
+        widget.update_from(frame)  # real Static.update() -- raises pre-fix
+
+        text = widget.visual.plain
+        assert self.STRAY in text
+        assert "Day 3" in text
+
+    def test_journal_drawer_chrome_survives_as_real_formatting(self):
+        """The '[b]Journal[/b]' header must stay a real bold span -- not
+        degrade to literal '[b]Journal[/b]' text just because the dynamic
+        line next to it needed escaping (the Director's chrome-vs-content
+        split)."""
+        widget = JournalDrawer()
+        widget.update_from(FrameState(journal=[self.STRAY]))
+
+        visual = widget.visual
+        assert "[b]" not in visual.plain
+        assert "[/b]" not in visual.plain
+        bold_spans = [sp for sp in visual.spans if "b" in str(sp.style)]
+        assert bold_spans, "expected a real bold span for the Journal header"
+        assert visual.plain[bold_spans[0].start:bold_spans[0].end] == "Journal"
+        # And the escaped dynamic content is still fully present as text.
+        assert self.STRAY in visual.plain
+
+    def test_eventbar_choice_and_prompt_fields_survive_stray_closing_tag(self):
+        """EventChoiceInfo.label/risk_hint/cost_hint (step_engine.py's GM
+        JSON) and prompt_title/prompt_text (scene.title/event_title) are the
+        two confirmed GM-authored paths into EventBar; both must survive."""
+        widget = EventBar()
+        frame = FrameState(
+            prompt_title=self.STRAY,
+            prompt_text=self.STRAY,
+            choices=[
+                Choice(
+                    id="A", label=self.STRAY,
+                    risk_hint=self.STRAY, cost_hint=self.STRAY,
+                ),
+            ],
+        )
+
+        widget.update_from(frame)
+
+        text = widget.visual.plain
+        assert text.count(self.STRAY) >= 3  # title, prompt text, choice label
+
+    def test_eventbar_chrome_survives_as_real_formatting(self):
+        widget = EventBar()
+        widget.update_from(
+            FrameState(prompt_title="Camp", choices=[Choice(id="A", label="Travel")]),
+        )
+
+        visual = widget.visual
+        assert "[b]" not in visual.plain
+        bold_texts = {
+            visual.plain[sp.start:sp.end]
+            for sp in visual.spans if "b" in str(sp.style)
+        }
+        assert "Camp" in bold_texts       # prompt_title chrome
+        assert "A" in bold_texts          # choice id chrome
+
+    def test_end_screen_epilogue_survives_stray_closing_tag(self):
+        """FrameState.epilogue is the once-per-run screen and the field
+        _worker_failed's own recovery render depends on staying alive --
+        the Director-set HIGH severity centers on this path."""
+        widget = EndScreen()
+        widget.update_from(FrameState(game_over=True, epilogue=self.STRAY))
+
+        assert self.STRAY in widget.visual.plain
+
+    def test_end_screen_chrome_survives_as_real_formatting(self):
+        widget = EndScreen()
+        widget.update_from(
+            FrameState(game_over=True, victory=True, epilogue="fine."),
+        )
+
+        visual = widget.visual
+        assert "[b]" not in visual.plain
+        bold_texts = {
+            visual.plain[sp.start:sp.end]
+            for sp in visual.spans if "b" in str(sp.style)
+        }
+        assert "THE VALLEY IS BEHIND YOU" in bold_texts
+
+    def test_other_static_panels_survive_stray_closing_tag(self):
+        """StatusPanel/SuppliesPanel/MapPanel/PartyPanel were never traced to
+        a confirmed GM-authored field, but all four are unescaped
+        Static.update() sites with markup=True by the same construction as
+        the three confirmed panels above -- so all four get the same
+        defensive escape, and all four are proven here."""
+        frame = FrameState(
+            location=self.STRAY,
+            next_stop=self.STRAY,
+            weather=self.STRAY,
+            biome=self.STRAY,
+            pace=self.STRAY,
+            party_summary=self.STRAY,
+            wagon=self.STRAY,
+            backpack_status=self.STRAY,
+            route_ascii=self.STRAY,
+            party_detail=[self.STRAY],
+            warnings=[self.STRAY],
+            supplies={self.STRAY: 1},
+        )
+
+        for widget in (StatusPanel(), SuppliesPanel(), MapPanel(), PartyPanel()):
+            widget.update_from(frame)  # must not raise
+            assert self.STRAY in widget.visual.plain, type(widget).__name__
+
+    def test_render_all_survives_poisoned_journal_entry_live(self):
+        """End-to-end reproduction matching the finding's own repro: a
+        normal, successful step leaves behind a JournalEntry whose
+        scene_title carries a stray '[/...]' shape. Pre-fix this raised
+        MarkupError out of JournalDrawer.update_from inside _render_all on
+        the SUCCESS path (_finish_step -> _after_step -> _render_all) --
+        never touching _worker_failed at all, so TestWorkerFailureRecovery's
+        tests could not have caught it."""
+        from escape_the_valley.models import JournalEntry
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+
+                app._engine.state.journal.append(
+                    JournalEntry(
+                        day=app._engine.state.day,
+                        location="Millford",
+                        event_id="ev-poison",
+                        scene_title=self.STRAY,
+                        narration="",
+                        choice_made="A",
+                        outcome="",
+                    ),
+                )
+
+                # The exact call chain the finding traced -- must not raise.
+                app._sync_frame()
+                app._render_all()
+                await pilot.pause()
+
+                assert app.is_running is True
+                journal_text = app.query_one("#journal", JournalDrawer).visual.plain
+                assert self.STRAY in journal_text
+
+        asyncio.run(scenario())
 
 
 # ── F-9c0e7613: a worker exception must not freeze the input surface ───
@@ -1104,6 +1295,34 @@ class TestWorkerFailureRecovery:
         app.on_worker_state_changed(_FakeEvent())
         assert app._in_flight is True  # untouched
         assert notified == []
+
+    def test_worker_failed_survives_render_all_raising(self):
+        """F-2f661eea: _worker_failed's OWN _render_all() must never be
+        allowed to re-crash this method. Per the finding's own trace: a
+        worker exception routes here, notify() only *queues* a Notify via
+        post_message() (it does not paint synchronously), and pre-fix the
+        _render_all() call right after it could raise on a still-poisoned
+        frame -- tearing the app down before that queued Notify was ever
+        dispatched, so the player got zero information. This simulates a
+        frame poisoned by something this wave's escaping did not anticipate
+        by making _render_all itself raise, and asserts the method still
+        completes: _in_flight cleared, notify() already called, no
+        exception propagates.
+        """
+        app = _make_app(seed=7)
+        app._in_flight = True
+        notified = []
+        app.notify = lambda msg, *a, **k: notified.append(msg)
+
+        def _still_poisoned():
+            raise RuntimeError("some field this wave didn't know to escape")
+
+        app._render_all = _still_poisoned
+
+        app._worker_failed("step", RuntimeError("original failure"))
+
+        assert app._in_flight is False
+        assert any("original failure" in m for m in notified)
 
 
 # ── F-96d427ea: CSS_PATH must resolve inside a frozen PyInstaller bundle ─

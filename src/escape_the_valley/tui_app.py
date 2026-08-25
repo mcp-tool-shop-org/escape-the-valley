@@ -23,6 +23,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
+from textual.markup import escape
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 from textual.worker import WorkerState
@@ -111,18 +112,23 @@ class FrameState:
 
 class StatusPanel(Static):
     def update_from(self, s: FrameState) -> None:
+        # F-2f661eea: every field below is engine/adapter-derived dynamic text
+        # (not literal chrome), so it is escaped before interpolation. Only
+        # the "Day N" header tag ([b]...[/b], hand-authored in this f-string)
+        # is left as real markup. s.day is an int and cannot carry a stray
+        # '[...]' tag, so it is not escaped.
         lines = [
-            f"[b]Day {s.day}[/b]  \u2022  {s.location}",
-            f"Next: {s.next_stop}",
-            f"{s.weather}  \u2022  {s.biome}",
-            f"Pace: {s.pace}",
+            f"[b]Day {s.day}[/b]  \u2022  {escape(s.location)}",
+            f"Next: {escape(s.next_stop)}",
+            f"{escape(s.weather)}  \u2022  {escape(s.biome)}",
+            f"Pace: {escape(s.pace)}",
             "",
-            s.party_summary,
-            s.wagon,
+            escape(s.party_summary),
+            escape(s.wagon),
         ]
         if s.backpack_status:
             lines.append("")
-            lines.append(s.backpack_status)
+            lines.append(escape(s.backpack_status))
         self.update("\n".join(lines))
 
 
@@ -134,7 +140,7 @@ class SuppliesPanel(Static):
         consumables = []
         gear = []
         for k, v in s.supplies.items():
-            line = f"{k}: {v}"
+            line = f"{escape(k)}: {v}"
             if k in self._GEAR_KEYS:
                 gear.append(line)
             else:
@@ -151,10 +157,17 @@ class SuppliesPanel(Static):
 
 class MapPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        self.update("[b]Route[/b]\n" + s.route_ascii)
+        self.update("[b]Route[/b]\n" + escape(s.route_ascii))
 
 
 class NarrationPanel(Markdown):
+    # F-2f661eea: Markdown.update() is NOT affected by this finding's crash
+    # class. Verified directly (inspect.getsource(Markdown.update) against
+    # this repo's installed textual): it parses via MarkdownIt("gfm-like")
+    # and builds Content from markdown-it-py tokens -- it never calls
+    # Content.from_markup(), so a stray '[/...]' shape here cannot raise
+    # MarkupError the way it does on the Static subclasses below. No escaping
+    # needed for the three update() calls in this class.
     def update_from(self, s: FrameState) -> None:
         self.update(s.narration)
 
@@ -176,10 +189,10 @@ class NarrationPanel(Markdown):
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        body = "[b]Party[/b]\n" + "\n".join(s.party_detail)
+        body = "[b]Party[/b]\n" + "\n".join(escape(d) for d in s.party_detail)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
-            body += "\n".join(f"\u2022 {w}" for w in s.warnings)
+            body += "\n".join(f"\u2022 {escape(w)}" for w in s.warnings)
         self.update(body)
 
 
@@ -211,16 +224,21 @@ class EventBar(Static):
                 )
             return
 
+        # F-2f661eea: c.label/risk_hint/cost_hint are EventChoiceInfo fields
+        # built straight from the GM's own scene.choices[] JSON (step_engine
+        # .py) -- confirmed GM-authored free text, escaped before
+        # interpolation. c.id is the constrained ChoiceId literal (A-G) set
+        # by the engine, not the GM, so it is left as-is.
         choice_lines = []
         for c in s.choices:
             hints = []
             if c.risk_hint:
-                hints.append(f"risk: {c.risk_hint}")
+                hints.append(f"risk: {escape(c.risk_hint)}")
             if c.cost_hint:
-                hints.append(f"cost: {c.cost_hint}")
+                hints.append(f"cost: {escape(c.cost_hint)}")
             hint_txt = f"  ({'; '.join(hints)})" if hints else ""
             choice_lines.append(
-                f"[b]{c.id}[/b]) {c.label}{hint_txt}"
+                f"[b]{c.id}[/b]) {escape(c.label)}{hint_txt}"
             )
 
         # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
@@ -249,10 +267,15 @@ class EventBar(Static):
                 "(the storyteller is quiet)[/dim]"
             )
 
+        # s.prompt_title carries scene.title/event.title (step_engine.py) via
+        # adapter.py's prompt_title -- the same GM-authored field that also
+        # reaches JournalDrawer as JournalEntry.scene_title. s.prompt_text is
+        # engine/ledger-derived text (also dynamic); both are escaped. The
+        # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
         text = (
-            f"[b]{s.prompt_title}[/b]\n"
-            f"{s.prompt_text}\n\n"
+            f"[b]{escape(s.prompt_title)}[/b]\n"
+            f"{escape(s.prompt_text)}\n\n"
             + body
             + f"\n\n{hint_line}"
             + degraded_line
@@ -264,7 +287,11 @@ class JournalDrawer(Static):
     """Toggle-able journal panel (right side drawer)."""
 
     def update_from(self, s: FrameState) -> None:
-        lines = "\n".join(f"- {entry}" for entry in s.journal)
+        # F-2f661eea: each journal line folds in JournalEntry.scene_title
+        # (GM-authored, confirmed end-to-end from step_engine.py through
+        # adapter.py:145) and choice_made -- escape the per-entry text, not
+        # the "[b]Journal[/b]" header, which is literal chrome authored here.
+        lines = "\n".join(f"- {escape(entry)}" for entry in s.journal)
         self.update("[b]Journal[/b]\n" + lines)
 
 
@@ -300,45 +327,52 @@ class EndScreen(Static):
             lines.append("[b]THE VALLEY IS BEHIND YOU[/b]")
         else:
             lines.append("[b]THE TRAIL CLAIMS ANOTHER[/b]")
+        # caption is looked up from the literal, hand-authored _TIER_CAPTION
+        # dict above (four fixed strings + "" default) -- never GM/engine
+        # text, so it is not escaped.
         caption = self._TIER_CAPTION.get(s.ending_tier, "")
         if caption:
             lines.append(f"[dim]{caption}[/dim]")
         if s.ending_headline:
             lines.append("")
-            lines.append(s.ending_headline)
+            lines.append(escape(s.ending_headline))
 
         # The epilogue — the storyteller's closing words. While the GM is still
         # composing it on the worker, show a quiet placeholder rather than a
-        # blank gap.
+        # blank gap. F-2f661eea: FrameState.epilogue is the confirmed
+        # GM-authored (or deterministic-floor) free text this finding traced
+        # end-to-end -- escaped here, at the point it is interpolated.
         lines.append("")
         lines.append("─" * 30)
         if s.epilogue:
-            lines.append(s.epilogue)
+            lines.append(escape(s.epilogue))
         else:
             lines.append("[dim]The storyteller gathers the last of it...[/dim]")
         lines.append("─" * 30)
 
-        # The graded facts.
+        # The graded facts. label/value are always str (see
+        # adapter.build_ending_facts) but can carry engine-derived free text
+        # (e.g. a taboo description or cause of death) -- escaped.
         if s.ending_facts:
             lines.append("")
             lines.append("[b]The reckoning[/b]")
             for label, value in s.ending_facts:
-                lines.append(f"  {label}: {value}")
+                lines.append(f"  {escape(label)}: {escape(value)}")
 
-        # Run diagnostics (the CLI `stats` data).
+        # Run diagnostics (the CLI `stats` data) -- same str/str shape.
         if s.run_stats:
             lines.append("")
             lines.append("[b]The run[/b]")
             for label, value in s.run_stats:
-                lines.append(f"  {label}: {value}")
+                lines.append(f"  {escape(label)}: {escape(value)}")
 
-        # The trail ledger / XRPL postcard.
+        # The trail ledger / XRPL postcard (ledger.py-built text lines).
         if s.postcard_lines:
             lines.append("")
             heading = "[b]Postcard (on-ledger)[/b]" if s.is_postcard else "[b]Trail ledger[/b]"
             lines.append(heading)
             for ln in s.postcard_lines:
-                lines.append(ln)
+                lines.append(escape(ln))
 
         lines.append("")
         if s.postcard_lines:
@@ -1078,6 +1112,17 @@ class LedgerTrailApp(App):
         surface is never stuck, tell the player what happened (their last
         autosave is untouched — this only aborts the in-flight action), and
         repaint immediately.
+
+        F-2f661eea: notify() only queues its message via post_message() — it
+        does not paint synchronously. Textual dispatches that queued message
+        on a later pump tick, so if the _render_all() below were to raise
+        (e.g. a still-poisoned frame from some field this wave didn't know to
+        escape), the app tears down before the queued notification is ever
+        shown: the exact "recovery path re-crashes itself" failure this
+        finding traced end-to-end. _render_all is therefore wrapped so this
+        method — the one place that exists to guarantee the player is told
+        something and the input surface is freed — can never itself be the
+        second crash.
         """
         self._in_flight = False
         self._token_sink = None
@@ -1089,7 +1134,15 @@ class LedgerTrailApp(App):
             timeout=8,
             markup=False,
         )
-        self._render_all()
+        try:
+            self._render_all()
+        except Exception:
+            # Degrade to "notification queued, screen possibly stale" rather
+            # than a second, silent crash that tears down the message pump
+            # before that notification is ever dispatched. self._in_flight is
+            # already cleared above, so the input surface is not stuck even
+            # if this repaint could not complete.
+            pass
 
     def on_worker_state_changed(self, event) -> None:
         """Belt-and-suspenders net: fail safe even without per-worker discipline.
