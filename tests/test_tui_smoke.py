@@ -20,6 +20,7 @@ import pytest
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.tui_app import (
+    HELP_TEXT,
     Choice,
     EndScreen,
     EventBar,
@@ -101,6 +102,39 @@ def test_help_overlay_toggles():
             await pilot.press("question_mark")
             await pilot.pause()
             assert app.show_help is True
+
+    asyncio.run(scenario())
+
+
+def test_help_text_matches_live_bindings():
+    """F-a1a77615: help copy is the same document as BINDINGS + on_key.
+
+    Live choose keys are 1-7 (and e/f/g for E/F/G). Journal is Shift+J,
+    not unshifted j. Claiming a-g is the lie.
+    """
+    lower = HELP_TEXT.lower()
+    assert "letters a" not in lower
+    assert "a–g" not in HELP_TEXT
+    assert "a-g" not in lower
+    assert "1\u20137" in HELP_TEXT
+    assert "Shift+J" in HELP_TEXT
+    assert "\u2022 J Toggle journal" not in HELP_TEXT
+    assert "e/f/g" in HELP_TEXT
+
+
+def test_help_overlay_copy_matches_bindings():
+    """Mounted '?' overlay shows the same live keys as HELP_TEXT."""
+
+    async def scenario():
+        app = _make_app()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("question_mark")
+            await pilot.pause()
+            text = app.query_one("#help").visual.plain
+            assert "Shift+J" in text
+            assert "letters a" not in text.lower()
+            assert "1" in text and "7" in text
 
     asyncio.run(scenario())
 
@@ -810,7 +844,7 @@ class TestVoiceRuntimeFailureConsumer:
         app._check_voice_health()
         assert app._voice_enabled is False
         assert len(notes) == 1
-        assert "Voice unavailable" in notes[0]
+        assert "Voice not available" in notes[0]
         assert "no audio player found" in notes[0]
 
         # Second tick: already notified, no repeat nag.
@@ -838,7 +872,210 @@ class TestVoiceRuntimeFailureConsumer:
         app._sync_frame = lambda: None
         app._after_step()
         assert app._voice_enabled is False
-        assert any("Voice unavailable" in m for m in notes)
+        assert any("Voice not available" in m for m in notes)
+
+    def test_missing_extra_surfaces_pip_install_hint(self):
+        """_check_voice_health must not no-op when last_error is None."""
+
+        class _Missing:
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+        app, notes = self._voice_app(_Missing())
+        app._check_voice_health()
+        assert app._voice_enabled is False
+        assert len(notes) == 1
+        assert "Voice not available" in notes[0]
+        assert "escape-the-valley[voice]" in notes[0]
+
+
+class TestVoiceMountHonesty:
+    """F-bfcc8075: --voice must toast ON or an honest fail, never silence.
+
+    A constructed-but-dead bridge must say Voice not available on V, never
+    Voice OFF (toggle() would just flip config.enabled).
+    """
+
+    def test_voice_flag_notifies_fail_when_extra_missing(self, monkeypatch):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Missing:
+            def __init__(self, config=None):
+                self.config = config or VoiceConfig(enabled=True)
+
+            def start(self):
+                return False
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def stop(self):
+                pass
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Missing)
+
+        async def scenario():
+            state = create_new_run(seed=7)
+            engine = StepEngine(state, GMConfig(enabled=False))
+            app = LedgerTrailApp(
+                engine=engine, voice_config=VoiceConfig(enabled=True),
+            )
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._voice_enabled is False
+                assert app._voice_bridge is not None
+                assert any("Voice not available" in m for m in seen)
+                assert any("escape-the-valley[voice]" in m for m in seen)
+                assert not any(m == "Voice OFF" for m in seen)
+                assert not any(m == "Voice ON" for m in seen)
+                app.action_toggle_voice()
+                assert any("Voice not available" in m for m in seen)
+                assert not any(m == "Voice OFF" for m in seen)
+
+        asyncio.run(scenario())
+
+    def test_voice_mount_notifies_on_when_start_succeeds(self, monkeypatch):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Ok:
+            def __init__(self, config=None):
+                self.config = config
+
+            def start(self):
+                return True
+
+            def status(self):
+                return {
+                    "installed": True,
+                    "available": True,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def stop(self):
+                pass
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Ok)
+
+        async def scenario():
+            state = create_new_run(seed=7)
+            engine = StepEngine(state, GMConfig(enabled=False))
+            app = LedgerTrailApp(
+                engine=engine, voice_config=VoiceConfig(enabled=True),
+            )
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._voice_enabled is True
+                assert any(m == "Voice ON" for m in seen)
+                app.action_toggle_voice()
+                assert any(m == "Voice OFF" for m in seen)
+
+        asyncio.run(scenario())
+
+    def test_toggle_dead_bridge_never_says_voice_off(self):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Dead:
+            def __init__(self, config=None):
+                self.config = config or VoiceConfig(enabled=True)
+
+            def start(self):
+                return False
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine, voice_config=VoiceConfig(enabled=True))
+        app._render_all = lambda: None
+        app._sync_frame = lambda: None
+        notes = []
+        app.notify = lambda msg, *a, **k: notes.append(msg)
+        app._voice_bridge = _Dead()
+        app._voice_enabled = False
+        app.action_toggle_voice()
+        assert any("Voice not available" in m for m in notes)
+        assert not any(m == "Voice OFF" for m in notes)
+
+
+class TestCliRouteChoiceLetters:
+    """CLI sibling of F-2a57b303: show_route_choice must offer letters."""
+
+    def test_prompt_uses_letters_not_digits(self, monkeypatch):
+        from escape_the_valley import ui as ui_mod
+
+        printed = []
+        monkeypatch.setattr(
+            ui_mod.console,
+            "print",
+            lambda *a, **k: printed.append(" ".join(str(x) for x in a)),
+        )
+        monkeypatch.setattr(ui_mod.console, "input", lambda *a, **k: "B")
+        connections = [
+            ("n1", "River Ford", 12),
+            ("n2", "High Pass", 20),
+        ]
+        chosen = ui_mod.show_route_choice(connections)
+        assert chosen == "n2"
+        blob = "\n".join(printed)
+        assert "Choose 1-" not in blob
+        assert "[bold]A[/bold]" in blob
+        assert "[bold]B[/bold]" in blob
+
+    def test_invalid_retry_names_letters(self, monkeypatch):
+        from escape_the_valley import ui as ui_mod
+
+        printed = []
+        answers = iter(["9", "A"])
+        monkeypatch.setattr(
+            ui_mod.console,
+            "print",
+            lambda *a, **k: printed.append(" ".join(str(x) for x in a)),
+        )
+        monkeypatch.setattr(
+            ui_mod.console, "input", lambda *a, **k: next(answers),
+        )
+        connections = [
+            ("n1", "River Ford", 12),
+            ("n2", "High Pass", 20),
+        ]
+        chosen = ui_mod.show_route_choice(connections)
+        assert chosen == "n1"
+        blob = "\n".join(printed)
+        assert "Choose A, B" in blob
+        assert "Choose 1-" not in blob
 
 
 # ── F-133540bb: action_choose must not forward an unoffered choice_id ──

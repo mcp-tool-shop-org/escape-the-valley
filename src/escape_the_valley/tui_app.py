@@ -7,9 +7,9 @@ Run:
 
 Keys:
     t travel | r rest | h hunt | p repair
-    1-4 choose option
-    J toggle journal drawer
-    ? help | q quit
+    1-7 choose option (A-G); e/f/g pick E/F/G
+    Shift+J toggle journal drawer
+    L ledger | V voice | ? help | q quit
 """
 
 from __future__ import annotations
@@ -270,14 +270,20 @@ class EventBar(Static):
         choice_letters = (
             ", ".join(_escape_dynamic(c.id) for c in s.choices) if s.choices else ""
         )
-        pick_hint = (
-            f"Choose {choice_letters} (number keys also work). "
-            if choice_letters
-            else ""
-        )
+        # Live choose keys are 1-7 (BINDINGS), not a-g. e/f/g pick E/F/G
+        # via on_key when no overlay is open — listed in HELP_TEXT, not
+        # claimed as a-g here. Journal is Shift+J, not unshifted j.
+        if s.choices:
+            digit_keys = ", ".join(
+                str(i) for i in range(1, len(s.choices) + 1)
+            )
+            pick_hint = f"Choose {digit_keys} ({choice_letters}). "
+        else:
+            pick_hint = ""
         hint_line = (
             f"[i]{pick_hint}Actions: t/r/h/p. "
-            "L ledger \u2022 V voice \u2022 J journal \u2022 ? help \u2022 q quit[/i]"
+            "L ledger \u2022 V voice \u2022 Shift+J journal \u2022 "
+            "? help \u2022 q quit[/i]"
         )
 
         # gm-B-02 / ENG-B-05 consumer: a single subtle footer line when the GM
@@ -415,12 +421,14 @@ HELP_TEXT = """\
 
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
-\u2022 1\u20137 Choose option (A\u2013G); letters a\u2013g also work
+\u2022 1\u20137 Choose option (A\u2013G)
+\u2022 e/f/g pick E/F/G when no overlay is open
 \u2022 E/F/G are last-resort moves (Abandon Cargo, Desperate
   Repair, Hard Ration) \u2014 they appear only when things are dire
-\u2022 J Toggle journal drawer
+\u2022 Shift+J Toggle journal drawer
 \u2022 L Toggle ledger menu
 \u2022 V Toggle voice narration
+\u2022 ? Help
 \u2022 q Quit
 
 The engine decides outcomes. The GM narrates.
@@ -621,14 +629,26 @@ class LedgerTrailApp(App):
         if self._engine:
             self._sync_frame()
 
-        # Initialize voice bridge if configured
-        if self._voice_config and self._voice_config.enabled:
+        # Initialize voice bridge if configured. A --voice launch must
+        # toast Voice ON or an honest fail (extra missing / worker dead)
+        # — never silence, then a later V that claims Voice OFF.
+        voice_requested = bool(
+            self._voice_config and self._voice_config.enabled
+        )
+        if voice_requested:
             from .voice import VoiceBridge
 
             self._voice_bridge = VoiceBridge(self._voice_config)
             self._voice_enabled = self._voice_bridge.start()
 
         self._render_all()
+
+        if voice_requested:
+            if self._voice_enabled:
+                self.notify("Voice ON", markup=False)
+            else:
+                self._notify_voice_unavailable()
+            self._check_voice_health()
 
         # EC-04: if a finished run was loaded (the CLI normally refuses this,
         # but be robust), raise the end screen straight away.
@@ -762,27 +782,45 @@ class LedgerTrailApp(App):
         # told the storyteller went quiet, instead of a silent stale ON state.
         self._check_voice_health()
 
+    def _voice_unavailable_message(self) -> str:
+        """Honest next-step when voice was requested but is not running.
+
+        Same copy as ``trail self-check``: pip-install the voice extra when
+        it is missing, or ``last_error`` when the extra is present but dead.
+        """
+        status = self._voice_bridge.status() if self._voice_bridge else {}
+        last_error = status.get("last_error")
+        if last_error:
+            return f"Voice not available - {last_error}"
+        if status.get("installed"):
+            return "Voice not available - unavailable"
+        return 'Voice not available - pip install "escape-the-valley[voice]"'
+
+    def _notify_voice_unavailable(self) -> None:
+        """Tell the player voice is not running; latch so we do not nag."""
+        self._voice_enabled = False
+        self._voice_failure_notified = True
+        self.notify(self._voice_unavailable_message(), markup=False)
+
     def _check_voice_health(self) -> None:
-        """If the voice bridge failed at runtime, notify once and disable.
+        """If the voice bridge is not available, notify once and disable.
 
         gm-B-06 consumer for VoiceBridge.status(): when voice was on for the
         player but the bridge self-disabled on a runtime audio failure
         (status()['available'] is False with a last_error), surface the reason
         a single time and flip the UI's _voice_enabled False so the footer /
         toggle state stop claiming voice is on.
+
+        Also covers a missing extra (installed False, last_error None) so a
+        ``--voice`` launch is as honest as a later V press.
         """
         bridge = self._voice_bridge
         if bridge is None or self._voice_failure_notified:
             return
-        # Only act on a genuine runtime failure: the bridge reports a reason
-        # and is no longer available. (A bridge that was simply never started,
-        # or toggled off cleanly, has no last_error.)
         status = bridge.status()
-        if status["available"] or not status["last_error"]:
+        if status["available"]:
             return
-        self._voice_failure_notified = True
-        self._voice_enabled = False
-        self.notify(f"Voice unavailable - {status['last_error']}", markup=False)
+        self._notify_voice_unavailable()
         # Reflect the quieted state in the event bar / footer immediately.
         self._render_all()
 
@@ -809,14 +847,30 @@ class LedgerTrailApp(App):
             self._voice_bridge = VoiceBridge(config)
             self._voice_enabled = self._voice_bridge.start()
             if not self._voice_enabled:
-                self.notify("Voice not available", markup=False)
+                self._notify_voice_unavailable()
                 return
             self.notify("Voice ON", markup=False)
             return
 
+        # A constructed-but-dead bridge (failed --voice start) must never
+        # report Voice OFF: toggle() would just flip config.enabled and lie.
+        status = self._voice_bridge.status()
+        if not status.get("available"):
+            self.notify(self._voice_unavailable_message(), markup=False)
+            self._voice_enabled = False
+            self._voice_failure_notified = True
+            return
+
+        was_enabled = bool(self._voice_bridge.config.enabled)
         new_state = self._voice_bridge.toggle()
         self._voice_enabled = new_state
-        self.notify("Voice ON" if new_state else "Voice OFF", markup=False)
+        if new_state:
+            self.notify("Voice ON", markup=False)
+            return
+        if was_enabled:
+            self.notify("Voice OFF", markup=False)
+            return
+        self._notify_voice_unavailable()
 
     def action_choose(self, choice_id: str) -> None:
         """Resolve a visible choice (A-G) to an intent and step the engine.

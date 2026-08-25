@@ -340,20 +340,26 @@ def show_game_over(state: RunState) -> None:
 
 
 def show_route_choice(connections: list[tuple[str, str, int]]) -> str:
-    """Show route choice when at a branching node."""
+    """Show route choice when at a branching node.
+
+    Offered ids are letters (A, B, C, ...) matching the engine/TUI CHOOSE
+    contract. The prompt and the keys the player may press are the same
+    document — do not claim 1-N.
+    """
     console.print("\n  [bold]The trail forks.[/bold]")
-    for i, (_node_id, name, dist) in enumerate(connections):
-        console.print(f"  [bold]{i + 1}[/bold]. {name} ({dist} miles)")
+    letters: list[str] = []
+    by_key: dict[str, str] = {}
+    for i, (node_id, name, dist) in enumerate(connections):
+        letter = chr(65 + i)  # A, B, C, ...
+        letters.append(letter)
+        by_key[letter] = node_id
+        console.print(f"  [bold]{letter}[/bold]. {name} ({dist} miles)")
 
     while True:
-        answer = console.input("\n[bold]Which way? [/bold]").strip()
-        try:
-            idx = int(answer) - 1
-            if 0 <= idx < len(connections):
-                return connections[idx][0]
-        except ValueError:
-            pass
-        console.print(f"  [dim]Choose 1-{len(connections)}[/dim]")
+        answer = console.input("\n[bold]Which way? [/bold]").strip().upper()
+        if answer in by_key:
+            return by_key[answer]
+        console.print(f"  [dim]Choose {', '.join(letters)}[/dim]")
 
 
 def show_message(msg: str, style: str = "") -> None:
