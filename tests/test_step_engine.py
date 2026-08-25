@@ -5,6 +5,7 @@ from __future__ import annotations
 from escape_the_valley.adapter import state_to_frame
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+from escape_the_valley.physics import check_game_over
 from escape_the_valley.save import load_game, save_game
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.worldgen import create_new_run
@@ -1510,20 +1511,30 @@ def test_dangling_route_connections_recover_at_construction():
     """Constructing a StepEngine against a save where the current node's
     connections are all dangling must NOT enter GamePhase.ROUTE with an
     empty pending-routes list (0 < 0 is always False -> permanent softlock,
-    and one that would re-occur on every reload)."""
+    and one that would re-occur on every reload).
+
+    F-dd6869ca (post-wave-6): recovery no longer beelines to map_nodes[-1]
+    -- on a mid-map fork that would skip unvisited content and manufacture
+    a false VICTORY. There is nothing legitimate to recover to here (both
+    raw connections are dangling), so the party simply stays put --
+    destination_id/distance_remaining are untouched, not redirected to
+    "end"."""
     state = _dangling_fork_state()
     engine = StepEngine(state, GMConfig(enabled=False))
 
     assert engine.phase != GamePhase.ROUTE
     assert engine._pending_routes == []
-    # Recovered to a real, resolvable destination (ENG-B-09 style: last node).
-    assert engine.state.destination_id == "end"
-    assert engine.state.distance_remaining > 0
+    # NOT redirected anywhere -- still exactly where it started.
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    assert engine.state.distance_remaining == 0
 
-    # The engine is still usable afterward -- no dead end.
+    # The engine is still usable afterward -- no dead end, and no crash --
+    # even though the fork itself remains impassable.
     msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
     assert engine.phase != GamePhase.ROUTE
     assert len(msgs.lines) > 0
+    assert engine.state.location_id == "start"  # still didn't move
 
     # Reload-stability: constructing a SECOND engine from the same corrupted
     # shape recovers the same way every time (not a first-time fluke).
@@ -1536,7 +1547,13 @@ def test_dangling_route_connections_recover_at_construction():
 def test_dangling_route_connections_recover_mid_travel():
     """The other call site: a node whose connections are all dangling is
     discovered mid-travel (on arrival), not at construction. The following
-    TRAVEL action must auto-advance instead of entering a dead ROUTE.
+    TRAVEL action must neither enter a dead ROUTE nor fake-advance toward a
+    fabricated destination.
+
+    F-dd6869ca (post-wave-6): previously this asserted an auto-advance to
+    "end" (map_nodes[-1]) -- exactly the false-progress beeline the finding
+    forbids. With nothing legitimate to recover to, the party now stays at
+    "start" instead.
 
     Drives _do_travel() directly (bypassing phase dispatch), the same
     technique used in test_spoilage_fires_at_most_once_per_day, so a random
@@ -1573,12 +1590,163 @@ def test_dangling_route_connections_recover_mid_travel():
     engine._do_travel()
     assert engine.state.location_id == "start"
     assert engine.phase != GamePhase.ROUTE  # fork check is next-travel, not this one
+    distance_after_arrival = engine.state.distance_traveled
 
-    # Second travel hits the fork check on "start" and must recover instead
-    # of entering ROUTE with nothing pickable.
+    # Second travel hits the fork check on "start" and must neither enter
+    # ROUTE with nothing pickable NOR fabricate a route to "end".
     engine._do_travel()
     assert engine.phase != GamePhase.ROUTE
-    assert engine.state.destination_id == "end"
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    # No fake travel leg was charged for the stalled action either.
+    assert engine.state.distance_traveled == distance_after_arrival
+
+
+# ── F-0877c51a / F-dd6869ca (wave 6): self-edge + mid-map recovery ─────
+
+
+def _self_edge_fork_state(seed: int = 42):
+    """A 2-node map where the current node's connections include a
+    self-edge (its own node_id) plus one dangling id -- the corrupted-save
+    shape F-0877c51a targets. After excluding the self-edge, zero
+    legitimate connections remain (the other id is dangling), so this must
+    land on the same no-fake-destination stall as _dangling_fork_state,
+    NOT commit to the self-edge as if it were "the one real route"."""
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "ghost"],
+        distance_to={"fork": 5, "ghost": 10},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [fork, end]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+    return state
+
+
+def test_self_edge_fork_connection_excluded_and_terminates():
+    """F-0877c51a: a fork whose raw connections include the CURRENT node's
+    own id (connections=["fork", "ghost"]) must not resolve that self-id
+    as "the one real route" -- committing to it reproduces the original
+    infinite-travel bug this whole recovery mechanism exists to close,
+    just reached via the "exactly one resolves" branch instead of "zero
+    resolve". After excluding the self-edge, zero legitimate connections
+    remain here (the other id is dangling), so this must land on the same
+    honest, no-fake-progress stall as
+    test_dangling_route_connections_recover_mid_travel: repeated travel
+    attempts must terminate (not loop forever faking arrivals)."""
+    state = _self_edge_fork_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    assert engine.phase != GamePhase.ROUTE
+    assert engine.state.destination_id == "fork"
+    assert engine.state.location_id == "fork"
+
+    starting_food = engine.state.supplies.food
+
+    # Drive several travel actions -- across all of them, the party must
+    # never "arrive" at itself repeatedly (the externally observable shape
+    # of the original bug: climbing distance_traveled, draining supplies,
+    # for zero real progress, forever).
+    for _ in range(6):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+    assert engine.phase != GamePhase.ROUTE
+
+
+def test_self_edge_fork_with_one_real_alternative_takes_the_real_route():
+    """F-0877c51a, the blended sub-case: a fork's raw connections mix a
+    self-edge with one genuinely resolving OTHER node
+    (connections=["fork", "real"]). After excluding the self-edge, exactly
+    one legitimate route remains, so the engine must offer/take THAT route
+    -- not miscount the self-edge as a second real option (which would let
+    it be presented as a pickable path), and not discard the real route in
+    favor of a zero-resolve stall."""
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "real"],
+        distance_to={"fork": 5, "real": 9},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=11)
+    state.map_nodes = [fork, real]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # Exactly one non-self option offered -- never the self-edge.
+    assert engine.phase == GamePhase.ROUTE
+    assert len(engine._pending_routes) == 1
+    assert engine._pending_routes[0].node_id == "real"
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.state.destination_id == "real"
+    assert engine.phase == GamePhase.CAMP
+
+
+def test_dangling_mid_map_fork_does_not_manufacture_victory():
+    """F-dd6869ca: a fork that is NOT itself map_nodes[-1] must never
+    recover by beelining to the final node -- that manufactures a false,
+    unearned VICTORY and skips every node/event between the fork and the
+    end. Mirrors the finding's own repro: a 4-node map
+    [mid1, fork2, mid2, final] with the party AT fork2 (mid-map, not
+    terminal), both raw connections dangling."""
+    from escape_the_valley.models import Biome, MapNode
+
+    mid1 = MapNode(
+        node_id="mid1", name="Mid1", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork2"], distance_to={"fork2": 5},
+    )
+    fork2 = MapNode(
+        node_id="fork2", name="Fork2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    mid2 = MapNode(
+        node_id="mid2", name="Mid2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    final = MapNode(
+        node_id="final", name="Final", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=5)
+    state.map_nodes = [mid1, fork2, mid2, final]
+    state.location_id = "fork2"
+    state.destination_id = "fork2"
+    state.distance_remaining = 0
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+    assert engine.phase != GamePhase.ROUTE
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork2"
+    assert engine.state.location_id not in ("mid2", "final")
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
 
 
 # ── F-803bd813 / F-6e5e72a8: engine.py ROUTE fixes ported from StepEngine ──
@@ -1600,7 +1768,19 @@ def test_gameengine_dangling_route_connections_recover_mid_travel(monkeypatch):
     distance_traveled kept climbing (a fake progress metric) while
     location_id never advanced and a full day's supplies were charged for
     zero real progress, silently, every action. Mirrors
-    test_dangling_route_connections_recover_mid_travel above."""
+    test_dangling_route_connections_recover_mid_travel above.
+
+    F-dd6869ca (post-wave-6): the wave-4 fix that closed the bug above
+    introduced its own false-progress mechanism -- beelining to
+    map_nodes[-1] ("end"), which on a longer map would skip unvisited
+    content and manufacture an unearned VICTORY. There is nothing
+    legitimate to recover to here (both raw connections are dangling), so
+    the party now stays at "start": no fake arrival at "end", and --
+    because _do_travel returns before the movement math runs at all once
+    _check_route_choice reports no legitimate route -- no fake
+    distance_traveled/supply charge either. Still not the original bug:
+    the assertion that matters is that this is STABLE (repeated calls
+    don't drift) and LOUD (logged + messaged), not silent."""
     import escape_the_valley.engine as engine_mod
     from escape_the_valley.engine import GameEngine
 
@@ -1613,22 +1793,22 @@ def test_gameengine_dangling_route_connections_recover_mid_travel(monkeypatch):
     monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
 
     assert engine.state.location_id == "start"
+    starting_food = engine.state.supplies.food
 
     # Drive several travel actions, mirroring the finding's own repro
-    # ("across 6 consecutive _do_travel() calls"). Before the fix, none of
-    # these ever leave "start".
+    # ("across 6 consecutive _do_travel() calls"). Before the wave-4 fix,
+    # none of these ever left "start" (the original bug); after it, all of
+    # them silently beelined to "end" (F-dd6869ca). Neither happens now.
     for _ in range(4):
         engine._do_travel()
 
-    # Recovered instead of looping forever on "start": both raw connections
-    # ("ghost-1"/"ghost-2") are dangling, so this lands on the ENG-B-09-style
-    # fallback (the last map node), exactly like StepEngine's own recovery
-    # for this identical corrupted shape. Four travel actions are enough to
-    # actually reach it (not just point toward it), which is the strongest
-    # possible proof this isn't the old self-referential loop.
-    assert engine.state.destination_id == "end"
-    assert engine.state.location_id == "end"
-    assert engine.state.distance_traveled > 0
+    # Never moved, never faked a destination, never drained supplies for a
+    # journey that never happened -- and no false victory was manufactured.
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+    assert check_game_over(engine.state) != "VICTORY"
 
 
 def test_gameengine_route_choice_single_resolvable_connection_used_directly():
@@ -1721,6 +1901,146 @@ def test_gameengine_rejects_unrecognized_route_choice_id(monkeypatch, caplog):
     assert any("choice_id" in r.message for r in caplog.records)
 
 
+# ── F-0877c51a / F-dd6869ca / F-049017cc (wave 6): GameEngine mirrors ──
+
+
+def test_gameengine_self_edge_fork_connection_excluded_and_terminates(monkeypatch):
+    """F-0877c51a: GameEngine._check_route_choice must exclude a connection
+    id that resolves back to the CURRENT node itself before counting how
+    many connections resolved. Empirical repro from the finding: a 2-node
+    map, fork.connections=['fork','ghost'] -- committing to the self-id as
+    "the one real route" reproduces the original infinite-travel bug this
+    method exists to close (location_id pinned, distance_traveled/food
+    faking progress, game_over never True). The finding's own repro window
+    was 30 consecutive _do_travel() calls; this drives the same count."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "ghost"],
+        distance_to={"fork": 5, "ghost": 10},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=30)
+    state.map_nodes = [fork, end]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # Keep every probabilistic branch closed -- see the mid-travel test
+    # above for why (isolates the route-recovery path).
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    starting_food = engine.state.supplies.food
+
+    for _ in range(30):
+        engine._do_travel()
+
+    # Never left "fork", no fake distance, no fake supply drain -- the
+    # self-edge was never treated as a resolved route.
+    assert engine.state.location_id == "fork"
+    assert engine.state.destination_id == "fork"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+
+
+def test_gameengine_dangling_mid_map_fork_does_not_manufacture_victory(monkeypatch):
+    """F-dd6869ca: mirrors the finding's own repro exactly -- a 4-node map
+    [mid1, fork2, mid2, final] with the party AT fork2 (a non-terminal
+    fork, both raw connections dangling). The old map_nodes[-1] recovery
+    reached location_id == 'final' with check_game_over() == 'VICTORY'
+    after exactly 3 _do_travel() calls, skipping mid1/mid2 entirely. It
+    must not do that anymore."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    mid1 = MapNode(
+        node_id="mid1", name="Mid1", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork2"], distance_to={"fork2": 5},
+    )
+    fork2 = MapNode(
+        node_id="fork2", name="Fork2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    mid2 = MapNode(
+        node_id="mid2", name="Mid2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    final = MapNode(
+        node_id="final", name="Final", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=31)
+    state.map_nodes = [mid1, fork2, mid2, final]
+    state.location_id = "fork2"
+    state.destination_id = "fork2"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork2"
+    assert engine.state.location_id not in ("mid2", "final")
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_single_resolvable_connection_message_is_accurate(monkeypatch):
+    """F-049017cc: the single-real-connection recovery must not reuse the
+    genuine-corruption message ('...last known waypoint') -- that phrasing
+    is a lie here: the destination is a real route, not a fallback, and
+    could be any node on the map, not necessarily 'the last known
+    waypoint'. It must get its own, accurate message instead."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost", "real"],
+        distance_to={"ghost": 10, "real": 8},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=32)
+    state.map_nodes = [fork, real]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    messages = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda msg, *a, **k: messages.append(msg),
+    )
+
+    result = engine._check_route_choice()
+
+    assert result is True
+    assert engine.state.destination_id == "real"
+    assert any("Real Trail" in m for m in messages)
+    assert not any("last known waypoint" in m for m in messages)
+
+
 # ── F-b6d0a4bc: step_engine.py memory-card validation must not crash step() ──
 
 
@@ -1774,3 +2094,72 @@ def test_malformed_gm_memory_proposals_do_not_crash_step(monkeypatch, caplog):
     assert engine.phase == GamePhase.CAMP
     assert msgs is not None
     assert any("memory-card" in r.message.lower() for r in caplog.records)
+    # F-886d2c1e: validation failing outright at BOTH call sites (scene AND
+    # gm_out both carry memory_proposals per _MemoryCardGM) must bump the
+    # diagnostics counter mirroring _note_gm_fallback's pattern -- this
+    # degradation used to be a bare, invisible log.warning with no counter
+    # at all.
+    assert engine.diagnostics["memory_card_failures"] == 2
+
+
+def test_memory_card_partial_batch_failure_commits_and_is_distinguishable(
+    monkeypatch, caplog,
+):
+    """F-886d2c1e: the previous version wrapped validate_gm_cards() AND the
+    add_card() loop in a single try/except. The schema allows up to 2
+    memory_proposals per batch, so if card 1 of 2 adds successfully and
+    card 2's add_card() raises, the old log line ('...validation/add
+    failed') read identically to a batch that failed validation outright
+    -- even though card 1 was already permanently committed to
+    state.memory. This proves the fix: card 1 lands, the log line
+    distinguishes a partial add failure from total validation failure, and
+    the failure is still counted via diagnostics['memory_card_failures'].
+
+    Mocks validate_gm_cards (as the existing malformed-batch test above
+    does) and add_card -- the two collaborators _apply_memory_proposals
+    orchestrates -- not the orchestration logic under test itself."""
+    import logging
+
+    import escape_the_valley.step_engine as step_engine_mod
+
+    engine = _force_event_engine(seed=44, gm=_MemoryCardGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+
+    good_card = object()
+    bad_card = object()
+    monkeypatch.setattr(
+        step_engine_mod, "validate_gm_cards",
+        lambda state, proposals: [good_card, bad_card],
+    )
+
+    committed = []
+
+    def _add_card(state, card):
+        if card is bad_card:
+            raise ValueError("simulated add_card failure")
+        committed.append(card)
+
+    monkeypatch.setattr("escape_the_valley.memory.add_card", _add_card)
+
+    assert engine.diagnostics["memory_card_failures"] == 0
+
+    with caplog.at_level(logging.WARNING):
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # The good card landed even though its batch-mate failed -- the
+    # earlier bug would have made this indistinguishable from "nothing was
+    # saved" in the log, but the state itself already tells the story.
+    assert good_card in committed
+    assert bad_card not in committed
+    # Both call sites (scene + gm_out) hit the same bad_card shape, so both
+    # count one add failure each.
+    assert engine.diagnostics["memory_card_failures"] == 2
+    # bad_card is the 2nd of 2 cards in the batch -- the message must say
+    # so precisely (not just "a card failed"), since the whole point is
+    # letting the log distinguish which cards landed.
+    assert any("2/2 add failed" in r.message for r in caplog.records)
+    # The partial-add message must not be confused with a total validation
+    # failure -- they are deliberately different log lines.
+    assert not any("validation failed" in r.message for r in caplog.records)
