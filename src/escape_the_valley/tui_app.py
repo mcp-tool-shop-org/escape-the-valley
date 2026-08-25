@@ -584,6 +584,7 @@ class LedgerTrailApp(App):
             st = self._engine.state
             self.notify(
                 f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+                markup=False,
             )
 
     def _sync_frame(self) -> None:
@@ -723,7 +724,7 @@ class LedgerTrailApp(App):
             return
         self._voice_failure_notified = True
         self._voice_enabled = False
-        self.notify(f"Voice unavailable - {status['last_error']}")
+        self.notify(f"Voice unavailable - {status['last_error']}", markup=False)
         # Reflect the quieted state in the event bar / footer immediately.
         self._render_all()
 
@@ -750,14 +751,14 @@ class LedgerTrailApp(App):
             self._voice_bridge = VoiceBridge(config)
             self._voice_enabled = self._voice_bridge.start()
             if not self._voice_enabled:
-                self.notify("Voice not available")
+                self.notify("Voice not available", markup=False)
                 return
-            self.notify("Voice ON")
+            self.notify("Voice ON", markup=False)
             return
 
         new_state = self._voice_bridge.toggle()
         self._voice_enabled = new_state
-        self.notify("Voice ON" if new_state else "Voice OFF")
+        self.notify("Voice ON" if new_state else "Voice OFF", markup=False)
 
     def action_choose(self, choice_id: str) -> None:
         """Resolve a visible choice (A-G) to an intent and step the engine.
@@ -1031,7 +1032,7 @@ class LedgerTrailApp(App):
         if not self._engine or not self.show_end:
             return
         if not self._frame.postcard_lines:
-            self.notify("No postcard to copy for this run.")
+            self.notify("No postcard to copy for this run.", markup=False)
             return
         from .cli import write_postcard_file
 
@@ -1040,9 +1041,9 @@ class LedgerTrailApp(App):
                 self._engine.state, self._frame.postcard_lines,
             )
         except OSError as e:
-            self.notify(f"Could not write postcard: {e}")
+            self.notify(f"Could not write postcard: {e}", markup=False)
             return
-        self.notify(f"Postcard saved to {path}")
+        self.notify(f"Postcard saved to {path}", markup=False)
 
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.
@@ -1086,6 +1087,7 @@ class LedgerTrailApp(App):
             "Your last save is intact.",
             severity="error",
             timeout=8,
+            markup=False,
         )
         self._render_all()
 
@@ -1219,7 +1221,7 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         if result.success:
             overlay.show_success(result.wallet_address)
-            self.notify("Ledger Backpack enabled")
+            self.notify("Ledger Backpack enabled", markup=False)
         else:
             overlay.show_failure(result.message)
         self._sync_frame()
@@ -1243,7 +1245,7 @@ class LedgerTrailApp(App):
         self._close_all_overlays()
         self._sync_frame()
         self._render_all()
-        self.notify("Ledger Backpack disabled")
+        self.notify("Ledger Backpack disabled", markup=False)
 
     def action_ledger_settle(self) -> None:
         """Manual settlement.
@@ -1296,7 +1298,7 @@ class LedgerTrailApp(App):
 
     def _finish_settle(self, result) -> None:
         self._in_flight = False
-        self.notify(result.message)
+        self.notify(result.message, markup=False)
         self._sync_frame()
         self._render_all()
 
@@ -1362,7 +1364,7 @@ class LedgerTrailApp(App):
 
         bp = self._engine.state.backpack
         if not bp.enabled:
-            self.notify("Enable backpack first (L → E)")
+            self.notify("Enable backpack first (L → E)", markup=False)
             return
 
         from .backpack_models import XRPL_TOKEN_MAP
@@ -1499,7 +1501,7 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#send_parcel", SendParcelOverlay)
         if result.success:
             overlay.show_success(result.message)
-            self.notify("Parcel sent")
+            self.notify("Parcel sent", markup=False)
         else:
             overlay.show_failure(result.message)
         self._sync_frame()
@@ -1540,7 +1542,7 @@ class LedgerTrailApp(App):
         contents = ", ".join(
             f"+{v} {k}" for k, v in self._current_parcel.contents.items()
         )
-        self.notify(f"Parcel accepted: {contents}")
+        self.notify(f"Parcel accepted: {contents}", markup=False)
         self._close_all_overlays()
         self._sync_frame()
         self._render_all()
@@ -1562,7 +1564,7 @@ class LedgerTrailApp(App):
         mgr.refuse_parcel(self._current_parcel)
         self._save()
 
-        self.notify("Parcel refused")
+        self.notify("Parcel refused", markup=False)
         self._close_all_overlays()
         self._render_all()
 
