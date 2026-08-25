@@ -189,6 +189,49 @@ class TestAcceptParcel:
         assert parcel.accepted is True
         assert state.supplies.food == before  # floored at 0, never subtracted
 
+    def test_accept_unrecognized_key_not_applied(self):
+        """F-285e9fa6: an unrecognized resource key must never be credited.
+
+        _decode_parcel_memo already rejects a supply key outside
+        XRPL_TOKEN_MAP on the live on-chain path, but that guard lives at
+        decode time -- accept_parcel itself had no equivalent check, so a
+        ParcelRecord built via any other path (tests, saves, a future
+        non-XRPL channel -- the same paths CRIT-1's amount floor exists to
+        cover) could inject an arbitrary key as a permanent phantom entry in
+        state.supplies that the rest of the game never recognizes.
+        """
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        state = _make_state()
+        parcel = ParcelRecord(
+            parcel_id="test:GLD:500",
+            sender="rGriefer",
+            contents={"gold": 500},
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        result = mgr.accept_parcel(parcel, state)
+        assert result is True
+        assert parcel.accepted is True
+        assert "gold" not in state.supplies.items
+
+    def test_accept_mixed_keys_applies_valid_skips_unrecognized(self):
+        """F-285e9fa6: a partially-valid parcel must apply only known keys."""
+        from escape_the_valley.backpack_models import ParcelRecord
+
+        state = _make_state()
+        parcel = ParcelRecord(
+            parcel_id="test:MIX",
+            sender="rSender",
+            contents={"food": 5, "gold": 500},
+            day_received=3,
+        )
+        mgr = BackpackManager()
+        result = mgr.accept_parcel(parcel, state)
+        assert result is True
+        assert state.supplies.food == 55  # 50 + 5, applied normally
+        assert "gold" not in state.supplies.items  # unrecognized key skipped
+
 
 class TestSettleNoXrpl:
     def test_settle_not_enabled(self):

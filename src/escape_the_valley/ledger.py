@@ -108,6 +108,22 @@ def _roll_call(state: RunState) -> list[str]:
     return lines
 
 
+def _is_numeric_delta(val: object) -> bool:
+    """True for a journal delta value safe to do arithmetic on (F-cd378af3).
+
+    Sibling of ui.py's helper of the same name (F-5ed15e0b, fixed for
+    show_game_over): a corrupted/older-schema save, or a future engine
+    change, can carry a non-numeric value in a JournalEntry's ``deltas``
+    dict. ``_costliest_day`` (and therefore ``build_trail_ledger`` and
+    ``build_xrpl_postcard``, which calls it) must skip such a value rather
+    than raise, exactly like ui.py already does. This is a separate copy,
+    not a shared import, because ui.py is a different domain -- a future
+    pass should decide whether the two should be consolidated into one
+    shared helper instead of living twice.
+    """
+    return isinstance(val, (int, float))
+
+
 def _costliest_day(state: RunState) -> list[str]:
     if not state.journal:
         return []
@@ -117,7 +133,10 @@ def _costliest_day(state: RunState) -> list[str]:
     worst_title = ""
 
     for entry in state.journal:
-        cost = sum(abs(v) for v in entry.deltas.values() if v < 0)
+        cost = sum(
+            abs(v) for v in entry.deltas.values()
+            if _is_numeric_delta(v) and v < 0
+        )
         if cost > worst_cost:
             worst_cost = cost
             worst_day = entry.day

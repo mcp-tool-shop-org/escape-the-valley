@@ -1054,6 +1054,16 @@ class BackpackManager:
         reduce supplies, matching the cap's existing promise on the upper
         side.
 
+        Resource key is validated here too (F-285e9fa6): ``_decode_parcel_memo``
+        already rejects a supply key outside ``XRPL_TOKEN_MAP`` on the live
+        on-chain path, but that guard lives at decode time, not at apply time
+        — the same non-memo construction paths CRIT-1's fix above exists to
+        cover (tests, saves, a future non-XRPL channel) could otherwise carry
+        an arbitrary key straight into ``state.supplies``, injecting a
+        permanent phantom resource the rest of the game (UI, XRPL mint/settle,
+        save schema) never recognizes. An unrecognized key is silently
+        skipped, exactly like a rejected memo — never partially applied.
+
         Idempotent (ledger-005): a second accept is a no-op so a double-trigger
         from any caller (the TUI path does not guard) cannot double the supplies
         and break conservation. Mirrors refuse_parcel's `accepted` guard.
@@ -1062,6 +1072,8 @@ class BackpackManager:
             return False
 
         for key, amount in parcel.contents.items():
+            if key not in XRPL_TOKEN_MAP:
+                continue
             capped_amount = max(0, min(amount, cap))
             current = state.supplies.get(key)
             state.supplies.set(key, current + capped_amount)

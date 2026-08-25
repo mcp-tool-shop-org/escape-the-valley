@@ -118,6 +118,83 @@ class TestTrailLedger:
         text = "\n".join(ledger)
         assert "food" in text.lower() or "water" in text.lower()
 
+
+# ── F-cd378af3: _costliest_day has the identical sibling bug fixed in ──
+# ── ui.py's show_game_over (F-5ed15e0b) for the same state.journal data ──
+
+
+class TestCostliestDayRobustness:
+    """_costliest_day computes ``sum(abs(v) for v in entry.deltas.values()
+    if v < 0)`` over every journal entry with no guard against a
+    non-numeric delta. F-5ed15e0b already fixed the identical bug class in
+    ui.py's show_game_over for the same state.journal collection, but the
+    fix was never extended to this call site -- a JournalEntry carrying a
+    non-numeric delta (an older save schema, partial corruption, or a
+    future engine change) raised an uncaught TypeError out of
+    _costliest_day, build_trail_ledger, and therefore build_xrpl_postcard
+    too, at the worst possible moment: end of run.
+    """
+
+    def test_non_numeric_delta_does_not_raise(self):
+        from escape_the_valley.ledger import _costliest_day
+
+        state = _make_state(
+            journal=[
+                JournalEntry(
+                    day=1, location="Redwater",
+                    event_id="ev1", scene_title="A strange bargain",
+                    narration="", choice_made="A", outcome="",
+                    # Mixed deltas: a valid negative int plus non-numeric
+                    # values that the old `v < 0` filter would have raised
+                    # TypeError on the instant this run ended.
+                    deltas={"food": None, "water": "lots", "meds": -5},
+                ),
+            ],
+        )
+        # Should compute cleanly (the old code raised TypeError here).
+        lines = _costliest_day(state)
+        assert lines  # the one bad-but-partially-numeric entry still ranks
+
+    def test_build_trail_ledger_does_not_raise_on_bad_journal(self):
+        """Integration-level mirror: the crash also reached build_trail_ledger
+        (and therefore build_xrpl_postcard, which calls it first)."""
+        state = _make_state(
+            journal=[
+                JournalEntry(
+                    day=1, location="Redwater",
+                    event_id="ev1", scene_title="A strange bargain",
+                    narration="", choice_made="A", outcome="",
+                    deltas={"food": None, "water": "lots"},
+                ),
+            ],
+        )
+        ledger = build_trail_ledger(state)
+        assert ledger  # renders cleanly instead of raising
+
+    def test_numeric_journal_still_finds_costliest_day(self):
+        """Non-numeric guard must not change ranking among valid entries."""
+        from escape_the_valley.ledger import _costliest_day
+
+        state = _make_state(
+            journal=[
+                JournalEntry(
+                    day=1, location="Redwater",
+                    event_id="ev1", scene_title="Minor scrape",
+                    narration="", choice_made="A", outcome="",
+                    deltas={"food": None, "meds": -1},  # numeric cost: 1
+                ),
+                JournalEntry(
+                    day=2, location="Stonecross",
+                    event_id="ev2", scene_title="Storm",
+                    narration="", choice_made="A", outcome="",
+                    deltas={"food": -10},  # numeric cost: 10, the real worst
+                ),
+            ],
+        )
+        lines = _costliest_day(state)
+        text = "\n".join(lines)
+        assert "2" in text or "Storm" in text
+
     def test_doctrine_echo(self):
         state = _make_state(doctrine="travel_light")
         ledger = build_trail_ledger(state)
