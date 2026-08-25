@@ -43,6 +43,7 @@ sidebar:
 | `trail ledger status` | Show backpack status |
 | `trail ledger settle` | Manually settle a checkpoint |
 | `trail ledger reconcile` | Retry failed settlements |
+| `trail ledger proof` | Proof the loaded save (PASS/FAIL/INCONCLUSIVE) |
 | `trail ledger wallet` | Show wallet details |
 
 ## Parcel commands

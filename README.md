@@ -134,6 +134,7 @@ Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 | `trail ledger disable` | Disable XRPL backpack |
 | `trail ledger settle` | Manually settle a checkpoint |
 | `trail ledger reconcile` | Retry failed settlements |
+| `trail ledger proof` | Proof the loaded save (PASS/FAIL/INCONCLUSIVE) |
 | `trail ledger wallet` | Show wallet details |
 | `trail stats` | Show run statistics (supports `--json`) |
 | `trail parcel send <addr> <supply> <amount>` | Send supplies to another traveler |
