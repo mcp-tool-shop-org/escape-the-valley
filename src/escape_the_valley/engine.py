@@ -21,21 +21,30 @@ from .models import (
     TimeOfDay,
 )
 from .physics import (
+    abandon_cargo,
     apply_breakdown,
     attempt_hunt,
     attempt_repair,
+    can_abandon_cargo,
+    can_desperate_repair,
+    can_hard_ration,
     check_breakdown,
     check_game_over,
     check_health_effects,
     check_night_travel_danger,
+    check_spoilage,
     compute_daily_consumption,
     compute_travel_distance,
+    desperate_repair,
     halve_consumption,
+    hard_ration,
     rest_day,
     update_morale,
 )
 from .save import save_game
+from .step_engine import compute_ending
 from .ui import (
+    console,
     show_action_menu,
     show_event_scene,
     show_game_over,
@@ -94,7 +103,7 @@ class GameEngine:
         show_status(self.state)
 
         while not self.state.game_over:
-            action = show_action_menu()
+            action = self._prompt_camp_action()
 
             if action == "1":
                 self._do_travel()
@@ -110,29 +119,41 @@ class GameEngine:
                 self._do_change_pace()
             elif action == "7":
                 show_journal(self.state.journal)
+            elif action == "8":
+                self._do_abandon_cargo()
+            elif action == "9":
+                self._do_desperate_repair()
+            elif action == "0":
+                self._do_hard_ration()
             elif action == "Q":
                 self._save()
                 show_message("Game saved.", "bold green")
                 return
 
-            # Check game over
-            result = check_game_over(self.state)
-            if result:
-                if result == "VICTORY":
-                    self.state.victory = True
-                    self.state.game_over = True
-                else:
-                    self.state.cause_of_death = result
-                    self.state.game_over = True
+            self._check_game_over()
 
             # Autosave after each action
             self._save()
 
+        if self.state.ending is not None:
+            style = "bold green" if self.state.victory else "bold red"
+            show_message(
+                f"{self.state.ending.tier}: {self.state.ending.headline}",
+                style,
+            )
         show_game_over(self.state)
         self._save()
 
     def _do_travel(self) -> None:
         """Process a travel action — move, consume, events, advance time."""
+        self.state.last_action = "TRAVEL"
+
+        if self.state.maintained_turns_remaining > 0:
+            self.state.maintained_turns_remaining -= 1
+
+        if self.state.escape_valve_cooldown > 0:
+            self.state.escape_valve_cooldown -= 1
+
         distance = compute_travel_distance(self.state)
 
         # Check for route choice at branching nodes. False means the fork
@@ -156,6 +177,11 @@ class GameEngine:
         consumption = compute_daily_consumption(self.state, is_travel=True)
         self.state.supplies.apply_delta(consumption)
 
+        if self.state.rationing_steps > 0:
+            self.state.rationing_steps -= 1
+            if self.state.rationing_steps <= 0:
+                show_message("Rationing has ended.", "dim")
+
         # Check for arrival
         if self.state.distance_remaining <= 0:
             self._arrive_at_next_node()
@@ -167,6 +193,13 @@ class GameEngine:
 
         # Advance time
         self._advance_time()
+
+        # F-20fa3769: spoilage after travel, matching StepEngine._do_travel.
+        spoilage = check_spoilage(self.state, self.rng)
+        if spoilage:
+            self.state.supplies.apply_delta(spoilage)
+            loss = abs(spoilage.get("food", 0))
+            show_message(f"Food spoiled! Lost {loss} food (no salt).", "yellow")
 
         # Check for breakdown
         breakdown = check_breakdown(self.state, self.rng)
@@ -218,6 +251,20 @@ class GameEngine:
 
     def _do_rest(self) -> None:
         """Process a rest action."""
+        # F-20fa3769: rest-after-repair opens the maintenance window.
+        if self.state.last_action == "REPAIR":
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            duration = 2 + int(doc_mods.get("maintenance_bonus", 0))
+            self.state.maintained_turns_remaining = duration
+            self.state.supplies.water = max(
+                0, self.state.supplies.water - 3,
+            )
+            show_message(
+                "Maintenance window: the wagon rides steady. (-3 water)",
+                "green",
+            )
+        self.state.last_action = "REST"
+
         consumption = compute_daily_consumption(self.state)
         self.state.supplies.apply_delta(consumption)
 
@@ -234,6 +281,7 @@ class GameEngine:
 
     def _do_hunt(self) -> None:
         """Process a hunt action."""
+        self.state.last_action = "HUNT"
         if self.state.supplies.ammo <= 0:
             show_message("No ammunition for hunting.", "red")
             return
@@ -264,6 +312,20 @@ class GameEngine:
             show_message("Wagon is in good condition. No repair needed.", "dim")
             return
 
+        # F-20fa3769: repair-after-rest opens the maintenance window.
+        if self.state.last_action == "REST":
+            doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
+            duration = 2 + int(doc_mods.get("maintenance_bonus", 0))
+            self.state.maintained_turns_remaining = duration
+            self.state.supplies.water = max(
+                0, self.state.supplies.water - 3,
+            )
+            show_message(
+                "Maintenance window: the wagon rides steady. (-3 water)",
+                "green",
+            )
+        self.state.last_action = "REPAIR"
+
         deltas = attempt_repair(self.state)
         self.state.supplies.apply_delta(deltas)
         show_message(
@@ -283,6 +345,212 @@ class GameEngine:
         new_pace = show_pace_menu(self.state.wagon.pace)
         self.state.wagon.pace = new_pace
         show_message(f"Pace set to {new_pace.value}.", "bold")
+
+    def _prompt_camp_action(self) -> str:
+        """Classic 1-7 plus escape valves when their physics gates open.
+
+        F-20fa3769: show_action_menu is 1-7/Q only. Extra keys (8/9/0)
+        dispatch abandon cargo / desperate repair / hard ration without
+        merging this loop with StepEngine.
+        """
+        extras: list[tuple[str, str]] = []
+        if can_abandon_cargo(self.state):
+            extras.append(("8", "Abandon cargo"))
+        if can_desperate_repair(self.state):
+            extras.append(("9", "Desperate repair"))
+        if can_hard_ration(self.state):
+            extras.append(("0", "Hard ration"))
+        if not extras:
+            return show_action_menu()
+
+        console.print()
+        actions = [
+            ("1", "Travel"),
+            ("2", "Rest"),
+            ("3", "Hunt"),
+            ("4", "Repair wagon"),
+            ("5", "Check supplies"),
+            ("6", "Change pace"),
+            ("7", "View journal"),
+            *extras,
+            ("Q", "Quit and save"),
+        ]
+        for key, label in actions:
+            console.print(f"  [bold]{key}[/bold]. {label}")
+        console.print()
+        valid = {a[0] for a in actions}
+        while True:
+            answer = console.input("[bold]What do you do? [/bold]").strip().upper()
+            if answer in valid:
+                return answer
+            console.print(f"  [dim]Choose: {', '.join(sorted(valid))}[/dim]")
+
+    def _do_abandon_cargo(self) -> None:
+        self.state.last_action = "ABANDON_CARGO"
+        if not can_abandon_cargo(self.state):
+            show_message(
+                "Wagon is not damaged enough to justify abandoning cargo.",
+                "dim",
+            )
+            return
+
+        self.state.escape_valve_cooldown = 3
+        result = abandon_cargo(self.state)
+        dropped_items = [
+            f"-{abs(v)} {k}" for k, v in result.items() if v < 0
+        ]
+        show_message(
+            "Abandoned cargo to lighten the wagon. "
+            f"Wagon +25. "
+            f"Dropped: {', '.join(dropped_items) or 'nothing'}. "
+            "Morale fell.",
+            "yellow",
+        )
+
+    def _do_desperate_repair(self) -> None:
+        self.state.last_action = "DESPERATE_REPAIR"
+        if not can_desperate_repair(self.state):
+            show_message(
+                "Desperate repair requires a badly damaged wagon "
+                "and no spare parts.",
+                "dim",
+            )
+            return
+
+        self.state.escape_valve_cooldown = 3
+        result = desperate_repair(self.state, self.rng)
+        if result.get("success"):
+            show_message(
+                f"Desperate repair succeeded! "
+                f"Wagon +{result.get('wagon_delta', 15)}.",
+                "green",
+            )
+        else:
+            injured = result.get("injured", "someone")
+            show_message(
+                f"Desperate repair failed! "
+                f"Wagon {result.get('wagon_delta', -10)}. "
+                f"{injured} was injured in the attempt.",
+                "red",
+            )
+
+    def _hard_ration_refusal_line(self) -> str:
+        """Name the closed gate. Same three sentences as StepEngine."""
+        state = self.state
+        alive = state.party.alive_count
+        if alive <= 0 or state.supplies.food >= alive * 3:
+            return "Food is not low enough to ration."
+        if state.escape_valve_cooldown > 0:
+            return (
+                f"Cannot ration again for {state.escape_valve_cooldown} "
+                "more actions."
+            )
+        if state.rationing_steps > 0:
+            return "Already rationing."
+        return "Cannot ration further right now."
+
+    def _do_hard_ration(self) -> None:
+        self.state.last_action = "HARD_RATION"
+        if not can_hard_ration(self.state):
+            show_message(self._hard_ration_refusal_line(), "dim")
+            return
+
+        self.state.escape_valve_cooldown = 3
+        hard_ration(self.state)
+        show_message(
+            "Hard rationing imposed for 2 days. "
+            "Food and water consumption halved. "
+            "Morale -10, everyone weakened.",
+            "yellow",
+        )
+
+    def _check_game_over(self) -> None:
+        result = check_game_over(self.state)
+        if not result:
+            return
+        if result == "VICTORY":
+            self.state.victory = True
+            self.state.game_over = True
+        else:
+            self.state.cause_of_death = result
+            self.state.game_over = True
+        # F-20fa3769: grade once on the terminal transition (pure, no RNG).
+        ending = compute_ending(self.state)
+        self.state.ending = ending
+
+    def _backpack_persist_hook(self, state: RunState) -> None:
+        """Mid-settlement persist. GameEngine always autosaves to CWD."""
+        save_game(state)
+
+    def _settle_checkpoint(self, dest) -> None:
+        """Settle Ledger Backpack at a town checkpoint.
+
+        Pairwise with StepEngine: if settle() raises before enqueue, log
+        and guarantee a pending SettlementRecord so the delta is retryable.
+        """
+        try:
+            from .backpack import BackpackManager
+
+            mgr = BackpackManager(persist=self._backpack_persist_hook)
+            try:
+                result = mgr.settle(self.state, dest.name)
+                if result.success and result.txids:
+                    show_message(result.message, "green")
+                elif not result.success and result.message:
+                    show_message(result.message, "yellow")
+            finally:
+                mgr.close()
+        except Exception as e:  # graceful degradation — game continues
+            log.warning("Checkpoint settlement at %s failed: %s", dest.name, e)
+            self._enqueue_pending_settlement(dest.name)
+
+    def _enqueue_pending_settlement(self, location: str) -> None:
+        """Record the current unsettled delta as a pending SettlementRecord."""
+        from datetime import UTC, datetime
+
+        from .backpack_models import XRPL_RESOURCES, SettlementRecord
+
+        bp = self.state.backpack
+        deltas: dict[str, int] = {}
+        for key in XRPL_RESOURCES:
+            diff = self.state.supplies.get(key) - bp.last_settled_supplies.get(key, 0)
+            if diff != 0:
+                deltas[key] = diff
+        if not deltas:
+            return
+        if any(r.day == self.state.day for r in bp.pending_settlements):
+            return
+        bp.pending_settlements.append(SettlementRecord(
+            day=self.state.day,
+            location=location,
+            deltas=deltas,
+            txids=[],
+            status="pending",
+            memo=f"TRAIL|RUN:{self.state.run_id}|DAY:{self.state.day}",
+            timestamp=datetime.now(UTC).isoformat(),
+        ))
+
+    def _check_parcels(self, dest) -> None:
+        """Check for incoming parcels at a town."""
+        try:
+            from .backpack import BackpackManager
+
+            mgr = BackpackManager(persist=self._backpack_persist_hook)
+            try:
+                parcels = mgr.check_parcels(self.state)
+                for parcel in parcels:
+                    sender_short = parcel.sender[:8] + "..."
+                    contents = ", ".join(
+                        f"{v} {k}" for k, v in parcel.contents.items()
+                    )
+                    show_message(
+                        f"A parcel arrived from {sender_short}: {contents}",
+                        "green",
+                    )
+            finally:
+                mgr.close()
+        except Exception as e:  # graceful degradation
+            log.warning("Parcel check at %s failed: %s", dest.name, e)
 
     def _trigger_event(self) -> None:
         """Select and run a random event."""
@@ -544,6 +812,11 @@ class GameEngine:
                     "This is a settlement. Supplies may be available.",
                     "dim",
                 )
+
+            # F-20fa3769: settle the ledger backpack at town when already on.
+            if self.state.backpack.enabled:
+                self._settle_checkpoint(dest_node)
+                self._check_parcels(dest_node)
 
         # Set up next destination
         if dest_node.connections:

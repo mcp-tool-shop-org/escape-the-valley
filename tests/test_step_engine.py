@@ -3171,3 +3171,296 @@ def test_gameengine_live_death_line_names_cause(monkeypatch):
 
     engine._do_travel()
     assert f"{name} has died (Starvation)." in messages
+
+
+# ── F-20fa3769: GameEngine pairwise ending/spoilage/valves/maintenance/settle ──
+
+
+def _stub_gameengine_ui(monkeypatch):
+    import escape_the_valley.engine as engine_mod
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_game_over", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_journal", lambda *a, **k: None)
+
+
+def test_gameengine_travel_spoils_unsalted_food(monkeypatch):
+    """F-20fa3769: unsalted food spoils on a day%3==0 travel, same helper."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
+
+    messages: list[str] = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda text, *a, **k: messages.append(text),
+    )
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.supplies.set("salt", 0)
+    engine.state.supplies.food = 500
+    engine.state.day = 3
+    engine.state.time_of_day = TimeOfDay.MORNING
+    engine.state.distance_remaining = 80
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+
+    assert engine.state.last_spoilage_day == 3
+    assert any("spoiled" in m.lower() for m in messages)
+
+
+def test_gameengine_salt_skips_spoilage(monkeypatch):
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
+
+    messages: list[str] = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda text, *a, **k: messages.append(text),
+    )
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.supplies.set("salt", 4)
+    engine.state.day = 3
+    engine.state.time_of_day = TimeOfDay.MORNING
+    engine.state.distance_remaining = 80
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+
+    assert engine.state.last_spoilage_day == 0
+    assert not any("spoiled" in m.lower() for m in messages)
+
+
+def test_gameengine_rest_then_repair_grants_maintenance(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 50
+    engine._do_rest()
+    engine._do_repair()
+    assert engine.state.maintained_turns_remaining == 2
+    assert engine.state.last_action == "REPAIR"
+
+
+def test_gameengine_repair_then_rest_grants_maintenance(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 50
+    engine._do_repair()
+    engine._do_rest()
+    assert engine.state.maintained_turns_remaining == 2
+    assert engine.state.last_action == "REST"
+
+
+def test_gameengine_travel_decrements_maintenance(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.maintained_turns_remaining = 2
+    engine.state.distance_remaining = 80
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+    engine._do_travel()
+    assert engine.state.maintained_turns_remaining == 1
+    assert engine.state.last_action == "TRAVEL"
+
+
+def test_gameengine_abandon_cargo_valve(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 20
+    engine.state.supplies.set("salt", 10)
+    engine.state.supplies.set("cloth", 8)
+    old_wagon = engine.state.wagon.condition
+    engine._do_abandon_cargo()
+    assert engine.state.wagon.condition > old_wagon
+    assert engine.state.last_action == "ABANDON_CARGO"
+    assert engine.state.escape_valve_cooldown == 3
+
+
+def test_gameengine_desperate_repair_valve(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 20
+    engine.state.supplies.parts = 0
+    engine._do_desperate_repair()
+    assert engine.state.last_action == "DESPERATE_REPAIR"
+    assert engine.state.escape_valve_cooldown == 3
+
+
+def test_gameengine_hard_ration_valve(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    alive = engine.state.party.alive_count
+    engine.state.supplies.food = alive * 2
+    old_morale = engine.state.party.morale
+    engine._do_hard_ration()
+    assert engine.state.rationing_steps == 2
+    assert engine.state.party.morale < old_morale
+    assert engine.state.last_action == "HARD_RATION"
+
+
+def test_gameengine_camp_menu_classic_when_valves_closed(monkeypatch):
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_action_menu", lambda: "5")
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 80
+    engine.state.supplies.food = 100
+    assert engine._prompt_camp_action() == "5"
+
+
+def test_gameengine_camp_menu_offers_valves_when_can(monkeypatch):
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    prints: list[str] = []
+    monkeypatch.setattr(
+        engine_mod.console, "print",
+        lambda *a, **k: prints.append(" ".join(str(x) for x in a)),
+    )
+    monkeypatch.setattr(engine_mod.console, "input", lambda *a, **k: "Q")
+
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 20
+    engine.state.supplies.parts = 0
+    engine.state.supplies.food = 2
+    engine.state.escape_valve_cooldown = 0
+    engine.state.rationing_steps = 0
+
+    assert engine._prompt_camp_action() == "Q"
+    blob = " ".join(prints)
+    assert "Abandon cargo" in blob
+    assert "Desperate repair" in blob
+    assert "Hard ration" in blob
+
+
+def test_gameengine_run_dispatches_abandon_cargo(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.wagon.condition = 20
+    engine.state.supplies.set("salt", 10)
+    actions = iter(["8", "Q"])
+    monkeypatch.setattr(engine, "_prompt_camp_action", lambda: next(actions))
+    wagon_before = engine.state.wagon.condition
+    engine.run()
+    assert engine.state.last_action == "ABANDON_CARGO"
+    assert engine.state.wagon.condition > wagon_before
+
+
+def test_gameengine_victory_computes_ending(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    engine.state.location_id = engine.state.map_nodes[-1].node_id
+    engine.state.distance_remaining = 0
+    engine.state.day = 5
+    engine._check_game_over()
+    assert engine.state.game_over is True
+    assert engine.state.victory is True
+    assert engine.state.ending is not None
+    assert engine.state.ending.tier in {
+        "triumphant", "weathered", "pyrrhic",
+    }
+    assert engine.state.ending.headline
+
+
+def test_gameengine_death_computes_lost_ending(monkeypatch):
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    for member in engine.state.party.members:
+        member.health = 0
+        member.death_cause = "Starvation"
+    engine._check_game_over()
+    assert engine.state.game_over is True
+    assert engine.state.victory is False
+    assert engine.state.ending is not None
+    assert engine.state.ending.tier == "lost"
+
+
+def test_gameengine_town_settles_when_backpack_enabled(monkeypatch):
+    import escape_the_valley.backpack as backpack_mod
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = GameEngine(_dest_town_state(morale=50), GMConfig(enabled=False))
+    engine.state.backpack.enabled = True
+    engine._arrive_at_next_node()
+
+    assert len(calls) == 2  # settle + parcels
+    assert all(callable(hook) for hook in calls)
+
+
+def test_gameengine_town_skips_settle_when_backpack_off(monkeypatch):
+    import escape_the_valley.backpack as backpack_mod
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = GameEngine(_dest_town_state(morale=50), GMConfig(enabled=False))
+    engine.state.backpack.enabled = False
+    engine._arrive_at_next_node()
+    assert calls == []
+
+
+def test_gameengine_spoilage_seed_reproduces(monkeypatch):
+    """Same seed on the fixed CLI must still reproduce after spoilage draws."""
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import TimeOfDay
+
+    _stub_gameengine_ui(monkeypatch)
+
+    def _snap(engine: GameEngine):
+        return (
+            engine.state.supplies.food,
+            engine.state.last_spoilage_day,
+            engine.state.wagon.condition,
+            engine.rng.counter,
+        )
+
+    snaps = []
+    for _ in range(2):
+        engine = GameEngine(create_new_run(seed=4242), GMConfig(enabled=False))
+        engine.state.supplies.set("salt", 0)
+        engine.state.supplies.food = 500
+        engine.state.day = 3
+        engine.state.time_of_day = TimeOfDay.MORNING
+        engine.state.distance_remaining = 80
+        engine._do_travel()
+        snaps.append(_snap(engine))
+
+    assert snaps[0] == snaps[1]
