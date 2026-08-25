@@ -1754,6 +1754,165 @@ class TestLastSettleFailedSignal:
         assert state.backpack.last_settle_failed is True
 
 
+class TestSettleSetupDegrades:
+    """F-86a4c19c: from_seed / _get_client / memo build must degrade to
+    SettlementResult(success=False), never raise out of settle()/_retry_pending.
+    """
+
+    @requires_xrpl
+    def test_settle_empty_secret_degrades_not_crash(self, monkeypatch):
+        """Live Wallet.from_seed on a missing sidecar seed is ValueError, not
+        an uncaught crash — queue remaining as pending, set last_settle_failed.
+        """
+        state = _enabled_state()
+        state.backpack.wallet_secret = ""
+        state.supplies.set("food", 40)  # -10, would have submitted FOD
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        # Intentionally do NOT mock from_seed: the real xrpl Wallet.from_seed
+        # raises ValueError('Invalid checksum') on an empty seed.
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        pending = state.backpack.pending_settlements[0]
+        assert pending.status == "pending"
+        assert pending.deltas == {"food": -10}
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+        assert res.record is pending
+
+    @requires_xrpl
+    def test_settle_from_seed_boom_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+
+    @requires_xrpl
+    def test_retry_from_seed_boom_does_not_raise(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"food": -5},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        mgr._retry_pending(state)
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.pending_settlements[0].deltas == {"food": -5}
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.settlements == []
+
+    @requires_xrpl
+    def test_settle_get_client_error_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+
+    @requires_xrpl
+    def test_settle_memo_build_error_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch)
+
+        def boom_memo(*a, **k):
+            raise KeyError("gold")
+
+        monkeypatch.setattr(backpack_mod, "_build_memo", boom_memo)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+
+    @requires_xrpl
+    def test_retry_unknown_pending_key_skipped_not_crash(self, monkeypatch):
+        """A stale pending record with deltas={'gold': -10} used to KeyError
+        in _settlement_memo_text; settle() always retries first, so even a
+        no-delta checkpoint crashed. Unknown keys are skipped like
+        accept_parcel, and the junk record is dropped.
+        """
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"gold": -10},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is True
+        assert res.message == "No changes to settle."
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.last_settle_failed is False
+        assert "gold" not in state.backpack.last_settled_supplies
+
+    @requires_xrpl
+    def test_retry_mixed_unknown_key_retries_known_only(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"gold": -10, "food": -5},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        calls = _patch_signing(monkeypatch, submit_hashes=["RETRY-FOD"])
+
+        mgr._retry_pending(state)
+        assert state.backpack.pending_settlements == []
+        assert len(state.backpack.settlements) == 1
+        settled = state.backpack.settlements[0]
+        assert settled.deltas == {"food": -5}
+        assert "gold" not in settled.deltas
+        assert calls["submit"] == [("FOD", "RETRY-FOD")]
+        assert state.backpack.last_settled_supplies["food"] == 45
+        assert state.backpack.last_settle_failed is False
+
+
 class TestStatusLineDegraded:
     """ledger-B04: status_line renders a distinct offline state."""
 
