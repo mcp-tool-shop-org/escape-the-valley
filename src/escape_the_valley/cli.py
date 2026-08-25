@@ -189,6 +189,8 @@ def new(
     console.print(f"  Profile: [bold]{gm_profile.value}[/bold]")
     console.print(f"  Weirdness: [bold]{weirdness}[/bold]")
     console.print(f"  Twists: [bold]{', '.join(t.value for t in state.twists)}[/bold]")
+    console.print(f"  Doctrine: [bold]{state.doctrine}[/bold]")
+    console.print(f"  Taboo: [bold]{state.taboo}[/bold]")
     console.print(f"  Party: [bold]{', '.join(m.name for m in state.party.members)}[/bold]")
     console.print()
 

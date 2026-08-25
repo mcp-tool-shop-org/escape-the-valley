@@ -63,6 +63,15 @@ def _wagon_cue(condition: int) -> str:
     return ""
 
 
+def _morale_cue(morale: int) -> str:
+    """Plain morale tag, same 20/40 bands as show_status (F-9f5f308e)."""
+    if morale <= 20:
+        return " (CRITICAL)"
+    if morale <= 40:
+        return " (LOW)"
+    return ""
+
+
 def show_title_screen() -> None:
     """Display the game title."""
     title = Text()
@@ -134,11 +143,7 @@ def show_status(state: RunState) -> None:
     # cli-tui-B-06: a plain morale tag so low/critical morale reads without
     # relying on the panel border color alone.
     morale = state.party.morale
-    morale_cue = (
-        " (CRITICAL)" if morale <= 20
-        else " (LOW)" if morale <= 40
-        else ""
-    )
+    morale_cue = _morale_cue(morale)
     console.print(Panel(
         party_table,
         title=f"[bold]Party[/bold]  Morale: {morale}/100{morale_cue}",

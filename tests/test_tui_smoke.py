@@ -120,6 +120,7 @@ def test_help_text_matches_live_bindings():
     assert "Shift+J" in HELP_TEXT
     assert "\u2022 J Toggle journal" not in HELP_TEXT
     assert "e/f/g" in HELP_TEXT
+    assert "c Cycle pace" in HELP_TEXT
 
 
 def test_help_overlay_copy_matches_bindings():
@@ -135,6 +136,7 @@ def test_help_overlay_copy_matches_bindings():
             assert "Shift+J" in text
             assert "letters a" not in text.lower()
             assert "1" in text and "7" in text
+            assert "Cycle pace" in text
 
     asyncio.run(scenario())
 
@@ -1336,6 +1338,10 @@ class TestMarkupSafety:
             biome=self.STRAY,
             pace=self.STRAY,
             party_summary=self.STRAY,
+            doctrine=self.STRAY,
+            taboo=self.STRAY,
+            twists=[self.STRAY],
+            morale_cue=self.STRAY,
             wagon=self.STRAY,
             backpack_status=self.STRAY,
             route_ascii=self.STRAY,
@@ -2038,3 +2044,84 @@ class TestTuiUrgencyCues:
                 assert "(CRITICAL)" in status_text
 
         asyncio.run(scenario())
+
+
+class TestWave34HudIdentityMoralePace:
+    """F-42243a2c / F-9f5f308e / F-f50297bc: recommended TUI start screen."""
+
+    def test_new_game_toasts_seed_doctrine_twists(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+            blob = " ".join(seen)
+            assert "seed 7" in blob
+            assert "travel_light" in blob
+            assert "leave_nothing" in blob
+            assert "sick_season" in blob
+            assert "flood_year" in blob
+            assert "fireside" in blob
+
+        asyncio.run(scenario())
+
+    def test_status_and_party_paint_rules_and_morale(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                status = app.query_one("#status", StatusPanel).visual.plain
+                party = app.query_one("#party", PartyPanel).visual.plain
+                assert "seed 7" in status
+                assert "travel_light" in status
+                assert "leave_nothing" in status
+                assert "sick_season" in status
+                assert "flood_year" in status
+                assert "Pace:" in status
+                assert "c cycles" in status
+                assert "Morale: 70/100" in party
+                assert "Morale: 70/100" in status
+
+        asyncio.run(scenario())
+
+    def test_party_panel_paints_morale_bands(self):
+        crit = PartyPanel()
+        crit.update_from(FrameState(morale=12, morale_cue=" (CRITICAL)"))
+        assert "Morale: 12/100 (CRITICAL)" in crit.visual.plain
+        low = PartyPanel()
+        low.update_from(FrameState(morale=35, morale_cue=" (LOW)"))
+        assert "Morale: 35/100 (LOW)" in low.visual.plain
+
+    def test_c_cycles_pace_through_change_pace(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "steady"
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "hard"
+                status = app.query_one("#status", StatusPanel).visual.plain
+                assert "Hard" in status
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "slow"
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "steady"
+
+        asyncio.run(scenario())
+
+    def test_change_pace_is_a_binding(self):
+        keys = {b.key for b in LedgerTrailApp.BINDINGS if getattr(b, "key", None)}
+        assert "c" in keys
+        actions = {
+            getattr(b, "action", "") for b in LedgerTrailApp.BINDINGS
+        }
+        assert "change_pace" in actions

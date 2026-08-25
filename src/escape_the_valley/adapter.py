@@ -12,7 +12,7 @@ from .physics import can_abandon_cargo, can_desperate_repair, can_hard_ration
 from .resources import RESOURCE_CATALOG, ResourceCategory
 from .step_engine import StepEngine, compute_ending
 from .tui_app import Choice, FrameState
-from .ui import _health_cue, _wagon_cue
+from .ui import _health_cue, _morale_cue, _wagon_cue
 
 
 def camp_choices(state):
@@ -97,8 +97,11 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         1 for m in s.party.members
         if m.is_alive() and m.condition.value == "injured"
     )
+    morale = s.party.morale
+    morale_cue = _morale_cue(morale)
     party_summary = (
         f"Party: {alive} \u2022 Sick: {sick} \u2022 Injured: {injured}"
+        f" \u2022 Morale: {morale}/100{morale_cue}"
     )
 
     # Supplies — grouped by category from catalog
@@ -161,6 +164,9 @@ def state_to_frame(engine: StepEngine) -> FrameState:
     if not s.backpack.enabled and backpack_status.strip() == "Ledger: OFF":
         backpack_status = "Ledger: OFF (press L)"
 
+    def _enum_val(v) -> str:
+        return v.value if hasattr(v, "value") else str(v)
+
     frame = FrameState(
         day=s.day,
         location=location,
@@ -170,6 +176,14 @@ def state_to_frame(engine: StepEngine) -> FrameState:
         pace=s.wagon.pace.value.title(),
         wagon=wagon,
         party_summary=party_summary,
+        run_id=s.run_id or "",
+        seed=int(s.seed),
+        gm_profile=_enum_val(s.gm_profile),
+        doctrine=s.doctrine or "",
+        taboo=s.taboo or "",
+        twists=[_enum_val(t) for t in s.twists],
+        morale=morale,
+        morale_cue=morale_cue,
         supplies=supplies,
         route_ascii=route_ascii,
         narration=narration,
