@@ -5,6 +5,8 @@ import logging
 from escape_the_valley.event_loader import load_json_events
 from escape_the_valley.events import (
     EventCategory,
+    advertised_inventory_cost,
+    apply_outcome,
     build_event_library,
     can_spend_uncanny_token,
     resolve_event,
@@ -518,3 +520,243 @@ class TestAnimalsHealthOutcome:
         rng = SeededRNG(42)
         outcome = resolve_event(state, event, "A", rng)
         assert outcome.animals_health_delta == -12
+
+
+def _hand_event(event_id: str):
+    lib = build_event_library()
+    return next(e for e in lib if e.event_id == event_id)
+
+
+class TestAdvertisedInventoryCosts:
+    """F-54ac123d: hand-authored choices that advertise rope/parts/food/tools
+    must gate or debit. An empty pack must not receive the 'used the item'
+    success; a stocked pack must actually spend the consumable.
+    """
+
+    def test_quicksand_rope_debits_when_present(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("rope", 2)
+        morale_before = state.party.morale
+        event = _hand_event("quicksand")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert outcome.supplies_delta.get("rope") == -1
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert state.supplies.get("rope") == 1
+        assert state.party.morale == morale_before + 2
+
+    def test_quicksand_rope_zero_is_not_the_safe_outcome(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("rope", 0)
+        morale_before = state.party.morale
+        health_before = [m.health for m in state.party.members]
+        event = _hand_event("quicksand")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert state.supplies.get("rope") == 0
+        assert "insufficient_supplies" in outcome.special_flags
+        assert outcome.morale_delta <= -2
+        assert state.party.morale == morale_before + outcome.morale_delta
+        # Advertised-safe rescue without rope is not safe.
+        assert outcome.health_delta < 0
+        assert [m.health for m in state.party.members] != health_before
+
+    def test_flash_flood_rope_debits_when_present(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("rope", 2)
+        event = _hand_event("flash_flood")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert outcome.supplies_delta.get("rope") == -1
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert state.supplies.get("rope") == 1
+        assert outcome.time_cost == 1
+
+    def test_flash_flood_rope_zero_is_not_safe(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("rope", 0)
+        event = _hand_event("flash_flood")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert state.supplies.get("rope") == 0
+        assert "insufficient_supplies" in outcome.special_flags
+        assert outcome.health_delta < 0 or outcome.wagon_delta < 0
+
+    def test_broken_axle_parts_zero_does_not_repair(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("parts", 0)
+        state.wagon.condition = 50
+        event = _hand_event("broken_axle")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert state.supplies.get("parts") == 0
+        assert state.wagon.condition == 50  # no free +10
+        assert "insufficient_supplies" in outcome.special_flags
+        assert outcome.wagon_delta <= 0
+
+    def test_broken_axle_parts_present_repairs_and_debits(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("parts", 3)
+        state.wagon.condition = 50
+        event = _hand_event("broken_axle")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert outcome.supplies_delta.get("parts") == -1
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert state.supplies.get("parts") == 2
+        assert state.wagon.condition == 60
+
+    def test_toll_bridge_food_zero_is_not_free_passage(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("food", 0)
+        remaining_before = state.distance_remaining
+        event = _hand_event("toll_bridge")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert state.supplies.get("food") == 0
+        assert "insufficient_supplies" in outcome.special_flags
+        assert outcome.time_cost >= 1
+        assert outcome.distance_delta >= 5
+        assert state.distance_remaining == remaining_before + outcome.distance_delta
+
+    def test_toll_bridge_food_pays(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("food", 10)
+        remaining_before = state.distance_remaining
+        event = _hand_event("toll_bridge")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert outcome.supplies_delta.get("food") == -5
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert state.supplies.get("food") == 5
+        assert state.distance_remaining == remaining_before  # paid passage, no detour
+
+    def test_broken_wheel_tools_zero_is_not_partial_fix(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("tools", 0)
+        state.wagon.condition = 50
+        event = _hand_event("broken_wheel")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "B", rng)
+        apply_outcome(state, outcome)
+
+        assert state.supplies.get("tools") == 0
+        assert "insufficient_supplies" in outcome.special_flags
+        # With tools the partial fix is wagon-5; without tools it is worse.
+        assert outcome.wagon_delta < -5
+        assert state.wagon.condition < 45
+
+    def test_broken_wheel_tools_present_partial_fix_does_not_consume_tools(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("tools", 1)
+        state.wagon.condition = 50
+        event = _hand_event("broken_wheel")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "B", rng)
+        apply_outcome(state, outcome)
+
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert outcome.wagon_delta == -5
+        assert state.wagon.condition == 45
+        assert state.supplies.get("tools") == 1  # durable: gate, don't debit
+
+    def test_unaffordable_path_does_not_draw_rng(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("rope", 0)
+        event = _hand_event("quicksand")
+        rng = SeededRNG(42)
+
+        before = rng.counter
+        resolve_event(state, event, "A", rng)
+        assert rng.counter == before
+
+    def test_consequence_food_loss_is_not_gated(self):
+        """Storm wait still resolves when food is 0 — that delta is a
+        consequence, not an advertised payment. F-54ac123d must not start
+        treating every negative supplies_delta as a gate."""
+        state = create_new_run(seed=42)
+        state.supplies.set("food", 0)
+        state.supplies.set("water", 0)
+        event = _hand_event("storm_sudden")
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert outcome.time_cost == 1
+        assert outcome.morale_delta == -3
+
+    def test_empty_hints_do_not_invent_a_json_style_gate(self):
+        """Wave 34: do not invent preconditions for JSON skeletons (empty
+        cost_hint/risk_hint). A synthetic choice with a food debit but no
+        advertised copy still applies its other deltas when food is 0."""
+        from escape_the_valley.events import ChoiceTemplate, EventOutcome, EventSkeleton
+
+        state = create_new_run(seed=42)
+        state.supplies.set("food", 0)
+        state.wagon.condition = 50
+        event = EventSkeleton(
+            event_id="json_shaped",
+            title="Test",
+            category=EventCategory.SURVIVAL,
+            fallback_choices=[
+                ChoiceTemplate("A", "Push on.", "TRAVEL", "BOLD", "", ""),
+            ],
+            outcome_templates={
+                "A": EventOutcome(supplies_delta={"food": -5}, wagon_delta=-4),
+            },
+        )
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "A", rng)
+        apply_outcome(state, outcome)
+
+        assert "insufficient_supplies" not in outcome.special_flags
+        assert state.wagon.condition == 46
+        assert state.supplies.get("food") == 0
+
+    def test_library_quicksand_and_flood_templates_debit_rope(self):
+        qs = _hand_event("quicksand")
+        ff = _hand_event("flash_flood")
+        assert qs.outcome_templates["A"].supplies_delta.get("rope") == -1
+        assert ff.outcome_templates["A"].supplies_delta.get("rope") == -1
+
+    def test_advertised_cost_parser_reads_cost_and_risk_hints(self):
+        qs = _hand_event("quicksand")
+        choice_a = next(c for c in qs.fallback_choices if c.choice_id == "A")
+        costs = advertised_inventory_cost(choice_a, qs.outcome_templates["A"])
+        assert costs.get("rope") == 1
+
+        wheel = _hand_event("broken_wheel")
+        choice_b = next(c for c in wheel.fallback_choices if c.choice_id == "B")
+        costs_b = advertised_inventory_cost(choice_b, wheel.outcome_templates["B"])
+        assert costs_b.get("tools") == 1
+        assert "parts" not in costs_b
+
