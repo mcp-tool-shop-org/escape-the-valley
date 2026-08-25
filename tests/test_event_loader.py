@@ -94,6 +94,20 @@ class TestResourceCatalogComplete:
 class TestRobustEventLoading:
     """ENG-B-03: one bad entry (or a corrupt file) must never crash the load."""
 
+    def test_missing_file_returns_empty_and_logs(self, tmp_path, monkeypatch, caplog):
+        """F-2a9f896a: absent event_skeletons.json still returns [] but must log."""
+        empty = tmp_path / "data"
+        empty.mkdir()
+        monkeypatch.setattr(event_loader, "_DATA_DIR", empty)
+        expected = str(empty / "event_skeletons.json")
+        with caplog.at_level(logging.ERROR):
+            events = load_json_events()
+        assert events == []
+        assert any(
+            "could not be loaded" in r.message and expected in r.message
+            for r in caplog.records
+        )
+
     def test_corrupt_file_returns_empty(self, tmp_path, monkeypatch, caplog):
         bad = tmp_path / "data"
         bad.mkdir()
