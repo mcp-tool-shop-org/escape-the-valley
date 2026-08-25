@@ -548,6 +548,30 @@ class TestDegradedGmSignal:
         assert "thinking" in bar.content.lower()
         assert "Travel" not in bar.content
 
+    def test_eventbar_hint_matches_live_keys(self):
+        """F-a1a77615: EventBar must not claim a-g or unshifted J.
+
+        Live choose keys are 1-7; journal is Shift+J. Choice ids (A-G) are
+        the engine labels, shown in parentheses next to the digit keys.
+        """
+        from escape_the_valley.tui_app import Choice, EventBar, FrameState
+
+        bar = EventBar()
+        bar.update_from(FrameState(choices=[
+            Choice("A", "Travel"),
+            Choice("B", "Rest"),
+            Choice("C", "Hunt"),
+        ]))
+        text = bar.content
+        lower = text.lower()
+        assert "letters a" not in lower
+        assert "a–g" not in lower
+        assert "a-g" not in lower
+        assert "Choose 1, 2, 3 (A, B, C)" in text
+        assert "Shift+J journal" in text
+        assert " J journal" not in text
+        assert "number keys also work" not in lower
+
 
 # ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─
 
