@@ -48,11 +48,10 @@ trail tui --seed 42
 # Resume a saved game
 trail tui --continue
 
-# With AI narration (requires Ollama running locally)
+# Spoken voice (opt-in; needs pip install "escape-the-valley[voice]").
+# AI narration is already on by default when Ollama is running;
+# pass --gm-off to disable the GM. --voice does not turn the GM on.
 trail tui --seed 42 --voice
-
-# Spoken voice narration needs the voice extra:
-#   pip install "escape-the-valley[voice]"
 
 # With voice pacing control
 trail tui --seed 42 --voice --voice-pace slow
