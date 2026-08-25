@@ -6,6 +6,8 @@ GM cards are validated and salience-capped.
 
 from __future__ import annotations
 
+import hashlib
+
 from .events import EventSkeleton
 from .memory import add_card
 from .models import MemoryCard, RunState
@@ -260,6 +262,9 @@ def validate_gm_cards(
       and ``add_card`` dedupes purely by id equality; honoring a model id
       would let untrusted output silently suppress a legitimate
       engine-authored card that happens to collide with it later.
+    - The id is a content digest, unique per CARD rather than per CALL
+      (F-6f03c718) — see the inline comment above the digest computation
+      below for why a shared counter or a new RunState field would not do.
 
     Defense in depth (F-9b0797f9): ``gm.py``'s ``SceneResponse.from_dict`` /
     ``OutcomeResponse.from_dict`` already normalize a top-level JSON `null`
@@ -293,7 +298,38 @@ def validate_gm_cards(
             continue
 
         # Never honor a model-supplied "id" — see docstring (F-778637b3).
-        card_id = f"gm_{kind}_{state.day}_{len(accepted)}"
+        #
+        # F-6f03c718 — the prior fix (f"gm_{kind}_{state.day}_{len(accepted)}")
+        # was only unique WITHIN one validate_gm_cards() call: `accepted` is a
+        # fresh local list every call, so `len(accepted)` restarts at 0 on the
+        # next one. step_engine.py calls this function at least twice per turn
+        # (scene, then outcome), and a calendar day can span multiple turns,
+        # so two ordinary — not adversarial — calls proposing the same `kind`
+        # on the same day minted identical ids, and add_card's id-equality
+        # dedup silently discarded the second, entirely legitimate card.
+        #
+        # The id must be unique per CARD, not per CALL, and it has to get
+        # there without a shared counter: a monotonic counter would need a
+        # new field on RunState, which lives in models.py — out of this
+        # domain's ownership — and without relying on call order/timing in
+        # step_engine.py, which is also out of this domain's ownership and
+        # under concurrent revision this same wave. A stable digest of the
+        # card's own content (kind, day, title, text) needs neither: it is
+        # unique per card because it is *computed from* the card, stays
+        # engine-computed and deterministic (no randomness, no wall-clock,
+        # so seeded/--gm off runs stay reproducible), and two proposals can
+        # only collide here if they share kind, day, title, AND text
+        # byte-for-byte — i.e. they are the same card. This does not reopen
+        # F-778637b3: the model still never supplies (or picks) the id
+        # itself, and it has no practical way to aim for a specific target
+        # id — that would mean inverting SHA-256, and even then a "gm_"
+        # prefix can never enter the disjoint "eng_" namespace regardless of
+        # the digest. add_card (memory.py) now logs a warning on any
+        # same-id drop, so even a byte-identical duplicate stays visible
+        # instead of silently vanishing.
+        digest_src = "\x1f".join((kind, str(state.day), title, text))
+        digest = hashlib.sha256(digest_src.encode("utf-8")).hexdigest()[:12]
+        card_id = f"gm_{kind}_{state.day}_{digest}"
 
         tags = proposal.get("tags") or []
         entities = proposal.get("entities") or []

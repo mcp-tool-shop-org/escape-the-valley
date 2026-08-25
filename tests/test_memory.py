@@ -63,6 +63,24 @@ class TestAddCard:
         add_card(state, card2)
         assert len(state.memory_cards) == 1
 
+    def test_duplicate_id_drop_logs_a_warning(self, caplog):
+        # F-6f03c718 (defense in depth) — the drop is still correct
+        # (id-equality dedup), but it must no longer be silent: a warning
+        # makes the loss visible instead of invisible.
+        import logging
+
+        state = create_new_run(seed=1)
+        card1 = _make_card(id="dup", kind="npc")
+        card2 = _make_card(id="dup", kind="omen")
+        add_card(state, card1)
+        with caplog.at_level(logging.WARNING, logger="escape_the_valley.memory"):
+            add_card(state, card2)
+        assert len(state.memory_cards) == 1
+        assert any(
+            "dup" in record.getMessage() and record.levelno == logging.WARNING
+            for record in caplog.records
+        )
+
     def test_evicts_when_over_budget(self):
         state = create_new_run(seed=1)
         # Fill to budget
