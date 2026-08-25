@@ -25,21 +25,21 @@ Escape the Valley is an Oregon Trail-style survival game that runs in your termi
 
 An optional AI Game Master (powered by Ollama) narrates your journey with three distinct storytelling voices. An optional XRPL Testnet ledger backpack tracks your supply changes as on-chain receipts — proof that you survived, or proof that you tried.
 
-## What's New in 1.1.0
+## What's New
 
-- **Streaming narration** — the GM writes token-by-token, composing each beat live instead of dropping a finished block after a pause.
-- **Graded endings** — runs end with a graded epilogue (triumphant, weathered, pyrrhic, or lost) read from who survived, how long it took, and what the trail cost you — not a one-line cause of death.
-- **Real stakes** — events can now wound or kill the party. A bad choice can cost a life, and the death is attributed to its real cause.
-- **On-ledger reconciliation proof** — an audit mode that replays a run's settlement receipts and verifies them against the XRPL Testnet, so the supply history can be independently checked.
-- **Run artifacts** — every finished run leaves a keepsake: an XRPL postcard, your stats, and an export/share path.
+**1.1.1** — `pip install "escape-the-valley[voice]"` actually installs (the extra had pinned an unpublished package). The PyInstaller binary no longer pulls in the voice extra.
+
+**1.1.0** — streaming narration, graded endings, events that can wound, on-ledger reconciliation proof, run artifacts.
+
+Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a relative import in the frozen entrypoint). `pip install escape-the-valley` is the working install until the next release, which bundles the event library and stylesheet and smokes both `--help` and a loaded event count.
 
 ## Quick Start
 
 ```bash
 pip install escape-the-valley
 
-# Or, zero-prerequisite (no Python setup) via the npm launcher — downloads a
-# verified binary and runs it:
+# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
+# v1.1.1 GitHub binaries do not start — use pip until then):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)

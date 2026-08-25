@@ -2,7 +2,20 @@
 
 from __future__ import annotations
 
+import re
+
+from textual.markup import escape
 from textual.widgets import Static
+
+
+def _escape_dynamic(text: str) -> str:
+    """Escape a fragment spliced into a markup template.
+
+    ``textual.markup.escape`` only wraps complete tag-shaped runs. A leftover
+    ``[`` (e.g. truncating ``rSender[/pwn]`` to ``rSender[...``) still opens a
+    tag into the chrome and raises MarkupError. Neutralize those after escape.
+    """
+    return re.sub(r"(?<!\\)\[", r"\\[", escape(text))
 
 # ── Ledger Menu Overlay ──────────────────────────────────────────
 
@@ -101,10 +114,16 @@ class EnableFlowOverlay(Static):
 
     def show_success(self, address: str) -> None:
         short = f"{address[:4]}...{address[-4:]}" if len(address) > 10 else address
-        self.update(ENABLE_SUCCESS_TEXT.format(address=short))
+        self.update(ENABLE_SUCCESS_TEXT.format(address=_escape_dynamic(short)))
 
     def show_failure(self, message: str) -> None:
-        self.update(ENABLE_FAILURE_TEXT.format(message=message))
+        # message may carry caller-supplied text (e.g. an exception string
+        # surfaced from a failed enable attempt). Static.update() parses
+        # markup eagerly (unlike notify()/Toast, which defer to paint time),
+        # so leftover '[' or an orphan "[/tag]" would raise MarkupError and
+        # crash the whole app. Escape only the dynamic fragment so the
+        # literal [b]/[/b] chrome in ENABLE_FAILURE_TEXT still renders bold.
+        self.update(ENABLE_FAILURE_TEXT.format(message=_escape_dynamic(message)))
 
 
 # ── Parcel Notification ──────────────────────────────────────────
@@ -125,7 +144,10 @@ class ParcelNotification(Static):
 
     def show_parcel(self, sender: str, contents: str) -> None:
         short_sender = f"{sender[:8]}..." if len(sender) > 12 else sender
-        self.update(PARCEL_TEXT.format(sender=short_sender, contents=contents))
+        self.update(PARCEL_TEXT.format(
+            sender=_escape_dynamic(short_sender),
+            contents=_escape_dynamic(contents),
+        ))
 
 
 # ── Wallet Info Overlay ──────────────────────────────────────────
@@ -163,12 +185,12 @@ class WalletInfoOverlay(Static):
             balances_text = "Balances: unavailable"
 
         self.update(WALLET_TEXT.format(
-            address=info.get("address_short", "?"),
-            issuer=info.get("issuer", "?"),
+            address=_escape_dynamic(info.get("address_short", "?")),
+            issuer=_escape_dynamic(info.get("issuer", "?")),
             trust_lines="Yes" if info.get("trust_lines") else "No",
-            settlements=info.get("settlements", 0),
-            pending=info.get("pending", 0),
-            balances_text=balances_text,
+            settlements=_escape_dynamic(str(info.get("settlements", 0))),
+            pending=_escape_dynamic(str(info.get("pending", 0))),
+            balances_text=_escape_dynamic(balances_text),
         ))
 
 
@@ -246,10 +268,24 @@ class SendParcelOverlay(Static):
     """Parcel send flow display."""
 
     def show_form(self, supplies_text: str) -> None:
-        self.update(SEND_PARCEL_TEXT.format(supplies_text=supplies_text))
+        self.update(SEND_PARCEL_TEXT.format(
+            supplies_text=_escape_dynamic(supplies_text),
+        ))
 
     def show_success(self, message: str) -> None:
-        self.update(SEND_PARCEL_SUCCESS_TEXT.format(message=message))
+        self.update(SEND_PARCEL_SUCCESS_TEXT.format(
+            message=_escape_dynamic(message),
+        ))
 
     def show_failure(self, message: str) -> None:
-        self.update(SEND_PARCEL_FAILURE_TEXT.format(message=message))
+        # message routinely carries raw XRPL/HTTP error text, or an invalid
+        # address/amount echoed back from the caller's parser (see
+        # tui_app.py on_input_submitted) -- untrusted, unlike the [b]/[/b]
+        # chrome in SEND_PARCEL_FAILURE_TEXT. Static.update() parses markup
+        # eagerly and synchronously (unlike notify()/Toast, which defer to
+        # paint time), so leftover '[' or an orphan "[/tag]" here would
+        # raise MarkupError and crash the whole app. Escape only the
+        # dynamic fragment so the literal chrome still renders bold.
+        self.update(SEND_PARCEL_FAILURE_TEXT.format(
+            message=_escape_dynamic(message),
+        ))

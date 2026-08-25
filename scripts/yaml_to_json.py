@@ -1,4 +1,17 @@
-"""One-time conversion: parse the simple YAML event files to JSON."""
+"""One-time conversion: parse the simple YAML event files to JSON.
+
+F-c79caa11: none of the five source `event skeletons*.txt` files this script
+reads are tracked in this repository (confirmed via `git ls-files`) -- they
+were the one-time inputs for the original conversion and were never
+committed. `src/escape_the_valley/data/event_skeletons.json` (the script's
+output) is now the canonical, curated source of truth and is edited
+directly. Running this script today would find all five sources missing and
+(without the guard below) would have silently overwritten that file with an
+empty list. The guard + backup below make an accidental run safe; a future
+cleanup pass may want to delete this script outright now that its inputs are
+gone, but that is a separate, larger decision than closing the immediate
+data-loss hole.
+"""
 import json
 from pathlib import Path
 
@@ -165,6 +178,26 @@ def main():
         print(f"  {prefix}: {len(events)} events from {path.name}")
 
     out = ROOT / "src" / "escape_the_valley" / "data" / "event_skeletons.json"
+
+    # F-c79caa11: refuse to replace a populated, curated data file with a
+    # near-empty result. This is a *conversion* script, not a truncation
+    # tool -- a count this low almost always means the source .txt files are
+    # missing (see the SKIP lines above), not that the game legitimately
+    # shrank to a handful of events. Threshold is well below the real event
+    # count but well above zero.
+    min_expected_events = 100
+    if len(all_events) < min_expected_events:
+        raise SystemExit(
+            f"refusing to write {len(all_events)} events over the existing "
+            f"{out} -- source files missing? (need >= {min_expected_events} "
+            "parsed events; see the SKIP lines above)"
+        )
+
+    if out.exists():
+        backup = out.with_suffix(".json.bak")
+        out.rename(backup)
+        print(f"  backed up existing {out.name} -> {backup.name}")
+
     out.write_text(json.dumps(all_events, indent=2), encoding="utf-8")
     print(f"\nWrote {len(all_events)} events to {out}")
 

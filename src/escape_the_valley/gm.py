@@ -133,17 +133,38 @@ class SceneResponse:
 
     @classmethod
     def from_dict(cls, data: dict) -> SceneResponse:
+        # F-9b0797f9 / F-7cd35cbf — a small local model may emit an explicit
+        # JSON `null` for ANY optional field to mean "nothing to add" or
+        # "no value". The key IS present in that case, so the two-arg
+        # `dict.get(key, default)` form never fires its default — None
+        # propagates straight into the dataclass instead. F-9b0797f9 fixed
+        # only `memory_proposals` this way; F-7cd35cbf found every sibling
+        # field still using the unguarded form (`tags` in particular: no
+        # validator inspects it, so a schema-legal response with
+        # `"tags": null` sails through and `scene.tags` is `None` — the very
+        # next `",".join(scene.tags)` raises TypeError). `or <default>` is
+        # applied to every field below, not just the one that was reported,
+        # so this class of gap cannot reopen field-by-field again.
+        #
+        # This is safe as a blanket rule here specifically because every
+        # default below already IS that field's natural "nothing here"
+        # value (empty string, empty list, or the "none" enum member) — so
+        # there is no field on this dataclass where an explicit falsy value
+        # ("" or []) would have meant something different from "not
+        # provided". Where that would NOT hold (a falsy-but-meaningful
+        # value), an explicit `is None` check would be required instead;
+        # no field here needs that.
         return cls(
-            scene_id=data.get("scene_id", ""),
-            title=data.get("title", ""),
-            narration=data.get("narration", ""),
-            profile=data.get("profile", ""),
-            uncanny_intensity=data.get("uncanny_intensity", "none"),
-            choices=data.get("choices", []),
-            tags=data.get("tags", []),
-            gm_aside=data.get("gm_aside", ""),
+            scene_id=data.get("scene_id") or "",
+            title=data.get("title") or "",
+            narration=data.get("narration") or "",
+            profile=data.get("profile") or "",
+            uncanny_intensity=data.get("uncanny_intensity") or "none",
+            choices=data.get("choices") or [],
+            tags=data.get("tags") or [],
+            gm_aside=data.get("gm_aside") or "",
             raw_json=data,
-            memory_proposals=data.get("memory_proposals", []),
+            memory_proposals=data.get("memory_proposals") or [],
         )
 
 
@@ -158,13 +179,19 @@ class OutcomeResponse:
 
     @classmethod
     def from_dict(cls, data: dict) -> OutcomeResponse:
+        # F-9b0797f9 / F-7cd35cbf — see SceneResponse.from_dict: an explicit
+        # JSON `null` on ANY optional field must degrade to that field's
+        # empty value, not propagate as None — applied to every field here,
+        # not just `memory_proposals`. Every default below is already this
+        # field's natural empty value, so blanket `or` never masks a
+        # falsy-but-meaningful value.
         return cls(
-            scene_id=data.get("scene_id", ""),
-            outcome_title=data.get("outcome_title", ""),
-            outcome_narration=data.get("outcome_narration", ""),
-            callout=data.get("callout", ""),
-            oregon_nod=data.get("oregon_nod", ""),
-            memory_proposals=data.get("memory_proposals", []),
+            scene_id=data.get("scene_id") or "",
+            outcome_title=data.get("outcome_title") or "",
+            outcome_narration=data.get("outcome_narration") or "",
+            callout=data.get("callout") or "",
+            oregon_nod=data.get("oregon_nod") or "",
+            memory_proposals=data.get("memory_proposals") or [],
         )
 
 

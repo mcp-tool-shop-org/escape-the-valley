@@ -9,6 +9,8 @@ from escape_the_valley.gm import (
     PROFILE_HEADERS,
     GMClient,
     GMConfig,
+    OutcomeResponse,
+    SceneResponse,
     _parse_json,
     _profile_header,
     _tone_check,
@@ -16,6 +18,7 @@ from escape_the_valley.gm import (
     _validate_scene,
     build_deterministic_epilogue,
 )
+from escape_the_valley.memory_emitters import validate_gm_cards
 from escape_the_valley.models import EndingResult, GMProfile
 from escape_the_valley.worldgen import create_new_run
 
@@ -423,6 +426,261 @@ class TestGMFallbackNeverBricks:
         assert client.generate_outcome(
             state, event, "The Ford", "A", "Ford it", {},
         ) is None
+
+
+class TestMemoryProposalsNullSafety:
+    """F-9b0797f9 — a small local model emitting an explicit JSON `null`
+    for the optional `memory_proposals` field (a plausible way to say
+    "nothing to add") is schema-legal and passes `_validate_scene`
+    unchanged, since that validator never inspects the field. Because this
+    happens on the GM's *success* path, none of the retry/tone-fallback
+    machinery in `_request_scene`/`_request_outcome` can protect against it
+    — `data.get("memory_proposals", [])` returns None (not the default)
+    because the key IS present, and the None used to reach
+    `validate_gm_cards`'s `proposed[:2]` as a bare TypeError.
+
+    These tests pin both layers of the fix: `from_dict` normalizes null to
+    `[]` (gm.py), and `validate_gm_cards` independently tolerates a
+    non-list/None `proposed`, non-dict elements, and null `tags`/`entities`
+    (memory_emitters.py defense in depth).
+    """
+
+    def test_scene_from_dict_null_memory_proposals(self):
+        data = {
+            "scene_id": "s1",
+            "narration": "hello",
+            "choices": [{"id": "A", "label": "ok"}],
+            "memory_proposals": None,
+        }
+        result = SceneResponse.from_dict(data)
+        assert result.memory_proposals == []
+
+    def test_outcome_from_dict_null_memory_proposals(self):
+        data = {
+            "scene_id": "s1",
+            "outcome_narration": "It happened.",
+            "memory_proposals": None,
+        }
+        result = OutcomeResponse.from_dict(data)
+        assert result.memory_proposals == []
+
+    def test_scene_from_dict_missing_key_still_defaults_to_list(self):
+        # The key absent entirely (the ordinary case dict.get's default
+        # handles) must keep working, not just the explicit-null case.
+        data = {"scene_id": "s1", "narration": "hello", "choices": []}
+        assert SceneResponse.from_dict(data).memory_proposals == []
+
+    def test_outcome_from_dict_missing_key_still_defaults_to_list(self):
+        data = {"scene_id": "s1", "outcome_narration": "It happened."}
+        assert OutcomeResponse.from_dict(data).memory_proposals == []
+
+    def test_generate_scene_null_memory_proposals_does_not_crash(self, monkeypatch):
+        """End-to-end reproduction of the crash chain via the real GM call.
+
+        A 200 response whose JSON has `"memory_proposals": null` is a GM
+        'success' (valid JSON, passes `_validate_scene`), so it must be
+        counted as one — but `memory_proposals` on the returned
+        SceneResponse must be a list, since that is exactly what
+        `validate_gm_cards` receives downstream in step_engine.
+        """
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        event = _make_event()
+
+        payload = json.dumps({
+            "scene_id": "s1",
+            "narration": "The river runs wide and cold.",
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+            "memory_proposals": None,
+        })
+
+        def _fake_post(*_a, **_k):
+            return _FakeResp(200, payload)
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_scene(state, event, "clear skies")
+
+        assert result is not None
+        assert client.stats["successes"] == 1
+        assert result.memory_proposals == []
+        # The exact downstream call that used to raise TypeError.
+        assert validate_gm_cards(state, result.memory_proposals) == []
+
+    def test_generate_outcome_null_memory_proposals_does_not_crash(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        event = _make_event()
+
+        payload = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": "The wagon crossed without incident.",
+            "callout": "You made it across.",
+            "memory_proposals": None,
+        })
+
+        def _fake_post(*_a, **_k):
+            return _FakeResp(200, payload)
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+
+        assert result is not None
+        assert client.stats["successes"] == 1
+        assert result.memory_proposals == []
+        assert validate_gm_cards(state, result.memory_proposals) == []
+
+    def test_validate_gm_cards_none_input_returns_empty(self):
+        # Belt-and-suspenders: even if a None ever reached validate_gm_cards
+        # directly (bypassing from_dict entirely), it must degrade to []
+        # rather than raise.
+        state = create_new_run(seed=1)
+        assert validate_gm_cards(state, None) == []
+
+    def test_validate_gm_cards_non_dict_elements_skipped(self):
+        # Note: validate_gm_cards slices to the first _GM_MAX_PER_PROPOSAL
+        # (2) elements before filtering, so both a garbage element and a
+        # valid one must sit within that window to exercise "skip garbage,
+        # keep the valid one" in a single call.
+        state = create_new_run(seed=1)
+        proposed = [
+            None,
+            {"kind": "npc", "title": "The Ferryman", "text": "At the crossing."},
+        ]
+        cards = validate_gm_cards(state, proposed)
+        assert len(cards) == 1
+        assert cards[0].title == "The Ferryman"
+
+    def test_validate_gm_cards_all_non_dict_elements_return_empty(self):
+        state = create_new_run(seed=1)
+        proposed = [None, "a string, not a proposal", 42]
+        assert validate_gm_cards(state, proposed) == []
+
+    def test_validate_gm_cards_null_tags_and_entities(self):
+        state = create_new_run(seed=1)
+        proposed = [{
+            "kind": "omen",
+            "title": "Dark Sign",
+            "text": "A crow circles thrice.",
+            "tags": None,
+            "entities": None,
+        }]
+        cards = validate_gm_cards(state, proposed)
+        assert len(cards) == 1
+        assert cards[0].tags == []
+        assert cards[0].entities == []
+
+
+class TestSceneAndOutcomeFieldNullSafety:
+    """F-7cd35cbf — the F-9b0797f9 fix guarded exactly one field
+    (`memory_proposals`) on `SceneResponse.from_dict` / `OutcomeResponse.
+    from_dict`, leaving every sibling field on the unguarded
+    `data.get(key, default)` form. An explicit JSON `null` for an optional
+    field is schema-legal (the key IS present) and is exactly what a small
+    local model routinely emits to mean "nothing here" — the same premise
+    as F-9b0797f9 — so the two-arg `.get` default never fires and None
+    propagates. `tags` is the highest-risk sibling: `_validate_scene` never
+    inspects it, so a response with `"tags": null` is counted as a GM
+    success and `scene.tags` is `None` — the most ordinary use,
+    `",".join(scene.tags)`, then raises TypeError. This class pins the fix
+    across every field on both dataclasses, not just the one reported.
+    """
+
+    def test_scene_all_optional_fields_null_do_not_propagate_none(self):
+        data = {
+            "scene_id": None,
+            "title": None,
+            "narration": None,
+            "profile": None,
+            "uncanny_intensity": None,
+            "choices": None,
+            "tags": None,
+            "gm_aside": None,
+            "memory_proposals": None,
+        }
+        scene = SceneResponse.from_dict(data)
+        assert scene.scene_id == ""
+        assert scene.title == ""
+        assert scene.narration == ""
+        assert scene.profile == ""
+        assert scene.uncanny_intensity == "none"
+        assert scene.choices == []
+        assert scene.tags == []
+        assert scene.gm_aside == ""
+        assert scene.memory_proposals == []
+
+    def test_scene_null_tags_reproduction_matches_validate_scene_pass(self):
+        """The finding's exact repro: a schema-legal scene (passes
+        `_validate_scene`) whose `tags` is an explicit JSON null must not
+        hand the caller a None where `",".join(...)` — the most ordinary
+        possible use of a documented list[str] field — would raise.
+        """
+        data = {
+            "scene_id": "s1",
+            "narration": "The river runs wide and cold.",
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+            "tags": None,
+            "title": None,
+            "profile": None,
+            "gm_aside": None,
+        }
+        assert _validate_scene(data) is True  # tags isn't inspected at all
+        scene = SceneResponse.from_dict(data)
+        assert scene.tags == []
+        ",".join(scene.tags)  # must not raise TypeError
+
+    def test_scene_choices_null_does_not_propagate_none(self):
+        # choices is validated (2-4 entries) before from_dict is normally
+        # reached via _request_scene, but from_dict itself must still be
+        # safe standalone — it is unit-tested and called directly above.
+        data = {"scene_id": "s1", "narration": "hi", "choices": None}
+        assert SceneResponse.from_dict(data).choices == []
+
+    def test_outcome_all_optional_fields_null_do_not_propagate_none(self):
+        data = {
+            "scene_id": None,
+            "outcome_title": None,
+            "outcome_narration": None,
+            "callout": None,
+            "oregon_nod": None,
+            "memory_proposals": None,
+        }
+        outcome = OutcomeResponse.from_dict(data)
+        assert outcome.scene_id == ""
+        assert outcome.outcome_title == ""
+        assert outcome.outcome_narration == ""
+        assert outcome.callout == ""
+        assert outcome.oregon_nod == ""
+        assert outcome.memory_proposals == []
+
+    def test_scene_missing_keys_still_default_correctly(self):
+        # The ordinary "key absent" case (plain dict.get default) must keep
+        # working exactly as before — only the explicit-null case was ever
+        # broken.
+        scene = SceneResponse.from_dict({})
+        assert scene.scene_id == ""
+        assert scene.title == ""
+        assert scene.narration == ""
+        assert scene.profile == ""
+        assert scene.uncanny_intensity == "none"
+        assert scene.choices == []
+        assert scene.tags == []
+        assert scene.gm_aside == ""
+
+    def test_outcome_missing_keys_still_default_correctly(self):
+        outcome = OutcomeResponse.from_dict({})
+        assert outcome.scene_id == ""
+        assert outcome.outcome_title == ""
+        assert outcome.outcome_narration == ""
+        assert outcome.callout == ""
+        assert outcome.oregon_nod == ""
 
 
 class TestToneRepair:

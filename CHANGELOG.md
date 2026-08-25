@@ -4,6 +4,75 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **TUI markup splices neutralize leftover `[`.** `textual.markup.escape()`
+  leaves an unmatched `[` intact, so a GM choice label like `Look [ west`
+  crashed EventBar on chrome `[/i]`. Same class as the ledger overlay fix;
+  the helper is duplicated in `tui_app.py` (ledger-owned, not imported).
+  Chrome `[b]`/`[i]`/`[dim]` stays markup.
+- **Wallet overlay `settlements`/`pending` go through `_escape_dynamic`.**
+  Production values are ints from `len()`; a hostile dict could still
+  unbalance chrome.
+- **Ledger overlay dynamic fragments all go through `_escape_dynamic`.**
+  `show_failure` still used `escape()`, which does not neutralize a leftover
+  `[` after truncation (`rSender[...`) — a reachable player-typed send-parcel
+  path. `EnableFlowOverlay.show_success` interpolated the address raw. Chrome
+  `[b]` stays markup.
+- **GM-offered event letters are capped to templates that have an outcome.**
+  A 4-choice GM scene on a 2-template event now offers A/B, not A/B/C/D that
+  `resolve_event` cannot honor. Both engines. Fallback choices were already
+  honest. The events visible-miss path stays as a backstop. The cap does not
+  draw RNG.
+- **GM card tags/entities drop non-string list elements.** A proposal like
+  `tags: ["river", null]` no longer persists a `None` that later crashes
+  `build_gm_brief`. Field-level null was already guarded; this is the
+  list-element sibling. GM-JSON failure still must not brick a run, including
+  one event later.
+- **Ledger overlay leftover sinks escape dynamic fragments.** Parcel
+  sender/contents, send-success message, send-form supplies text, and wallet
+  address/issuer no longer crash `Static.update` on an orphan `[/tag]`. Chrome
+  `[b]` stays markup. Not a uniform `markup=False`.
+- **Shipped binaries actually run.** `src/escape_the_valley/__main__.py` used a
+  package-relative import, so every PyInstaller binary since v1.1.0 crashed on
+  `--help` with `ImportError: attempted relative import with no known parent
+  package`. The entrypoint is now an absolute import. The release workflow
+  also bundles `tui.tcss` and `data/event_skeletons.json` (`--add-data`, with
+  the Windows `;` / Unix `:` separator PyInstaller actually parses). A
+  post-build smoke (`scripts/smoke_test_binary.py`) asserts `--help` *and* a
+  loaded event-library count of at least 200 — a `--help`-only check still
+  passes on the 60-event quarter-game you get if the JSON is missing.
+- **Spoilage fires once per qualifying day**, not once per TRAVEL action on
+  that day. `last_spoilage_day` is persisted in the save. This changes the
+  RNG draw count on any run that crosses a `day % 3 == 0` day, so a seed
+  recorded on v1.1.1 will not replay identically on this build. Same seed on
+  this build still reproduces, including across save/load.
+- **Half-day hunt/repair consumption** no longer charges a full day when the
+  daily cost is odd (`-1 // 2 == -1`). Shared `halve_consumption()` rounds
+  toward zero.
+- **Route choice** no longer maps an unknown letter to index 0, and a fork
+  whose connections don't resolve no longer opens an empty ROUTE gate.
+- **Uncanny tokens now spend on JSON-loaded events**, not just the 5
+  hand-authored ones. Weirdness is therefore actually scarce (budget still 2
+  per run, never regenerates). Token budget is not retuned here; that belongs
+  with the deferred balance pass.
+- **GM `memory_proposals: null` no longer crashes** a turn. Card ids are
+  always engine-computed — a model-supplied `id` cannot collide with and
+  suppress an engine-authored memory card.
+- **TUI workers fail safe.** An exception in a `@work(thread=True)` worker
+  used to leave `_in_flight` set forever ("the storyteller is thinking...").
+  Workers now catch, clear the flag, and notify. Choice keys that aren't on
+  the current prompt are ignored.
+- **Ledger parcels** reject non-positive amounts at decode; `settle()` /
+  `enable()` no longer re-submit a Payment that already confirmed when a later
+  resource in the same batch fails; `check_parcels()` paginates via `marker`.
+- **`yaml_to_json.py` refuses to overwrite** `event_skeletons.json` with an
+  empty list when its `.txt` sources are missing.
+- Release workflow routes the tag through `env:` rather than interpolating
+  `workflow_dispatch` input into `run:`, and publishes the GitHub Release
+  before `npm publish` so a failed release step cannot leave npm ahead of
+  PyPI/binaries with no compensator.
+
 ## [1.1.1] - 2026-06-15
 
 ### Fixed

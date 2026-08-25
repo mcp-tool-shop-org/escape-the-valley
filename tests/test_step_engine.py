@@ -5,6 +5,7 @@ from __future__ import annotations
 from escape_the_valley.adapter import state_to_frame
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+from escape_the_valley.physics import check_game_over
 from escape_the_valley.save import load_game, save_game
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.worldgen import create_new_run
@@ -210,10 +211,11 @@ def test_save_load_preserves_determinism(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "escape_the_valley.save.SAVE_DIR", tmp_path / ".trail"
     )
-    monkeypatch.setattr(
-        "escape_the_valley.step_engine.save_game",
-        lambda s: save_game(s),
-    )
+    # The SAVE_DIR patch above is what redirects the write — save_game() reads
+    # it at call time, so the engine's autosave lands in tmp_path too. (There
+    # used to be a second patch here replacing step_engine.save_game with an
+    # identity lambda; it forwarded to this same function and redirected
+    # nothing.)
 
     # Play a few turns
     engine = _make_engine(seed=77)
@@ -894,22 +896,138 @@ def test_invalid_choice_retains_event(monkeypatch):
     assert engine.phase == GamePhase.CAMP
 
 
-# ── ENG-B-09: dangling destination recovers instead of stranding ──
+# ── F-e86c2e71 (wave 10): dangling destination fails safe, not victory ──
+#
+# ENG-B-09 originally "recovered" a dangling destination_id by snapping to
+# map_nodes[-1] -- which, since map_nodes[-1] is exactly what
+# check_game_over() reads as VICTORY, manufactured a false, unearned win any
+# time destination_id didn't resolve (reachable purely by hand-editing that
+# one field in a save; the map/connections stay pristine). The policy below
+# supersedes test_dangling_destination_recovers' old assertion that snapping
+# to the final node was the correct recovery -- it was the bug.
 
 
-def test_dangling_destination_recovers(monkeypatch, caplog):
+def test_dangling_destination_fails_safe_not_victory(monkeypatch, caplog):
     import logging
 
     engine = _make_engine(seed=42)
     engine.state.destination_id = "does_not_exist"
     engine.state.distance_remaining = 0
+    location_before = engine.state.location_id
+    assert location_before != engine.state.map_nodes[-1].node_id
 
     with caplog.at_level(logging.WARNING):
         engine._arrive_at_next_node()
 
-    # Snapped to the final node, not left stranded.
-    assert engine.state.location_id == engine.state.map_nodes[-1].node_id
-    assert any("doesn't match the map" in line for line in engine.msgs.lines)
+    # Held at the CURRENT node -- never snapped to the final one, never a
+    # manufactured victory.
+    assert engine.state.location_id == location_before
+    assert engine.state.location_id != engine.state.map_nodes[-1].node_id
+    assert engine.state.distance_remaining == 0
+    # destination_id is repointed at the party's own (now-current) node --
+    # see _arrive_at_next_node's own comment for why this is required
+    # (avoids an unbounded resource-drain loop) rather than left dangling.
+    assert engine.state.destination_id == location_before
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
+    assert any("holds its ground" in line for line in engine.msgs.lines)
+    assert any("not found" in r.message for r in caplog.records)
+
+
+def test_dangling_destination_single_valid_connection_self_heals_bounded():
+    """The realistic shape (~80% of generated nodes have exactly one
+    connection): a dangling destination_id fails safe onto a node whose own
+    single connection is perfectly valid. _do_travel's single-connection
+    guard validates that connection in isolation and never compares it
+    against destination_id, so a destination_id left dangling could never
+    satisfy that check on any later action -- it would pay every subsequent
+    leg's cost, never arrive, and drain supplies toward a manufactured false
+    DEATH (the mirror-image of the false VICTORY this fix closes) instead of
+    the bounded, self-healing single echo asserted below."""
+    from escape_the_valley.models import Biome, MapNode
+
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["mid"], distance_to={"mid": 5},
+    )
+    mid = MapNode(
+        node_id="mid", name="Mid", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["far_end"], distance_to={"far_end": 5},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=42)
+    state.map_nodes = [start, mid, far_end]
+    state.location_id = "mid"
+    state.destination_id = "totally-unrelated-garbage-id"
+    state.distance_remaining = 5
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # Leg 1: cost was already committed before arrival is even checked
+    # (matches the Director's framing -- nothing left to refuse
+    # retroactively). Arrival fails to resolve -> fails safe at "mid".
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+    assert check_game_over(engine.state) != "VICTORY"
+
+    food_after_failsafe = engine.state.supplies.food
+    traveled_after_failsafe = engine.state.distance_traveled
+
+    # Leg 2: the ONE bounded echo -- destination_id (== "mid") matches
+    # itself, the arrival tail re-runs harmlessly, and wires the real next
+    # hop ("far_end") from mid's actual connections.
+    engine._do_travel()
+    assert engine.state.destination_id == "far_end"
+
+    # Leg 3+: real progress resumes toward far_end -- not stalled, not
+    # draining forever. compute_travel_distance floors at 1/day even under
+    # worst-case pace/wagon-condition penalties, so a 5-mile remaining leg
+    # is bounded at 5 more calls no matter what breakdown RNG does; this
+    # loop bound is a generous margin above that, not a tuned exact count.
+    for _ in range(8):
+        if engine.state.location_id == "far_end":
+            break
+        engine._do_travel()
+
+    assert engine.state.location_id == "far_end"
+    assert check_game_over(engine.state) == "VICTORY"
+    # The party actually reached the end on its own supplies -- a bounded
+    # one-leg echo cost, not an unbounded drain.
+    assert engine.state.supplies.food <= food_after_failsafe
+    assert engine.state.distance_traveled > traveled_after_failsafe
+
+
+def test_gameengine_dangling_destination_fails_safe_not_victory(monkeypatch, caplog):
+    """GameEngine (engine.py) mirror of
+    test_dangling_destination_fails_safe_not_victory -- same policy, applied
+    independently in the legacy engine (engines are not unified)."""
+    import logging
+
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine.state.destination_id = "does_not_exist"
+    engine.state.distance_remaining = 0
+    location_before = engine.state.location_id
+    assert location_before != engine.state.map_nodes[-1].node_id
+
+    with caplog.at_level(logging.WARNING):
+        engine._arrive_at_next_node()
+
+    assert engine.state.location_id == location_before
+    assert engine.state.location_id != engine.state.map_nodes[-1].node_id
+    assert engine.state.distance_remaining == 0
+    assert engine.state.destination_id == location_before
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
     assert any("not found" in r.message for r in caplog.records)
 
 
@@ -1309,3 +1427,1432 @@ def test_taboo_kept_never_river_reads_journal():
         outcome="", tags=["river", "ford"],
     ))
     assert _taboo_kept(state) is False
+
+
+# ── F-ec4745c1: spoilage fires at most once per qualifying day ────────
+
+
+def test_spoilage_fires_at_most_once_per_day():
+    """A calendar day spans multiple TRAVEL actions (each advances
+    time_of_day by one quarter-day). Before the fix, check_spoilage() rolled
+    fresh on every one of them whenever state.day % 3 == 0, so a day with
+    3 travels could spoil food 2-3x. Drives the real StepEngine._do_travel()
+    directly (bypassing phase dispatch) so an EVENT trigger mid-sequence
+    can't block subsequent travel calls; food is kept plentiful so a firing
+    roll always yields a non-zero, message-producing loss."""
+    from escape_the_valley.models import TimeOfDay
+
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("salt", 0)
+    engine.state.supplies.food = 500
+    engine.state.distance_remaining = 10_000
+    engine.state.total_distance = max(engine.state.total_distance, 10_000)
+    engine.state.day = 3
+    engine.state.time_of_day = TimeOfDay.MORNING
+
+    spoil_messages = 0
+    for _ in range(3):
+        engine.msgs.lines.clear()
+        engine._do_travel()
+        spoil_messages += sum(
+            1 for line in engine.msgs.lines if "spoiled" in line.lower()
+        )
+
+    # All three travels stayed within calendar day 3 (day only increments on
+    # the NIGHT -> MORNING wrap, which would be a 4th call).
+    assert engine.state.day == 3
+    assert spoil_messages == 1
+
+
+def test_spoilage_guard_advances_to_the_next_qualifying_day():
+    """The per-day guard must not permanently suppress spoilage -- day 6
+    (the next day % 3 == 0) must roll again after day 3 already fired."""
+    from escape_the_valley.physics import check_spoilage
+
+    engine = _make_engine(seed=42)
+    engine.state.supplies.set("salt", 0)
+    engine.state.supplies.food = 500
+    engine.state.day = 3
+
+    first = check_spoilage(engine.state, engine.rng)
+    assert first != {}
+
+    engine.state.day = 6
+    second = check_spoilage(engine.state, engine.rng)
+    assert second != {}
+
+
+# ── F-4d750550: half-day HUNT/REPAIR consumption rounds toward zero ───
+
+
+def test_repair_half_day_consumption_rounds_toward_zero():
+    """Reproduces the empirically-confirmed regression: a 3-person party's
+    full daily consumption is magnitude 1 ({'food': -1, ...}); the buggy
+    `v // 2` floor charged the FULL -1 (0% reduction) instead of 0."""
+    from escape_the_valley.models import Pace, PartyMember
+    from escape_the_valley.physics import compute_daily_consumption
+
+    engine = _make_engine(seed=42)
+    engine.state.doctrine = ""  # isolate from doctrine consumption_mult
+    engine.state.party.members = [
+        PartyMember(name="A"), PartyMember(name="B"), PartyMember(name="C"),
+    ]
+    engine.state.wagon.pace = Pace.STEADY
+    engine.state.wagon.condition = 50  # needs repair
+    engine.state.supplies.set("parts", 3)
+    engine.state.supplies.food = 100
+
+    full = compute_daily_consumption(engine.state)
+    assert full["food"] == -1  # confirms the magnitude-1 scenario
+
+    food_before = engine.state.supplies.food
+    engine.step(PlayerIntent(IntentAction.REPAIR))
+
+    # attempt_repair() only ever touches "parts" -- any food change here
+    # comes solely from the half-day consumption tail, which must be 0.
+    assert food_before - engine.state.supplies.food == 0
+
+
+def test_hunt_half_day_consumption_rounds_toward_zero():
+    """Same rounding fix, isolated via water: attempt_hunt() never touches
+    water (only ammo and, on success, food), so any water loss here is
+    purely the half-day consumption tail."""
+    from escape_the_valley.models import Pace, PartyMember
+    from escape_the_valley.physics import compute_daily_consumption
+
+    engine = _make_engine(seed=42)
+    engine.state.doctrine = ""
+    engine.state.party.members = [
+        PartyMember(name="A"), PartyMember(name="B"), PartyMember(name="C"),
+    ]
+    engine.state.wagon.pace = Pace.STEADY
+    engine.state.supplies.set("ammo", 5)
+    engine.state.supplies.water = 100
+
+    full = compute_daily_consumption(engine.state)
+    assert full["water"] == -1
+
+    water_before = engine.state.supplies.water
+    engine.step(PlayerIntent(IntentAction.HUNT))
+
+    assert water_before - engine.state.supplies.water == 0
+
+
+# ── F-7d3e005b: invalid ROUTE choice_id must be rejected ───────────────
+
+
+def test_invalid_route_choice_id_rejected():
+    """An unrecognized choice_id in ROUTE phase must be rejected, not
+    silently treated as 'pick route A' (mirrors ENG-B-06 for events)."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+        RouteOption(node_id="node-b", name="Southern Trail", distance=14),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+    engine.state.distance_remaining = 999
+
+    msgs = engine.step(
+        PlayerIntent(IntentAction.CHOOSE, choice_id="ZZZ-not-a-real-choice")
+    )
+
+    # Rejected -- state untouched, still in ROUTE, options re-presented.
+    assert engine.state.destination_id == "unset"
+    assert engine.state.distance_remaining == 999
+    assert engine.phase == GamePhase.ROUTE
+    assert engine._pending_routes  # not cleared
+    assert any("isn't available" in line for line in msgs.lines)
+    assert msgs.route_options
+
+    # A valid retry then resolves it correctly (picks B, not A-by-default).
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="B"))
+    assert engine.state.destination_id == "node-b"
+    assert engine.phase == GamePhase.CAMP
+
+
+def test_route_choice_id_out_of_range_rejected():
+    """A syntactically valid letter ('C') with no corresponding pending
+    route (only 2 offered) must also be rejected, not wrap or clamp."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+        RouteOption(node_id="node-b", name="Southern Trail", distance=14),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="C"))
+
+    assert engine.state.destination_id == "unset"
+    assert engine.phase == GamePhase.ROUTE
+
+    # Empty default choice_id ("") must also be rejected, not default to A.
+    engine.step(PlayerIntent(IntentAction.CHOOSE))
+    assert engine.state.destination_id == "unset"
+    assert engine.phase == GamePhase.ROUTE
+
+
+# ── F-3abad222: dangling route connections must not softlock ROUTE ────
+
+
+def _dangling_fork_state(seed: int = 42):
+    """A 3-node map where the current node's connections don't resolve to
+    any real map_node -- the corrupted-save shape generate_map() itself
+    never produces, but load_game_result()'s shape check would accept."""
+    from escape_the_valley.models import Biome, MapNode
+
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [start, end]
+    state.location_id = "start"
+    state.destination_id = "start"
+    state.distance_remaining = 0
+    return state
+
+
+def test_dangling_route_connections_recover_at_construction():
+    """Constructing a StepEngine against a save where the current node's
+    connections are all dangling must NOT enter GamePhase.ROUTE with an
+    empty pending-routes list (0 < 0 is always False -> permanent softlock,
+    and one that would re-occur on every reload).
+
+    F-dd6869ca (post-wave-6): recovery no longer beelines to map_nodes[-1]
+    -- on a mid-map fork that would skip unvisited content and manufacture
+    a false VICTORY. There is nothing legitimate to recover to here (both
+    raw connections are dangling), so the party simply stays put --
+    destination_id/distance_remaining are untouched, not redirected to
+    "end"."""
+    state = _dangling_fork_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    assert engine.phase != GamePhase.ROUTE
+    assert engine._pending_routes == []
+    # NOT redirected anywhere -- still exactly where it started.
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    assert engine.state.distance_remaining == 0
+
+    # The engine is still usable afterward -- no dead end, and no crash --
+    # even though the fork itself remains impassable.
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase != GamePhase.ROUTE
+    assert len(msgs.lines) > 0
+    assert engine.state.location_id == "start"  # still didn't move
+
+    # Reload-stability: constructing a SECOND engine from the same corrupted
+    # shape recovers the same way every time (not a first-time fluke).
+    state2 = _dangling_fork_state()
+    engine2 = StepEngine(state2, GMConfig(enabled=False))
+    assert engine2.phase != GamePhase.ROUTE
+    assert engine2._pending_routes == []
+
+
+def test_dangling_route_connections_recover_mid_travel():
+    """The other call site: a node whose connections are all dangling is
+    discovered mid-travel (on arrival), not at construction. The following
+    TRAVEL action must neither enter a dead ROUTE nor fake-advance toward a
+    fabricated destination.
+
+    F-dd6869ca (post-wave-6): previously this asserted an auto-advance to
+    "end" (map_nodes[-1]) -- exactly the false-progress beeline the finding
+    forbids. With nothing legitimate to recover to, the party now stays at
+    "start" instead.
+
+    Drives _do_travel() directly (bypassing phase dispatch), the same
+    technique used in test_spoilage_fires_at_most_once_per_day, so a random
+    EVENT trigger on the first travel can't swallow the second TRAVEL --
+    step() would reroute it into the EVENT handler (CHOOSE-only) instead of
+    running _do_travel()'s fork check at all."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["start"], distance_to={"start": 1},
+    )
+    start = MapNode(
+        node_id="start", name="Start", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=42)
+    state.map_nodes = [prev, start, end]
+    state.location_id = "prev"
+    state.destination_id = "start"
+    state.distance_remaining = 1
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+    assert engine.phase != GamePhase.ROUTE  # "prev" has only 1 connection
+
+    # First travel arrives at "start" (the dangling-fork node).
+    engine._do_travel()
+    assert engine.state.location_id == "start"
+    assert engine.phase != GamePhase.ROUTE  # fork check is next-travel, not this one
+    distance_after_arrival = engine.state.distance_traveled
+
+    # Second travel hits the fork check on "start" and must neither enter
+    # ROUTE with nothing pickable NOR fabricate a route to "end".
+    engine._do_travel()
+    assert engine.phase != GamePhase.ROUTE
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    # No fake travel leg was charged for the stalled action either.
+    assert engine.state.distance_traveled == distance_after_arrival
+
+
+# ── F-0877c51a / F-dd6869ca (wave 6): self-edge + mid-map recovery ─────
+
+
+def _self_edge_fork_state(seed: int = 42):
+    """A 2-node map where the current node's connections include a
+    self-edge (its own node_id) plus one dangling id -- the corrupted-save
+    shape F-0877c51a targets. After excluding the self-edge, zero
+    legitimate connections remain (the other id is dangling), so this must
+    land on the same no-fake-destination stall as _dangling_fork_state,
+    NOT commit to the self-edge as if it were "the one real route"."""
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "ghost"],
+        distance_to={"fork": 5, "ghost": 10},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [fork, end]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+    return state
+
+
+def test_self_edge_fork_connection_excluded_and_terminates():
+    """F-0877c51a: a fork whose raw connections include the CURRENT node's
+    own id (connections=["fork", "ghost"]) must not resolve that self-id
+    as "the one real route" -- committing to it reproduces the original
+    infinite-travel bug this whole recovery mechanism exists to close,
+    just reached via the "exactly one resolves" branch instead of "zero
+    resolve". After excluding the self-edge, zero legitimate connections
+    remain here (the other id is dangling), so this must land on the same
+    honest, no-fake-progress stall as
+    test_dangling_route_connections_recover_mid_travel: repeated travel
+    attempts must terminate (not loop forever faking arrivals)."""
+    state = _self_edge_fork_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    assert engine.phase != GamePhase.ROUTE
+    assert engine.state.destination_id == "fork"
+    assert engine.state.location_id == "fork"
+
+    starting_food = engine.state.supplies.food
+
+    # Drive several travel actions -- across all of them, the party must
+    # never "arrive" at itself repeatedly (the externally observable shape
+    # of the original bug: climbing distance_traveled, draining supplies,
+    # for zero real progress, forever).
+    for _ in range(6):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+    assert engine.phase != GamePhase.ROUTE
+
+
+def test_self_edge_fork_with_one_real_alternative_takes_the_real_route():
+    """F-0877c51a, the blended sub-case: a fork's raw connections mix a
+    self-edge with one genuinely resolving OTHER node
+    (connections=["fork", "real"]). After excluding the self-edge, exactly
+    one legitimate route remains, so the engine must offer/take THAT route
+    -- not miscount the self-edge as a second real option (which would let
+    it be presented as a pickable path), and not discard the real route in
+    favor of a zero-resolve stall."""
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "real"],
+        distance_to={"fork": 5, "real": 9},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=11)
+    state.map_nodes = [fork, real]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # Exactly one non-self option offered -- never the self-edge.
+    assert engine.phase == GamePhase.ROUTE
+    assert len(engine._pending_routes) == 1
+    assert engine._pending_routes[0].node_id == "real"
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.state.destination_id == "real"
+    assert engine.phase == GamePhase.CAMP
+
+
+def test_dangling_mid_map_fork_does_not_manufacture_victory():
+    """F-dd6869ca: a fork that is NOT itself map_nodes[-1] must never
+    recover by beelining to the final node -- that manufactures a false,
+    unearned VICTORY and skips every node/event between the fork and the
+    end. Mirrors the finding's own repro: a 4-node map
+    [mid1, fork2, mid2, final] with the party AT fork2 (mid-map, not
+    terminal), both raw connections dangling."""
+    from escape_the_valley.models import Biome, MapNode
+
+    mid1 = MapNode(
+        node_id="mid1", name="Mid1", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork2"], distance_to={"fork2": 5},
+    )
+    fork2 = MapNode(
+        node_id="fork2", name="Fork2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    mid2 = MapNode(
+        node_id="mid2", name="Mid2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    final = MapNode(
+        node_id="final", name="Final", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=5)
+    state.map_nodes = [mid1, fork2, mid2, final]
+    state.location_id = "fork2"
+    state.destination_id = "fork2"
+    state.distance_remaining = 0
+
+    engine = StepEngine(state, GMConfig(enabled=False))
+    assert engine.phase != GamePhase.ROUTE
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork2"
+    assert engine.state.location_id not in ("mid2", "final")
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
+
+
+# ── F-803bd813 / F-6e5e72a8: engine.py ROUTE fixes ported from StepEngine ──
+#
+# GameEngine (engine.py) is the engine behind the primary `trail play` /
+# `trail new` CLI commands (cli.py) and had NO test coverage at all for its
+# ROUTE fork-resolution code before this wave (GameEngine appears elsewhere
+# in this file only for the unrelated GM-brief tests above). These mirror
+# the StepEngine dangling-connections tests directly above, driven through
+# GameEngine's synchronous (non-phase) _check_route_choice instead.
+
+
+def test_gameengine_dangling_route_connections_recover_mid_travel(monkeypatch):
+    """F-803bd813: GameEngine._check_route_choice had no else branch at all
+    for the `len(connections) <= 1` case -- a corrupted-but-loadable fork
+    node left destination_id/distance_remaining exactly as they were on
+    arrival (destination_id == the fork node's own id, distance_remaining ==
+    0). Every subsequent TRAVEL action re-arrived at the SAME node forever:
+    distance_traveled kept climbing (a fake progress metric) while
+    location_id never advanced and a full day's supplies were charged for
+    zero real progress, silently, every action. Mirrors
+    test_dangling_route_connections_recover_mid_travel above.
+
+    F-dd6869ca (post-wave-6): the wave-4 fix that closed the bug above
+    introduced its own false-progress mechanism -- beelining to
+    map_nodes[-1] ("end"), which on a longer map would skip unvisited
+    content and manufacture an unearned VICTORY. There is nothing
+    legitimate to recover to here (both raw connections are dangling), so
+    the party now stays at "start": no fake arrival at "end", and --
+    because _do_travel returns before the movement math runs at all once
+    _check_route_choice reports no legitimate route -- no fake
+    distance_traveled/supply charge either. Still not the original bug:
+    the assertion that matters is that this is STABLE (repeated calls
+    don't drift) and LOUD (logged + messaged), not silent."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _dangling_fork_state(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # Keep every probabilistic branch (events, breakdown, health, town-trade)
+    # closed so this test isolates the route-recovery path from unrelated
+    # RNG-gated systems that _do_travel also exercises.
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    assert engine.state.location_id == "start"
+    starting_food = engine.state.supplies.food
+
+    # Drive several travel actions, mirroring the finding's own repro
+    # ("across 6 consecutive _do_travel() calls"). Before the wave-4 fix,
+    # none of these ever left "start" (the original bug); after it, all of
+    # them silently beelined to "end" (F-dd6869ca). Neither happens now.
+    for _ in range(4):
+        engine._do_travel()
+
+    # Never moved, never faked a destination, never drained supplies for a
+    # journey that never happened -- and no false victory was manufactured.
+    assert engine.state.destination_id == "start"
+    assert engine.state.location_id == "start"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_route_choice_single_resolvable_connection_used_directly():
+    """F-803bd813, the length-1 sub-case: if exactly one of the raw
+    connections resolves to a real map node, that IS a legitimate route (not
+    a corrupted one) -- recovery must take it directly rather than
+    discarding real route data in favor of the generic last-map-node
+    fallback (which would otherwise be a regression vs. what the data
+    actually supports)."""
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost", "real"],
+        distance_to={"ghost": 10, "real": 8},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    last = MapNode(
+        node_id="last", name="Last", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=3)
+    state.map_nodes = [fork, real, last]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    engine._check_route_choice()
+
+    # Took the real, resolvable connection -- NOT the generic "last map
+    # node" fallback ("last" would be the wrong, data-discarding answer).
+    assert engine.state.destination_id == "real"
+    assert engine.state.distance_remaining == 8
+
+
+def test_gameengine_rejects_unrecognized_route_choice_id(monkeypatch, caplog):
+    """F-6e5e72a8: chosen_id from show_route_choice() must be validated
+    against the options actually offered before being committed to
+    destination_id -- the engine, not ui.show_route_choice, is the
+    enforcement boundary for what constitutes a valid choice. Mirrors
+    step_engine.py._handle_route_choice's post-F-7d3e005b rejection;
+    adapted to GameEngine's synchronous (non-phase) resolution, where there
+    is no ROUTE phase to re-prompt from, so an unrecognized id falls back to
+    the first offered route instead of being committed verbatim."""
+    import logging
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["north", "south"],
+        distance_to={"north": 10, "south": 14},
+    )
+    north = MapNode(
+        node_id="north", name="Northern Pass", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    south = MapNode(
+        node_id="south", name="Southern Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=7)
+    state.map_nodes = [fork, north, south]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    # ui.py's real show_route_choice already can't return an out-of-range
+    # index (it loops on bad input) -- simulate a misbehaving/future caller
+    # to prove the ENGINE, not the UI, enforces this.
+    monkeypatch.setattr(
+        engine_mod, "show_route_choice", lambda conns: "bogus-id",
+    )
+
+    with caplog.at_level(logging.WARNING):
+        engine._check_route_choice()
+
+    assert engine.state.destination_id in ("north", "south")
+    assert engine.state.destination_id != "bogus-id"
+    assert any("choice_id" in r.message for r in caplog.records)
+
+
+def test_gameengine_rejects_unrecognized_event_choice_id(monkeypatch, caplog):
+    """F-d10a2a2f: choice_id from show_event_scene() must be validated
+    against the choices actually offered before being passed to
+    resolve_event() -- the exact sibling of F-6e5e72a8's route-choice fix
+    directly above, in this SAME file, now closed the same way. Before this
+    fix, GameEngine._trigger_event trusted choice_id unconditionally (the
+    'trust the caller/UI' shape F-6e5e72a8 already closed for
+    _check_route_choice, and that step_engine.py's own ENG-B-06
+    _handle_event_choice already closed for its event-choice path) --
+    GameEngine is synchronous with no EVENT phase to re-prompt from, so an
+    unrecognized id falls back to the first offered choice instead of
+    sailing through to resolve_event() unchecked."""
+    import logging
+
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=7)
+    engine = GameEngine(state, GMConfig(enabled=False))
+
+    # Force the ~60% event-trigger gate open so an event actually fires.
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # ui.py's real show_event_scene can't return an id outside the rendered
+    # choices today -- simulate a misbehaving/future caller (or unvalidated
+    # GM JSON on the scene.choices branch, which is exactly as unvalidated
+    # as show_route_choice's return was before F-6e5e72a8) to prove the
+    # ENGINE, not the UI, is the enforcement boundary.
+    monkeypatch.setattr(
+        engine_mod, "show_event_scene", lambda *a, **k: "bogus-id",
+    )
+
+    with caplog.at_level(logging.WARNING):
+        engine._trigger_event()
+
+    # Externally observable proof that a REAL, offered choice was
+    # committed -- not the pre-fix symptom the finding calls out:
+    # resolve_event() no-ops on an unmatched id (F-fa99f19f) and the label
+    # lookup below it comes up empty, leaving choice_made="bogus-id: " with
+    # nothing after the colon.
+    assert len(engine.state.journal) == 1
+    entry = engine.state.journal[0]
+    assert not entry.choice_made.startswith("bogus-id")
+    assert ": " in entry.choice_made
+    assert entry.choice_made.split(": ", 1)[1] != ""
+    assert any("choice_id" in r.message for r in caplog.records)
+
+
+# ── F-0877c51a / F-dd6869ca / F-049017cc (wave 6): GameEngine mirrors ──
+
+
+def test_gameengine_self_edge_fork_connection_excluded_and_terminates(monkeypatch):
+    """F-0877c51a: GameEngine._check_route_choice must exclude a connection
+    id that resolves back to the CURRENT node itself before counting how
+    many connections resolved. Empirical repro from the finding: a 2-node
+    map, fork.connections=['fork','ghost'] -- committing to the self-id as
+    "the one real route" reproduces the original infinite-travel bug this
+    method exists to close (location_id pinned, distance_traveled/food
+    faking progress, game_over never True). The finding's own repro window
+    was 30 consecutive _do_travel() calls; this drives the same count."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork", "ghost"],
+        distance_to={"fork": 5, "ghost": 10},
+    )
+    end = MapNode(
+        node_id="end", name="End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=30)
+    state.map_nodes = [fork, end]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    # Keep every probabilistic branch closed -- see the mid-travel test
+    # above for why (isolates the route-recovery path).
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    starting_food = engine.state.supplies.food
+
+    for _ in range(30):
+        engine._do_travel()
+
+    # Never left "fork", no fake distance, no fake supply drain -- the
+    # self-edge was never treated as a resolved route.
+    assert engine.state.location_id == "fork"
+    assert engine.state.destination_id == "fork"
+    assert engine.state.distance_traveled == 0
+    assert engine.state.supplies.food == starting_food
+
+
+def test_gameengine_dangling_mid_map_fork_does_not_manufacture_victory(monkeypatch):
+    """F-dd6869ca: mirrors the finding's own repro exactly -- a 4-node map
+    [mid1, fork2, mid2, final] with the party AT fork2 (a non-terminal
+    fork, both raw connections dangling). The old map_nodes[-1] recovery
+    reached location_id == 'final' with check_game_over() == 'VICTORY'
+    after exactly 3 _do_travel() calls, skipping mid1/mid2 entirely. It
+    must not do that anymore."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    mid1 = MapNode(
+        node_id="mid1", name="Mid1", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["fork2"], distance_to={"fork2": 5},
+    )
+    fork2 = MapNode(
+        node_id="fork2", name="Fork2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-1", "ghost-2"],
+        distance_to={"ghost-1": 10, "ghost-2": 12},
+    )
+    mid2 = MapNode(
+        node_id="mid2", name="Mid2", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    final = MapNode(
+        node_id="final", name="Final", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=31)
+    state.map_nodes = [mid1, fork2, mid2, final]
+    state.location_id = "fork2"
+    state.destination_id = "fork2"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "fork2"
+    assert engine.state.location_id not in ("mid2", "final")
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_single_resolvable_connection_message_is_accurate(monkeypatch):
+    """F-049017cc: the single-real-connection recovery must not reuse the
+    genuine-corruption message ('...last known waypoint') -- that phrasing
+    is a lie here: the destination is a real route, not a fallback, and
+    could be any node on the map, not necessarily 'the last known
+    waypoint'. It must get its own, accurate message instead."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+    from escape_the_valley.models import Biome, MapNode
+
+    fork = MapNode(
+        node_id="fork", name="Fork", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost", "real"],
+        distance_to={"ghost": 10, "real": 8},
+    )
+    real = MapNode(
+        node_id="real", name="Real Trail", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=32)
+    state.map_nodes = [fork, real]
+    state.location_id = "fork"
+    state.destination_id = "fork"
+    state.distance_remaining = 0
+
+    engine = GameEngine(state, GMConfig(enabled=False))
+    messages = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda msg, *a, **k: messages.append(msg),
+    )
+
+    result = engine._check_route_choice()
+
+    assert result is True
+    assert engine.state.destination_id == "real"
+    assert any("Real Trail" in m for m in messages)
+    assert not any("last known waypoint" in m for m in messages)
+
+
+# ── F-32a5a4a9 (wave 8): the single-connection arm of the same `if` ────
+#
+# Wave 6 hardened the FORK arm (len(node.connections) > 1) of
+# _check_route_choice/_build_route_choices against a self-edge or a
+# dangling connection id. The `== 1` arm of the same conditional was never
+# touched: _arrive_at_next_node wrote destination_id from
+# dest.connections[0] with no validation at all. A dangling (or self-edge)
+# sole connection would sail through unnoticed and only get "discovered"
+# on a LATER leg by the ENG-B-09 recovery, which beelines to
+# map_nodes[-1] and manufactures a false, unearned VICTORY -- exactly the
+# failure class wave 6 closed for forks but left open here. Reused by the
+# GameEngine mirrors below, same convention as _dangling_fork_state /
+# _self_edge_fork_state above.
+
+
+def _dangling_single_connection_state(seed: int = 50):
+    """A 3-node map: prev -[1mi]-> mid -[dangling 'ghost-dangling']->
+    nothing, plus far_end as map_nodes[-1] -- the finding's own repro
+    shape. mid has exactly ONE raw connection (not a fork), so this never
+    reaches _build_route_choices/_check_route_choice's fork machinery; it
+    is handled solely by _arrive_at_next_node's "set up next leg" tail."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["mid"], distance_to={"mid": 1},
+    )
+    mid = MapNode(
+        node_id="mid", name="Mid", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-dangling"], distance_to={"ghost-dangling": 10},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [prev, mid, far_end]
+    state.location_id = "prev"
+    state.destination_id = "mid"
+    state.distance_remaining = 1
+    return state
+
+
+def _self_edge_single_connection_state(seed: int = 51):
+    """A node whose sole connection is itself -- the single-connection
+    counterpart to F-0877c51a's fork self-edge case. A self-edge is never
+    a legitimate route no matter how many raw connections carry it."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["loop"], distance_to={"loop": 1},
+    )
+    loop = MapNode(
+        node_id="loop", name="Loop", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["loop"], distance_to={"loop": 5},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [prev, loop, far_end]
+    state.location_id = "prev"
+    state.destination_id = "loop"
+    state.distance_remaining = 1
+    return state
+
+
+def test_dangling_single_connection_does_not_manufacture_victory():
+    """F-32a5a4a9: arriving at a node whose sole connection is dangling
+    must neither wire destination_id to the unresolvable id (which a
+    later leg's arrival check would "discover" via the ENG-B-09
+    map_nodes[-1] beeline, manufacturing a false VICTORY after skipping
+    far_end's entire approach) nor silently re-arrive at "mid" forever,
+    draining supplies/time for a leg that never happens (F-803bd813). The
+    party must stall at "mid", loudly, at zero cost, every subsequent
+    travel action."""
+    state = _dangling_single_connection_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # First travel arrives at "mid" legitimately (a real 1-mile leg).
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    # NOT wired to the dangling id -- the write was refused.
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+    rng_counter_after_arrival = engine.rng.counter
+
+    # Repeated travel attempts must neither teleport to far_end
+    # (map_nodes[-1]) nor drain supplies/time for a fake leg.
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "mid"
+    assert engine.state.location_id != "far_end"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    # Zero RNG draws on the refused path -- the guard returns before
+    # _do_travel reaches any RNG-consuming step (breakdown/health/event).
+    assert engine.rng.counter == rng_counter_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
+
+
+def test_self_edge_single_connection_does_not_loop_or_manufacture_victory():
+    """F-32a5a4a9: a sole connection that points back at the current node
+    itself (a self-edge) must be excluded exactly like a fork's self-edge
+    (F-0877c51a) -- not treated as "the one real route", which would
+    reproduce the original infinite-travel bug (destination_id == this
+    node's own id, forever)."""
+    state = _self_edge_single_connection_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    engine._do_travel()
+    assert engine.state.location_id == "loop"
+    assert engine.state.destination_id == "loop"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "loop"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_dangling_single_connection_does_not_manufacture_victory(monkeypatch):
+    """F-32a5a4a9: GameEngine mirror of
+    test_dangling_single_connection_does_not_manufacture_victory --
+    _check_route_choice's `len(connections) <= 1` early return used to
+    skip validation entirely for a lone connection, so
+    _arrive_at_next_node's unvalidated write sailed straight through to
+    the ENG-B-09 map_nodes[-1] beeline on a later leg."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _dangling_single_connection_state(seed=52)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "mid"
+    assert engine.state.location_id != "far_end"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_self_edge_single_connection_does_not_loop_or_manufacture_victory(monkeypatch):
+    """F-32a5a4a9: GameEngine mirror of
+    test_self_edge_single_connection_does_not_loop_or_manufacture_victory."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _self_edge_single_connection_state(seed=53)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+    assert engine.state.location_id == "loop"
+    assert engine.state.destination_id == "loop"
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "loop"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+# ── F-d4a8ed17 (wave 8): GM-supplied event choice ids are coerced at ───
+# the engine boundary
+#
+# tui_app.py's ChoiceId = Literal["A".."G"] exempts a rendered choice's
+# `.id` from markup escaping on the stated grounds that it is "the
+# constrained ChoiceId literal (A-G) set by the engine" -- true of the
+# fallback branch (id=c.choice_id, this engine's own static
+# ChoiceTemplate data) but, before this fix, false of the GM branch
+# (id=c.get("id", "?"), unvalidated GM JSON). The UI renders; the engine
+# is the enforcement boundary that must actually make the UI's assumption
+# true.
+
+
+class _ScriptedChoiceScene:
+    """A GM scene with caller-supplied choice dicts (ids may be garbage)."""
+
+    def __init__(self, choices):
+        self.title = "A Stranger at Dusk"
+        self.narration = "The trail narrows."
+        self.choices = choices
+        self.memory_proposals = []
+
+
+class _ScriptedChoiceGM:
+    """Enabled GM that returns a scripted scene; records the event it saw."""
+
+    def __init__(self, choices):
+        self.config = GMConfig(enabled=True)
+        self._choices = choices
+        self.last_event = None
+
+    def generate_scene(self, state, event, weather_str, brief=None):
+        self.last_event = event
+        return _ScriptedChoiceScene(self._choices)
+
+    def generate_outcome(self, *a, **k):
+        return _FakeOutcome()
+
+    def close(self):
+        pass
+
+
+class _MaliciousChoiceGM(_ScriptedChoiceGM):
+    def __init__(self):
+        super().__init__([
+            {"id": "<script>alert(1)</script>", "label": "Press on",
+             "risk_hint": "", "cost_hint": ""},
+            {"id": "", "label": "Make camp", "risk_hint": "", "cost_hint": ""},
+            {"label": "Turn back", "risk_hint": "", "cost_hint": ""},
+        ])
+
+
+_FOUR_CHOICE_RAW = [
+    {"id": "wait", "label": "Wait it out", "risk_hint": "", "cost_hint": ""},
+    {"id": "push", "label": "Push through", "risk_hint": "", "cost_hint": ""},
+    {"id": "scout", "label": "Scout around", "risk_hint": "", "cost_hint": ""},
+    {"id": "back", "label": "Turn back", "risk_hint": "", "cost_hint": ""},
+]
+
+
+def _pin_library_event(engine, event_id: str):
+    """Restrict the engine's library to one real skeleton (select_event stays)."""
+    pinned = next(e for e in engine.event_library if e.event_id == event_id)
+    engine.event_library = [pinned]
+    return pinned
+
+
+def _force_gm_event(monkeypatch, event_id: str, gm, seed: int = 42):
+    """Travel into EVENT with a pinned library event and a scripted GM scene."""
+    engine = _force_event_engine(seed=seed, gm=gm)
+    pinned = _pin_library_event(engine, event_id)
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    return engine, pinned
+
+
+def test_gm_choice_ids_are_coerced_to_the_constrained_letter_set(monkeypatch):
+    """F-d4a8ed17 + F-15a1534a: EventChoiceInfo.id is coerced onto A-G AND
+    capped to keys that exist in the pinned event's outcome_templates --
+    not merely markup-safe letters. storm_sudden is a 3-template event,
+    so a 3-choice GM scene (with garbage ids) must offer A/B/C."""
+    gm = _MaliciousChoiceGM()
+    engine, pinned = _force_gm_event(monkeypatch, "storm_sudden", gm)
+
+    assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B", "C"}
+
+    ids = [c.id for c in engine._pending_event_choices]
+    assert ids == ["A", "B", "C"]
+    assert set(ids) <= set(pinned.outcome_templates)
+    assert "<script>alert(1)</script>" not in ids
+    assert "" not in ids
+    assert "?" not in ids
+
+    # Labels are untouched -- only the id field is coerced.
+    labels = [c.label for c in engine._pending_event_choices]
+    assert labels == ["Press on", "Make camp", "Turn back"]
+
+
+def test_gm_four_choices_on_two_template_event_offers_only_a_and_b(monkeypatch):
+    """F-15a1534a: a schema-valid 4-choice GM scene on a 2-template event
+    (good_water: A/B) must drop C/D rather than offer unresolvable letters."""
+    gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+    engine, pinned = _force_gm_event(monkeypatch, "good_water", gm)
+
+    assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B"}
+
+    offered = [(c.id, c.label) for c in engine._pending_event_choices]
+    assert offered == [("A", "Wait it out"), ("B", "Push through")]
+    assert "C" not in [c.id for c in engine._pending_event_choices]
+
+
+def test_gm_three_choices_on_three_template_event_offers_a_b_c(monkeypatch):
+    """F-15a1534a: a 3-choice GM scene on a 3-template event offers A/B/C."""
+    gm = _ScriptedChoiceGM([
+        {"id": "wait", "label": "Wait it out", "risk_hint": "", "cost_hint": ""},
+        {"id": "push", "label": "Push through", "risk_hint": "", "cost_hint": ""},
+        {"id": "scout", "label": "Scout around", "risk_hint": "", "cost_hint": ""},
+    ])
+    engine, pinned = _force_gm_event(monkeypatch, "storm_sudden", gm)
+
+    assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B", "C"}
+    ids = [c.id for c in engine._pending_event_choices]
+    assert ids == ["A", "B", "C"]
+    assert set(ids) <= set(pinned.outcome_templates)
+
+
+def test_choose_c_on_two_template_event_is_rejected_not_visible_miss(monkeypatch):
+    """F-15a1534a: CHOOSE C is no longer an offered id on a 2-template event,
+    so ENG-B-06 rejects rather than resolving to events' visible-miss."""
+    gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+    engine, _pinned = _force_gm_event(monkeypatch, "good_water", gm)
+    assert engine.phase == GamePhase.EVENT
+    offered = [c.id for c in engine._pending_event_choices]
+    assert "C" not in offered
+
+    journal_before = len(engine.state.journal)
+    msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="C"))
+
+    assert engine.phase == GamePhase.EVENT
+    assert engine._pending_event is not None
+    assert any("isn't available" in line for line in msgs.lines)
+    assert len(engine.state.journal) == journal_before
+
+
+def test_gameengine_gm_scene_ids_are_letters_from_the_template_set(monkeypatch):
+    """F-15a1534a: GameEngine must coerce raw GM ids onto template letters
+    and cap to outcome_templates -- not forward wait/push/scout/back."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=True))
+    pinned = _pin_library_event(engine, "good_water")
+    assert set(pinned.outcome_templates) == {"A", "B"}
+
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    engine.gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+
+    captured: dict = {}
+
+    def _capture_scene(title, narration, choices):
+        captured["choices"] = list(choices)
+        return "A"
+
+    monkeypatch.setattr(engine_mod, "show_event_scene", _capture_scene)
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+
+    water_before = engine.state.supplies.water
+    engine._trigger_event()
+
+    ids = [c.get("id") for c in captured["choices"]]
+    labels = [c.get("label") for c in captured["choices"]]
+    assert ids == ["A", "B"]
+    assert set(ids) <= set(pinned.outcome_templates)
+    assert "wait" not in ids
+    assert "scout" not in ids
+    assert labels == ["Wait it out", "Push through"]
+    # Picking A honors the real template (water +10), not a visible-miss.
+    assert engine.state.supplies.water == water_before + 10
+
+
+# ── F-d178410b (wave 8): BackpackManager's persist hook wired at the ──
+# step_engine.py call sites
+#
+# backpack.py's BackpackManager accepts an optional persist= hook (called
+# with the full RunState immediately after each resource's Payment
+# confirms) that closes a crash-window duplicate-settlement bug, but its
+# own docstring says plainly that no call site passes it -- "a caller-side
+# change outside this module's domain, not made here." Both
+# step_engine.py construction sites must wire persist=<something that
+# calls save_game>, not leave it at the default None.
+
+
+def _make_capturing_backpack_manager():
+    """Factory: a stand-in BackpackManager that records the persist=
+    kwarg each instance is constructed with, into a fresh list per call
+    (avoids cross-test leakage from a shared class attribute)."""
+
+    calls: list = []
+
+    class _CapturingManager:
+        def __init__(self, *args, **kwargs):
+            calls.append(kwargs.get("persist"))
+
+        def settle(self, state, location):
+            class _Result:
+                success = False
+                message = ""
+                txids: list = []
+            return _Result()
+
+        def check_parcels(self, state):
+            return []
+
+        def close(self):
+            pass
+
+    return _CapturingManager, calls
+
+
+def test_settle_checkpoint_wires_a_persist_hook(monkeypatch):
+    """F-d178410b: _settle_checkpoint fires automatically at every town
+    arrival when the backpack is enabled -- the crash-window duplicate-
+    settlement bug is live on this path unless persist= is wired."""
+    import escape_the_valley.backpack as backpack_mod
+
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = _make_engine(seed=42)
+    engine.state.backpack.enabled = True
+    engine._settle_checkpoint(_DummyNode())
+
+    assert len(calls) == 1
+    assert calls[0] is not None
+    assert callable(calls[0])
+
+
+def test_check_parcels_wires_a_persist_hook(monkeypatch):
+    """F-d178410b: the other step_engine.py BackpackManager call site."""
+    import escape_the_valley.backpack as backpack_mod
+
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = _make_engine(seed=42)
+    engine.state.backpack.enabled = True
+    engine._check_parcels(_DummyNode())
+
+    assert len(calls) == 1
+    assert calls[0] is not None
+    assert callable(calls[0])
+
+
+def test_backpack_persist_hook_honors_autosave_and_base_path(monkeypatch, tmp_path):
+    """The persist hook itself -- not just its wiring -- must respect this
+    engine's own autosave/base_path contract exactly like _save does: a
+    caller that constructed autosave=False for zero disk writes must see
+    zero disk writes from a mid-settlement persist too, not just the
+    end-of-step autosave. And when autosave IS on, the hook must save to
+    THIS engine's base_path, not bare CWD (save_game's own default)."""
+    import escape_the_valley.step_engine as step_engine_mod
+
+    calls = []
+    monkeypatch.setattr(
+        step_engine_mod, "save_game",
+        lambda state, base_path=None: calls.append((state, base_path)),
+    )
+
+    on_engine = StepEngine(
+        create_new_run(seed=1), GMConfig(enabled=False), base_path=tmp_path,
+    )
+    on_engine._backpack_persist_hook(on_engine.state)
+    assert calls == [(on_engine.state, tmp_path)]
+
+    off_engine = StepEngine(
+        create_new_run(seed=1), GMConfig(enabled=False), autosave=False,
+    )
+    off_engine._backpack_persist_hook(off_engine.state)
+    # Unchanged -- autosave=False produced no new save_game call.
+    assert calls == [(on_engine.state, tmp_path)]
+
+
+# ── F-b6d0a4bc: step_engine.py memory-card validation must not crash step() ──
+
+
+class _MemoryCardGM:
+    """GM stub whose scene AND outcome both carry memory_proposals, so both
+    validate_gm_cards() call sites in _handle_event_choice execute."""
+
+    def __init__(self):
+        self.config = GMConfig(enabled=True)
+
+    def generate_scene(self, *a, **k):
+        return _FakeScene()
+
+    def generate_outcome(self, *a, **k):
+        return _FakeOutcome()
+
+    def close(self):
+        pass
+
+
+def test_malformed_gm_memory_proposals_do_not_crash_step(monkeypatch, caplog):
+    """F-b6d0a4bc: neither validate_gm_cards() call site in
+    _handle_event_choice (scene.memory_proposals, gm_out.memory_proposals)
+    was wrapped in exception handling, and step() itself has no exception
+    handling around phase dispatch either. A malformed-but-schema-legal GM
+    payload that survives validate_gm_cards's own checks -- or any future
+    shape it doesn't defend against -- would crash the entire step() call
+    for any GM-enabled run, no corrupted save required (F-9b0797f9's named
+    escalation condition). Graceful degradation now matches the pattern
+    already used at _settle_checkpoint/_check_parcels: log and skip the
+    malformed batch, game continues."""
+    import logging
+
+    import escape_the_valley.step_engine as step_engine_mod
+
+    engine = _force_event_engine(seed=42, gm=_MemoryCardGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+
+    def _raise(*a, **k):
+        raise ValueError("simulated malformed memory_proposals shape")
+
+    monkeypatch.setattr(step_engine_mod, "validate_gm_cards", _raise)
+
+    with caplog.at_level(logging.WARNING):
+        msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # Must not raise -- and the event still resolves normally (CAMP) despite
+    # the malformed memory-card batch being skipped at both call sites.
+    assert engine.phase == GamePhase.CAMP
+    assert msgs is not None
+    assert any("memory-card" in r.message.lower() for r in caplog.records)
+    # F-886d2c1e: validation failing outright at BOTH call sites (scene AND
+    # gm_out both carry memory_proposals per _MemoryCardGM) must bump the
+    # diagnostics counter mirroring _note_gm_fallback's pattern -- this
+    # degradation used to be a bare, invisible log.warning with no counter
+    # at all.
+    assert engine.diagnostics["memory_card_failures"] == 2
+
+
+def test_memory_card_partial_batch_failure_commits_and_is_distinguishable(
+    monkeypatch, caplog,
+):
+    """F-886d2c1e: the previous version wrapped validate_gm_cards() AND the
+    add_card() loop in a single try/except. The schema allows up to 2
+    memory_proposals per batch, so if card 1 of 2 adds successfully and
+    card 2's add_card() raises, the old log line ('...validation/add
+    failed') read identically to a batch that failed validation outright
+    -- even though card 1 was already permanently committed to
+    state.memory. This proves the fix: card 1 lands, the log line
+    distinguishes a partial add failure from total validation failure, and
+    the failure is still counted via diagnostics['memory_card_failures'].
+
+    Mocks validate_gm_cards (as the existing malformed-batch test above
+    does) and add_card -- the two collaborators _apply_memory_proposals
+    orchestrates -- not the orchestration logic under test itself."""
+    import logging
+
+    import escape_the_valley.step_engine as step_engine_mod
+
+    engine = _force_event_engine(seed=44, gm=_MemoryCardGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+
+    good_card = object()
+    bad_card = object()
+    monkeypatch.setattr(
+        step_engine_mod, "validate_gm_cards",
+        lambda state, proposals: [good_card, bad_card],
+    )
+
+    committed = []
+
+    def _add_card(state, card):
+        if card is bad_card:
+            raise ValueError("simulated add_card failure")
+        committed.append(card)
+
+    monkeypatch.setattr("escape_the_valley.memory.add_card", _add_card)
+
+    assert engine.diagnostics["memory_card_failures"] == 0
+
+    with caplog.at_level(logging.WARNING):
+        engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+    # The good card landed even though its batch-mate failed -- the
+    # earlier bug would have made this indistinguishable from "nothing was
+    # saved" in the log, but the state itself already tells the story.
+    assert good_card in committed
+    assert bad_card not in committed
+    # Both call sites (scene + gm_out) hit the same bad_card shape, so both
+    # count one add failure each.
+    assert engine.diagnostics["memory_card_failures"] == 2
+    # bad_card is the 2nd of 2 cards in the batch -- the message must say
+    # so precisely (not just "a card failed"), since the whole point is
+    # letting the log distinguish which cards landed.
+    assert any("2/2 add failed" in r.message for r in caplog.records)
+    # The partial-add message must not be confused with a total validation
+    # failure -- they are deliberately different log lines.
+    assert not any("validation failed" in r.message for r in caplog.records)
+
+
+# ── Autosave scoping ───────────────────────────────────────────────
+
+
+def test_step_autosaves_by_default(tmp_path):
+    """The default engine still autosaves on every step (unchanged behavior)."""
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), base_path=tmp_path
+    )
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert (tmp_path / ".trail" / "run.json").exists()
+
+
+def test_autosave_false_skips_the_write(tmp_path, monkeypatch):
+    """autosave=False suppresses the write for THIS engine only."""
+    monkeypatch.chdir(tmp_path)
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), autosave=False
+    )
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert not (tmp_path / ".trail").exists()
+    # ...and a sibling engine is unaffected — the option is per-instance.
+    other = StepEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    other.step(PlayerIntent(IntentAction.REST))
+    assert (tmp_path / ".trail" / "run.json").exists()
+
+
+def test_autosave_false_still_tracks_rng_state():
+    """Skipping the write must not skip the RNG bookkeeping callers read."""
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), autosave=False
+    )
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+
+    assert engine.state.rng_counter == engine.rng.counter
+    assert engine.state.rng_state is not None

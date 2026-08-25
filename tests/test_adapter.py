@@ -116,7 +116,18 @@ class _FakeBackpackManager:
 
     The real manager creates a testnet wallet (enable) or settles on-chain;
     here we only flip local flags so the TUI action paths run save-only.
+
+    F-d178410b: __init__ accepts (and stores) the same ``persist`` keyword
+    the real constructor takes, for call-site signature compatibility now
+    that every production ``BackpackManager(...)`` site passes
+    ``persist=save_game``. This fake does not exercise the persist-hook
+    crash-window fix itself (that lives in backpack.py / test_backpack.py,
+    owned by the ledger domain) -- these tests assert the TUI action's own
+    post-call ``_save()`` round-trip, unrelated to the hook.
     """
+
+    def __init__(self, *args, persist=None, **kwargs):
+        self._persist = persist
 
     def enable(self, state):
         from escape_the_valley.backpack import EnableResult
@@ -309,6 +320,86 @@ class TestShowOutcomeRobustness:
         assert "water" in out
 
 
+# ── F-5ed15e0b: show_game_over has the identical sibling bug ────────
+
+
+class TestShowGameOverRobustness:
+    """Sibling to TestShowOutcomeRobustness above: show_game_over ranks
+    journal entries via ``max(..., key=lambda e: abs(sum(e.deltas.values())))``
+    to find the 'most notable event' for the end-of-run summary. The exact
+    same non-numeric-delta bug cli-tui-008 fixed in show_outcome was never
+    applied here — and it fires at the worst possible moment, since a run
+    only reaches this screen once, right at the end.
+    """
+
+    def _state_with_bad_journal_entry(self):
+        from escape_the_valley.models import JournalEntry
+
+        state = create_new_run(seed=7)
+        state.journal.append(
+            JournalEntry(
+                day=1,
+                location="Trailhead",
+                event_id="ev1",
+                scene_title="A strange bargain",
+                narration="",
+                choice_made="A",
+                outcome="",
+                # Mixed deltas: a valid int plus non-numeric values that the
+                # old `abs(sum(e.deltas.values()))` would have raised
+                # TypeError on the instant this run ended.
+                deltas={"food": -3, "water": "lots", "meds": None},
+            ),
+        )
+        return state
+
+    def test_non_numeric_delta_does_not_raise(self):
+        from escape_the_valley import ui
+
+        state = self._state_with_bad_journal_entry()
+        # Should render cleanly (the old code raised TypeError here).
+        ui.show_game_over(state)
+
+    def test_numeric_journal_still_finds_most_notable_event(self, capsys):
+        from escape_the_valley import ui
+        from escape_the_valley.models import JournalEntry
+
+        state = create_new_run(seed=7)
+        state.journal.append(
+            JournalEntry(
+                day=1, location="Trailhead", event_id="ev1",
+                scene_title="A quiet day", narration="", choice_made="A",
+                outcome="", deltas={"food": -1},
+            ),
+        )
+        state.journal.append(
+            JournalEntry(
+                day=2, location="Millford", event_id="ev2",
+                scene_title="The big storm", narration="", choice_made="B",
+                outcome="", deltas={"food": -20, "water": -15},
+            ),
+        )
+        ui.show_game_over(state)
+        out = capsys.readouterr().out
+        assert "The big storm" in out
+
+
+class TestDeltaMagnitudeHelper:
+    """Direct unit coverage for the shared guard behind both fixes above."""
+
+    def test_ignores_non_numeric_values(self):
+        from escape_the_valley.ui import _delta_magnitude
+
+        assert _delta_magnitude(
+            {"food": -3, "water": "lots", "meds": None, "ammo": ["x"]},
+        ) == 3
+
+    def test_empty_deltas_is_zero(self):
+        from escape_the_valley.ui import _delta_magnitude
+
+        assert _delta_magnitude({}) == 0
+
+
 # ── cli-tui-B-01: escape valves are reachable ───────────────────────
 
 
@@ -427,34 +518,35 @@ class TestDegradedGmSignal:
         assert frame.gm_degraded is False
 
     def test_eventbar_renders_fallback_notice(self):
+        # F-2f661eea: was `bar.update = lambda txt: ...`, which replaces the
+        # real Static.update() -- the exact method that calls Textual's
+        # Content.from_markup() and can raise MarkupError on a GM-authored
+        # string with a stray '[/...]' shape. A lambda mock can never observe
+        # that crash. This now calls the real (unmocked) update_from() and
+        # reads back the widget's own stored content, so a future regression
+        # here raises instead of passing silently.
         from escape_the_valley.tui_app import EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         bar.update_from(FrameState(gm_degraded=True))
-        assert "engine fallback" in rendered["text"]
+        assert "engine fallback" in bar.content
 
     def test_eventbar_no_notice_when_healthy(self):
         from escape_the_valley.tui_app import EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         bar.update_from(FrameState(gm_degraded=False))
-        assert "engine fallback" not in rendered["text"]
+        assert "engine fallback" not in bar.content
 
     def test_eventbar_busy_state(self):
         """A worker in flight shows the thinking state, not the choices."""
         from escape_the_valley.tui_app import Choice, EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         frame = FrameState(choices=[Choice("A", "Travel")])
         bar.update_from(frame, busy=True)
-        assert "thinking" in rendered["text"].lower()
-        assert "Travel" not in rendered["text"]
+        assert "thinking" in bar.content.lower()
+        assert "Travel" not in bar.content
 
 
 # ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─

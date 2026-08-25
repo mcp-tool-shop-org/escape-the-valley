@@ -14,15 +14,33 @@ Keys:
 
 from __future__ import annotations
 
+import re
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
+from textual.markup import escape
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
+from textual.worker import WorkerState
+
+
+# Matches backpack_ui._escape_dynamic (ledger-owned; duplicated here so
+# exclusive ownership holds).
+def _escape_dynamic(text: str) -> str:
+    """Escape a fragment spliced into a markup template.
+
+    ``textual.markup.escape`` only wraps complete tag-shaped runs. A leftover
+    ``[`` (e.g. truncating ``rSender[/pwn]`` to ``rSender[...``) still opens a
+    tag into the chrome and raises MarkupError. Neutralize those after escape.
+    """
+    return re.sub(r"(?<!\\)\[", r"\\[", escape(text))
+
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
@@ -108,18 +126,23 @@ class FrameState:
 
 class StatusPanel(Static):
     def update_from(self, s: FrameState) -> None:
+        # F-2f661eea: every field below is engine/adapter-derived dynamic text
+        # (not literal chrome), so it is escaped before interpolation. Only
+        # the "Day N" header tag ([b]...[/b], hand-authored in this f-string)
+        # is left as real markup. s.day is an int and cannot carry a stray
+        # '[...]' tag, so it is not escaped.
         lines = [
-            f"[b]Day {s.day}[/b]  \u2022  {s.location}",
-            f"Next: {s.next_stop}",
-            f"{s.weather}  \u2022  {s.biome}",
-            f"Pace: {s.pace}",
+            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}",
+            f"Next: {_escape_dynamic(s.next_stop)}",
+            f"{_escape_dynamic(s.weather)}  \u2022  {_escape_dynamic(s.biome)}",
+            f"Pace: {_escape_dynamic(s.pace)}",
             "",
-            s.party_summary,
-            s.wagon,
+            _escape_dynamic(s.party_summary),
+            _escape_dynamic(s.wagon),
         ]
         if s.backpack_status:
             lines.append("")
-            lines.append(s.backpack_status)
+            lines.append(_escape_dynamic(s.backpack_status))
         self.update("\n".join(lines))
 
 
@@ -131,7 +154,7 @@ class SuppliesPanel(Static):
         consumables = []
         gear = []
         for k, v in s.supplies.items():
-            line = f"{k}: {v}"
+            line = f"{_escape_dynamic(k)}: {v}"
             if k in self._GEAR_KEYS:
                 gear.append(line)
             else:
@@ -148,10 +171,17 @@ class SuppliesPanel(Static):
 
 class MapPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        self.update("[b]Route[/b]\n" + s.route_ascii)
+        self.update("[b]Route[/b]\n" + _escape_dynamic(s.route_ascii))
 
 
 class NarrationPanel(Markdown):
+    # F-2f661eea: Markdown.update() is NOT affected by this finding's crash
+    # class. Verified directly (inspect.getsource(Markdown.update) against
+    # this repo's installed textual): it parses via MarkdownIt("gfm-like")
+    # and builds Content from markdown-it-py tokens -- it never calls
+    # Content.from_markup(), so a stray '[/...]' shape here cannot raise
+    # MarkupError the way it does on the Static subclasses below. No escaping
+    # needed for the three update() calls in this class.
     def update_from(self, s: FrameState) -> None:
         self.update(s.narration)
 
@@ -173,10 +203,10 @@ class NarrationPanel(Markdown):
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        body = "[b]Party[/b]\n" + "\n".join(s.party_detail)
+        body = "[b]Party[/b]\n" + "\n".join(_escape_dynamic(d) for d in s.party_detail)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
-            body += "\n".join(f"\u2022 {w}" for w in s.warnings)
+            body += "\n".join(f"\u2022 {_escape_dynamic(w)}" for w in s.warnings)
         self.update(body)
 
 
@@ -208,23 +238,38 @@ class EventBar(Static):
                 )
             return
 
+        # F-d4a8ed17: c.label/risk_hint/cost_hint AND c.id are all
+        # EventChoiceInfo fields built straight from the GM's own
+        # scene.choices[] JSON on the primary EVENT path
+        # (step_engine.py's _maybe_trigger_event -> EventChoiceInfo(id=
+        # c.get('id', '?'), ...) -> adapter.py's _build_prompt(id=c.id) ->
+        # here). gm.py's _validate_scene only checks choice['id'] for
+        # truthiness, never that it's one of A-G, short, or bracket-free.
+        # Only the ROUTE/CAMP phases mint id via chr(65+i) / a fixed table
+        # (adapter.py) -- EVENT's id is exactly as GM-controlled as the
+        # sibling fields, so it is escaped the same way. The [b]...[/b]
+        # wrapper stays literal chrome authored right here, untouched.
         choice_lines = []
         for c in s.choices:
             hints = []
             if c.risk_hint:
-                hints.append(f"risk: {c.risk_hint}")
+                hints.append(f"risk: {_escape_dynamic(c.risk_hint)}")
             if c.cost_hint:
-                hints.append(f"cost: {c.cost_hint}")
+                hints.append(f"cost: {_escape_dynamic(c.cost_hint)}")
             hint_txt = f"  ({'; '.join(hints)})" if hints else ""
             choice_lines.append(
-                f"[b]{c.id}[/b]) {c.label}{hint_txt}"
+                f"[b]{_escape_dynamic(c.id)}[/b]) {_escape_dynamic(c.label)}{hint_txt}"
             )
 
         # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
         # choices (so the conditional valves E/F/G are named), and the
         # persistent hint is now complete \u2014 every always-available key,
-        # including ledger, voice, and quit.
-        choice_letters = ", ".join(c.id for c in s.choices) if s.choices else ""
+        # including ledger, voice, and quit. c.id is escaped here too (same
+        # F-d4a8ed17 rationale above) since it folds into the [i]...[/i]
+        # -wrapped hint_line below.
+        choice_letters = (
+            ", ".join(_escape_dynamic(c.id) for c in s.choices) if s.choices else ""
+        )
         pick_hint = (
             f"Choose {choice_letters} (number keys also work). "
             if choice_letters
@@ -246,10 +291,15 @@ class EventBar(Static):
                 "(the storyteller is quiet)[/dim]"
             )
 
+        # s.prompt_title carries scene.title/event.title (step_engine.py) via
+        # adapter.py's prompt_title -- the same GM-authored field that also
+        # reaches JournalDrawer as JournalEntry.scene_title. s.prompt_text is
+        # engine/ledger-derived text (also dynamic); both are escaped. The
+        # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
         text = (
-            f"[b]{s.prompt_title}[/b]\n"
-            f"{s.prompt_text}\n\n"
+            f"[b]{_escape_dynamic(s.prompt_title)}[/b]\n"
+            f"{_escape_dynamic(s.prompt_text)}\n\n"
             + body
             + f"\n\n{hint_line}"
             + degraded_line
@@ -261,7 +311,11 @@ class JournalDrawer(Static):
     """Toggle-able journal panel (right side drawer)."""
 
     def update_from(self, s: FrameState) -> None:
-        lines = "\n".join(f"- {entry}" for entry in s.journal)
+        # F-2f661eea: each journal line folds in JournalEntry.scene_title
+        # (GM-authored, confirmed end-to-end from step_engine.py through
+        # adapter.py:145) and choice_made -- escape the per-entry text, not
+        # the "[b]Journal[/b]" header, which is literal chrome authored here.
+        lines = "\n".join(f"- {_escape_dynamic(entry)}" for entry in s.journal)
         self.update("[b]Journal[/b]\n" + lines)
 
 
@@ -297,45 +351,52 @@ class EndScreen(Static):
             lines.append("[b]THE VALLEY IS BEHIND YOU[/b]")
         else:
             lines.append("[b]THE TRAIL CLAIMS ANOTHER[/b]")
+        # caption is looked up from the literal, hand-authored _TIER_CAPTION
+        # dict above (four fixed strings + "" default) -- never GM/engine
+        # text, so it is not escaped.
         caption = self._TIER_CAPTION.get(s.ending_tier, "")
         if caption:
             lines.append(f"[dim]{caption}[/dim]")
         if s.ending_headline:
             lines.append("")
-            lines.append(s.ending_headline)
+            lines.append(_escape_dynamic(s.ending_headline))
 
         # The epilogue — the storyteller's closing words. While the GM is still
         # composing it on the worker, show a quiet placeholder rather than a
-        # blank gap.
+        # blank gap. F-2f661eea: FrameState.epilogue is the confirmed
+        # GM-authored (or deterministic-floor) free text this finding traced
+        # end-to-end -- escaped here, at the point it is interpolated.
         lines.append("")
         lines.append("─" * 30)
         if s.epilogue:
-            lines.append(s.epilogue)
+            lines.append(_escape_dynamic(s.epilogue))
         else:
             lines.append("[dim]The storyteller gathers the last of it...[/dim]")
         lines.append("─" * 30)
 
-        # The graded facts.
+        # The graded facts. label/value are always str (see
+        # adapter.build_ending_facts) but can carry engine-derived free text
+        # (e.g. a taboo description or cause of death) -- escaped.
         if s.ending_facts:
             lines.append("")
             lines.append("[b]The reckoning[/b]")
             for label, value in s.ending_facts:
-                lines.append(f"  {label}: {value}")
+                lines.append(f"  {_escape_dynamic(label)}: {_escape_dynamic(value)}")
 
-        # Run diagnostics (the CLI `stats` data).
+        # Run diagnostics (the CLI `stats` data) -- same str/str shape.
         if s.run_stats:
             lines.append("")
             lines.append("[b]The run[/b]")
             for label, value in s.run_stats:
-                lines.append(f"  {label}: {value}")
+                lines.append(f"  {_escape_dynamic(label)}: {_escape_dynamic(value)}")
 
-        # The trail ledger / XRPL postcard.
+        # The trail ledger / XRPL postcard (ledger.py-built text lines).
         if s.postcard_lines:
             lines.append("")
             heading = "[b]Postcard (on-ledger)[/b]" if s.is_postcard else "[b]Trail ledger[/b]"
             lines.append(heading)
             for ln in s.postcard_lines:
-                lines.append(ln)
+                lines.append(_escape_dynamic(ln))
 
         lines.append("")
         if s.postcard_lines:
@@ -374,8 +435,56 @@ class HelpOverlay(Static):
 # ── App ─────────────────────────────────────────────────────────────
 
 
+def _resolve_css_path() -> str:
+    """Resolve tui.tcss for both a source checkout and a frozen PyInstaller
+    onefile build (F-96d427ea).
+
+    Textual's own CSS_PATH resolution (for a bare relative string) calls
+    inspect.getfile() against the App subclass's module and resolves the
+    stylesheet relative to that file's parent directory. That is correct for
+    a normal install — pip/pipx unpack the whole ``escape_the_valley``
+    package, so tui.tcss sits right next to this module on disk — but it is
+    not something a frozen build can rely on: a PyInstaller onefile bundle
+    stores pure-Python modules in an in-memory PYZ archive, not as real files,
+    so there is no guarantee inspect.getfile() returns a path that exists on
+    disk, or that its parent lines up with wherever the release workflow's
+    ``--add-data`` actually extracted the stylesheet under sys._MEIPASS.
+
+    Rather than trust that alignment, resolve explicitly: outside a frozen
+    build, compute the exact same source-relative path Textual would have
+    (so behavior for every existing install is unchanged); inside one, search
+    the plausible extraction locations under sys._MEIPASS and use whichever
+    one is actually present. This is the *application* half of the fix — the
+    release workflow still has to ``--add-data`` the file for either
+    candidate to exist; see the release-binaries.yml `Build binary` step.
+    """
+    source_default = Path(__file__).resolve().parent / "tui.tcss"
+
+    meipass = getattr(sys, "_MEIPASS", None)
+    if not getattr(sys, "frozen", False) or not meipass:
+        return str(source_default)
+
+    meipass_dir = Path(meipass)
+    candidates = [
+        # --add-data ".../tui.tcss<sep>escape_the_valley" (package-relative,
+        # mirrors how --collect-data textual lays out that package's assets).
+        meipass_dir / "escape_the_valley" / "tui.tcss",
+        # --add-data ".../tui.tcss<sep>." (flat, dropped at the bundle root).
+        meipass_dir / "tui.tcss",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+
+    # Bundled nowhere we expect — fall back to the source-tree computation.
+    # It won't exist either (that's the underlying bug), but it fails with
+    # the same familiar "missing tui.tcss next to tui_app.py" shape rather
+    # than a silently-wrong _MEIPASS guess.
+    return str(source_default)
+
+
 class LedgerTrailApp(App):
-    CSS_PATH = "tui.tcss"
+    CSS_PATH = _resolve_css_path()
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -533,6 +642,7 @@ class LedgerTrailApp(App):
             st = self._engine.state
             self.notify(
                 f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+                markup=False,
             )
 
     def _sync_frame(self) -> None:
@@ -672,7 +782,7 @@ class LedgerTrailApp(App):
             return
         self._voice_failure_notified = True
         self._voice_enabled = False
-        self.notify(f"Voice unavailable - {status['last_error']}")
+        self.notify(f"Voice unavailable - {status['last_error']}", markup=False)
         # Reflect the quieted state in the event bar / footer immediately.
         self._render_all()
 
@@ -699,14 +809,14 @@ class LedgerTrailApp(App):
             self._voice_bridge = VoiceBridge(config)
             self._voice_enabled = self._voice_bridge.start()
             if not self._voice_enabled:
-                self.notify("Voice not available")
+                self.notify("Voice not available", markup=False)
                 return
-            self.notify("Voice ON")
+            self.notify("Voice ON", markup=False)
             return
 
         new_state = self._voice_bridge.toggle()
         self._voice_enabled = new_state
-        self.notify("Voice ON" if new_state else "Voice OFF")
+        self.notify("Voice ON" if new_state else "Voice OFF", markup=False)
 
     def action_choose(self, choice_id: str) -> None:
         """Resolve a visible choice (A-G) to an intent and step the engine.
@@ -714,7 +824,12 @@ class LedgerTrailApp(App):
         In CAMP phase, the conditional escape valves E/F/G map to their own
         IntentActions via the shared camp_choices() table (cli-tui-B-01); a
         valve letter the gate hasn't opened resolves to nothing and is
-        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
+        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id,
+        but only if it is one of the choices actually offered this frame
+        (F-133540bb) — mirroring CAMP's own 'ungated letter is ignored'
+        behavior instead of forwarding a phantom choice_id the player never
+        saw (all seven digit bindings stay live regardless of phase, and a
+        2-3 option EVENT/ROUTE frame never fills all seven).
         """
         # On the end screen the gameplay choice keys (1-7 / e-g) are dead: the
         # run is over and StepEngine.step short-circuits at GAME_OVER anyway, so
@@ -736,6 +851,16 @@ class LedgerTrailApp(App):
                 return
             intent = PlayerIntent(action=action)
         else:
+            # F-133540bb: the seven digit/letter choice bindings are always
+            # active, but a typical EVENT/ROUTE frame only ever offers 2-4
+            # choices. Validate against what the frame is actually showing
+            # instead of trusting the engine to reject an unlisted id — an
+            # unguarded id either raises inside StepEngine.step (feeding the
+            # worker-exception hang, F-9c0e7613) or silently resolves to an
+            # option the player never picked.
+            offered = {c.id for c in self._frame.choices}
+            if choice_id not in offered:
+                return
             intent = PlayerIntent(
                 action=IntentAction.CHOOSE,
                 choice_id=choice_id,
@@ -965,7 +1090,7 @@ class LedgerTrailApp(App):
         if not self._engine or not self.show_end:
             return
         if not self._frame.postcard_lines:
-            self.notify("No postcard to copy for this run.")
+            self.notify("No postcard to copy for this run.", markup=False)
             return
         from .cli import write_postcard_file
 
@@ -974,9 +1099,9 @@ class LedgerTrailApp(App):
                 self._engine.state, self._frame.postcard_lines,
             )
         except OSError as e:
-            self.notify(f"Could not write postcard: {e}")
+            self.notify(f"Could not write postcard: {e}", markup=False)
             return
-        self.notify(f"Postcard saved to {path}")
+        self.notify(f"Postcard saved to {path}", markup=False)
 
     def _has_worker_runtime(self) -> bool:
         """True only when a real Textual event loop is driving this App.
@@ -989,6 +1114,77 @@ class LedgerTrailApp(App):
             return bool(self.is_running)
         except Exception:
             return False
+
+    # ── Worker failure recovery (F-9c0e7613) ────────────────────────
+    #
+    # None of the five @work(thread=True) workers below used to catch
+    # exceptions from their blocking call before invoking call_from_thread on
+    # their finish_* handler. Every mutating action handler is gated on
+    # 'not self._in_flight', and that flag was only ever cleared from inside
+    # a finish_* handler — so a raise (a save-to-disk failure, a corrupted
+    # -state KeyError, an XRPL client error, an unexpected GM/network
+    # exception) skipped straight past the completion step and the entire
+    # input surface froze forever, with Textual's default exit_on_error=True
+    # handling on top of that turning the same raise into a hard app crash
+    # instead. Both outcomes are worse than telling the player plainly and
+    # staying interactive.
+    def _worker_failed(self, context: str, exc: BaseException) -> None:
+        """UI-thread failure completion shared by every worker below.
+
+        Every worker's except-block calls this via call_from_thread instead
+        of letting the exception escape: clear the busy flag so the input
+        surface is never stuck, tell the player what happened (their last
+        autosave is untouched — this only aborts the in-flight action), and
+        repaint immediately.
+
+        F-2f661eea: notify() only queues its message via post_message() — it
+        does not paint synchronously. Textual dispatches that queued message
+        on a later pump tick, so if the _render_all() below were to raise
+        (e.g. a still-poisoned frame from some field this wave didn't know to
+        escape), the app tears down before the queued notification is ever
+        shown: the exact "recovery path re-crashes itself" failure this
+        finding traced end-to-end. _render_all is therefore wrapped so this
+        method — the one place that exists to guarantee the player is told
+        something and the input surface is freed — can never itself be the
+        second crash.
+        """
+        self._in_flight = False
+        self._token_sink = None
+        self._streaming = False
+        self.notify(
+            f"Something went wrong ({context}): {exc}. "
+            "Your last save is intact.",
+            severity="error",
+            timeout=8,
+            markup=False,
+        )
+        try:
+            self._render_all()
+        except Exception:
+            # Degrade to "notification queued, screen possibly stale" rather
+            # than a second, silent crash that tears down the message pump
+            # before that notification is ever dispatched. self._in_flight is
+            # already cleared above, so the input surface is not stuck even
+            # if this repaint could not complete.
+            pass
+
+    def on_worker_state_changed(self, event) -> None:
+        """Belt-and-suspenders net: fail safe even without per-worker discipline.
+
+        Every current worker already catches its own exceptions (below) and
+        routes to _worker_failed directly, so in normal operation this should
+        never observe WorkerState.ERROR. It exists so a *future* worker added
+        without that discipline still unfreezes _in_flight and tells the
+        player, instead of leaving the input surface stuck forever — which is
+        only meaningful because every worker below also sets
+        exit_on_error=False, so Textual's default 'crash the whole app on an
+        unhandled worker exception' handling never pre-empts this recovery.
+        """
+        if event.state is not WorkerState.ERROR:
+            return
+        worker = event.worker
+        error = worker.error or RuntimeError("unknown worker failure")
+        self._worker_failed(worker.name or "background task", error)
 
     # _in_flight invariant (read before touching any @work worker below):
     #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
@@ -1004,10 +1200,14 @@ class LedgerTrailApp(App):
     #     the write (self._in_flight = True) are never interleaved across
     #     actions. The workers themselves only ever flip it back to False via
     #     call_from_thread, i.e. marshalled back onto that same loop.
-    @work(thread=True, exclusive=True, group="step")
+    @work(thread=True, exclusive=True, group="step", exit_on_error=False)
     def _step_worker(self, intent) -> None:
         """Thread worker: the actual blocking engine step + frame sync."""
-        self._engine.step(intent)
+        try:
+            self._engine.step(intent)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "step", exc)
+            return
         # Marshal all widget/state mutations back onto the UI thread.
         self.call_from_thread(self._finish_step)
 
@@ -1066,8 +1266,9 @@ class LedgerTrailApp(App):
     def _enable_blocking(self):
         """The blocking enable round-trip. Returns the EnableResult."""
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.enable(self._engine.state)
         mgr.close()
         if result.success:
@@ -1075,15 +1276,20 @@ class LedgerTrailApp(App):
         self._finish_enable(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _enable_worker(self) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
-        result = mgr.enable(self._engine.state)
-        mgr.close()
-        if result.success:
-            self._save()
+        try:
+            mgr = BackpackManager(persist=save_game)
+            result = mgr.enable(self._engine.state)
+            mgr.close()
+            if result.success:
+                self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger enable", exc)
+            return
         self.call_from_thread(self._finish_enable, result)
 
     def _finish_enable(self, result) -> None:
@@ -1094,7 +1300,7 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#enable_flow", EnableFlowOverlay)
         if result.success:
             overlay.show_success(result.wallet_address)
-            self.notify("Ledger Backpack enabled")
+            self.notify("Ledger Backpack enabled", markup=False)
         else:
             overlay.show_failure(result.message)
         self._sync_frame()
@@ -1110,15 +1316,16 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.disable(self._engine.state)
         self._save()
 
         self._close_all_overlays()
         self._sync_frame()
         self._render_all()
-        self.notify("Ledger Backpack disabled")
+        self.notify("Ledger Backpack disabled", markup=False)
 
     def action_ledger_settle(self) -> None:
         """Manual settlement.
@@ -1147,27 +1354,33 @@ class LedgerTrailApp(App):
 
     def _settle_blocking(self, location: str):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.settle(self._engine.state, location)
         mgr.close()
         self._save()
         self._finish_settle(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _settle_worker(self, location: str) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
-        result = mgr.settle(self._engine.state, location)
-        mgr.close()
-        self._save()
+        try:
+            mgr = BackpackManager(persist=save_game)
+            result = mgr.settle(self._engine.state, location)
+            mgr.close()
+            self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger settle", exc)
+            return
         self.call_from_thread(self._finish_settle, result)
 
     def _finish_settle(self, result) -> None:
         self._in_flight = False
-        self.notify(result.message)
+        self.notify(result.message, markup=False)
         self._sync_frame()
         self._render_all()
 
@@ -1197,18 +1410,24 @@ class LedgerTrailApp(App):
 
     def _wallet_info_blocking(self):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         info = mgr.wallet_info(self._engine.state)
         self._finish_wallet_info(info)
         return info
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _wallet_info_worker(self) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
-        info = mgr.wallet_info(self._engine.state)
+        try:
+            mgr = BackpackManager(persist=save_game)
+            info = mgr.wallet_info(self._engine.state)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "wallet info", exc)
+            return
         self.call_from_thread(self._finish_wallet_info, info)
 
     def _finish_wallet_info(self, info) -> None:
@@ -1229,7 +1448,7 @@ class LedgerTrailApp(App):
 
         bp = self._engine.state.backpack
         if not bp.enabled:
-            self.notify("Enable backpack first (L → E)")
+            self.notify("Enable backpack first (L → E)", markup=False)
             return
 
         from .backpack_models import XRPL_TOKEN_MAP
@@ -1333,8 +1552,9 @@ class LedgerTrailApp(App):
 
     def _send_parcel_blocking(self, address: str, supply: str, amount: int):
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         result = mgr.send_parcel(self._engine.state, address, supply, amount)
         mgr.close()
         if result.success:
@@ -1342,17 +1562,22 @@ class LedgerTrailApp(App):
         self._finish_send_parcel(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _send_parcel_worker(
         self, address: str, supply: str, amount: int,
     ) -> None:
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
-        result = mgr.send_parcel(self._engine.state, address, supply, amount)
-        mgr.close()
-        if result.success:
-            self._save()
+        try:
+            mgr = BackpackManager(persist=save_game)
+            result = mgr.send_parcel(self._engine.state, address, supply, amount)
+            mgr.close()
+            if result.success:
+                self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "send parcel", exc)
+            return
         self.call_from_thread(self._finish_send_parcel, result)
 
     def _finish_send_parcel(self, result) -> None:
@@ -1362,7 +1587,7 @@ class LedgerTrailApp(App):
         overlay = self.query_one("#send_parcel", SendParcelOverlay)
         if result.success:
             overlay.show_success(result.message)
-            self.notify("Parcel sent")
+            self.notify("Parcel sent", markup=False)
         else:
             overlay.show_failure(result.message)
         self._sync_frame()
@@ -1395,15 +1620,16 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.accept_parcel(self._current_parcel, self._engine.state)
         self._save()
 
         contents = ", ".join(
             f"+{v} {k}" for k, v in self._current_parcel.contents.items()
         )
-        self.notify(f"Parcel accepted: {contents}")
+        self.notify(f"Parcel accepted: {contents}", markup=False)
         self._close_all_overlays()
         self._sync_frame()
         self._render_all()
@@ -1420,12 +1646,13 @@ class LedgerTrailApp(App):
             return
 
         from .backpack import BackpackManager
+        from .save import save_game
 
-        mgr = BackpackManager()
+        mgr = BackpackManager(persist=save_game)
         mgr.refuse_parcel(self._current_parcel)
         self._save()
 
-        self.notify("Parcel refused")
+        self.notify("Parcel refused", markup=False)
         self._close_all_overlays()
         self._render_all()
 

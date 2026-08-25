@@ -610,8 +610,9 @@ def ledger_status() -> None:
         raise typer.Exit(1)
 
     from .backpack import BackpackManager
+    from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     console.print(mgr.status_line(state))
 
     if state.backpack.enabled:
@@ -636,7 +637,7 @@ def ledger_enable() -> None:
     from .backpack import BackpackManager
     from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     result = _run_with_spinner(
         "Enabling Ledger Backpack on XRPL Testnet...",
         lambda: mgr.enable(state),
@@ -668,7 +669,7 @@ def ledger_disable() -> None:
     from .backpack import BackpackManager
     from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     mgr.disable(state)
     save_game(state)
     console.print("Ledger Backpack disabled. Wallet kept for re-enable.")
@@ -696,7 +697,7 @@ def ledger_settle() -> None:
             location = n.name
             break
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     result = _run_with_spinner(
         f"Settling checkpoint at {location}...",
         lambda: mgr.settle(state, location),
@@ -736,7 +737,7 @@ def ledger_reconcile() -> None:
     from .backpack import BackpackManager
     from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     _run_with_spinner(
         f"Retrying {pending_count} pending settlement(s)...",
         lambda: mgr._retry_pending(state),
@@ -769,8 +770,9 @@ def ledger_wallet() -> None:
         raise typer.Exit(1)
 
     from .backpack import BackpackManager
+    from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     info = mgr.wallet_info(state)
 
     if info.get("status") == "No wallet":
@@ -829,7 +831,7 @@ def parcel_send(
     from .backpack import BackpackManager
     from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     result = _run_with_spinner(
         f"Sending {amount} {supply} to {address[:8]}...",
         lambda: mgr.send_parcel(state, address, supply.lower(), amount),
@@ -899,7 +901,7 @@ def parcel_accept(
     from .backpack import BackpackManager
     from .save import save_game
 
-    mgr = BackpackManager()
+    mgr = BackpackManager(persist=save_game)
     mgr.accept_parcel(parcel, state)
     save_game(state)
 

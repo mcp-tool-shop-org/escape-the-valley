@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -14,6 +15,8 @@ from .models import (
     TwistModifier,
     Weather,
 )
+
+log = logging.getLogger(__name__)
 
 
 class EventCategory(StrEnum):
@@ -1876,10 +1879,32 @@ def resolve_event(
     choice_id: str,
     rng: SeededRNG,
 ) -> EventOutcome:
-    """Resolve an event choice into concrete outcome."""
+    """Resolve an event choice into concrete outcome.
+
+    F-fa99f19f: step_engine.py assigns GM-narrated scene choices their
+    letters positionally (A..D, up to 4 choices), independent of how many
+    entries this event's own ``outcome_templates`` defines (measured at 2 or
+    3 across the whole library -- never 4). So a 3- or 4-choice scene can
+    hand back a letter ("C" or "D") that legitimately reached the player as a
+    labelled option but has no backing template here. The offer side of that
+    mismatch belongs to step_engine.py/engine.py (out of this module's
+    scope); this is the resolve side, and it must not answer with a blank,
+    silent EventOutcome that reads identically to a legitimate zero-delta
+    outcome. So: log it, and hand back a real, minimal, deterministic "miss"
+    -- a single time_cost tick (the same idiom several hand-authored
+    templates already use for "nothing much happened," e.g. river_crossing's
+    "B") plus a distinguishing flag -- instead of true silence. No RNG is
+    drawn on this path, so it never perturbs the seeded draw sequence.
+    """
     template = event.outcome_templates.get(choice_id)
     if not template:
-        return EventOutcome()
+        log.warning(
+            "event %s: choice_id %r has no matching outcome template "
+            "(offered letter exceeds this event's defined outcomes); "
+            "returning a visible miss instead of a silent no-op",
+            event.event_id, choice_id,
+        )
+        return EventOutcome(time_cost=1, special_flags=["undefined_choice_miss"])
 
     outcome = EventOutcome(
         supplies_delta=dict(template.supplies_delta),

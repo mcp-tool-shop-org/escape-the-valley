@@ -6,6 +6,8 @@ GM cards are validated and salience-capped.
 
 from __future__ import annotations
 
+import hashlib
+
 from .events import EventSkeleton
 from .memory import add_card
 from .models import MemoryCard, RunState
@@ -253,10 +255,36 @@ def validate_gm_cards(
     - Title ≤ 40 chars, text ≤ 300 chars
     - Must not reference supply quantities
     - Salience forced to 0.5
+    - Card id is always engine-computed (F-778637b3): the GM does not own
+      engine keys, so a model-supplied "id" — a field neither SCENE_SCHEMA
+      nor OUTCOME_SCHEMA documents or requests — is never honored. Engine
+      emitters mint deterministic ids (e.g. ``eng_crisis_<resource>_d<day>``)
+      and ``add_card`` dedupes purely by id equality; honoring a model id
+      would let untrusted output silently suppress a legitimate
+      engine-authored card that happens to collide with it later.
+    - The id is a content digest, unique per CARD rather than per CALL
+      (F-6f03c718) — see the inline comment above the digest computation
+      below for why a shared counter or a new RunState field would not do.
+
+    Defense in depth (F-9b0797f9): ``gm.py``'s ``SceneResponse.from_dict`` /
+    ``OutcomeResponse.from_dict`` already normalize a top-level JSON `null`
+    for ``memory_proposals`` to ``[]``, but this function must not assume
+    every caller does the same, nor that every list element is a
+    well-formed dict, nor that a proposal's ``tags``/``entities`` are lists
+    rather than an explicit `null`, nor that list elements are strings —
+    so shape is re-validated here rather than trusted from the input.
+    Non-empty ``str`` elements are kept; ``None``, ints, dicts, and empty
+    strings are dropped before they hit a MemoryCard (F-bcf0063c).
     """
     accepted: list[MemoryCard] = []
 
+    if not isinstance(proposed, list):
+        return accepted
+
     for proposal in proposed[:_GM_MAX_PER_PROPOSAL]:
+        if not isinstance(proposal, dict):
+            continue
+
         kind = proposal.get("kind", "")
         if kind not in _GM_ALLOWED_KINDS:
             continue
@@ -271,20 +299,52 @@ def validate_gm_cards(
         if _mentions_supply_numbers(text):
             continue
 
-        card_id = proposal.get(
-            "id",
-            f"gm_{kind}_{state.day}_{len(accepted)}",
-        )
+        # Never honor a model-supplied "id" — see docstring (F-778637b3).
+        #
+        # F-6f03c718 — the prior fix (f"gm_{kind}_{state.day}_{len(accepted)}")
+        # was only unique WITHIN one validate_gm_cards() call: `accepted` is a
+        # fresh local list every call, so `len(accepted)` restarts at 0 on the
+        # next one. step_engine.py calls this function at least twice per turn
+        # (scene, then outcome), and a calendar day can span multiple turns,
+        # so two ordinary — not adversarial — calls proposing the same `kind`
+        # on the same day minted identical ids, and add_card's id-equality
+        # dedup silently discarded the second, entirely legitimate card.
+        #
+        # The id must be unique per CARD, not per CALL, and it has to get
+        # there without a shared counter: a monotonic counter would need a
+        # new field on RunState, which lives in models.py — out of this
+        # domain's ownership — and without relying on call order/timing in
+        # step_engine.py, which is also out of this domain's ownership and
+        # under concurrent revision this same wave. A stable digest of the
+        # card's own content (kind, day, title, text) needs neither: it is
+        # unique per card because it is *computed from* the card, stays
+        # engine-computed and deterministic (no randomness, no wall-clock,
+        # so seeded/--gm off runs stay reproducible), and two proposals can
+        # only collide here if they share kind, day, title, AND text
+        # byte-for-byte — i.e. they are the same card. This does not reopen
+        # F-778637b3: the model still never supplies (or picks) the id
+        # itself, and it has no practical way to aim for a specific target
+        # id — that would mean inverting SHA-256, and even then a "gm_"
+        # prefix can never enter the disjoint "eng_" namespace regardless of
+        # the digest. add_card (memory.py) now logs a warning on any
+        # same-id drop, so even a byte-identical duplicate stays visible
+        # instead of silently vanishing.
+        digest_src = "\x1f".join((kind, str(state.day), title, text))
+        digest = hashlib.sha256(digest_src.encode("utf-8")).hexdigest()[:12]
+        card_id = f"gm_{kind}_{state.day}_{digest}"
+
+        tags = proposal.get("tags") or []
+        entities = proposal.get("entities") or []
 
         card = MemoryCard(
             id=card_id,
             kind=kind,
             title=title,
             text=text,
-            tags=proposal.get("tags", [])[:5],
+            tags=_nonempty_str_items(tags),
             day_created=state.day,
             day_last_seen=state.day,
-            entities=proposal.get("entities", [])[:5],
+            entities=_nonempty_str_items(entities),
             salience=0.5,  # Forced for GM cards
             cooldown_until=0,
             source="gm",
@@ -292,6 +352,20 @@ def validate_gm_cards(
         accepted.append(card)
 
     return accepted
+
+
+def _nonempty_str_items(value: object, *, limit: int = 5) -> list[str]:
+    """Keep only non-empty str list elements, capped at *limit* (F-bcf0063c).
+
+    A list of tags is not a list of str: a small local model can emit
+    optional array emptiness as a null element (``["river", null]``).
+    Field-level ``None`` / non-list are already rejected by the caller;
+    this is the list-element sibling. Drop ``None``, ints, dicts, and
+    empty strings so they never reach a MemoryCard.
+    """
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str) and item][:limit]
 
 
 def _mentions_supply_numbers(text: str) -> bool:

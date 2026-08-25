@@ -28,6 +28,7 @@ from .physics import (
     check_health_effects,
     compute_daily_consumption,
     compute_travel_distance,
+    halve_consumption,
     rest_day,
     update_morale,
 )
@@ -46,6 +47,20 @@ from .ui import (
 from .worldgen import generate_weather
 
 log = logging.getLogger(__name__)
+
+# F-d4a8ed17 / F-15a1534a: same letter set and template cap as
+# step_engine.py -- GameEngine's GM-scene branch used to forward raw
+# scene.choices, so non-letter GM ids made every offered choice a miss.
+_EVENT_CHOICE_LETTERS = "ABCDEFG"
+
+
+def _template_choice_letters(event) -> list[str]:
+    """A-G letters this event's outcome_templates actually define.
+
+    GM scenes may list 2-4 choices; the library's templates are A/B or A/B/C.
+    Offering a letter resolve_event cannot honor is the engine lying.
+    """
+    return [letter for letter in _EVENT_CHOICE_LETTERS if letter in event.outcome_templates]
 
 
 class GameEngine:
@@ -109,8 +124,17 @@ class GameEngine:
         """Process a travel action — move, consume, events, advance time."""
         distance = compute_travel_distance(self.state)
 
-        # Check for route choice at branching nodes
-        self._check_route_choice()
+        # Check for route choice at branching nodes. False means the fork
+        # has no legitimate route to advance along this action
+        # (F-dd6869ca/F-0877c51a: every raw connection is dangling, a
+        # self-edge, or both) -- refuse to fake a travel leg: no distance,
+        # no supplies, no time, no RNG draws for a journey that can't
+        # happen. RNG draw order for every other path (no fork, a
+        # multi-route fork, a fork with exactly one real route) is
+        # unchanged -- this early return only removes draws that used to
+        # happen against a fabricated destination.
+        if not self._check_route_choice():
+            return
 
         # Move
         self.state.distance_remaining -= distance
@@ -194,8 +218,9 @@ class GameEngine:
         else:
             show_message("The hunt yielded nothing. 1 ammo spent.", "yellow")
 
-        # Half-day action — partial consumption
-        half_consumption = {k: v // 2 for k, v in compute_daily_consumption(self.state).items()}
+        # Half-day action — partial consumption (F-4d750550: round toward
+        # zero, not floor -- see physics.halve_consumption)
+        half_consumption = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half_consumption)
 
         update_morale(self.state)
@@ -218,8 +243,9 @@ class GameEngine:
             "green",
         )
 
-        # Half-day action
-        half_consumption = {k: v // 2 for k, v in compute_daily_consumption(self.state).items()}
+        # Half-day action (F-4d750550: round toward zero, not floor -- see
+        # physics.halve_consumption)
+        half_consumption = halve_consumption(compute_daily_consumption(self.state))
         self.state.supplies.apply_delta(half_consumption)
 
         show_status(self.state)
@@ -258,7 +284,21 @@ class GameEngine:
         if scene and scene.choices:
             title = scene.title or event.title
             narration = scene.narration or event.fallback_narration
-            choices = scene.choices
+            # F-d4a8ed17: coerce positionally onto A-G rather than trusting
+            # the GM's id field. F-15a1534a: cap to keys that exist in
+            # event.outcome_templates so a 4-choice GM scene on a 2-template
+            # event offers A/B, never an unresolvable letter. zip drops
+            # extras; fallback_choices below already match templates 1:1.
+            letters = _template_choice_letters(event)
+            choices = [
+                {
+                    "id": letter,
+                    "label": c.get("label", "?"),
+                    "risk_hint": c.get("risk_hint", ""),
+                    "cost_hint": c.get("cost_hint", ""),
+                }
+                for letter, c in zip(letters, scene.choices, strict=False)
+            ]
         else:
             title = event.title
             narration = event.fallback_narration
@@ -277,6 +317,28 @@ class GameEngine:
 
         # Show scene and get player choice
         choice_id = show_event_scene(title, narration, choices)
+
+        # F-d10a2a2f: validate choice_id against what was actually offered
+        # before committing to it, rather than trusting show_event_scene (UI,
+        # or unvalidated GM JSON on the scene.choices branch) to only ever
+        # return an offered id. Mirrors this file's OWN _check_route_choice
+        # (F-6e5e72a8) fallback-with-log-warning convention: GameEngine is
+        # synchronous with no EVENT phase to re-prompt from (unlike
+        # step_engine.py._handle_event_choice's ENG-B-06 reject-and-retry),
+        # so an unrecognized id falls back to the first offered choice
+        # instead of sailing through to resolve_event() unchecked. Without
+        # this, resolve_event() silently no-ops on an unmatched id (a blank
+        # EventOutcome, F-fa99f19f) and choice_label below stays "", so the
+        # journal entry reads "{choice_id}: " with no label -- wrong-but-
+        # safe, but still worth closing at the source.
+        valid_ids = [c.get("id") for c in choices]
+        if choice_id not in valid_ids:
+            log.warning(
+                "show_event_scene returned unrecognized choice_id %r; "
+                "expected one of %r -- defaulting to first choice",
+                choice_id, valid_ids,
+            )
+            choice_id = valid_ids[0]
 
         # Resolve outcome
         outcome = resolve_event(self.state, event, choice_id, self.rng)
@@ -363,22 +425,54 @@ class GameEngine:
                 break
 
         if not dest_node:
-            # ENG-B-09: destination_id points at no real node — don't silently
-            # strand the party. Warn, log, and recover by snapping to the final
-            # node so the journey can still conclude.
+            # F-e86c2e71: destination_id points at no real node. ENG-B-09 used
+            # to "recover" by snapping to map_nodes[-1] -- but that fabricates
+            # arrival at an arbitrary node, including the FINAL one, which
+            # check_game_over() reads as an outright win. That beeline is
+            # reachable purely by hand-editing destination_id in a save with
+            # the map/connections left pristine (save.py loads it with no
+            # referential check), so no amount of connections-graph
+            # validation elsewhere in this method can ever close it.
+            #
+            # Director's policy: fail safe to the party's CURRENT node,
+            # don't stall, don't map_nodes[-1]. By this point location_id
+            # has NOT been overwritten yet -- it still holds the node the
+            # party departed from, which is guaranteed valid -- so leave it
+            # exactly as is. distance_remaining is clamped to 0: this leg's
+            # distance/supply cost already ran above (in _do_travel, before
+            # this method was even called), so there is nothing left to
+            # refuse retroactively.
+            #
+            # destination_id is repointed at THIS node (self-reference)
+            # rather than left holding the original dangling value -- a
+            # deliberate departure from "leave it untouched". This mirrors
+            # _check_route_choice's own zero-legitimate-connections case
+            # just below, which likewise refuses to fabricate a destination.
+            # It also matters mechanically: _check_route_choice's
+            # single-connection guard validates node.connections[0] in
+            # isolation and never compares it against destination_id, so a
+            # dangling destination_id left in place could never satisfy
+            # that check on any later action -- a node with one perfectly
+            # valid onward connection would pay every subsequent leg's cost,
+            # never arrive, and drain toward a manufactured false DEATH
+            # instead of the false VICTORY this fix closes. Self-
+            # referencing lets the next travel action match itself in the
+            # search above, run this method's own arrival tail harmlessly
+            # against the unchanged current node, and have THAT tail wire
+            # the real next hop from this node's actual connections.
             log.warning(
-                "destination_id %r not found among map_nodes; recovering",
-                self.state.destination_id,
+                "destination_id %r not found among map_nodes; failing safe "
+                "to current location %r instead of fabricating arrival",
+                self.state.destination_id, self.state.location_id,
             )
             show_message(
-                "The way ahead doesn't match the map. "
-                "Pressing on toward the last known waypoint.",
+                "The way ahead doesn't match the map. The party holds "
+                "its ground rather than press on blind.",
                 "yellow",
             )
-            if not self.state.map_nodes:
-                return
-            dest_node = self.state.map_nodes[-1]
-            self.state.destination_id = dest_node.node_id
+            self.state.distance_remaining = 0
+            self.state.destination_id = self.state.location_id
+            return
 
         self.state.location_id = dest_node.node_id
         self.state.distance_remaining = 0
@@ -390,25 +484,103 @@ class GameEngine:
         # Set up next destination
         if dest_node.connections:
             if len(dest_node.connections) == 1:
+                # F-32a5a4a9: the fork arm of this same `if` (>1
+                # connections) is validated by _check_route_choice, which
+                # excludes a self-edge and requires the id resolve to a
+                # real map_nodes entry (F-0877c51a/F-3abad222). This lone-
+                # connection arm used to wire destination_id straight from
+                # the raw id with no such check -- a dangling id (only
+                # reachable via a corrupted/altered save; generate_map()
+                # never produces this) would sail through here unnoticed,
+                # then get "discovered" on a LATER leg by this method's own
+                # dest-not-found fail-safe above (F-e86c2e71; pre-wave-10
+                # that beelined to map_nodes[-1] and manufactured a false
+                # VICTORY). Apply the same policy here: if the sole
+                # connection is a self-edge or doesn't
+                # resolve, leave destination_id/distance_remaining exactly
+                # as already set above (this node, distance 0) instead of
+                # committing to it. _check_route_choice's matching guard
+                # turns that stalled state into a loud, zero-cost refusal
+                # on the next travel action instead of a silent re-arrival
+                # loop that drains supplies/time forever (F-803bd813).
                 next_id = dest_node.connections[0]
-                self.state.destination_id = next_id
-                self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
+                if next_id != dest_node.node_id and any(
+                    n.node_id == next_id for n in self.state.map_nodes
+                ):
+                    self.state.destination_id = next_id
+                    self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
             else:
                 # Route choice handled next travel action
                 pass
 
-    def _check_route_choice(self) -> None:
-        """Check if the player needs to choose a route."""
+    def _check_route_choice(self) -> bool:
+        """Check if the player needs to choose a route.
+
+        Returns True when travel should proceed normally this action: no
+        fork, still mid-journey, a multi-route fork just resolved via
+        show_route_choice, or a fork with exactly one legitimate route
+        was taken automatically. Returns False when the fork has no
+        legitimate route to advance along this action -- the caller
+        (_do_travel) must not fake a travel leg (distance, supplies,
+        time, RNG draws) when this returns False.
+        """
         node = _find_node(self.state)
-        if not node or len(node.connections) <= 1:
-            return
+        if not node:
+            return True
+
+        if len(node.connections) <= 1:
+            # F-32a5a4a9: a lone connection skips the fork-choice
+            # machinery below entirely (by design -- no player choice is
+            # needed for a single path), so it was never subjected to the
+            # same self-edge/dangling-id validation a fork's raw
+            # connections get. _arrive_at_next_node now refuses to wire
+            # destination_id from an invalid sole connection (see its
+            # "Set up next destination" comment) and instead leaves
+            # destination_id/distance_remaining pointed at THIS node (0
+            # remaining). Catch that stalled shape here and refuse to
+            # advance, loudly, at zero cost -- every subsequent travel
+            # action, not just the first -- instead of silently
+            # re-arriving at this same node forever (F-803bd813) or,
+            # once a stale distance_remaining ran out on a leg that was
+            # never real, hitting _arrive_at_next_node's dest-not-found
+            # fail-safe (F-e86c2e71; pre-wave-10 this beelined to
+            # map_nodes[-1]).
+            if len(node.connections) == 1 and self.state.distance_remaining <= 0:
+                conn_id = node.connections[0]
+                valid = conn_id != node.node_id and any(
+                    n.node_id == conn_id for n in self.state.map_nodes
+                )
+                if not valid:
+                    log.warning(
+                        "node %r has one connection (%r) that does not "
+                        "resolve to a real, non-self map node; no "
+                        "legitimate route exists -- refusing to advance "
+                        "travel instead of fabricating progress",
+                        node.node_id, conn_id,
+                    )
+                    show_message(
+                        "The trail forks, but every route is broken or "
+                        f"leads nowhere. The party can't press on from "
+                        f"{node.name} this way.",
+                        "red bold",
+                    )
+                    return False
+            return True
 
         if self.state.distance_remaining > 0:
-            return  # Not at a junction yet
+            return True  # Not at a junction yet
 
-        # Build connection info
+        # Build connection info, skipping any connection id that resolves
+        # back to THIS node. F-0877c51a: a self-edge can never be a
+        # legitimate route -- counting it toward "how many resolved"
+        # (whether it lands alone or alongside other real connections)
+        # lets the branches below commit to it, which reproduces the
+        # original infinite-travel bug this method exists to close: the
+        # party "arrives" at the node it never left, forever.
         connections = []
         for conn_id in node.connections:
+            if conn_id == node.node_id:
+                continue
             for n in self.state.map_nodes:
                 if n.node_id == conn_id:
                     dist = node.distance_to.get(conn_id, 15)
@@ -417,8 +589,80 @@ class GameEngine:
 
         if len(connections) > 1:
             chosen_id = show_route_choice(connections)
+            # F-6e5e72a8: validate chosen_id against the options actually
+            # offered rather than trusting the caller (ui.show_route_choice)
+            # alone -- mirrors step_engine.py._handle_route_choice's post-
+            # F-7d3e005b rejection. The engine, not the UI, is the
+            # enforcement boundary for what constitutes a valid choice.
+            # (ui.show_route_choice's own input loop already can't return an
+            # out-of-range index today, so this is a no-op on the real
+            # terminal path and only bites a misbehaving/future caller.)
+            valid_ids = [c[0] for c in connections]
+            if chosen_id not in valid_ids:
+                log.warning(
+                    "show_route_choice returned unrecognized choice_id %r; "
+                    "expected one of %r -- defaulting to first route",
+                    chosen_id, valid_ids,
+                )
+                chosen_id = valid_ids[0]
             self.state.destination_id = chosen_id
             self.state.distance_remaining = node.distance_to.get(chosen_id, 15)
+            return True
+
+        if connections:
+            # Exactly one non-self connection resolved to a real node.
+            # That is a legitimate route (not a corrupted one) -- take it
+            # directly, same outcome StepEngine reaches for this shape (a
+            # single pending route is still offered and, once chosen,
+            # committed verbatim; no reason to discard real route data in
+            # favor of an unrelated fallback node here). F-049017cc: this
+            # gets its own accurate message -- it is not a fallback and
+            # not "the last known waypoint", it is simply the one real
+            # option, so it must not share text with the genuine
+            # zero-resolve recovery below. (show_route_choice is
+            # deliberately NOT used here: it blocks on interactive
+            # console input, which would turn this automatic recovery
+            # path into a hang for any non-interactive caller.)
+            dest_id, dest_name, dist = connections[0]
+            log.info(
+                "node %r has %d connection(s) but only one resolves to a "
+                "real, non-self map node; taking the sole real route to %r",
+                node.node_id, len(node.connections), dest_id,
+            )
+            show_message(
+                f"Only one route is passable; the trail continues toward {dest_name}.",
+                "yellow",
+            )
+            self.state.destination_id = dest_id
+            self.state.distance_remaining = dist
+            return True
+
+        # Zero legitimate (non-self) connections resolved: every raw
+        # connection is either dangling or points back at this same node
+        # (a corrupted/altered save -- generate_map() never produces this
+        # shape). F-dd6869ca: do NOT fall back to map_nodes[-1] here --
+        # on a mid-map fork that silently beelines the party past
+        # unvisited content into a fabricated, unearned VICTORY.
+        # F-0877c51a: do NOT commit to a self-edge either -- that
+        # reproduces the original infinite-travel bug this method exists
+        # to prevent (destination_id == this node's own id, a permanent
+        # silent self-referential loop with distance_traveled and supply
+        # drain climbing for zero real progress). There is no legitimate
+        # destination to recover to, so this leaves destination_id/
+        # distance_remaining completely untouched -- no fake arrival, no
+        # fake route -- and tells the caller to refuse to advance.
+        log.warning(
+            "node %r has %d connection(s) but none resolve to a real, "
+            "non-self map node; no legitimate route exists -- refusing "
+            "to advance travel instead of fabricating progress",
+            node.node_id, len(node.connections),
+        )
+        show_message(
+            "The trail forks, but every route is broken or leads nowhere. "
+            f"The party can't press on from {node.name} this way.",
+            "red bold",
+        )
+        return False
 
     def _advance_time(self) -> None:
         """Advance time of day and day counter."""

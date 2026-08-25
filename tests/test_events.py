@@ -1,5 +1,8 @@
 """Tests for event system."""
 
+import logging
+
+from escape_the_valley.event_loader import load_json_events
 from escape_the_valley.events import (
     EventCategory,
     build_event_library,
@@ -123,6 +126,72 @@ class TestUncannyTokens:
         low_sev = [e for e in uncanny_events if e.severity == "low"]
         for event in low_sev:
             assert not can_spend_uncanny_token(chron, event)
+
+    # ── F-001af851 / F-5f77f476 regression: JSON-loaded uncanny events must
+    # behave like the 5 hand-authored ones (reachable + actually spend a
+    # token), not silently fall back to unreachable-for-Chronicler / free. ──
+
+    def test_json_band3_events_carry_uncanny_tag(self):
+        """F-001af851: every JSON-loaded band>=3 event must carry the literal
+        'folklore:uncanny' tag that can_spend_uncanny_token() checks, matching
+        the FolkloreType.UNCANNY the loader already set on the typed field.
+        Before the fix, the loader populated the enum but never the tag, so
+        the profile-gating check in events.py never matched any JSON event."""
+        json_events = load_json_events()
+        band3 = [e for e in json_events if e.costs_uncanny_token]
+        assert band3, "sanity: the data file must still have band>=3 content"
+        for e in band3:
+            assert "folklore:uncanny" in e.tags, (
+                f"{e.event_id}: costs_uncanny_token but missing the "
+                "'folklore:uncanny' tag can_spend_uncanny_token() checks"
+            )
+
+    def test_json_uncanny_event_reachable_by_chronicler(self):
+        """F-001af851: Chronicler's reachability check is
+        `severity in (medium, high) and 'folklore:uncanny' in tags`. Before
+        the fix this was always False for JSON content (no JSON event ever
+        carried the literal tag), so Chronicler could NEVER select any of the
+        15 band>=3 JSON events, under any state."""
+        json_events = load_json_events()
+        band3 = [e for e in json_events if e.costs_uncanny_token]
+
+        state = create_new_run(seed=42, gm_profile=GMProfile.CHRONICLER)
+        state.weirdness_level = 2
+        state.uncanny_tokens = 2
+        reachable = [e for e in band3 if can_spend_uncanny_token(state, e)]
+        assert reachable, "no JSON-loaded uncanny event is reachable by Chronicler"
+
+    def test_json_uncanny_event_spends_token_on_resolve(self):
+        """F-5f77f476: resolving a choice on a JSON-loaded band>=3 event
+        through the real resolve_event() must decrement state.uncanny_tokens
+        by exactly 1 — the absence of this test is what let 15 of ~20
+        uncanny-gated events resolve for free."""
+        json_events = load_json_events()
+        band3 = [e for e in json_events if e.costs_uncanny_token]
+        assert band3
+        event = band3[0]
+        choice_id = next(iter(event.outcome_templates))
+
+        state = create_new_run(seed=42, gm_profile=GMProfile.LANTERN)
+        state.uncanny_tokens = 2
+        rng = SeededRNG(1)
+
+        resolve_event(state, event, choice_id, rng)
+
+        assert state.uncanny_tokens == 1
+
+    def test_all_json_band3_outcomes_flagged_to_spend(self):
+        """Every choice (not just the first) on every band>=3 JSON event must
+        carry the spend flag — _convert_profile() runs once per choice, so a
+        partial fix could flag choice A but miss B/C/D."""
+        json_events = load_json_events()
+        band3 = [e for e in json_events if e.costs_uncanny_token]
+        assert band3
+        for e in band3:
+            for cid, outcome in e.outcome_templates.items():
+                assert "uncanny_token_spent" in outcome.special_flags, (
+                    f"{e.event_id} choice {cid} does not spend an uncanny token"
+                )
 
 
 class TestVarietyGuards:
@@ -295,6 +364,113 @@ class TestEventResolution:
             choice_id = event.fallback_choices[0].choice_id
             outcome = resolve_event(state, event, choice_id, rng)
             assert outcome is not None
+
+
+class TestUndefinedChoiceMiss:
+    """F-fa99f19f: step_engine.py letters a GM scene's choices positionally
+    (A..D, up to 4) independent of how many entries an event's own
+    outcome_templates defines. Measured against the live library, 153/260
+    events have exactly 2 outcome_templates and 107/260 have 3 -- none has a
+    4th -- so a 3- or 4-choice GM scene routinely hands resolve_event() a
+    letter ("C" or "D") the underlying event never defined. Pre-fix,
+    resolve_event() answered that with a blank EventOutcome() indistinguishable
+    from a legitimate zero-delta outcome: the player picks a labelled,
+    on-screen option and nothing detectably happens. These tests pin the
+    fix: a real, non-blank, logged outcome instead of silence.
+    """
+
+    def _lettered_event(self):
+        from escape_the_valley.events import EventOutcome, EventSkeleton
+
+        # Mirrors the real shape: two defined outcomes (the majority case in
+        # the live library, per the 153/260 measurement above), so "C"/"D"
+        # are exactly the kind of GM-offered-but-undefined letters at issue.
+        return EventSkeleton(
+            event_id="test_two_choice_event",
+            title="Test",
+            category=EventCategory.SURVIVAL,
+            fallback_narration="x",
+            outcome_templates={
+                "A": EventOutcome(supplies_delta={"food": -1}),
+                "B": EventOutcome(time_cost=1),
+            },
+        )
+
+    def test_offered_letter_beyond_templates_is_not_a_silent_noop(self):
+        """A scene offering more choices than the event has outcomes must not
+        produce a selectable option that silently does nothing. Fails
+        pre-fix: resolve_event() returned EventOutcome() (all-zero, no
+        special_flags), identical to a legitimate zero-delta outcome."""
+        from escape_the_valley.events import EventOutcome
+
+        state = create_new_run(seed=42)
+        event = self._lettered_event()
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "C", rng)
+
+        assert outcome != EventOutcome(), (
+            "an offered-but-undefined choice must not resolve to a blank, "
+            "indistinguishable-from-legitimate no-op outcome"
+        )
+        assert "undefined_choice_miss" in outcome.special_flags
+
+    def test_fourth_letter_beyond_templates_is_also_a_visible_miss(self):
+        """Same as above for the 4-choice-scene case ("D") -- the brief's
+        measurement found 0/260 events define a 4th outcome at all, so any
+        4-choice GM scene hits this on every single event in the library."""
+        from escape_the_valley.events import EventOutcome
+
+        state = create_new_run(seed=42)
+        event = self._lettered_event()
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "D", rng)
+
+        assert outcome != EventOutcome()
+        assert "undefined_choice_miss" in outcome.special_flags
+
+    def test_visible_miss_does_not_draw_rng(self):
+        """The miss path must stay a pure, deterministic fallback -- drawing
+        RNG here would shift the seeded draw sequence for every resolve()
+        call that follows in the same run, silently breaking replay.
+        SeededRNG.counter increments once per draw (models.py), so an
+        unchanged counter is a direct proof of zero draws."""
+        state = create_new_run(seed=42)
+        event = self._lettered_event()
+        rng = SeededRNG(42)
+
+        before = rng.counter
+        resolve_event(state, event, "Z", rng)
+
+        assert rng.counter == before
+
+    def test_missing_template_choice_logs_a_warning(self, caplog):
+        """Matches event_loader.py's established diagnostic style (F-fa99f19f
+        fix): a WARNING naming both the event_id and the offending choice_id,
+        where previously events.py logged nothing at all."""
+        state = create_new_run(seed=42)
+        event = self._lettered_event()
+        rng = SeededRNG(42)
+
+        with caplog.at_level(logging.WARNING):
+            resolve_event(state, event, "D", rng)
+
+        matches = [r for r in caplog.records if "test_two_choice_event" in r.message]
+        assert matches, "expected a warning naming the event_id"
+        assert any("'D'" in r.message or '"D"' in r.message for r in matches)
+
+    def test_known_choice_ids_are_unaffected(self):
+        """Guard against over-fixing: a choice_id that IS in outcome_templates
+        must still resolve to that template's real deltas, not the miss."""
+        state = create_new_run(seed=42)
+        event = self._lettered_event()
+        rng = SeededRNG(42)
+
+        outcome = resolve_event(state, event, "B", rng)
+
+        assert outcome.time_cost == 1
+        assert "undefined_choice_miss" not in outcome.special_flags
 
 
 class TestAnimalsHealthOutcome:

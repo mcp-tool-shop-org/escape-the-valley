@@ -14,6 +14,14 @@ on:
       - "pyproject.toml"
       - ".github/workflows/**"
   workflow_dispatch:
+  # F-9e2c5220: reusable-workflow entry point so release.yml can gate the
+  # tagged commit on this exact matrix (lint + xrpl-extra test run) before
+  # publishing, instead of trusting "it presumably passed CI on main at some
+  # point". A tag push does not reliably re-run the `push.paths` trigger
+  # above for an existing commit, so release.yml calling in here via
+  # `uses: ./.github/workflows/ci.yml` is the only way the commit being
+  # tagged is actually verified at release time.
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

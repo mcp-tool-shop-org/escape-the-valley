@@ -5,7 +5,7 @@
 
 **Tags:** `[all]` every repo · `[npm]` `[pypi]` `[vsix]` `[desktop]` `[container]` published artifacts · `[mcp]` MCP servers · `[cli]` CLI tools
 
-**Release:** v1.1.0 — gated 2026-06-15
+**Release:** v1.1.1 shipped 2026-06-15. Hygiene evidence below re-checked 2026-08-25 on `harden/stage-a-amend` (post Stage-A binary/smoke fix; not yet tagged).
 
 ---
 
@@ -45,8 +45,8 @@
 
 ## D. Shipping Hygiene
 
-- [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-06-15) — `scripts/verify.sh`: `ruff check` + `pytest` under `set -e`
-- [x] `[all]` Version in manifest matches git tag (2026-06-15) — `pyproject.toml` version `1.1.0` == `__init__.__version__` `1.1.0` (cli-tui-006 unified strings); tag cut at release time on this commit
+- [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-08-25) — split honestly: `scripts/verify.sh` is lint + offline tests (`ruff check` + `pytest` under `set -e`). Build + content smoke for the PyInstaller artifact is `scripts/smoke_test_binary.py`, invoked from `release-binaries.yml` after the build: it runs the frozen binary `--help` *and* asserts a loaded event-library count ≥ 200 (the 60-event quarter-game if `event_skeletons.json` is missing). `verify.sh` alone is not a build-and-smoke check.
+- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.1.1` == `__init__.__version__` `1.1.1`; latest tag `v1.1.1`. Next tag is cut at release time on the amend commit, not this working tree.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) (2026-06-15) — `ci.yml` runs `pip-audit` against installed deps on every push/PR (non-blocking report; advisory surfaced in job log)
 - [ ] `[all]` SKIP: no `dependabot.yml` — org GitHub Actions budget rule forbids scheduled/dependabot workflows on tool repos (`.claude/rules/github-actions.md`: "Do NOT add dependabot.yml unless explicitly requested"; scheduled workflows allowed only in the marketing repo). Update cadence is manual + the CI `pip-audit` advisory feed.
 - [ ] `[npm]` SKIP: not an npm package (PyPI)

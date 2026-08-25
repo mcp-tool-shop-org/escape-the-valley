@@ -384,6 +384,7 @@ def _state_to_dict(state: RunState) -> dict:
         "escape_valve_cooldown": state.escape_valve_cooldown,
         "last_action": state.last_action,
         "maintained_turns_remaining": state.maintained_turns_remaining,
+        "last_spoilage_day": state.last_spoilage_day,
         "backpack": _backpack_to_dict(state.backpack),
         "callout_level": state.callout_level,
     }
@@ -422,6 +423,29 @@ def _dict_to_state(data: dict) -> RunState:
     map_data = data.get("map_nodes", [])
     journal_data = data.get("journal", [])
 
+    # F-e86c2e71: destination_id is loaded with NO referential check against
+    # map_data, on purpose -- considered and deliberately rejected, not an
+    # oversight. The finding's own suggested fix was to validate here and
+    # route an unresolvable value through _backup_corrupt_save() (like the
+    # save_version/KeyError/TypeError/ValueError paths above already do).
+    # That was rejected because it would fight the engine-side fix this same
+    # finding requires (step_engine.py._arrive_at_next_node /
+    # engine.py._arrive_at_next_node): the mandated recovery there is to fail
+    # safe by repointing destination_id at the party's OWN location_id, not
+    # to clear it -- so it always re-resolves to a real map_nodes entry (the
+    # node itself) on the very next load. A hand-tampered destination_id
+    # that has *not* yet been touched by that recovery is the only shape
+    # this check could ever actually catch, and it is caught anyway: loading
+    # it produces a RunState the engine can no longer be tricked by (dest
+    # resolution fails safe, it can never manufacture a false VICTORY,
+    # covered by tests/test_save.py::TestDanglingDestinationIdRoundTrip's
+    # save/load round trips), so rejecting it here would only add a
+    # strictly worse outcome -- the whole
+    # run quarantined as "corrupt" and, per cli.py's load_game() collapsing
+    # "corrupt" and "no_save" to the same message, presented to the player
+    # as "No saved game found" with no in-app recovery -- for a save the
+    # engine already knows how to play through safely. Closing the write
+    # site is the engine's job now, not the loader's.
     return RunState(
         run_id=data["run_id"],
         seed=data["seed"],
@@ -507,6 +531,10 @@ def _dict_to_state(data: dict) -> RunState:
         maintained_turns_remaining=data.get(
             "maintained_turns_remaining", 0,
         ),
+        # Legacy saves predate this guard -> 0 ("never fired"), same as a
+        # fresh run. Worst case for an old in-flight save is one extra
+        # spoilage roll on the very next qualifying day, not a regression.
+        last_spoilage_day=data.get("last_spoilage_day", 0),
         backpack=_load_backpack(data.get("backpack", {})),
         callout_level=data.get("callout_level", "verbose"),
     )

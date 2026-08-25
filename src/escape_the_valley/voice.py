@@ -75,6 +75,11 @@ DEFAULT_VOICE = "bm_george"
 _PLAYBACK_SAFETY_CAP_S = 60.0
 # Small tail so the loop doesn't cut the last fraction of audio.
 _PLAYBACK_TAIL_S = 0.25
+# F-a4bc65d6 — every other external call in this file is time-bounded
+# (subprocess timeout=30, the winsound safety cap above); engine.speak()
+# wasn't. Bound it too so a stalled model load / wedged audio backend /
+# hung network TTS call can't freeze the worker thread forever.
+_SPEAK_TIMEOUT_S = 20.0
 
 
 def _wav_duration_seconds(path: Path) -> float | None:
@@ -155,6 +160,9 @@ class VoiceBridge:
         # `status()` to notify the player that the DM has gone quiet and why.
         self._runtime_failed = False
         self.last_error: str | None = None
+        # F-a4bc65d6 — instance attribute (not just a module constant) so
+        # tests can shrink it instead of waiting out a real hang.
+        self._speak_timeout_s = _SPEAK_TIMEOUT_S
 
     @property
     def available(self) -> bool:
@@ -193,22 +201,39 @@ class VoiceBridge:
         gm-B-06 — the single place an infra failure becomes visible: set the
         last-error string the UI reads, mark voice unavailable, disable the
         config so nothing re-enqueues, and stop the worker. Never raises.
+
+        F-1c310d6b / F-b68b2a77 — also clear `_engine`/`_worker` here so
+        neither `enqueue()` (gated on `_engine` truthiness) nor `start()`
+        (gated on worker liveness, via `toggle()`) can be fooled by a stale
+        reference into treating a dead bridge as still running.
         """
         self.last_error = reason
         self._runtime_failed = True
         self.config.enabled = False
         logger.warning("Voice disabled: %s", reason)
         self._stop.set()
+        self._engine = None
+        self._worker = None
 
     def start(self) -> bool:
         """Initialize engine and start worker thread.
 
-        Returns True if voice started successfully.
+        Returns True if voice is running after this call — either a fresh
+        worker was started successfully, or one was already alive. This is
+        the single source of truth `toggle()` defers to; it deliberately
+        does NOT trust `self._engine`'s truthiness, since a dead worker can
+        leave a stale-but-truthy engine reference behind (F-1c310d6b).
         """
         # gm-B-06 — once runtime infra has failed, do not keep retrying it; a
         # dead audio stack stays dead for the session.
         if not _HAS_VOICE or not self.config.enabled or self._runtime_failed:
             return False
+
+        # F-1c310d6b — already running: don't stack a second engine/worker
+        # on top of a live one (e.g. a healthy toggle-off/toggle-on cycle).
+        # Liveness, not `_engine` truthiness, is the source of truth.
+        if self._worker is not None and self._worker.is_alive():
+            return True
 
         try:
             cache_dir = Path.home() / ".trail" / "voice_cache"
@@ -230,16 +255,23 @@ class VoiceBridge:
             )
             return True
         except Exception as exc:
-            # gm-B-06 — engine init failed; record it and flip voice off so the
-            # UI can say why, instead of a silent log.
+            # gm-B-06 — engine init failed; record it and flip voice off so
+            # the UI can say why, instead of a silent log. _fail_runtime()
+            # clears _engine/_worker too.
             logger.warning("Voice DM failed to start", exc_info=True)
-            self._engine = None
             self._fail_runtime(f"voice engine failed to start: {exc}")
             return False
 
     def enqueue(self, event: NarrationEvent) -> None:
-        """Add a narration event to the playback queue."""
-        if not self._engine or self._stop.is_set():
+        """Add a narration event to the playback queue.
+
+        F-b68b2a77 — `None` is `stop()`'s internal shutdown sentinel.
+        Reject it unconditionally so only `stop()`'s own `put_nowait(None)`
+        can ever place one on the queue; a `None` from any other caller
+        would otherwise make the worker exit exactly like a real stop,
+        while every health flag is left reporting healthy.
+        """
+        if event is None or not self._engine or self._stop.is_set():
             return
         try:
             self._queue.put_nowait(event)
@@ -279,17 +311,29 @@ class VoiceBridge:
             pass
         if self._worker and self._worker.is_alive():
             self._worker.join(timeout=2.0)
+        # F-1c310d6b — a stopped bridge has no live engine/worker; clear the
+        # references so a later start() rebuilds from scratch instead of
+        # trusting stale objects.
+        self._engine = None
+        self._worker = None
 
     def toggle(self) -> bool:
-        """Toggle voice on/off. Returns new state."""
+        """Toggle voice on/off. Returns whether voice is running afterward.
+
+        F-1c310d6b — the on-branch used to gate restart on `self._engine`
+        being a truthy object and then unconditionally return True, so a
+        stale post-failure engine reference made this method claim success
+        on a recovery attempt that never actually restarted anything.
+        `start()` is now the single source of truth for liveness (it
+        no-ops safely if voice is already running, and fails honestly if
+        the runtime previously died) — this method just relays its answer.
+        """
         if self.config.enabled:
             self.config.enabled = False
             self.interrupt()
             return False
         self.config.enabled = True
-        if not self._engine:
-            self.start()
-        return True
+        return self.start()
 
     # ── Worker thread ──────────────────────────────────────────────
 
@@ -303,7 +347,23 @@ class VoiceBridge:
             except Empty:
                 continue
 
-            if event is None or self._stop.is_set():
+            if event is None:
+                if self._stop.is_set():
+                    # Expected shutdown sentinel from stop().
+                    break
+                # F-b68b2a77 — enqueue() rejects None, so the only way one
+                # reaches here unexpectedly is a future caller bug writing
+                # to the queue directly. Exiting silently would leave
+                # status()/available reporting healthy forever while
+                # nothing is ever spoken again — the exact pattern this
+                # module exists to avoid. Surface it like any other
+                # failure instead of a silent break.
+                self._fail_runtime(
+                    "voice worker received an unexpected stop signal"
+                )
+                break
+
+            if self._stop.is_set():
                 break
 
             try:
@@ -313,12 +373,7 @@ class VoiceBridge:
                 if self._stop.is_set():
                     break
 
-                result = self._engine.speak(
-                    event.voice_text,
-                    voice=self.config.voice_id,
-                    speed=self.config.speed,
-                    style=self.config.style,
-                )
+                result = self._speak_with_timeout(event)
 
                 self._playing.set()
                 self._play_audio(result.audio_path)
@@ -330,6 +385,48 @@ class VoiceBridge:
                 self._playing.clear()
                 self._fail_runtime(f"voice playback failed: {exc}")
                 break
+
+    def _speak_with_timeout(self, event: NarrationEvent):
+        """Run engine.speak() off-thread, bounded by `_speak_timeout_s`.
+
+        F-a4bc65d6 — speak() is an uncontrolled external call (first-run
+        model load, native audio backend, network-backed TTS); every other
+        external call in this file is time-bounded and this one wasn't.
+        Run it on a helper daemon thread so a hang can be detected instead
+        of wedging the worker thread forever, then raise so the caller's
+        existing except-block routes it into `_fail_runtime` exactly like
+        any other synth/playback failure. Python cannot forcibly cancel a
+        blocked call, so a genuine hang leaves the helper thread abandoned
+        (daemon, so it can't block process exit) rather than actually
+        stopped.
+        """
+        result_box = []
+        error_box: list[Exception] = []
+
+        def _run() -> None:
+            try:
+                result_box.append(self._engine.speak(
+                    event.voice_text,
+                    voice=self.config.voice_id,
+                    speed=self.config.speed,
+                    style=self.config.style,
+                ))
+            except Exception as exc:
+                error_box.append(exc)
+
+        runner = threading.Thread(target=_run, daemon=True, name="voice-speak")
+        runner.start()
+        runner.join(timeout=self._speak_timeout_s)
+
+        if runner.is_alive():
+            # Still blocked past the deadline — abandon it and fail over.
+            raise TimeoutError(
+                f"voice engine speak() timed out after "
+                f"{self._speak_timeout_s}s"
+            )
+        if error_box:
+            raise error_box[0]
+        return result_box[0]
 
     def _play_audio(self, path: Path) -> None:
         """Play WAV with interrupt support."""

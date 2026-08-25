@@ -10,10 +10,13 @@ card's `day_last_seen`/`cooldown_until` bookkeeping. Pure helpers
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from .models import Condition, MemoryCard, RunState
 from .physics import journey_pressure
+
+logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────
 
@@ -59,9 +62,24 @@ TAG_TO_THEME: dict[str, str] = {
 
 def add_card(state: RunState, card: MemoryCard) -> None:
     """Append a card, enforcing budget by evicting lowest-salience."""
-    # Deduplicate: skip if card with same id exists
+    # Deduplicate: skip if card with same id exists.
+    #
+    # F-6f03c718 (defense in depth) — this drop used to be completely
+    # silent: same id in, bare `return`, no trace. The dedup itself is
+    # still correct (id equality is the store's key), but a warning turns
+    # an invisible loss into something a log-reader or a re-audit can
+    # actually see and attribute to a specific id/kind/day, rather than
+    # having to rediscover it empirically the way this finding was found.
     for existing in state.memory_cards:
         if existing.id == card.id:
+            logger.warning(
+                "add_card: dropping card with duplicate id=%r "
+                "(incoming kind=%s day_created=%s source=%s; "
+                "kept existing kind=%s day_created=%s source=%s)",
+                card.id,
+                card.kind, card.day_created, card.source,
+                existing.kind, existing.day_created, existing.source,
+            )
             return
 
     state.memory_cards.append(card)
@@ -170,6 +188,13 @@ def compute_pressures(state: RunState) -> list[str]:
     return [label for _, label in pressures]
 
 
+def _lowered_str_tags(tags: object) -> list[str]:
+    """Lowercase only non-empty str tags; skip None/int/dict/'' (F-bcf0063c)."""
+    if not isinstance(tags, list):
+        return []
+    return [t.lower() for t in tags if isinstance(t, str) and t]
+
+
 def compute_themes(state: RunState) -> list[str]:
     """Derive 1-3 theme tags from recent journal entries + event tags."""
     raw_tags: list[str] = []
@@ -183,8 +208,8 @@ def compute_themes(state: RunState) -> list[str]:
 
     # Map to themes
     theme_counts: dict[str, int] = {}
-    for tag in raw_tags:
-        theme = TAG_TO_THEME.get(tag.lower())
+    for tag in _lowered_str_tags(raw_tags):
+        theme = TAG_TO_THEME.get(tag)
         if theme:
             theme_counts[theme] = theme_counts.get(theme, 0) + 1
 
@@ -220,8 +245,8 @@ def retrieve_memories(
     # Current context tags for scoring
     context_tags: set[str] = set()
     for entry in state.journal[-3:]:
-        context_tags.update(t.lower() for t in entry.tags)
-    context_tags.update(t.lower() for t in state.recent_event_tags)
+        context_tags.update(_lowered_str_tags(entry.tags))
+    context_tags.update(_lowered_str_tags(state.recent_event_tags))
 
     # Add pressure-derived tags
     pressures = compute_pressures(state)
@@ -238,7 +263,7 @@ def retrieve_memories(
         score = 0.0
 
         # Tag overlap: 0.2 per matching tag
-        card_tags = {t.lower() for t in card.tags}
+        card_tags = set(_lowered_str_tags(card.tags))
         overlap = len(card_tags & context_tags)
         score += overlap * 0.2
 

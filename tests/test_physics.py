@@ -13,9 +13,11 @@ from escape_the_valley.physics import (
     can_desperate_repair,
     can_hard_ration,
     check_breakdown,
+    check_spoilage,
     compute_daily_consumption,
     compute_travel_distance,
     desperate_repair,
+    halve_consumption,
     hard_ration,
     journey_pressure,
     rest_day,
@@ -505,3 +507,98 @@ class TestDoctrineHuntBonus:
             if attempt_hunt(state, SeededRNG(s)).get("food", 0) > 0
         )
         assert s_tl >= s_none
+
+
+class TestSpoilageOncePerDay:
+    """F-ec4745c1: check_spoilage() must fire at most once per qualifying
+    day. _do_travel() can call it several times within one calendar day (a
+    day spans multiple time-of-day advances), and before the fix every call
+    that saw day % 3 == 0 rolled a fresh loss."""
+
+    def test_fires_on_first_qualifying_call(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("salt", 0)
+        state.supplies.food = 100
+        state.day = 3
+
+        result = check_spoilage(state, SeededRNG(1))
+
+        assert result.get("food", 0) < 0
+        assert state.last_spoilage_day == 3
+
+    def test_does_not_fire_twice_on_the_same_day(self):
+        """The core regression: repeated calls on the same day%3==0 day
+        (as happens across 3+ TRAVEL actions) must roll at most once."""
+        state = create_new_run(seed=42)
+        state.supplies.set("salt", 0)
+        state.supplies.food = 100
+        state.day = 3
+
+        first = check_spoilage(state, SeededRNG(1))
+        second = check_spoilage(state, SeededRNG(2))
+        third = check_spoilage(state, SeededRNG(3))
+
+        assert first != {}
+        assert second == {}
+        assert third == {}
+
+    def test_fires_again_on_the_next_qualifying_day(self):
+        """The guard must not permanently suppress the mechanic -- day 6
+        (the next day % 3 == 0) rolls again after day 3 already fired."""
+        state = create_new_run(seed=42)
+        state.supplies.set("salt", 0)
+        state.supplies.food = 100
+        state.day = 3
+        check_spoilage(state, SeededRNG(1))
+
+        state.day = 6
+        result = check_spoilage(state, SeededRNG(2))
+
+        assert result.get("food", 0) < 0
+        assert state.last_spoilage_day == 6
+
+    def test_no_op_on_non_qualifying_day(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("salt", 0)
+        state.supplies.food = 100
+        state.day = 4  # 4 % 3 != 0
+
+        assert check_spoilage(state, SeededRNG(1)) == {}
+        # A non-firing day must not consume/advance the guard either.
+        assert state.last_spoilage_day == 0
+
+    def test_salt_prevents_spoilage_regardless_of_guard(self):
+        state = create_new_run(seed=42)
+        state.supplies.set("salt", 5)
+        state.supplies.food = 100
+        state.day = 3
+
+        assert check_spoilage(state, SeededRNG(1)) == {}
+
+
+class TestHalveConsumption:
+    """F-4d750550: halving a consumption delta must round toward zero, not
+    floor toward -inf. compute_daily_consumption() returns NEGATIVE deltas,
+    and plain `v // 2` on a negative odd value rounds away from zero
+    (-1 // 2 == -1 -- a full day's cost charged for a half-day action)."""
+
+    def test_magnitude_one_rounds_to_zero(self):
+        assert halve_consumption({"food": -1}) == {"food": 0}
+
+    def test_odd_magnitude_rounds_toward_zero(self):
+        assert halve_consumption({"food": -7}) == {"food": -3}
+
+    def test_even_magnitude_is_exact_half(self):
+        assert halve_consumption({"water": -8}) == {"water": -4}
+
+    def test_zero_stays_zero(self):
+        assert halve_consumption({"firewood": 0}) == {"firewood": 0}
+
+    def test_never_exceeds_half_the_full_day_magnitude(self):
+        state = create_new_run(seed=42)
+        state.doctrine = ""  # isolate from doctrine consumption_mult
+        full = compute_daily_consumption(state)
+        half = halve_consumption(full)
+        for key, full_v in full.items():
+            half_v = half.get(key, 0)
+            assert abs(half_v) * 2 <= abs(full_v)
