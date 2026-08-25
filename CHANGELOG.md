@@ -6,6 +6,11 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **Ledger overlay dynamic fragments all go through `_escape_dynamic`.**
+  `show_failure` still used `escape()`, which does not neutralize a leftover
+  `[` after truncation (`rSender[...`) — a reachable player-typed send-parcel
+  path. `EnableFlowOverlay.show_success` interpolated the address raw. Chrome
+  `[b]` stays markup.
 - **GM-offered event letters are capped to templates that have an outcome.**
   A 4-choice GM scene on a 2-template event now offers A/B, not A/B/C/D that
   `resolve_event` cannot honor. Both engines. Fallback choices were already
