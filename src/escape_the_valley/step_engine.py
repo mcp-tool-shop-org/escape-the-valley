@@ -69,6 +69,15 @@ log = logging.getLogger(__name__)
 
 # ── Message types ───────────────────────────────────────────────────
 
+# F-d4a8ed17: the fixed letter set EventChoiceInfo.id is constrained to.
+# Mirrors tui_app.py's `ChoiceId = Literal["A", ..., "G"]` -- the UI trusts
+# a rendered choice's `.id` as that literal set and skips markup-escaping
+# it on that basis, so the engine (this module) is the boundary that must
+# actually make it true for every EventChoiceInfo it builds, not just the
+# ones sourced from this engine's own static ChoiceTemplate data.
+_EVENT_CHOICE_LETTERS = "ABCDEFG"
+
+
 @dataclass
 class EventChoiceInfo:
     """A single choice the player can pick during an event."""
@@ -284,6 +293,43 @@ class StepEngine:
             # either way -- entering ROUTE and staying in CAMP both mean
             # "nothing left to advance this action."
             return
+
+        # F-32a5a4a9: a node with exactly one raw connection skips the
+        # fork check above entirely (by design -- no player choice is
+        # needed for a single path), so it was never subjected to the
+        # same self-edge/dangling-id validation a fork's raw connections
+        # get. _arrive_at_next_node now refuses to wire destination_id
+        # from an invalid sole connection (see its "Set up next leg"
+        # comment) and instead leaves destination_id/distance_remaining
+        # pointed at THIS node (0 remaining). Catch that stalled shape
+        # here and refuse to advance, loudly, at zero cost -- every
+        # subsequent travel action, not just the first -- instead of
+        # silently re-arriving at this same node forever (F-803bd813) or,
+        # once a stale distance_remaining ran out on a leg that was never
+        # real, hitting the ENG-B-09 map_nodes[-1] beeline.
+        if (
+            node
+            and len(node.connections) == 1
+            and self.state.distance_remaining <= 0
+        ):
+            conn_id = node.connections[0]
+            valid = conn_id != node.node_id and any(
+                n.node_id == conn_id for n in self.state.map_nodes
+            )
+            if not valid:
+                log.warning(
+                    "node %r has one connection (%r) that does not "
+                    "resolve to a real, non-self map node; no legitimate "
+                    "route exists -- refusing to advance travel instead "
+                    "of fabricating progress",
+                    node.node_id, conn_id,
+                )
+                self.msgs.lines.append(
+                    "The trail forks, but every route is broken or leads "
+                    f"nowhere. The party can't press on from {node.name} "
+                    "this way."
+                )
+                return
 
         distance = compute_travel_distance(self.state)
 
@@ -725,14 +771,29 @@ class StepEngine:
         if scene and scene.choices:
             title = scene.title or event.title
             narration = scene.narration or event.fallback_narration
+            # F-d4a8ed17: `c` here is unvalidated GM JSON (scene.choices).
+            # The fallback branch below sets `id=c.choice_id`, drawn from
+            # this engine's own static ChoiceTemplate data -- already
+            # safely constrained. This branch used to trust the GM's own
+            # `c.get("id", "?")` verbatim, which is exactly what the UI's
+            # markup-escaping exemption assumes never happens (see
+            # _EVENT_CHOICE_LETTERS above). Coerce positionally (list
+            # index -> letter) instead of trusting the GM's id field at
+            # all: the same enforcement-boundary pattern _handle_route_
+            # choice's idx_map already applies to player-submitted route
+            # picks. This guarantees every EventChoiceInfo.id is one of
+            # "A".."G" with no duplicates; a GM scene offering more than
+            # 7 choices has the excess dropped rather than assigned an
+            # id outside that set.
             choices = [
                 EventChoiceInfo(
-                    id=c.get("id", "?"),
+                    id=_EVENT_CHOICE_LETTERS[i],
                     label=c.get("label", "?"),
                     risk_hint=c.get("risk_hint", ""),
                     cost_hint=c.get("cost_hint", ""),
                 )
-                for c in scene.choices
+                for i, c in enumerate(scene.choices)
+                if i < len(_EVENT_CHOICE_LETTERS)
             ]
         else:
             # ENG-B-05: GM was enabled but produced nothing usable — fall back to
@@ -1110,12 +1171,53 @@ class StepEngine:
         # Set up next leg
         if dest.connections:
             if len(dest.connections) == 1:
+                # F-32a5a4a9: the fork arm of this same `if` (>1
+                # connections) is validated by _build_route_choices, which
+                # excludes a self-edge and requires the id resolve to a
+                # real map_nodes entry (F-0877c51a/F-3abad222). This lone-
+                # connection arm used to wire destination_id straight from
+                # the raw id with no such check -- a dangling id (only
+                # reachable via a corrupted/altered save; generate_map()
+                # never produces this) would sail through here unnoticed,
+                # then get "discovered" on a LATER leg by this method's own
+                # ENG-B-09 recovery above, which beelines to map_nodes[-1]
+                # and manufactures a false VICTORY. Apply the same policy
+                # here: if the sole connection is a self-edge or doesn't
+                # resolve, leave destination_id/distance_remaining exactly
+                # as already set above (this node, distance 0) instead of
+                # committing to it. _do_travel's matching guard turns that
+                # stalled state into a loud, zero-cost refusal on the next
+                # travel action instead of a silent re-arrival loop that
+                # drains supplies/time forever (F-803bd813).
                 next_id = dest.connections[0]
-                self.state.destination_id = next_id
-                self.state.distance_remaining = (
-                    dest.distance_to.get(next_id, 15)
-                )
+                if next_id != dest.node_id and any(
+                    n.node_id == next_id for n in self.state.map_nodes
+                ):
+                    self.state.destination_id = next_id
+                    self.state.distance_remaining = (
+                        dest.distance_to.get(next_id, 15)
+                    )
             # Multi-connection → ROUTE phase on next travel
+
+    def _backpack_persist_hook(self, state: RunState) -> None:
+        """Bound to BackpackManager(persist=...) at each construction site
+        below (F-d178410b). Without this, a crash between an on-chain
+        Payment confirming and the NEXT full-state save() replays that
+        same resource's delta on reload, double-settling it -- the crash-
+        window bug this hook exists to close (see backpack.py's
+        BackpackManager.__init__ / _persist_state docstrings).
+
+        Deliberately NOT `persist=save_game` bare: that would ignore this
+        engine's own autosave/base_path contract (see _save above) and
+        write to bare CWD unconditionally, including for a caller that
+        constructed this engine with autosave=False specifically to get
+        zero disk writes (e.g. a proof/test harness). Mirrors _save's own
+        guard exactly, so a mid-settlement persist can never write when
+        the end-of-step autosave wouldn't have.
+        """
+        if not self._autosave:
+            return
+        save_game(state, self._base_path)
 
     def _settle_checkpoint(self, dest) -> None:
         """Settle Ledger Backpack at a town checkpoint.
@@ -1129,7 +1231,7 @@ class StepEngine:
         try:
             from .backpack import BackpackManager
 
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=self._backpack_persist_hook)
             try:
                 result = mgr.settle(self.state, dest.name)
                 if result.success and result.txids:
@@ -1179,7 +1281,7 @@ class StepEngine:
         try:
             from .backpack import BackpackManager
 
-            mgr = BackpackManager()
+            mgr = BackpackManager(persist=self._backpack_persist_hook)
             try:
                 parcels = mgr.check_parcels(self.state)
                 for parcel in parcels:

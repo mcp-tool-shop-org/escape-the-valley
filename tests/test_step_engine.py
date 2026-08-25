@@ -2042,6 +2042,374 @@ def test_gameengine_single_resolvable_connection_message_is_accurate(monkeypatch
     assert not any("last known waypoint" in m for m in messages)
 
 
+# ── F-32a5a4a9 (wave 8): the single-connection arm of the same `if` ────
+#
+# Wave 6 hardened the FORK arm (len(node.connections) > 1) of
+# _check_route_choice/_build_route_choices against a self-edge or a
+# dangling connection id. The `== 1` arm of the same conditional was never
+# touched: _arrive_at_next_node wrote destination_id from
+# dest.connections[0] with no validation at all. A dangling (or self-edge)
+# sole connection would sail through unnoticed and only get "discovered"
+# on a LATER leg by the ENG-B-09 recovery, which beelines to
+# map_nodes[-1] and manufactures a false, unearned VICTORY -- exactly the
+# failure class wave 6 closed for forks but left open here. Reused by the
+# GameEngine mirrors below, same convention as _dangling_fork_state /
+# _self_edge_fork_state above.
+
+
+def _dangling_single_connection_state(seed: int = 50):
+    """A 3-node map: prev -[1mi]-> mid -[dangling 'ghost-dangling']->
+    nothing, plus far_end as map_nodes[-1] -- the finding's own repro
+    shape. mid has exactly ONE raw connection (not a fork), so this never
+    reaches _build_route_choices/_check_route_choice's fork machinery; it
+    is handled solely by _arrive_at_next_node's "set up next leg" tail."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["mid"], distance_to={"mid": 1},
+    )
+    mid = MapNode(
+        node_id="mid", name="Mid", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["ghost-dangling"], distance_to={"ghost-dangling": 10},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [prev, mid, far_end]
+    state.location_id = "prev"
+    state.destination_id = "mid"
+    state.distance_remaining = 1
+    return state
+
+
+def _self_edge_single_connection_state(seed: int = 51):
+    """A node whose sole connection is itself -- the single-connection
+    counterpart to F-0877c51a's fork self-edge case. A self-edge is never
+    a legitimate route no matter how many raw connections carry it."""
+    from escape_the_valley.models import Biome, MapNode
+
+    prev = MapNode(
+        node_id="prev", name="Prev", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["loop"], distance_to={"loop": 1},
+    )
+    loop = MapNode(
+        node_id="loop", name="Loop", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+        connections=["loop"], distance_to={"loop": 5},
+    )
+    far_end = MapNode(
+        node_id="far_end", name="Far End", biome=Biome.PLAINS, hazard=1,
+        water_available=False, temperature=15,
+    )
+    state = create_new_run(seed=seed)
+    state.map_nodes = [prev, loop, far_end]
+    state.location_id = "prev"
+    state.destination_id = "loop"
+    state.distance_remaining = 1
+    return state
+
+
+def test_dangling_single_connection_does_not_manufacture_victory():
+    """F-32a5a4a9: arriving at a node whose sole connection is dangling
+    must neither wire destination_id to the unresolvable id (which a
+    later leg's arrival check would "discover" via the ENG-B-09
+    map_nodes[-1] beeline, manufacturing a false VICTORY after skipping
+    far_end's entire approach) nor silently re-arrive at "mid" forever,
+    draining supplies/time for a leg that never happens (F-803bd813). The
+    party must stall at "mid", loudly, at zero cost, every subsequent
+    travel action."""
+    state = _dangling_single_connection_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    # First travel arrives at "mid" legitimately (a real 1-mile leg).
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    # NOT wired to the dangling id -- the write was refused.
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+    rng_counter_after_arrival = engine.rng.counter
+
+    # Repeated travel attempts must neither teleport to far_end
+    # (map_nodes[-1]) nor drain supplies/time for a fake leg.
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "mid"
+    assert engine.state.location_id != "far_end"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    # Zero RNG draws on the refused path -- the guard returns before
+    # _do_travel reaches any RNG-consuming step (breakdown/health/event).
+    assert engine.rng.counter == rng_counter_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+    assert not engine.state.victory
+
+
+def test_self_edge_single_connection_does_not_loop_or_manufacture_victory():
+    """F-32a5a4a9: a sole connection that points back at the current node
+    itself (a self-edge) must be excluded exactly like a fork's self-edge
+    (F-0877c51a) -- not treated as "the one real route", which would
+    reproduce the original infinite-travel bug (destination_id == this
+    node's own id, forever)."""
+    state = _self_edge_single_connection_state()
+    engine = StepEngine(state, GMConfig(enabled=False))
+
+    engine._do_travel()
+    assert engine.state.location_id == "loop"
+    assert engine.state.destination_id == "loop"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "loop"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_dangling_single_connection_does_not_manufacture_victory(monkeypatch):
+    """F-32a5a4a9: GameEngine mirror of
+    test_dangling_single_connection_does_not_manufacture_victory --
+    _check_route_choice's `len(connections) <= 1` early return used to
+    skip validation entirely for a lone connection, so
+    _arrive_at_next_node's unvalidated write sailed straight through to
+    the ENG-B-09 map_nodes[-1] beeline on a later leg."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _dangling_single_connection_state(seed=52)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+    assert engine.state.location_id == "mid"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_remaining == 0
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "mid"
+    assert engine.state.location_id != "far_end"
+    assert engine.state.destination_id == "mid"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+def test_gameengine_self_edge_single_connection_does_not_loop_or_manufacture_victory(monkeypatch):
+    """F-32a5a4a9: GameEngine mirror of
+    test_self_edge_single_connection_does_not_loop_or_manufacture_victory."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = _self_edge_single_connection_state(seed=53)
+    engine = GameEngine(state, GMConfig(enabled=False))
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+
+    engine._do_travel()
+    assert engine.state.location_id == "loop"
+    assert engine.state.destination_id == "loop"
+
+    distance_after_arrival = engine.state.distance_traveled
+    food_after_arrival = engine.state.supplies.food
+
+    for _ in range(5):
+        engine._do_travel()
+
+    assert engine.state.location_id == "loop"
+    assert engine.state.distance_traveled == distance_after_arrival
+    assert engine.state.supplies.food == food_after_arrival
+    assert check_game_over(engine.state) != "VICTORY"
+
+
+# ── F-d4a8ed17 (wave 8): GM-supplied event choice ids are coerced at ───
+# the engine boundary
+#
+# tui_app.py's ChoiceId = Literal["A".."G"] exempts a rendered choice's
+# `.id` from markup escaping on the stated grounds that it is "the
+# constrained ChoiceId literal (A-G) set by the engine" -- true of the
+# fallback branch (id=c.choice_id, this engine's own static
+# ChoiceTemplate data) but, before this fix, false of the GM branch
+# (id=c.get("id", "?"), unvalidated GM JSON). The UI renders; the engine
+# is the enforcement boundary that must actually make the UI's assumption
+# true.
+
+
+class _MaliciousChoiceScene:
+    """A GM scene whose choice ids are attacker/model-controlled garbage
+    instead of the constrained A-G literal set -- script-injection-shaped,
+    empty, and (for the third choice) missing entirely."""
+
+    def __init__(self):
+        self.title = "A Stranger at Dusk"
+        self.narration = "The trail narrows."
+        self.choices = [
+            {"id": "<script>alert(1)</script>", "label": "Press on",
+             "risk_hint": "", "cost_hint": ""},
+            {"id": "", "label": "Make camp", "risk_hint": "", "cost_hint": ""},
+            {"label": "Turn back", "risk_hint": "", "cost_hint": ""},
+        ]
+        self.memory_proposals = []
+
+
+class _MaliciousChoiceGM:
+    def __init__(self):
+        self.config = GMConfig(enabled=True)
+
+    def generate_scene(self, *a, **k):
+        return _MaliciousChoiceScene()
+
+    def generate_outcome(self, *a, **k):
+        return _FakeOutcome()
+
+    def close(self):
+        pass
+
+
+def test_gm_choice_ids_are_coerced_to_the_constrained_letter_set(monkeypatch):
+    """F-d4a8ed17: EventChoiceInfo.id must always land in "A".."G" --
+    coerced positionally (list index -> letter) regardless of whatever the
+    GM put in each choice's "id" field, so the UI's markup-escaping
+    exemption for that field is actually safe."""
+    engine = _force_event_engine(seed=42, gm=_MaliciousChoiceGM())
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+
+    ids = [c.id for c in engine._pending_event_choices]
+    assert ids == ["A", "B", "C"]
+    assert "<script>alert(1)</script>" not in ids
+    assert "" not in ids
+    assert "?" not in ids
+
+    # Labels are untouched -- only the id field is coerced.
+    labels = [c.label for c in engine._pending_event_choices]
+    assert labels == ["Press on", "Make camp", "Turn back"]
+
+
+# ── F-d178410b (wave 8): BackpackManager's persist hook wired at the ──
+# step_engine.py call sites
+#
+# backpack.py's BackpackManager accepts an optional persist= hook (called
+# with the full RunState immediately after each resource's Payment
+# confirms) that closes a crash-window duplicate-settlement bug, but its
+# own docstring says plainly that no call site passes it -- "a caller-side
+# change outside this module's domain, not made here." Both
+# step_engine.py construction sites must wire persist=<something that
+# calls save_game>, not leave it at the default None.
+
+
+def _make_capturing_backpack_manager():
+    """Factory: a stand-in BackpackManager that records the persist=
+    kwarg each instance is constructed with, into a fresh list per call
+    (avoids cross-test leakage from a shared class attribute)."""
+
+    calls: list = []
+
+    class _CapturingManager:
+        def __init__(self, *args, **kwargs):
+            calls.append(kwargs.get("persist"))
+
+        def settle(self, state, location):
+            class _Result:
+                success = False
+                message = ""
+                txids: list = []
+            return _Result()
+
+        def check_parcels(self, state):
+            return []
+
+        def close(self):
+            pass
+
+    return _CapturingManager, calls
+
+
+def test_settle_checkpoint_wires_a_persist_hook(monkeypatch):
+    """F-d178410b: _settle_checkpoint fires automatically at every town
+    arrival when the backpack is enabled -- the crash-window duplicate-
+    settlement bug is live on this path unless persist= is wired."""
+    import escape_the_valley.backpack as backpack_mod
+
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = _make_engine(seed=42)
+    engine.state.backpack.enabled = True
+    engine._settle_checkpoint(_DummyNode())
+
+    assert len(calls) == 1
+    assert calls[0] is not None
+    assert callable(calls[0])
+
+
+def test_check_parcels_wires_a_persist_hook(monkeypatch):
+    """F-d178410b: the other step_engine.py BackpackManager call site."""
+    import escape_the_valley.backpack as backpack_mod
+
+    manager_cls, calls = _make_capturing_backpack_manager()
+    monkeypatch.setattr(backpack_mod, "BackpackManager", manager_cls)
+
+    engine = _make_engine(seed=42)
+    engine.state.backpack.enabled = True
+    engine._check_parcels(_DummyNode())
+
+    assert len(calls) == 1
+    assert calls[0] is not None
+    assert callable(calls[0])
+
+
+def test_backpack_persist_hook_honors_autosave_and_base_path(monkeypatch, tmp_path):
+    """The persist hook itself -- not just its wiring -- must respect this
+    engine's own autosave/base_path contract exactly like _save does: a
+    caller that constructed autosave=False for zero disk writes must see
+    zero disk writes from a mid-settlement persist too, not just the
+    end-of-step autosave. And when autosave IS on, the hook must save to
+    THIS engine's base_path, not bare CWD (save_game's own default)."""
+    import escape_the_valley.step_engine as step_engine_mod
+
+    calls = []
+    monkeypatch.setattr(
+        step_engine_mod, "save_game",
+        lambda state, base_path=None: calls.append((state, base_path)),
+    )
+
+    on_engine = StepEngine(
+        create_new_run(seed=1), GMConfig(enabled=False), base_path=tmp_path,
+    )
+    on_engine._backpack_persist_hook(on_engine.state)
+    assert calls == [(on_engine.state, tmp_path)]
+
+    off_engine = StepEngine(
+        create_new_run(seed=1), GMConfig(enabled=False), autosave=False,
+    )
+    off_engine._backpack_persist_hook(off_engine.state)
+    # Unchanged -- autosave=False produced no new save_game call.
+    assert calls == [(on_engine.state, tmp_path)]
+
+
 # ── F-b6d0a4bc: step_engine.py memory-card validation must not crash step() ──
 
 

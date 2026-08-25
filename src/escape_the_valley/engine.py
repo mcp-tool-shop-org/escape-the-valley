@@ -402,9 +402,30 @@ class GameEngine:
         # Set up next destination
         if dest_node.connections:
             if len(dest_node.connections) == 1:
+                # F-32a5a4a9: the fork arm of this same `if` (>1
+                # connections) is validated by _check_route_choice, which
+                # excludes a self-edge and requires the id resolve to a
+                # real map_nodes entry (F-0877c51a/F-3abad222). This lone-
+                # connection arm used to wire destination_id straight from
+                # the raw id with no such check -- a dangling id (only
+                # reachable via a corrupted/altered save; generate_map()
+                # never produces this) would sail through here unnoticed,
+                # then get "discovered" on a LATER leg by this method's own
+                # ENG-B-09 recovery above, which beelines to map_nodes[-1]
+                # and manufactures a false VICTORY. Apply the same policy
+                # here: if the sole connection is a self-edge or doesn't
+                # resolve, leave destination_id/distance_remaining exactly
+                # as already set above (this node, distance 0) instead of
+                # committing to it. _check_route_choice's matching guard
+                # turns that stalled state into a loud, zero-cost refusal
+                # on the next travel action instead of a silent re-arrival
+                # loop that drains supplies/time forever (F-803bd813).
                 next_id = dest_node.connections[0]
-                self.state.destination_id = next_id
-                self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
+                if next_id != dest_node.node_id and any(
+                    n.node_id == next_id for n in self.state.map_nodes
+                ):
+                    self.state.destination_id = next_id
+                    self.state.distance_remaining = dest_node.distance_to.get(next_id, 15)
             else:
                 # Route choice handled next travel action
                 pass
@@ -421,7 +442,44 @@ class GameEngine:
         time, RNG draws) when this returns False.
         """
         node = _find_node(self.state)
-        if not node or len(node.connections) <= 1:
+        if not node:
+            return True
+
+        if len(node.connections) <= 1:
+            # F-32a5a4a9: a lone connection skips the fork-choice
+            # machinery below entirely (by design -- no player choice is
+            # needed for a single path), so it was never subjected to the
+            # same self-edge/dangling-id validation a fork's raw
+            # connections get. _arrive_at_next_node now refuses to wire
+            # destination_id from an invalid sole connection (see its
+            # "Set up next destination" comment) and instead leaves
+            # destination_id/distance_remaining pointed at THIS node (0
+            # remaining). Catch that stalled shape here and refuse to
+            # advance, loudly, at zero cost -- every subsequent travel
+            # action, not just the first -- instead of silently
+            # re-arriving at this same node forever (F-803bd813) or,
+            # once a stale distance_remaining ran out on a leg that was
+            # never real, hitting the ENG-B-09 map_nodes[-1] beeline.
+            if len(node.connections) == 1 and self.state.distance_remaining <= 0:
+                conn_id = node.connections[0]
+                valid = conn_id != node.node_id and any(
+                    n.node_id == conn_id for n in self.state.map_nodes
+                )
+                if not valid:
+                    log.warning(
+                        "node %r has one connection (%r) that does not "
+                        "resolve to a real, non-self map node; no "
+                        "legitimate route exists -- refusing to advance "
+                        "travel instead of fabricating progress",
+                        node.node_id, conn_id,
+                    )
+                    show_message(
+                        "The trail forks, but every route is broken or "
+                        f"leads nowhere. The party can't press on from "
+                        f"{node.name} this way.",
+                        "red bold",
+                    )
+                    return False
             return True
 
         if self.state.distance_remaining > 0:
