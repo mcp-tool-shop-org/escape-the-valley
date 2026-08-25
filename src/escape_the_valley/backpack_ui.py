@@ -188,8 +188,8 @@ class WalletInfoOverlay(Static):
             address=_escape_dynamic(info.get("address_short", "?")),
             issuer=_escape_dynamic(info.get("issuer", "?")),
             trust_lines="Yes" if info.get("trust_lines") else "No",
-            settlements=info.get("settlements", 0),
-            pending=info.get("pending", 0),
+            settlements=_escape_dynamic(str(info.get("settlements", 0))),
+            pending=_escape_dynamic(str(info.get("pending", 0))),
             balances_text=_escape_dynamic(balances_text),
         ))
 
