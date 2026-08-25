@@ -6,6 +6,20 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **GM-offered event letters are capped to templates that have an outcome.**
+  A 4-choice GM scene on a 2-template event now offers A/B, not A/B/C/D that
+  `resolve_event` cannot honor. Both engines. Fallback choices were already
+  honest. The events visible-miss path stays as a backstop. The cap does not
+  draw RNG.
+- **GM card tags/entities drop non-string list elements.** A proposal like
+  `tags: ["river", null]` no longer persists a `None` that later crashes
+  `build_gm_brief`. Field-level null was already guarded; this is the
+  list-element sibling. GM-JSON failure still must not brick a run, including
+  one event later.
+- **Ledger overlay leftover sinks escape dynamic fragments.** Parcel
+  sender/contents, send-success message, send-form supplies text, and wallet
+  address/issuer no longer crash `Static.update` on an orphan `[/tag]`. Chrome
+  `[b]` stays markup. Not a uniform `markup=False`.
 - **Shipped binaries actually run.** `src/escape_the_valley/__main__.py` used a
   package-relative import, so every PyInstaller binary since v1.1.0 crashed on
   `--help` with `ImportError: attempted relative import with no known parent
