@@ -2064,16 +2064,20 @@ class TestMemoSchemaVersion:
 
 
 class TestOverlayFailureMarkupSafety:
-    """The fix escapes only the DYNAMIC fragment (textual.markup.escape()),
+    """The fix escapes only the DYNAMIC fragment via _escape_dynamic,
     never the surrounding template -- chrome markup like [b]Send failed[/b]
-    must keep rendering bold. A uniform markup=False flip on the widget
-    would also pass a naive "does not crash" check while silently killing
-    that bold heading, so each test asserts the heading's bold span
-    survives, not just the absence of an exception.
+    must keep rendering bold. textual.markup.escape() is not enough: a
+    leftover '[' (e.g. truncated 'rSender[...') still opens a tag into the
+    chrome. A uniform markup=False flip on the widget would also pass a
+    naive "does not crash" check while silently killing that bold heading,
+    so each test asserts the heading's bold span survives, not just the
+    absence of an exception.
 
-    F-25704f7e: the leftover sibling sinks (show_parcel, show_success,
-    show_form, update_from_info) use the same Static.update() path and
-    must be covered here too, still without mocking update/from_markup.
+    F-25704f7e / F-86f06d6a / F-5850c719: every overlay sink that splices
+    a dynamic fragment into a markup template (show_parcel, show_success,
+    show_form, show_failure, update_from_info) uses the same
+    Static.update() path and must be covered here, still without mocking
+    update/from_markup.
     """
 
     def _assert_heading_still_bold(self, overlay, heading: str) -> str:
@@ -2215,6 +2219,7 @@ class TestOverlayFailureMarkupSafety:
     def test_production_shaped_parcel_and_success_unaffected(self):
         """Classic r-address + catalog labels must still render as before."""
         from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
             ParcelNotification,
             SendParcelOverlay,
         )
@@ -2230,6 +2235,87 @@ class TestOverlayFailureMarkupSafety:
         overlay.show_success(success)
         rendered = self._assert_heading_still_bold(overlay, "Parcel sent!")
         assert success in rendered
+
+        enable = EnableFlowOverlay()
+        enable.show_success("rN7qKvMzTdmhcjbw1234567890xKp")
+        rendered = self._assert_heading_still_bold(enable, "Ledger Backpack: Enabled")
+        assert "rN7q...0xKp" in rendered
+
+    def test_leftover_open_bracket_raises_under_escape_not_escape_dynamic(self):
+        """Truncating a tag-shaped sender to 'rSender[...' leaves a raw '['.
+        textual.markup.escape() does not wrap that leftover bracket, so
+        splicing it into a chrome template raises MarkupError on the live
+        renderer. _escape_dynamic does not.
+        """
+        from textual.markup import MarkupError, escape
+
+        from escape_the_valley.backpack_ui import (
+            ENABLE_FAILURE_TEXT,
+            EnableFlowOverlay,
+            _escape_dynamic,
+        )
+
+        leftover = "rSender[..."
+        overlay = EnableFlowOverlay()
+        with pytest.raises(MarkupError):
+            overlay.update(ENABLE_FAILURE_TEXT.format(message=escape(leftover)))
+
+        overlay.update(ENABLE_FAILURE_TEXT.format(message=_escape_dynamic(leftover)))
+        rendered = self._assert_heading_still_bold(
+            overlay, "Couldn't enable right now",
+        )
+        assert leftover in rendered
+
+    def test_send_parcel_failure_survives_leftover_open_bracket(self):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        overlay = SendParcelOverlay()
+        for payload in ("failed: rSender[...", "foo [ bar", "[/pwn]"):
+            overlay.show_failure(payload)
+            rendered = self._assert_heading_still_bold(overlay, "Send failed")
+            assert payload in rendered
+
+    def test_enable_flow_failure_survives_leftover_open_bracket(self):
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        overlay = EnableFlowOverlay()
+        for payload in ("failed: rSender[...", "foo [ bar", "[/pwn]"):
+            overlay.show_failure(payload)
+            rendered = self._assert_heading_still_bold(
+                overlay, "Couldn't enable right now",
+            )
+            assert payload in rendered
+
+    def test_enable_flow_success_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        overlay = EnableFlowOverlay()
+        overlay.show_success("[/pwn]")
+
+        rendered = self._assert_heading_still_bold(
+            overlay, "Ledger Backpack: Enabled",
+        )
+        assert "[/pwn]" in rendered
+
+    def test_enable_flow_success_survives_leftover_open_bracket(self):
+        """Address truncation (len>10 -> first 4 + '...' + last 4) can
+        leave a raw '[' in the fragment spliced before Press [b]Esc[/b].
+        """
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        overlay = EnableFlowOverlay()
+
+        overlay.show_success("r[/p]XXXXXXXXXX")
+        rendered = self._assert_heading_still_bold(
+            overlay, "Ledger Backpack: Enabled",
+        )
+        assert "r[/p...XXXX" in rendered
+
+        overlay.show_success("rSender[...")
+        rendered = self._assert_heading_still_bold(
+            overlay, "Ledger Backpack: Enabled",
+        )
+        assert "rSen...[..." in rendered
 
 
 # ──────────────────────────────────────────────────────────────────────
