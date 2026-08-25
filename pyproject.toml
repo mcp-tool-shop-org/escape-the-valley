@@ -1,13 +1,13 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling<1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "escape-the-valley"
-version = "1.2.0"
+version = "1.2.1"
 description = "Oregon Trail-style survival game powered by Ollama GM with XRPL ledger-backed inventory"
 readme = "README.md"
-license = "MIT"
+license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [
     { name = "mcp-tool-shop", email = "64996768+mcp-tool-shop@users.noreply.github.com" },

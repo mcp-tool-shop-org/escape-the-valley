@@ -5,7 +5,7 @@
 
 **Tags:** `[all]` every repo · `[npm]` `[pypi]` `[vsix]` `[desktop]` `[container]` published artifacts · `[mcp]` MCP servers · `[cli]` CLI tools
 
-**Release:** v1.2.0 — 2026-08-25 (`harden/stage-b-amend` after dogfood-swarm Stages A–D + feature pass + Phase 9/10).
+**Release:** v1.2.1 — 2026-08-25. v1.2.0 GitHub/npm landed; PyPI rejected Metadata-Version 2.5. This tag is the PyPI-valid 1.2 line.
 
 ---
 
@@ -46,7 +46,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-08-25) — split honestly: `scripts/verify.sh` is lint + offline tests (`ruff check` + `pytest` under `set -e`). Build + content smoke for the PyInstaller artifact is `scripts/smoke_test_binary.py`, invoked from `release-binaries.yml` after the build: it runs the frozen binary `--help` *and* asserts a loaded event-library count ≥ 200 (the 60-event quarter-game if `event_skeletons.json` is missing). `verify.sh` alone is not a build-and-smoke check.
-- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.2.0` == `__init__.__version__` `1.2.0` == `package.json` `1.2.0`; tag `v1.2.0` cut on this release commit.
+- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.2.1` == `__init__.__version__` `1.2.1` == `package.json` `1.2.1`; tag `v1.2.1` cut on this release commit.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) (2026-06-15) — `ci.yml` runs `pip-audit` against installed deps on every push/PR (non-blocking report; advisory surfaced in job log)
 - [ ] `[all]` SKIP: no `dependabot.yml` — org GitHub Actions budget rule forbids scheduled/dependabot workflows on tool repos (`.claude/rules/github-actions.md`: "Do NOT add dependabot.yml unless explicitly requested"; scheduled workflows allowed only in the marketing repo). Update cadence is manual + the CI `pip-audit` advisory feed.
 - [ ] `[npm]` SKIP: not an npm package (PyPI)

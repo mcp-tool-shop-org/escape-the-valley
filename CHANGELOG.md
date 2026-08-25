@@ -4,6 +4,16 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-25
+
+### Fixed
+
+- **PyPI wheel metadata.** Hatchling's SPDX `license = "MIT"` emitted
+  Metadata-Version 2.5, which `pypa/gh-action-pypi-publish` v1.14.0 rejected
+  (`'2.5' is not a valid metadata version`). Use core-metadata `{text = "MIT"}`
+  so the 1.2 line actually lands on PyPI. npm `@mcptoolshop/escape-the-valley@1.2.0`
+  already published; pip users need 1.2.1.
+
 ## [1.2.0] - 2026-08-25
 
 ### Added

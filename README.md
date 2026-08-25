@@ -27,6 +27,8 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 
 ## What's New
 
+**1.2.1** — PyPI wheel actually uploads (Metadata-Version 2.3). Same product as 1.2.0.
+
 **1.2.0** — GitHub Release binaries launch (event library + stylesheet bundled; smoke asserts `--help` and ≥200 events). `trail ledger proof` audits the loaded save. TUI shows seed/doctrine/twists/morale; `c` cycles pace; ledger menu `R` proofs this save. HUD readable at 80×24 and 120×30.
 
 **1.1.1** — `pip install "escape-the-valley[voice]"` actually installs (the extra had pinned an unpublished package). The PyInstaller binary no longer pulls in the voice extra.
