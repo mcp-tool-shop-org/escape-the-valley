@@ -12,13 +12,13 @@
 ## A. Security Baseline
 
 - [x] `[all]` SECURITY.md exists (report email, supported versions, response timeline) (2026-06-15) — report email + 72h ack / 30d resolve timeline + supported 1.x table
-- [x] `[all]` README includes threat model paragraph (data touched, data NOT touched, permissions required) (2026-06-15) — README "Security" section: no telemetry/accounts, network opt-in, Testnet-only, links to full threat model
+- [x] `[all]` README includes threat model paragraph (data touched, data NOT touched, permissions required) (2026-08-25) — README "Security" section: no telemetry/accounts, Testnet-only, links to SECURITY.md (threat model of record: GM-on by default, local Ollama, `--gm-off` to disable; XRPL off until enable)
 - [x] `[all]` No secrets, tokens, or credentials in source or diagnostics output (2026-06-15) — only fake test-fixture seeds (e.g. `sEDPlayerSeed...`); real wallet/issuer seeds live in the gitignored `.trail/secrets.json` sidecar, never committed
 - [x] `[all]` No telemetry by default — state it explicitly even if obvious (2026-06-15) — stated in README + SECURITY.md; grep confirms no analytics/sentry/posthog/phone-home
 
 ### Default safety posture
 
-- [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag (2026-06-15) — all network features (Ollama GM, XRPL ledger) are opt-in and disabled by default; XRPL is Testnet-only with a hard mainnet guard, so there is no real-value or destructive default path
+- [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag (2026-08-25) — GM narration is on by default (local Ollama at `OLLAMA_HOST`, default `http://localhost:11434`); `--gm-off` disables it and a missing Ollama falls back to deterministic text. XRPL is off until `trail ledger enable`, Testnet-only with a hard mainnet guard, so there is no real-value or destructive default path
 - [x] `[cli|mcp|desktop]` File operations constrained to known directories (2026-06-15) — all save/secrets/journal writes confined to `.trail/`; atomic temp-file writes, no path traversal
 - [ ] `[mcp]` SKIP: not an MCP server (Typer/Textual CLI game)
 - [ ] `[mcp]` SKIP: not an MCP server
