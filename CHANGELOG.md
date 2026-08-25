@@ -6,6 +6,9 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **Every ledger overlay paints its dismiss/action row at 80×24**
+  (enable failure, send-parcel failure, menu, nudge, learn, wallet, parcel,
+  progress). Proof is `render_line` / region ∩ screen, not `visual.plain`.
 - **EventBar paints D) Repair at 80×24.** App.CSS fully specifies `#eventbar`
   so leftover `tui.tcss` `height: 9` + tall border cannot clip the dock.
   Proof is `render_line` strips, not `visual.plain`.
