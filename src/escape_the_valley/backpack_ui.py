@@ -114,16 +114,16 @@ class EnableFlowOverlay(Static):
 
     def show_success(self, address: str) -> None:
         short = f"{address[:4]}...{address[-4:]}" if len(address) > 10 else address
-        self.update(ENABLE_SUCCESS_TEXT.format(address=short))
+        self.update(ENABLE_SUCCESS_TEXT.format(address=_escape_dynamic(short)))
 
     def show_failure(self, message: str) -> None:
         # message may carry caller-supplied text (e.g. an exception string
         # surfaced from a failed enable attempt). Static.update() parses
         # markup eagerly (unlike notify()/Toast, which defer to paint time),
-        # so an orphan "[/tag]"-shaped substring would raise MarkupError and
+        # so leftover '[' or an orphan "[/tag]" would raise MarkupError and
         # crash the whole app. Escape only the dynamic fragment so the
         # literal [b]/[/b] chrome in ENABLE_FAILURE_TEXT still renders bold.
-        self.update(ENABLE_FAILURE_TEXT.format(message=escape(message)))
+        self.update(ENABLE_FAILURE_TEXT.format(message=_escape_dynamic(message)))
 
 
 # ── Parcel Notification ──────────────────────────────────────────
@@ -283,7 +283,9 @@ class SendParcelOverlay(Static):
         # tui_app.py on_input_submitted) -- untrusted, unlike the [b]/[/b]
         # chrome in SEND_PARCEL_FAILURE_TEXT. Static.update() parses markup
         # eagerly and synchronously (unlike notify()/Toast, which defer to
-        # paint time), so an orphan "[/tag]"-shaped substring here would
+        # paint time), so leftover '[' or an orphan "[/tag]" here would
         # raise MarkupError and crash the whole app. Escape only the
         # dynamic fragment so the literal chrome still renders bold.
-        self.update(SEND_PARCEL_FAILURE_TEXT.format(message=escape(message)))
+        self.update(SEND_PARCEL_FAILURE_TEXT.format(
+            message=_escape_dynamic(message),
+        ))
