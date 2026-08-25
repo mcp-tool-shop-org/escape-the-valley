@@ -309,6 +309,86 @@ class TestShowOutcomeRobustness:
         assert "water" in out
 
 
+# ── F-5ed15e0b: show_game_over has the identical sibling bug ────────
+
+
+class TestShowGameOverRobustness:
+    """Sibling to TestShowOutcomeRobustness above: show_game_over ranks
+    journal entries via ``max(..., key=lambda e: abs(sum(e.deltas.values())))``
+    to find the 'most notable event' for the end-of-run summary. The exact
+    same non-numeric-delta bug cli-tui-008 fixed in show_outcome was never
+    applied here — and it fires at the worst possible moment, since a run
+    only reaches this screen once, right at the end.
+    """
+
+    def _state_with_bad_journal_entry(self):
+        from escape_the_valley.models import JournalEntry
+
+        state = create_new_run(seed=7)
+        state.journal.append(
+            JournalEntry(
+                day=1,
+                location="Trailhead",
+                event_id="ev1",
+                scene_title="A strange bargain",
+                narration="",
+                choice_made="A",
+                outcome="",
+                # Mixed deltas: a valid int plus non-numeric values that the
+                # old `abs(sum(e.deltas.values()))` would have raised
+                # TypeError on the instant this run ended.
+                deltas={"food": -3, "water": "lots", "meds": None},
+            ),
+        )
+        return state
+
+    def test_non_numeric_delta_does_not_raise(self):
+        from escape_the_valley import ui
+
+        state = self._state_with_bad_journal_entry()
+        # Should render cleanly (the old code raised TypeError here).
+        ui.show_game_over(state)
+
+    def test_numeric_journal_still_finds_most_notable_event(self, capsys):
+        from escape_the_valley import ui
+        from escape_the_valley.models import JournalEntry
+
+        state = create_new_run(seed=7)
+        state.journal.append(
+            JournalEntry(
+                day=1, location="Trailhead", event_id="ev1",
+                scene_title="A quiet day", narration="", choice_made="A",
+                outcome="", deltas={"food": -1},
+            ),
+        )
+        state.journal.append(
+            JournalEntry(
+                day=2, location="Millford", event_id="ev2",
+                scene_title="The big storm", narration="", choice_made="B",
+                outcome="", deltas={"food": -20, "water": -15},
+            ),
+        )
+        ui.show_game_over(state)
+        out = capsys.readouterr().out
+        assert "The big storm" in out
+
+
+class TestDeltaMagnitudeHelper:
+    """Direct unit coverage for the shared guard behind both fixes above."""
+
+    def test_ignores_non_numeric_values(self):
+        from escape_the_valley.ui import _delta_magnitude
+
+        assert _delta_magnitude(
+            {"food": -3, "water": "lots", "meds": None, "ammo": ["x"]},
+        ) == 3
+
+    def test_empty_deltas_is_zero(self):
+        from escape_the_valley.ui import _delta_magnitude
+
+        assert _delta_magnitude({}) == 0
+
+
 # ── cli-tui-B-01: escape valves are reachable ───────────────────────
 
 

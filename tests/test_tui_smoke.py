@@ -13,6 +13,7 @@ through asyncio.run() inside a plain sync test — no new test dependency.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.step_engine import StepEngine
@@ -828,3 +829,322 @@ class TestVoiceRuntimeFailureConsumer:
         app._after_step()
         assert app._voice_enabled is False
         assert any("Voice unavailable" in m for m in notes)
+
+
+# ── F-133540bb: action_choose must not forward an unoffered choice_id ──
+
+
+class TestPhantomChoiceGuard:
+    """All seven choice bindings (digits 1-7 -> A-G) stay active regardless of
+    game phase, but a typical EVENT/ROUTE frame only ever offers 2-4 choices.
+    CAMP already guards this via camp_choice_intent (an ungated valve letter
+    resolves to nothing and is ignored); this mirrors that guard for the
+    non-CAMP branch so an id the current frame never displayed is a clean
+    no-op instead of reaching the engine — which either raises internally or
+    silently resolves to an option the player never chose.
+    """
+
+    def _app_offering(self, phase, choice_ids):
+        from escape_the_valley.tui_app import Choice
+
+        app = _make_app(seed=7)
+        app._engine.phase = phase
+        app._frame.choices = [Choice(cid, f"Option {cid}") for cid in choice_ids]
+        dispatched = []
+        app._run_step = lambda intent: dispatched.append(intent)
+        return app, dispatched
+
+    def test_unoffered_choices_ignored_in_event_phase(self):
+        """The exact finding scenario: a 2-option event, digits 3-7 dead."""
+        from escape_the_valley.intent import GamePhase
+
+        app, dispatched = self._app_offering(GamePhase.EVENT, ["A", "B"])
+        for cid in ("C", "D", "E", "F", "G"):
+            app.action_choose(cid)
+        assert dispatched == []
+
+    def test_offered_choice_still_dispatches_in_event_phase(self):
+        from escape_the_valley.intent import GamePhase, IntentAction
+
+        app, dispatched = self._app_offering(GamePhase.EVENT, ["A", "B"])
+        app.action_choose("B")
+        assert len(dispatched) == 1
+        assert dispatched[0].action == IntentAction.CHOOSE
+        assert dispatched[0].choice_id == "B"
+
+    def test_unoffered_choice_ignored_in_route_phase(self):
+        from escape_the_valley.intent import GamePhase
+
+        app, dispatched = self._app_offering(
+            GamePhase.ROUTE, ["A", "B", "C"],
+        )
+        app.action_choose("D")
+        assert dispatched == []
+
+    def test_offered_choice_dispatches_in_route_phase(self):
+        from escape_the_valley.intent import GamePhase
+
+        app, dispatched = self._app_offering(
+            GamePhase.ROUTE, ["A", "B", "C"],
+        )
+        app.action_choose("C")
+        assert len(dispatched) == 1
+
+    def test_hotkey_alias_beyond_offered_choices_is_a_clean_noop(self):
+        """action_intent's t/r/h/p -> A/B/C/D alias also respects the guard.
+
+        A 2-option event only offers A/B; 'h'/'p' alias to C/D and must not
+        reach the engine either (they funnel through action_choose).
+        """
+        app, dispatched = self._app_offering(
+            self._event_phase(), ["A", "B"],
+        )
+        for intent_str in ("HUNT", "REPAIR"):
+            app.action_intent(intent_str)
+        assert dispatched == []
+
+    @staticmethod
+    def _event_phase():
+        from escape_the_valley.intent import GamePhase
+
+        return GamePhase.EVENT
+
+
+# ── F-9c0e7613: a worker exception must not freeze the input surface ───
+
+
+class TestWorkerFailureRecovery:
+    """None of the five @work(thread=True) workers used to catch an exception
+    from their blocking call before invoking call_from_thread on their
+    finish_* handler. Every mutating action handler is gated on
+    'not self._in_flight', and that flag was only ever cleared from inside a
+    finish_* handler — so a raise mid-call skipped the completion step and
+    the whole input surface froze forever (compounded by Textual's default
+    exit_on_error=True turning the same raise into a hard app crash). Both
+    outcomes are worse than a plain, recoverable notification.
+    """
+
+    def test_step_worker_exception_recovers_and_app_stays_playable(self):
+        """A real threaded step that raises still clears _in_flight, notifies,
+        and leaves the app interactive for the next (successful) step."""
+
+        async def scenario():
+            app = _make_app(seed=7)
+            notified = []
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.notify = lambda msg, *a, **k: notified.append(msg)
+
+                real_step = app._engine.step
+
+                def _boom(intent):
+                    raise RuntimeError("disk full")
+
+                app._engine.step = _boom
+                before = (
+                    app._engine.state.day,
+                    app._engine.state.distance_traveled,
+                )
+
+                await pilot.press("t")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                # Cleared, not frozen — and the player was told plainly.
+                assert app._in_flight is False
+                assert any(
+                    "disk full" in m and "last save is intact" in m
+                    for m in notified
+                )
+                # The failed attempt never touched engine state.
+                assert (
+                    app._engine.state.day,
+                    app._engine.state.distance_traveled,
+                ) == before
+
+                # The app is still alive: restoring the real step and pressing
+                # again completes normally, exactly like the happy-path smoke
+                # test (proof this is recoverable, not a one-shot patch-over).
+                app._engine.step = real_step
+                await pilot.press("t")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                assert app._in_flight is False
+                after = (
+                    app._engine.state.day,
+                    app._engine.state.distance_traveled,
+                )
+                assert after != before
+
+        asyncio.run(scenario())
+
+    def test_enable_worker_exception_recovers(self, monkeypatch):
+        """The ledger-group worker path fails safe the same way as step."""
+
+        async def scenario():
+            from escape_the_valley.backpack import BackpackManager
+
+            def _boom(self, state):
+                raise RuntimeError("xrpl testnet unreachable")
+
+            monkeypatch.setattr(BackpackManager, "enable", _boom)
+
+            app = _make_app(seed=7)
+            notified = []
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.notify = lambda msg, *a, **k: notified.append(msg)
+
+                app.action_ledger_enable()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                assert app._in_flight is False
+                assert any("xrpl testnet unreachable" in m for m in notified)
+                # The failure was caught before any state mutation landed.
+                assert app._engine.state.backpack.enabled is False
+
+        asyncio.run(scenario())
+
+    def test_on_worker_state_changed_recovers_from_error(self):
+        """Belt-and-suspenders net: an ERROR-state worker still unfreezes
+        _in_flight and notifies, even one that forgot its own try/except."""
+        from textual.worker import WorkerState
+
+        app = _make_app(seed=7)
+        app._render_all = lambda: None
+        notified = []
+        app.notify = lambda msg, *a, **k: notified.append(msg)
+        app._in_flight = True
+
+        class _FakeWorker:
+            name = "_future_worker"
+            error = RuntimeError("forgot the try/except")
+
+        class _FakeEvent:
+            state = WorkerState.ERROR
+            worker = _FakeWorker()
+
+        app.on_worker_state_changed(_FakeEvent())
+
+        assert app._in_flight is False
+        assert any("forgot the try/except" in m for m in notified)
+
+    def test_on_worker_state_changed_ignores_non_error_states(self):
+        """A cancelled/successful worker must not be treated as a failure."""
+        from textual.worker import WorkerState
+
+        app = _make_app(seed=7)
+        app._render_all = lambda: None
+        notified = []
+        app.notify = lambda *a, **k: notified.append(a)
+        app._in_flight = True
+
+        class _FakeWorker:
+            name = "_some_worker"
+            error = None
+
+        class _FakeEvent:
+            state = WorkerState.SUCCESS
+            worker = _FakeWorker()
+
+        app.on_worker_state_changed(_FakeEvent())
+        assert app._in_flight is True  # untouched
+        assert notified == []
+
+
+# ── F-96d427ea: CSS_PATH must resolve inside a frozen PyInstaller bundle ─
+
+
+class TestFrozenCssPathResolution:
+    """The application half of the dead-binary defect.
+
+    The release workflow's ``--add-data`` (out of this domain's scope) is the
+    other half — it has to actually put tui.tcss somewhere under
+    sys._MEIPASS for any of this to find. This covers _resolve_css_path's own
+    search logic: unchanged behavior from source, and a search across the
+    plausible frozen-bundle layouts instead of trusting Textual's
+    inspect.getfile()-based default to land somewhere real.
+    """
+
+    def test_source_mode_matches_the_real_file(self):
+        """Unfrozen: resolves to the real tui.tcss next to tui_app.py."""
+        from escape_the_valley import tui_app as tui_app_module
+
+        resolved = Path(tui_app_module._resolve_css_path())
+        expected = (
+            Path(tui_app_module.__file__).resolve().parent / "tui.tcss"
+        )
+        assert resolved == expected
+        assert resolved.is_file()
+
+    def test_frozen_mode_prefers_package_relative_layout(
+        self, tmp_path, monkeypatch,
+    ):
+        """--add-data '...tui.tcss<sep>escape_the_valley' (the finding's own
+        suggested flag) extracts under a package-named subdirectory."""
+        from escape_the_valley import tui_app as tui_app_module
+
+        pkg_dir = tmp_path / "escape_the_valley"
+        pkg_dir.mkdir()
+        (pkg_dir / "tui.tcss").write_text("Screen { background: black; }")
+
+        monkeypatch.setattr(tui_app_module.sys, "frozen", True, raising=False)
+        monkeypatch.setattr(
+            tui_app_module.sys, "_MEIPASS", str(tmp_path), raising=False,
+        )
+
+        resolved = Path(tui_app_module._resolve_css_path())
+        assert resolved == pkg_dir / "tui.tcss"
+
+    def test_frozen_mode_falls_back_to_flat_layout(
+        self, tmp_path, monkeypatch,
+    ):
+        """--add-data '...tui.tcss<sep>.' drops it flat at the bundle root."""
+        from escape_the_valley import tui_app as tui_app_module
+
+        (tmp_path / "tui.tcss").write_text("Screen { background: black; }")
+
+        monkeypatch.setattr(tui_app_module.sys, "frozen", True, raising=False)
+        monkeypatch.setattr(
+            tui_app_module.sys, "_MEIPASS", str(tmp_path), raising=False,
+        )
+
+        resolved = Path(tui_app_module._resolve_css_path())
+        assert resolved == tmp_path / "tui.tcss"
+
+    def test_frozen_mode_with_nothing_bundled_falls_back_to_source_default(
+        self, tmp_path, monkeypatch,
+    ):
+        """Neither candidate exists — degrade to the familiar source-relative
+        path rather than silently pointing at an empty _MEIPASS guess."""
+        from escape_the_valley import tui_app as tui_app_module
+
+        monkeypatch.setattr(tui_app_module.sys, "frozen", True, raising=False)
+        monkeypatch.setattr(
+            tui_app_module.sys, "_MEIPASS", str(tmp_path), raising=False,
+        )
+
+        resolved = Path(tui_app_module._resolve_css_path())
+        expected = (
+            Path(tui_app_module.__file__).resolve().parent / "tui.tcss"
+        )
+        assert resolved == expected
+
+    def test_not_frozen_ignores_stray_meipass(self, monkeypatch):
+        """sys.frozen is the gate — a stray _MEIPASS alone must not divert."""
+        from escape_the_valley import tui_app as tui_app_module
+
+        monkeypatch.setattr(
+            tui_app_module.sys, "_MEIPASS", "/nonexistent", raising=False,
+        )
+        monkeypatch.setattr(
+            tui_app_module.sys, "frozen", False, raising=False,
+        )
+
+        resolved = Path(tui_app_module._resolve_css_path())
+        expected = (
+            Path(tui_app_module.__file__).resolve().parent / "tui.tcss"
+        )
+        assert resolved == expected
