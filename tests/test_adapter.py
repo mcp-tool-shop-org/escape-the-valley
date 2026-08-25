@@ -507,34 +507,35 @@ class TestDegradedGmSignal:
         assert frame.gm_degraded is False
 
     def test_eventbar_renders_fallback_notice(self):
+        # F-2f661eea: was `bar.update = lambda txt: ...`, which replaces the
+        # real Static.update() -- the exact method that calls Textual's
+        # Content.from_markup() and can raise MarkupError on a GM-authored
+        # string with a stray '[/...]' shape. A lambda mock can never observe
+        # that crash. This now calls the real (unmocked) update_from() and
+        # reads back the widget's own stored content, so a future regression
+        # here raises instead of passing silently.
         from escape_the_valley.tui_app import EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         bar.update_from(FrameState(gm_degraded=True))
-        assert "engine fallback" in rendered["text"]
+        assert "engine fallback" in bar.content
 
     def test_eventbar_no_notice_when_healthy(self):
         from escape_the_valley.tui_app import EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         bar.update_from(FrameState(gm_degraded=False))
-        assert "engine fallback" not in rendered["text"]
+        assert "engine fallback" not in bar.content
 
     def test_eventbar_busy_state(self):
         """A worker in flight shows the thinking state, not the choices."""
         from escape_the_valley.tui_app import Choice, EventBar, FrameState
 
         bar = EventBar()
-        rendered = {}
-        bar.update = lambda txt: rendered.setdefault("text", txt)
         frame = FrameState(choices=[Choice("A", "Travel")])
         bar.update_from(frame, busy=True)
-        assert "thinking" in rendered["text"].lower()
-        assert "Travel" not in rendered["text"]
+        assert "thinking" in bar.content.lower()
+        assert "Travel" not in bar.content
 
 
 # ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─
