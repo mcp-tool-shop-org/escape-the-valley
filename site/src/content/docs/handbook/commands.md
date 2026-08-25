@@ -9,7 +9,7 @@ sidebar:
 
 | Command | Description |
 |---------|-------------|
-| `trail tui` | Launch the full-screen Textual UI |
+| `trail tui` | Launch the full-screen Textual UI. L opens the ledger menu; with the backpack on, R proofs this save (does not Rest). `c` cycles pace. |
 | `trail tui --seed <n>` | Start with a specific seed (reproducible world) |
 | `trail tui --continue` | Resume a saved game |
 | `trail tui --voice` | Enable voice narration (requires Ollama) |

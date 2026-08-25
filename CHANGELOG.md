@@ -15,6 +15,8 @@ All notable changes to Escape the Valley are documented here.
   `c` cycles pace via existing `CHANGE_PACE`.
 - **`trail ledger proof`** proves the loaded save (PASS/FAIL/INCONCLUSIVE).
   Named in README Commands and the handbook.
+- **TUI Ledger ON menu `R` proofs this save** (PASS/FAIL/INCONCLUSIVE). It
+  does not Rest. Same `proof_player_save` as the CLI. Parcel `R` still refuses.
 
 ### Fixed
 

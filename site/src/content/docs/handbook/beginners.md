@@ -43,8 +43,10 @@ When the game starts, you will see:
 
 - **Run ID and seed** -- identifies this specific run
 - **GM profile** -- the AI narrator voice (default: Fireside)
+- **Doctrine and taboo** -- this seed's rule modifiers
 - **Twists** -- 1-2 run modifiers that change conditions (like Bandit Year or Good Hunting)
 - **Party** -- your 4 settlers, each with 1-2 traits
+- **Morale 0–100** -- visible at camp. `c` cycles pace (Slow / Steady / Hard).
 
 The TUI shows your party status, supplies, wagon condition, and morale at all times.
 

@@ -60,7 +60,7 @@
 - [x] `[all]` Logo in README header (2026-06-15) — `assets/readme-logo.png` present and referenced
 - [x] `[all]` Translations (polyglot-mcp, 8 languages) (2026-06-15) — `README.{ja,zh,es,fr,hi,it,pt-BR}.md` all present (7 translated + English source = 8)
 - [x] `[org]` Landing page (@mcptoolshop/site-theme) (2026-06-15) — `site/` Astro project present and building (`site/dist/`); landing page install = `pip install escape-the-valley` (A-13)
-- [ ] `[all]` GitHub repo metadata: description, homepage, topics — UNVERIFIED: this gate session is forbidden from reading/changing repo metadata (no `gh repo edit`). State must be confirmed out-of-band before publish. Left unchecked honestly rather than false-checked.
+- [x] `[all]` GitHub repo metadata: description, homepage, topics (2026-08-25) — `gh repo view` : description present, homepage `https://mcp-tool-shop-org.github.io/escape-the-valley/`, topics game/llm/ollama/oregon-trail/python/roguelike/survival-game/terminal-game/textual/xrp-ledger/xrpl. No `gh repo edit` this pass (already set).
 
 ---
 

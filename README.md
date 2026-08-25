@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -114,7 +114,10 @@ Completely optional. The game plays identically with it off (the default). Enabl
 trail ledger enable
 trail ledger status
 trail ledger reconcile  # retry failed settlements
+trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 ```
+
+In the TUI, **L** opens the ledger menu; with the backpack on, **R** proofs this save (same verdicts). It does not Rest.
 
 Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 

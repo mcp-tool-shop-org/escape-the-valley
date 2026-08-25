@@ -21,7 +21,7 @@ Completely optional. The game plays identically with it off (the default).
 
 ## Enabling the backpack
 
-From the TUI, press `L` to open the ledger menu. Or via CLI:
+From the TUI, press `L` to open the ledger menu. With the backpack on, `R` proofs this save (**PASS** / **FAIL** / **INCONCLUSIVE**) and does not Rest. Or via CLI:
 
 ```bash
 # Enable the backpack
@@ -76,6 +76,8 @@ The settlement receipts make a claim: this is what your supplies did, recorded o
 ```bash
 trail ledger proof
 ```
+
+The TUI **R** key on the ledger menu is the same proof: it calls `proof_player_save` on the loaded save and paints the verdict. Camp **R** without that menu still Rests. Parcel **R** still refuses.
 
 Audit mode replays a run's settlement receipts and reads the memos back off the XRPL Testnet — pulling the transactions through `AccountTx` and verifying the on-chain memos directly, rather than trusting whatever the local save happens to say. The check is genuinely external: the engine reports against the chain, not against its own copy. The supply history of a run can be independently audited, and the engine cannot fake the ledger — anyone with the transaction IDs can walk the same trail of memos and confirm or refute it.
 
