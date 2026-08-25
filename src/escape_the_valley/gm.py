@@ -195,6 +195,83 @@ class OutcomeResponse:
         )
 
 
+def _model_listed(configured: str, names: list[str]) -> bool:
+    """True if the configured game model is among Ollama /api/tags names.
+
+    Ollama reports tagged names ('llama3.2:latest'); a bare configured name
+    ('llama3.2') matches the untagged form too.
+    """
+    if configured in names:
+        return True
+    base = configured.split(":", 1)[0]
+    return any(
+        name == base or name.split(":", 1)[0] == base
+        for name in names
+    )
+
+
+def _tag_names(resp: object) -> list[str]:
+    """Extract model names from an Ollama /api/tags response."""
+    try:
+        payload = resp.json()  # type: ignore[attr-defined]
+    except Exception:
+        return []
+    if not isinstance(payload, dict):
+        return []
+    models = payload.get("models")
+    if not isinstance(models, list):
+        return []
+    names: list[str] = []
+    for item in models:
+        if isinstance(item, dict):
+            name = item.get("name") or item.get("model") or ""
+            if name:
+                names.append(str(name))
+        elif isinstance(item, str) and item:
+            names.append(item)
+    return names
+
+
+def _model_missing_error(model: str, body: str = "") -> str:
+    """Player-facing next step when the configured model is absent.
+
+    F-254eedb6 — Ollama 404 is model-missing, not a JSON reject. Downstream
+    (and the player) need `ollama pull` and `--gm-off`, not 'the storyteller
+    is quiet'.
+    """
+    detail = (body or "").strip() or f"model '{model}' not found"
+    return f"{detail} -- ollama pull {model}, or trail tui --gm-off"
+
+
+def _connect_error_message() -> str:
+    return (
+        "The storyteller is not running. "
+        "Start Ollama (ollama serve) or play without the GM: trail tui --gm-off"
+    )
+
+
+def _http_error_body(resp: object) -> str:
+    """Lift an Ollama error string from a non-200 generate response."""
+    try:
+        data = resp.json()  # type: ignore[attr-defined]
+        if isinstance(data, dict):
+            err = data.get("error")
+            if err:
+                return str(err)
+    except Exception:
+        pass
+    text = getattr(resp, "text", None)
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+    raw = getattr(resp, "content", None)
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            return raw.decode("utf-8", errors="replace").strip()
+        except Exception:
+            return ""
+    return ""
+
+
 class GMClient:
     """Ollama GameMaster client with strict JSON parsing and graceful fallback."""
 
@@ -216,9 +293,30 @@ class GMClient:
             "connect_errors": 0,
             "profile_drifts": 0,
         }
+        # F-254eedb6 — VoiceBridge-shaped last_error/status so a caller can
+        # show 'ollama pull …' / '--gm-off' instead of a silent JSON reject.
+        self.last_error: str | None = None
+        self._host_up = False
+        self._available = False
+
+    def status(self) -> dict:
+        """Readable GM status for the UI (F-254eedb6).
+
+        VoiceBridge-shaped keys:
+          - installed: Ollama daemon answered (host reachable)
+          - available: installed AND the configured model is present
+          - enabled: the player has the GM turned on in config
+          - last_error: human-readable reason the storyteller went quiet, or None
+        """
+        return {
+            "installed": self._host_up,
+            "available": self._available,
+            "enabled": self.config.enabled,
+            "last_error": self.last_error,
+        }
 
     def is_available(self) -> bool:
-        """Check if Ollama is reachable.
+        """Check if Ollama is reachable *and* the configured model is pulled.
 
         Reachability helper for use as a pre-flight probe. Any transport
         failure (connect, timeout, read, protocol, pool) resolves to False
@@ -227,16 +325,46 @@ class GMClient:
         gm-B-08 — this probe uses its own short timeout (PROBE_TIMEOUT_S),
         separate from the 30s generation budget, so a dead host fails fast
         instead of stalling the UI for the full generation window.
+
+        F-254eedb6 — a 200 from /api/tags is not enough: a daemon without
+        the game model looks healthy and then 404s on generate. The
+        configured model must appear in the tags list.
         """
         if not self.config.enabled:
+            self._available = False
             return False
         try:
             resp = self._client.get(
                 f"{self.config.host}/api/tags",
                 timeout=self.config.probe_timeout,
             )
-            return resp.status_code == 200
+            if resp.status_code != 200:
+                self._host_up = False
+                self._available = False
+                self.last_error = (
+                    f"The storyteller is unavailable (HTTP {resp.status_code}). "
+                    "Start Ollama (ollama serve) or play without the GM: "
+                    "trail tui --gm-off"
+                )
+                return False
+            self._host_up = True
+            names = _tag_names(resp)
+            if not _model_listed(self.config.model, names):
+                self._available = False
+                self.last_error = _model_missing_error(self.config.model)
+                return False
+            self._available = True
+            self.last_error = None
+            return True
         except httpx.HTTPError:
+            self._host_up = False
+            self._available = False
+            self.last_error = _connect_error_message()
+            return False
+        except Exception:
+            self._host_up = False
+            self._available = False
+            self.last_error = _connect_error_message()
             return False
 
     def generate_scene(
@@ -487,7 +615,8 @@ class GMClient:
                     narration_key="", on_token=None,
                 )
                 if status != 200:
-                    self.stats["json_rejects"] += 1
+                    if not self._on_http_status(status, text):
+                        return None
                     continue
                 prose = _extract_epilogue_prose(text)
                 if not prose:
@@ -502,7 +631,7 @@ class GMClient:
                     continue
                 if repaired != prose:
                     logger.info("Epilogue tone repaired locally; accepting")
-                self.stats["successes"] += 1
+                self._mark_ok()
                 return repaired
             except httpx.HTTPError as e:
                 # gm-feat-01b — see _request_scene: catch the HTTPError base so
@@ -545,7 +674,7 @@ class GMClient:
             payload["stream"] = False
             resp = self._client.post(self.config.generate_url, json=payload)
             if resp.status_code != 200:
-                return resp.status_code, ""
+                return resp.status_code, _http_error_body(resp)
             return 200, resp.json().get("response", "")
 
         # Streamed path.
@@ -557,7 +686,7 @@ class GMClient:
             if resp.status_code != 200:
                 # Drain so the connection can be reused/closed cleanly.
                 resp.read()
-                return resp.status_code, ""
+                return resp.status_code, _http_error_body(resp)
             for line in resp.iter_lines():
                 if not line:
                     continue
@@ -587,8 +716,8 @@ class GMClient:
         gm-feat-01 — when ``on_token`` is set the request is streamed and the
         narration prose is surfaced progressively; the parse/validate/tone path
         below is identical to the non-streamed path, so fallback-never-bricks
-        (a streaming error/!200/invalid/tone-fail still retries-then-None) is
-        preserved.
+        (a streaming error/5xx/invalid/tone-fail still retries-then-None; 4xx
+        returns None without retry — F-254eedb6) is preserved.
         """
         for attempt in range(self.config.max_retries + 1):
             try:
@@ -597,8 +726,8 @@ class GMClient:
                     system, user, narration_key="narration", on_token=on_token,
                 )
                 if status != 200:
-                    logger.warning("GM returned %d", status)
-                    self.stats["json_rejects"] += 1
+                    if not self._on_http_status(status, text):
+                        return None
                     continue
 
                 data = _parse_json(text)
@@ -619,7 +748,7 @@ class GMClient:
                     self._count_profile_drift(
                         data.get("profile", ""), requested_profile,
                     )
-                    self.stats["successes"] += 1
+                    self._mark_ok()
                     return SceneResponse.from_dict(data)
                 self.stats["json_rejects"] += 1
                 logger.warning("Invalid scene JSON (attempt %d)", attempt + 1)
@@ -664,7 +793,8 @@ class GMClient:
                     narration_key="outcome_narration", on_token=on_token,
                 )
                 if status != 200:
-                    self.stats["json_rejects"] += 1
+                    if not self._on_http_status(status, text):
+                        return None
                     continue
 
                 data = _parse_json(text)
@@ -679,7 +809,7 @@ class GMClient:
                     if repaired != narration:
                         logger.info("Tone repaired locally; accepting outcome")
                         data["outcome_narration"] = repaired
-                    self.stats["successes"] += 1
+                    self._mark_ok()
                     return OutcomeResponse.from_dict(data)
                 self.stats["json_rejects"] += 1
                 logger.warning(
@@ -703,10 +833,52 @@ class GMClient:
 
     def _count_transport_error(self, exc: Exception) -> None:
         """gm-B-03 — bucket a transport failure into timeouts vs connect_errors."""
+        self._host_up = False
+        self._available = False
         if isinstance(exc, httpx.TimeoutException):
             self.stats["timeouts"] += 1
+            self.last_error = (
+                "The storyteller took too long to reply. "
+                "Try again, or trail tui --gm-off."
+            )
         else:
             self.stats["connect_errors"] += 1
+            self.last_error = _connect_error_message()
+
+    def _on_http_status(self, status: int, body: str) -> bool:
+        """Record a non-200 generate response. Return True to retry.
+
+        F-254eedb6 — HTTP 4xx (model-missing 404 included) is not a JSON
+        reject and must not retry. 5xx still retries. Never bumps json_rejects.
+        """
+        self._host_up = True
+        self._available = False
+        self.last_error = self._format_http_error(status, body)
+        if 400 <= status < 500:
+            logger.warning("GM returned %d: %s", status, body or "")
+            return False
+        logger.warning("GM returned %d", status)
+        return True
+
+    def _format_http_error(self, status: int, body: str) -> str:
+        model = self.config.model
+        lowered = (body or "").lower()
+        if status == 404 or "not found" in lowered:
+            return _model_missing_error(model, body)
+        if body:
+            return f"{body} (model {model}) -- trail tui --gm-off"
+        if 400 <= status < 500:
+            return _model_missing_error(model)
+        return (
+            f"The storyteller is unavailable (HTTP {status}). "
+            "Try again, or trail tui --gm-off."
+        )
+
+    def _mark_ok(self) -> None:
+        self.last_error = None
+        self._available = True
+        self._host_up = True
+        self.stats["successes"] += 1
 
     def _count_profile_drift(self, returned: str, requested: str) -> None:
         """gm-B-03 — count when the model wore a different profile than asked."""
