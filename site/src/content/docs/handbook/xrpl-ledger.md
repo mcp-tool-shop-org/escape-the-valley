@@ -21,7 +21,7 @@ Completely optional. The game plays identically with it off (the default).
 
 ## Enabling the backpack
 
-From the TUI, press `L` to open the ledger menu. Or via CLI:
+From the TUI, press `L` to open the ledger menu. With the backpack on, `R` proofs this save (**PASS** / **FAIL** / **INCONCLUSIVE**) and does not Rest. Or via CLI:
 
 ```bash
 # Enable the backpack
@@ -69,15 +69,21 @@ trail parcel sent
 
 Parcels arrive as pending and must be explicitly accepted before supplies are added to your inventory. You can also refuse parcels.
 
-## Reconciliation Proof (Audit Mode)
+## Reconciliation Proof (`trail ledger proof`)
 
-The settlement receipts make a claim: this is what your supplies did, recorded on a public ledger. The reconciliation proof checks that claim against the ledger itself.
+The settlement receipts make a claim: this is what your supplies did, recorded on a public ledger. `trail ledger proof` checks that claim against the ledger itself, on the **loaded save** (the run you actually played), and reports **PASS**, **FAIL**, or **INCONCLUSIVE**.
+
+```bash
+trail ledger proof
+```
+
+The TUI **R** key on the ledger menu is the same proof: it calls `proof_player_save` on the loaded save and paints the verdict. Camp **R** without that menu still Rests. Parcel **R** still refuses.
 
 Audit mode replays a run's settlement receipts and reads the memos back off the XRPL Testnet — pulling the transactions through `AccountTx` and verifying the on-chain memos directly, rather than trusting whatever the local save happens to say. The check is genuinely external: the engine reports against the chain, not against its own copy. The supply history of a run can be independently audited, and the engine cannot fake the ledger — anyone with the transaction IDs can walk the same trail of memos and confirm or refute it.
 
 This sits on top of the optional backpack — itself optional. It is for runs where the on-chain history is the point: proof that the supplies moved the way the journal says they did, settled and checkable by a stranger.
 
-If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed.
+If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed. **INCONCLUSIVE** means pending checkpoints, not supply drift — re-run `trail ledger proof` after reconcile when the Testnet recovers. Do not confuse the two: `reconcile` retries pending Payments; `proof` audits the loaded save.
 
 ## Run Artifacts
 

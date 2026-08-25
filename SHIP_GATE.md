@@ -5,20 +5,20 @@
 
 **Tags:** `[all]` every repo · `[npm]` `[pypi]` `[vsix]` `[desktop]` `[container]` published artifacts · `[mcp]` MCP servers · `[cli]` CLI tools
 
-**Release:** v1.1.1 shipped 2026-06-15. Hygiene evidence below re-checked 2026-08-25 on `harden/stage-a-amend` (post Stage-A binary/smoke fix; not yet tagged).
+**Release:** v1.2.0 — 2026-08-25 (`harden/stage-b-amend` after dogfood-swarm Stages A–D + feature pass + Phase 9/10).
 
 ---
 
 ## A. Security Baseline
 
 - [x] `[all]` SECURITY.md exists (report email, supported versions, response timeline) (2026-06-15) — report email + 72h ack / 30d resolve timeline + supported 1.x table
-- [x] `[all]` README includes threat model paragraph (data touched, data NOT touched, permissions required) (2026-06-15) — README "Security" section: no telemetry/accounts, network opt-in, Testnet-only, links to full threat model
+- [x] `[all]` README includes threat model paragraph (data touched, data NOT touched, permissions required) (2026-08-25) — README "Security" section: no telemetry/accounts, Testnet-only, links to SECURITY.md (threat model of record: GM-on by default, local Ollama, `--gm-off` to disable; XRPL off until enable)
 - [x] `[all]` No secrets, tokens, or credentials in source or diagnostics output (2026-06-15) — only fake test-fixture seeds (e.g. `sEDPlayerSeed...`); real wallet/issuer seeds live in the gitignored `.trail/secrets.json` sidecar, never committed
 - [x] `[all]` No telemetry by default — state it explicitly even if obvious (2026-06-15) — stated in README + SECURITY.md; grep confirms no analytics/sentry/posthog/phone-home
 
 ### Default safety posture
 
-- [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag (2026-06-15) — all network features (Ollama GM, XRPL ledger) are opt-in and disabled by default; XRPL is Testnet-only with a hard mainnet guard, so there is no real-value or destructive default path
+- [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag (2026-08-25) — GM narration is on by default (local Ollama at `OLLAMA_HOST`, default `http://localhost:11434`); `--gm-off` disables it and a missing Ollama falls back to deterministic text. XRPL is off until `trail ledger enable`, Testnet-only with a hard mainnet guard, so there is no real-value or destructive default path
 - [x] `[cli|mcp|desktop]` File operations constrained to known directories (2026-06-15) — all save/secrets/journal writes confined to `.trail/`; atomic temp-file writes, no path traversal
 - [ ] `[mcp]` SKIP: not an MCP server (Typer/Textual CLI game)
 - [ ] `[mcp]` SKIP: not an MCP server
@@ -46,7 +46,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-08-25) — split honestly: `scripts/verify.sh` is lint + offline tests (`ruff check` + `pytest` under `set -e`). Build + content smoke for the PyInstaller artifact is `scripts/smoke_test_binary.py`, invoked from `release-binaries.yml` after the build: it runs the frozen binary `--help` *and* asserts a loaded event-library count ≥ 200 (the 60-event quarter-game if `event_skeletons.json` is missing). `verify.sh` alone is not a build-and-smoke check.
-- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.1.1` == `__init__.__version__` `1.1.1`; latest tag `v1.1.1`. Next tag is cut at release time on the amend commit, not this working tree.
+- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.2.0` == `__init__.__version__` `1.2.0` == `package.json` `1.2.0`; tag `v1.2.0` cut on this release commit.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) (2026-06-15) — `ci.yml` runs `pip-audit` against installed deps on every push/PR (non-blocking report; advisory surfaced in job log)
 - [ ] `[all]` SKIP: no `dependabot.yml` — org GitHub Actions budget rule forbids scheduled/dependabot workflows on tool repos (`.claude/rules/github-actions.md`: "Do NOT add dependabot.yml unless explicitly requested"; scheduled workflows allowed only in the marketing repo). Update cadence is manual + the CI `pip-audit` advisory feed.
 - [ ] `[npm]` SKIP: not an npm package (PyPI)
@@ -60,7 +60,7 @@
 - [x] `[all]` Logo in README header (2026-06-15) — `assets/readme-logo.png` present and referenced
 - [x] `[all]` Translations (polyglot-mcp, 8 languages) (2026-06-15) — `README.{ja,zh,es,fr,hi,it,pt-BR}.md` all present (7 translated + English source = 8)
 - [x] `[org]` Landing page (@mcptoolshop/site-theme) (2026-06-15) — `site/` Astro project present and building (`site/dist/`); landing page install = `pip install escape-the-valley` (A-13)
-- [ ] `[all]` GitHub repo metadata: description, homepage, topics — UNVERIFIED: this gate session is forbidden from reading/changing repo metadata (no `gh repo edit`). State must be confirmed out-of-band before publish. Left unchecked honestly rather than false-checked.
+- [x] `[all]` GitHub repo metadata: description, homepage, topics (2026-08-25) — `gh repo view` : description present, homepage `https://mcp-tool-shop-org.github.io/escape-the-valley/`, topics game/llm/ollama/oregon-trail/python/roguelike/survival-game/terminal-game/textual/xrp-ledger/xrpl. No `gh repo edit` this pass (already set).
 
 ---
 

@@ -11,6 +11,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .models import Condition, JournalEntry, Pace, RunState
+from .resources import RESOURCE_CATALOG
 
 
 def _no_color() -> bool:
@@ -28,15 +29,45 @@ def _no_color() -> bool:
 console = Console(no_color=_no_color())
 
 
-def _supply_cue(val: int) -> str:
-    """Non-color urgency tag for a supply count (cli-tui-B-06).
+def _supply_cue(val: int, warning_low: int | None = None) -> str:
+    """Non-color urgency tag for a supply count (cli-tui-B-06 / F-c0b4e383).
 
     Returns a plain-text tag so a critically low resource is legible on a
     monochrome or colorblind read, where a red number alone is invisible.
+
+    Thresholds come from ``ResourceDef.warning_low`` (0 is always CRITICAL).
+    The one-arg form keeps the historical band of 5 so older call sites and
+    tests stay stable; paint paths must pass the catalog value.
     """
     if val <= 0:
         return " (CRITICAL)"
-    if val <= 5:
+    threshold = 5 if warning_low is None else warning_low
+    if threshold > 0 and val <= threshold:
+        return " (LOW)"
+    return ""
+
+
+def _health_cue(health: int, *, alive: bool = True) -> str:
+    """Plain (!) marker for the CLI/TUI health band (cli-tui-B-06)."""
+    if alive and health <= 30:
+        return " (!)"
+    return ""
+
+
+def _wagon_cue(condition: int) -> str:
+    """Plain wagon-condition tag, keyed off the same 15/30 bands as warnings."""
+    if condition <= 15:
+        return " (CRITICAL)"
+    if condition < 30:
+        return " (LOW)"
+    return ""
+
+
+def _morale_cue(morale: int) -> str:
+    """Plain morale tag, same 20/40 bands as show_status (F-9f5f308e)."""
+    if morale <= 20:
+        return " (CRITICAL)"
+    if morale <= 40:
         return " (LOW)"
     return ""
 
@@ -96,7 +127,7 @@ def show_status(state: RunState) -> None:
 
         # cli-tui-B-06: critically low health gets a plain (!) marker so the
         # danger survives a monochrome read, not just a red number.
-        health_cue = " (!)" if member.is_alive() and member.health <= 30 else ""
+        health_cue = _health_cue(member.health, alive=member.is_alive())
         if member.is_alive():
             health_cell = f"[{health_style}]{member.health}{health_cue}[/]"
         else:
@@ -112,11 +143,7 @@ def show_status(state: RunState) -> None:
     # cli-tui-B-06: a plain morale tag so low/critical morale reads without
     # relying on the panel border color alone.
     morale = state.party.morale
-    morale_cue = (
-        " (CRITICAL)" if morale <= 20
-        else " (LOW)" if morale <= 40
-        else ""
-    )
+    morale_cue = _morale_cue(morale)
     console.print(Panel(
         party_table,
         title=f"[bold]Party[/bold]  Morale: {morale}/100{morale_cue}",
@@ -129,17 +156,32 @@ def show_status(state: RunState) -> None:
     ))
 
     # Supplies + Wagon side by side
+    # F-c0b4e383: put the (LOW)/(CRITICAL) tag on the *name* column so a
+    # width-80 force_terminal capture cannot wrap '0 (CRITICAL)' in the
+    # 8-wide value cell to '(CRITI…'. Cue thresholds come from the catalog
+    # (meds/parts warning_low=1), not a global 5.
     supplies_table = Table(show_header=False, box=None)
-    supplies_table.add_column(width=12)
-    supplies_table.add_column(width=8, justify="right")
+    supplies_table.add_column(width=20)
+    supplies_table.add_column(width=5, justify="right")
 
     s = state.supplies
-    for name, val in [("Food", s.food), ("Water", s.water), ("Medicine", s.meds),
-                       ("Ammo", s.ammo), ("Parts", s.parts)]:
-        style = "white" if val > 5 else "yellow" if val > 0 else "red bold"
-        # cli-tui-B-06: a plain-text (LOW)/(CRITICAL) tag carries the urgency
-        # even with color stripped (NO_COLOR / colorblind / monochrome term).
-        supplies_table.add_row(name, f"[{style}]{val}{_supply_cue(val)}[/]")
+    for name, key in (
+        ("Food", "food"),
+        ("Water", "water"),
+        ("Medicine", "meds"),
+        ("Ammo", "ammo"),
+        ("Parts", "parts"),
+    ):
+        val = s.get(key)
+        warning_low = RESOURCE_CATALOG[key].warning_low
+        cue = _supply_cue(val, warning_low)
+        if val <= 0:
+            style = "red bold"
+        elif warning_low > 0 and val <= warning_low:
+            style = "yellow"
+        else:
+            style = "white"
+        supplies_table.add_row(f"{name}{cue}", f"[{style}]{val}[/]")
 
     wagon_text = (
         f"Condition: {_bar(state.wagon.condition)}\n"
@@ -340,20 +382,26 @@ def show_game_over(state: RunState) -> None:
 
 
 def show_route_choice(connections: list[tuple[str, str, int]]) -> str:
-    """Show route choice when at a branching node."""
+    """Show route choice when at a branching node.
+
+    Offered ids are letters (A, B, C, ...) matching the engine/TUI CHOOSE
+    contract. The prompt and the keys the player may press are the same
+    document — do not claim 1-N.
+    """
     console.print("\n  [bold]The trail forks.[/bold]")
-    for i, (_node_id, name, dist) in enumerate(connections):
-        console.print(f"  [bold]{i + 1}[/bold]. {name} ({dist} miles)")
+    letters: list[str] = []
+    by_key: dict[str, str] = {}
+    for i, (node_id, name, dist) in enumerate(connections):
+        letter = chr(65 + i)  # A, B, C, ...
+        letters.append(letter)
+        by_key[letter] = node_id
+        console.print(f"  [bold]{letter}[/bold]. {name} ({dist} miles)")
 
     while True:
-        answer = console.input("\n[bold]Which way? [/bold]").strip()
-        try:
-            idx = int(answer) - 1
-            if 0 <= idx < len(connections):
-                return connections[idx][0]
-        except ValueError:
-            pass
-        console.print(f"  [dim]Choose 1-{len(connections)}[/dim]")
+        answer = console.input("\n[bold]Which way? [/bold]").strip().upper()
+        if answer in by_key:
+            return by_key[answer]
+        console.print(f"  [dim]Choose {', '.join(letters)}[/dim]")
 
 
 def show_message(msg: str, style: str = "") -> None:

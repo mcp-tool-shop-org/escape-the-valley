@@ -70,7 +70,7 @@ export const config: SiteConfig = {
         },
         {
           title: 'Commands',
-          code: 'trail tui              # Full-screen TUI\ntrail tui --continue   # Resume saved game\ntrail status           # Party & supplies\ntrail journal -n 5     # Recent events\ntrail ledger enable    # Enable XRPL backpack\ntrail self-check       # Environment health',
+          code: 'trail tui              # Full-screen TUI\ntrail tui --continue   # Resume saved game\ntrail status           # Party & supplies\ntrail journal -n 5     # Recent events\ntrail ledger enable    # Enable XRPL backpack\ntrail ledger proof     # Proof this save\ntrail self-check       # Environment health',
         },
       ],
     },

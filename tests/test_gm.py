@@ -15,6 +15,7 @@ from escape_the_valley.gm import (
     _profile_header,
     _tone_check,
     _tone_repair,
+    _validate_outcome,
     _validate_scene,
     build_deterministic_epilogue,
 )
@@ -30,7 +31,19 @@ class _FakeResp:
         self.status_code = status_code
         self._payload = payload
 
+    @property
+    def text(self) -> str:
+        return self._payload
+
     def json(self) -> dict:
+        if self.status_code != 200:
+            if not self._payload:
+                return {}
+            try:
+                data = json.loads(self._payload)
+            except json.JSONDecodeError:
+                return {}
+            return data if isinstance(data, dict) else {}
         return {"response": self._payload}
 
 
@@ -43,9 +56,15 @@ class _FakeStream:
     narration progressively while the final accumulated raw still parses.
     """
 
-    def __init__(self, fragments: list[str], status_code: int = 200):
+    def __init__(
+        self,
+        fragments: list[str],
+        status_code: int = 200,
+        error_body: str = "",
+    ):
         self._fragments = fragments
         self.status_code = status_code
+        self._error_body = error_body
 
     def __enter__(self):
         return self
@@ -54,7 +73,20 @@ class _FakeStream:
         return False
 
     def read(self) -> bytes:  # drained on non-200
-        return b""
+        return self._error_body.encode("utf-8")
+
+    @property
+    def text(self) -> str:
+        return self._error_body
+
+    def json(self) -> dict:
+        if not self._error_body:
+            return {}
+        try:
+            data = json.loads(self._error_body)
+        except json.JSONDecodeError:
+            return {}
+        return data if isinstance(data, dict) else {}
 
     def iter_lines(self):
         for frag in self._fragments:
@@ -155,6 +187,42 @@ class TestSceneValidation:
         }
         assert _validate_scene(data) is False
 
+    def test_list_narration_is_coerced_to_str(self):
+        # F-621ef743 — a truthy list used to pass validation then TypeError
+        # in _tone_repair. Join array-of-sentences into usable prose.
+        data = {
+            "scene_id": "s1",
+            "narration": ["The ford runs wide.", "The mule will not move."],
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        }
+        assert _validate_scene(data) is True
+        assert data["narration"] == "The ford runs wide. The mule will not move."
+        assert isinstance(data["narration"], str)
+
+    def test_non_str_narration_rejected(self):
+        data = {
+            "narration": {"text": "nope"},
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait"},
+            ],
+        }
+        assert _validate_scene(data) is False
+
+    def test_list_choice_label_is_coerced_to_str(self):
+        data = {
+            "narration": "The ford runs wide.",
+            "choices": [
+                {"id": "A", "label": ["Ford it", "now"]},
+                {"id": "B", "label": "Wait"},
+            ],
+        }
+        assert _validate_scene(data) is True
+        assert data["choices"][0]["label"] == "Ford it now"
+
 
 class TestToneLint:
     def test_clean_text_passes(self):
@@ -210,10 +278,14 @@ class TestIsAvailable:
         monkeypatch.setattr(client._client, "get", _raise_read_error)
         # Must return False, not propagate the httpx error.
         assert client.is_available() is False
+        assert client.last_error is not None
+        assert "ollama serve" in client.last_error
+        assert "--gm-off" in client.last_error
 
     def test_disabled_returns_false(self):
         client = GMClient(GMConfig(enabled=False))
         assert client.is_available() is False
+        assert client.last_error is None
 
 
 class TestOutcomeToneLint:
@@ -341,6 +413,7 @@ class TestGMFallbackNeverBricks:
         result = client.generate_scene(state, event, "clear skies")
         assert result is None
         assert calls["n"] == 2
+        assert client.stats["json_rejects"] == 0
 
     def test_punchline_scene_returns_none(self, monkeypatch):
         # A structural punchline (gm-B-04 hard miss) cannot be repaired and
@@ -414,6 +487,7 @@ class TestGMFallbackNeverBricks:
         )
         assert result is None
         assert calls["n"] == 2
+        assert client.stats["json_rejects"] == 0
 
     def test_disabled_returns_none_without_calling(self, monkeypatch):
         client, state, event = self._client_and_world(enabled=False)
@@ -426,6 +500,112 @@ class TestGMFallbackNeverBricks:
         assert client.generate_outcome(
             state, event, "The Ford", "A", "Ford it", {},
         ) is None
+
+
+class TestNarrationMustBeStr:
+    """F-621ef743 — array-of-sentences narration must not TypeError
+    `_tone_repair`. Coerce list/tuple of str; un-coerceable shapes
+    increment json_rejects so stats still explain the miss.
+    """
+
+    def test_generate_scene_array_narration_succeeds(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "narration": ["The ford runs wide.", "The mule will not move."],
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is not None
+        assert result.narration == "The ford runs wide. The mule will not move."
+        assert client.stats["successes"] == 1
+        assert client.stats["json_rejects"] == 0
+        assert client.stats["tone_rejects"] == 0
+
+    def test_generate_scene_object_narration_json_rejects(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "narration": {"text": "The ford runs wide."},
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is None
+        assert client.stats["attempts"] == 1
+        assert client.stats["successes"] == 0
+        assert client.stats["json_rejects"] == 1
+        assert client.stats["tone_rejects"] == 0
+
+    def test_generate_outcome_array_narration_succeeds(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": [
+                "The ford runs wide.",
+                "The mule will not move.",
+            ],
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+        assert result is not None
+        assert result.outcome_narration == (
+            "The ford runs wide. The mule will not move."
+        )
+        assert client.stats["successes"] == 1
+        assert client.stats["json_rejects"] == 0
+
+    def test_generate_outcome_object_narration_json_rejects(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=0))
+        state = create_new_run(seed=1)
+        event = _make_event()
+        payload = json.dumps({
+            "scene_id": "s1",
+            "outcome_narration": {"text": "The water takes the wagon."},
+        })
+        monkeypatch.setattr(
+            client._client, "post", lambda *_a, **_k: _FakeResp(200, payload),
+        )
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+        assert result is None
+        assert client.stats["attempts"] == 1
+        assert client.stats["json_rejects"] == 1
+        assert client.stats["tone_rejects"] == 0
+
+    def test_validate_outcome_list_is_coerced_to_str(self):
+        data = {
+            "outcome_narration": [
+                "The ford runs wide.",
+                "The mule will not move.",
+            ],
+        }
+        assert _validate_outcome(data) is True
+        assert data["outcome_narration"] == (
+            "The ford runs wide. The mule will not move."
+        )
 
 
 class TestMemoryProposalsNullSafety:
@@ -844,6 +1024,9 @@ class TestIsAvailableTimeout:
         class _OK:
             status_code = 200
 
+            def json(self):
+                return {"models": [{"name": "llama3.2:latest"}]}
+
         def _get(_url, *, timeout=None, **_k):
             seen["timeout"] = timeout
             return _OK()
@@ -852,10 +1035,174 @@ class TestIsAvailableTimeout:
         assert client.is_available() is True
         # The probe must NOT use the 30s generation budget.
         assert seen["timeout"] == 2.5
+        assert client.last_error is None
 
     def test_probe_default_is_short(self):
         # The default probe budget is seconds, not the 30s generation window.
         assert GMConfig().probe_timeout <= 5.0
+
+    def test_missing_model_is_unavailable(self, monkeypatch):
+        # F-254eedb6 — host up with other models is not "available".
+        client = GMClient(GMConfig(model="llama3.2"))
+
+        class _Tags:
+            status_code = 200
+
+            def json(self):
+                return {"models": [{"name": "mistral:latest"}, {"name": "qwen2.5"}]}
+
+        monkeypatch.setattr(client._client, "get", lambda *_a, **_k: _Tags())
+        assert client.is_available() is False
+        assert client.last_error is not None
+        assert "llama3.2" in client.last_error
+        assert "ollama pull llama3.2" in client.last_error
+        assert "--gm-off" in client.last_error
+        st = client.status()
+        assert st["installed"] is True
+        assert st["available"] is False
+        assert st["last_error"] == client.last_error
+
+    def test_tagged_model_matches_bare_name(self, monkeypatch):
+        client = GMClient(GMConfig(model="llama3.2"))
+
+        class _Tags:
+            status_code = 200
+
+            def json(self):
+                return {"models": [{"name": "llama3.2:latest"}]}
+
+        monkeypatch.setattr(client._client, "get", lambda *_a, **_k: _Tags())
+        assert client.is_available() is True
+        assert client.last_error is None
+        assert client.status()["available"] is True
+
+
+class TestOllama404ModelMissing:
+    """F-254eedb6 — HTTP 404 is model-missing, not a JSON reject."""
+
+    def _world(self, **cfg):
+        return GMClient(GMConfig(max_retries=1, **cfg)), create_new_run(seed=1), _make_event()
+
+    def _404(self, model: str = "llama3.2") -> _FakeResp:
+        return _FakeResp(
+            404,
+            json.dumps({"error": f"model '{model}' not found"}),
+        )
+
+    def _assert_model_missing(self, client: GMClient, calls: dict, model: str = "llama3.2"):
+        assert calls["n"] == 1  # do not retry 4xx
+        assert client.stats["json_rejects"] == 0
+        assert client.stats["attempts"] == 1
+        assert client.stats["successes"] == 0
+        assert client.last_error is not None
+        assert "not found" in client.last_error
+        assert f"ollama pull {model}" in client.last_error
+        assert "--gm-off" in client.last_error
+        st = client.status()
+        assert set(st) == {"installed", "available", "enabled", "last_error"}
+        assert st["available"] is False
+        assert st["enabled"] is True
+        assert st["last_error"] == client.last_error
+        assert st["installed"] is True
+
+    def test_generate_scene_404_is_not_json_reject(self, monkeypatch):
+        client, state, event = self._world()
+        calls = {"n": 0}
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return self._404()
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is None
+        self._assert_model_missing(client, calls)
+
+    def test_generate_outcome_404_is_not_json_reject(self, monkeypatch):
+        client, state, event = self._world()
+        calls = {"n": 0}
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return self._404()
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_outcome(
+            state, event, "The Ford", "A", "Ford it", {"result": "ok"},
+        )
+        assert result is None
+        self._assert_model_missing(client, calls)
+
+    def test_generate_scene_stream_404_does_not_retry(self, monkeypatch):
+        client, state, event = self._world()
+        calls = {"n": 0}
+        err = json.dumps({"error": "model 'llama3.2' not found"})
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            return _FakeStream([], status_code=404, error_body=err)
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=lambda _d: None,
+        )
+        assert result is None
+        self._assert_model_missing(client, calls)
+
+    def test_epilogue_404_falls_back_without_json_reject(self, monkeypatch):
+        client = GMClient(GMConfig(max_retries=1))
+        state = create_new_run(seed=1)
+        ending = _ending()
+        calls = {"n": 0}
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return self._404()
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_epilogue(state, ending)
+        assert result == build_deterministic_epilogue(state, ending)
+        self._assert_model_missing(client, calls)
+
+    def test_http_400_does_not_retry(self, monkeypatch):
+        client, state, event = self._world()
+        calls = {"n": 0}
+
+        def _fake_post(*_a, **_k):
+            calls["n"] += 1
+            return _FakeResp(400, json.dumps({"error": "invalid request"}))
+
+        monkeypatch.setattr(client._client, "post", _fake_post)
+        result = client.generate_scene(state, event, "clear skies")
+        assert result is None
+        assert calls["n"] == 1
+        assert client.stats["json_rejects"] == 0
+        assert client.last_error is not None
+        assert "--gm-off" in client.last_error
+
+    def test_status_keys_match_voicebridge_shape(self):
+        client = GMClient(GMConfig())
+        st = client.status()
+        assert set(st) == {"installed", "available", "enabled", "last_error"}
+        assert st["enabled"] is True
+        assert st["available"] is False
+        assert st["last_error"] is None
+
+    def test_connect_error_sets_last_error(self, monkeypatch):
+        client, state, event = self._world()
+
+        def _refuse(*_a, **_k):
+            raise httpx.ConnectError("refused")
+
+        monkeypatch.setattr(client._client, "post", _refuse)
+        assert client.generate_scene(state, event, "clear skies") is None
+        assert client.stats["connect_errors"] == 1
+        assert client.stats["json_rejects"] == 0
+        assert client.last_error is not None
+        assert "ollama serve" in client.last_error
+        assert "--gm-off" in client.last_error
+        assert client.status()["available"] is False
+        assert client.status()["installed"] is False
 
 
 class TestStreamingNarration:
@@ -924,7 +1271,8 @@ class TestStreamingNarration:
         assert result is None  # fallback-never-bricks
         assert calls["n"] == 2  # max_retries + 1
         assert seen == []  # nothing decoded
-        assert client.stats["json_rejects"] == 2
+        # F-254eedb6 — HTTP non-200 is not a JSON reject.
+        assert client.stats["json_rejects"] == 0
 
     def test_scene_stream_invalid_json_falls_through(self, monkeypatch):
         client = GMClient(GMConfig(max_retries=1))

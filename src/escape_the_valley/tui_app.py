@@ -6,10 +6,10 @@ Run:
     # or: python -m escape_the_valley.tui_app
 
 Keys:
-    t travel | r rest | h hunt | p repair
-    1-4 choose option
-    J toggle journal drawer
-    ? help | q quit
+    t travel | r rest | h hunt | p repair | c cycle pace
+    1-7 choose option (A-G); e/f/g pick E/F/G
+    Shift+J toggle journal drawer
+    L ledger | V voice | ? help | q quit
 """
 
 from __future__ import annotations
@@ -28,6 +28,9 @@ from textual.markup import escape
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 from textual.worker import WorkerState
+
+from .resources import RESOURCE_CATALOG
+from .ui import _supply_cue
 
 
 # Matches backpack_ui._escape_dynamic (ledger-owned; duplicated here so
@@ -71,6 +74,18 @@ class FrameState:
     pace: str = "Steady"
     wagon: str = ""
     party_summary: str = ""
+
+    # F-42243a2c: run identity the handbook says the start screen shows.
+    run_id: str = ""
+    seed: int = 0
+    gm_profile: str = ""
+    doctrine: str = ""
+    taboo: str = ""
+    twists: list[str] = field(default_factory=list)
+
+    # F-9f5f308e: morale 0-100 with the same LOW/CRITICAL bands as CLI.
+    morale: int = 70
+    morale_cue: str = ""
 
     supplies: dict[str, int] = field(default_factory=dict)
 
@@ -131,15 +146,34 @@ class StatusPanel(Static):
         # the "Day N" header tag ([b]...[/b], hand-authored in this f-string)
         # is left as real markup. s.day is an int and cannot carry a stray
         # '[...]' tag, so it is not escaped.
+        wagon = _escape_dynamic(s.wagon)
+        if "(CRITICAL)" in s.wagon:
+            wagon = f"[bold red]{wagon}[/]"
+        elif "(LOW)" in s.wagon:
+            wagon = f"[yellow]{wagon}[/]"
+        seed_bit = f"  \u2022  seed {s.seed}" if s.seed else ""
         lines = [
-            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}",
+            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}{seed_bit}",
             f"Next: {_escape_dynamic(s.next_stop)}",
             f"{_escape_dynamic(s.weather)}  \u2022  {_escape_dynamic(s.biome)}",
-            f"Pace: {_escape_dynamic(s.pace)}",
+            f"Pace: {_escape_dynamic(s.pace)}  (c cycles)",
+        ]
+        # Compact run-rules line: doctrine, taboo, twist names (F-42243a2c).
+        rules_parts = []
+        if s.doctrine:
+            rules_parts.append(f"Doctrine: {_escape_dynamic(s.doctrine)}")
+        if s.taboo:
+            rules_parts.append(f"Taboo: {_escape_dynamic(s.taboo)}")
+        if s.twists:
+            names = ", ".join(_escape_dynamic(t) for t in s.twists)
+            rules_parts.append(f"Twists: {names}")
+        if rules_parts:
+            lines.append(" \u2022 ".join(rules_parts))
+        lines.extend([
             "",
             _escape_dynamic(s.party_summary),
-            _escape_dynamic(s.wagon),
-        ]
+            wagon,
+        ])
         if s.backpack_status:
             lines.append("")
             lines.append(_escape_dynamic(s.backpack_status))
@@ -149,12 +183,25 @@ class StatusPanel(Static):
 class SuppliesPanel(Static):
     # Display keys that belong to the GEAR category (for visual grouping)
     _GEAR_KEYS = {"PART", "ROPE", "TOOL", "BOOT"}
+    _DEFS_BY_DISPLAY = {rdef.display: rdef for rdef in RESOURCE_CATALOG.values()}
 
     def update_from(self, s: FrameState) -> None:
+        # F-61040cc4: color + (LOW)/(CRITICAL) from ResourceDef.warning_low,
+        # not a hard-coded 5, so FOOD: 0 reads differently from FOOD: 50
+        # even on a monochrome terminal.
         consumables = []
         gear = []
         for k, v in s.supplies.items():
-            line = f"{_escape_dynamic(k)}: {v}"
+            rdef = self._DEFS_BY_DISPLAY.get(k)
+            warning_low = rdef.warning_low if rdef is not None else 5
+            cue = _supply_cue(v, warning_low)
+            label = f"{_escape_dynamic(k)}: {v}{cue}"
+            if v <= 0:
+                line = f"[bold red]{label}[/]"
+            elif warning_low > 0 and v <= warning_low:
+                line = f"[yellow]{label}[/]"
+            else:
+                line = label
             if k in self._GEAR_KEYS:
                 gear.append(line)
             else:
@@ -203,7 +250,23 @@ class NarrationPanel(Markdown):
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        body = "[b]Party[/b]\n" + "\n".join(_escape_dynamic(d) for d in s.party_detail)
+        member_lines = []
+        for d in s.party_detail:
+            esc = _escape_dynamic(d)
+            if d.endswith("dead"):
+                member_lines.append(f"[dim strikethrough]{esc}[/]")
+            elif " (!)" in d:
+                member_lines.append(f"[bold red]{esc}[/]")
+            else:
+                member_lines.append(esc)
+        # F-9f5f308e: same Party header + morale/100 bands as ui.show_status.
+        cue = _escape_dynamic(s.morale_cue)
+        morale = f"Morale: {s.morale}/100{cue}"
+        if s.morale <= 20:
+            morale = f"[bold red]{morale}[/]"
+        elif s.morale <= 40:
+            morale = f"[yellow]{morale}[/]"
+        body = f"[b]Party[/b]  {morale}\n" + "\n".join(member_lines)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
             body += "\n".join(f"\u2022 {_escape_dynamic(w)}" for w in s.warnings)
@@ -270,14 +333,20 @@ class EventBar(Static):
         choice_letters = (
             ", ".join(_escape_dynamic(c.id) for c in s.choices) if s.choices else ""
         )
-        pick_hint = (
-            f"Choose {choice_letters} (number keys also work). "
-            if choice_letters
-            else ""
-        )
+        # Live choose keys are 1-7 (BINDINGS), not a-g. e/f/g pick E/F/G
+        # via on_key when no overlay is open — listed in HELP_TEXT, not
+        # claimed as a-g here. Journal is Shift+J, not unshifted j.
+        if s.choices:
+            digit_keys = ", ".join(
+                str(i) for i in range(1, len(s.choices) + 1)
+            )
+            pick_hint = f"Choose {digit_keys} ({choice_letters}). "
+        else:
+            pick_hint = ""
         hint_line = (
-            f"[i]{pick_hint}Actions: t/r/h/p. "
-            "L ledger \u2022 V voice \u2022 J journal \u2022 ? help \u2022 q quit[/i]"
+            f"[i]{pick_hint}Actions: t/r/h/p/c. "
+            "L ledger \u2022 V voice \u2022 Shift+J journal \u2022 "
+            "? help \u2022 q quit[/i]"
         )
 
         # gm-B-02 / ENG-B-05 consumer: a single subtle footer line when the GM
@@ -297,11 +366,14 @@ class EventBar(Static):
         # engine/ledger-derived text (also dynamic); both are escaped. The
         # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
+        # F-a0f79af3 / F-23cf9a9a: docked bar budget is App.CSS #eventbar
+        # (height: auto; max-height: 5; no border). Title + A–D fit five
+        # painted rows at 80x24; E/F/G valves scroll (overflow-y: auto).
         text = (
-            f"[b]{_escape_dynamic(s.prompt_title)}[/b]\n"
-            f"{_escape_dynamic(s.prompt_text)}\n\n"
+            f"[b]{_escape_dynamic(s.prompt_title)}[/b]  "
+            f"{_escape_dynamic(s.prompt_text)}\n"
             + body
-            + f"\n\n{hint_line}"
+            + f"\n{hint_line}"
             + degraded_line
         )
         self.update(text)
@@ -415,12 +487,15 @@ HELP_TEXT = """\
 
 Keys:
 \u2022 t Travel    \u2022 r Rest    \u2022 h Hunt    \u2022 p Repair
-\u2022 1\u20137 Choose option (A\u2013G); letters a\u2013g also work
+\u2022 c Cycle pace (Slow / Steady / Hard)
+\u2022 1\u20137 Choose option (A\u2013G)
+\u2022 e/f/g pick E/F/G when no overlay is open
 \u2022 E/F/G are last-resort moves (Abandon Cargo, Desperate
   Repair, Hard Ration) \u2014 they appear only when things are dire
-\u2022 J Toggle journal drawer
+\u2022 Shift+J Toggle journal drawer
 \u2022 L Toggle ledger menu
 \u2022 V Toggle voice narration
+\u2022 ? Help
 \u2022 q Quit
 
 The engine decides outcomes. The GM narrates.
@@ -483,29 +558,129 @@ def _resolve_css_path() -> str:
     return str(source_default)
 
 
+# Footer groups so q/?/t/r/h/p/1-7 remain visible at 80 columns
+# (F-a0f79af3) instead of Rest collapsing to 'R' behind the palette key.
+_CAMP_KEYS = Binding.Group("Camp", compact=True)
+_CHOICE_KEYS = Binding.Group("A-G", compact=True)
+# Stack the three columns only when they would each drop below ~20 cells.
+# 80x24 (proof size) stays 3-col with 1fr 2fr 1fr; stacking there starves
+# #left of rows and pushes #supplies onto the EventBar.
+_HUD_STACK_WIDTH = 72
+
+
 class LedgerTrailApp(App):
+    TITLE = "Escape the Valley"
+    SUB_TITLE = "Ledger Trail"
     CSS_PATH = _resolve_css_path()
+    # Loaded after CSS_PATH, so these rules win over tui.tcss #main / #eventbar
+    # without editing the stylesheet (outside this domain's owned globs).
+    # #eventbar is fully specified here (height/max-height/padding/border/
+    # background) so tui.tcss leftover `height: 9` + `border-top: tall` cannot
+    # eat a content row of the max-height budget (F-23cf9a9a).
+    CSS = """
+    #main {
+        height: 1fr;
+        grid-size: 3 1;
+        grid-columns: 1fr 2fr 1fr;
+        grid-rows: 1fr;
+        padding: 0 1;
+        grid-gutter: 0 1;
+    }
+    #main.-stack {
+        layout: vertical;
+        grid-size: 1 3;
+        grid-columns: 1fr;
+        grid-rows: 1fr 2fr 1fr;
+    }
+    #left, #center, #right {
+        border: none;
+        padding: 0;
+        height: 1fr;
+        width: 100%;
+        overflow-y: auto;
+    }
+    #main.-stack #left {
+        height: 2fr;
+        min-height: 5;
+    }
+    #main.-stack #center {
+        height: 2fr;
+        min-height: 4;
+    }
+    #main.-stack #right {
+        height: 1fr;
+        min-height: 3;
+    }
+    #status, #supplies {
+        height: 1fr;
+        min-height: 1;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #map {
+        height: 1fr;
+        min-height: 3;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #narration {
+        height: 2fr;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #party {
+        height: 1fr;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #eventbar {
+        dock: bottom;
+        height: auto;
+        min-height: 3;
+        max-height: 5;
+        overflow-y: auto;
+        padding: 0 1;
+        border: none;
+        border-top: none;
+        background: #0f1620;
+    }
+    #ledger_proof {
+        display: none;
+        width: 50%;
+        height: 60%;
+        margin: 2 0 0 0;
+        padding: 1 2;
+        border: round #3a4b60;
+        background: #0f1620;
+        overflow-y: auto;
+    }
+    """
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("question_mark", "toggle_help", "Help"),
-        Binding("shift+j", "toggle_journal", "Journal"),
-        Binding("l", "toggle_ledger", "Ledger"),
-        Binding("v", "toggle_voice", "Voice"),
-        Binding("t", "intent('TRAVEL')", "Travel"),
-        Binding("r", "intent('REST')", "Rest"),
-        Binding("h", "intent('HUNT')", "Hunt"),
-        Binding("p", "intent('REPAIR')", "Repair"),
-        Binding("1", "choose('A')", "A"),
-        Binding("2", "choose('B')", "B"),
-        Binding("3", "choose('C')", "C"),
-        Binding("4", "choose('D')", "D"),
+        Binding("shift+j", "toggle_journal", "Journal", show=False),
+        Binding("l", "toggle_ledger", "Ledger", show=False),
+        Binding("v", "toggle_voice", "Voice", show=False),
+        Binding("t", "intent('TRAVEL')", "Travel", group=_CAMP_KEYS),
+        Binding("r", "intent('REST')", "Rest", group=_CAMP_KEYS),
+        Binding("h", "intent('HUNT')", "Hunt", group=_CAMP_KEYS),
+        Binding("p", "intent('REPAIR')", "Repair", group=_CAMP_KEYS),
+        Binding("c", "change_pace", "Pace", group=_CAMP_KEYS),
+        Binding("1", "choose('A')", "A", group=_CHOICE_KEYS),
+        Binding("2", "choose('B')", "B", group=_CHOICE_KEYS),
+        Binding("3", "choose('C')", "C", group=_CHOICE_KEYS),
+        Binding("4", "choose('D')", "D", group=_CHOICE_KEYS),
         # cli-tui-B-01: the escape valves are reachable. 5/6/7 map to the
         # conditional E/F/G choices; e/f/g are handled in on_key (so they don't
         # collide with the ledger/nudge overlay letters) when no overlay is up.
-        Binding("5", "choose('E')", "E"),
-        Binding("6", "choose('F')", "F"),
-        Binding("7", "choose('G')", "G"),
+        Binding("5", "choose('E')", "E", group=_CHOICE_KEYS),
+        Binding("6", "choose('F')", "F", group=_CHOICE_KEYS),
+        Binding("7", "choose('G')", "G", group=_CHOICE_KEYS),
     ]
 
     show_help: reactive[bool] = reactive(False)
@@ -520,6 +695,7 @@ class LedgerTrailApp(App):
     show_learn_more: reactive[bool] = reactive(False)
     show_send_parcel: reactive[bool] = reactive(False)
     show_parcel_notify: reactive[bool] = reactive(False)
+    show_ledger_proof: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -593,6 +769,7 @@ class LedgerTrailApp(App):
                 LedgerMenuOverlay,
                 NudgeOverlay,
                 ParcelNotification,
+                ProofOverlay,
                 SendParcelOverlay,
                 WalletInfoOverlay,
             )
@@ -614,21 +791,52 @@ class LedgerTrailApp(App):
             parcel_input.can_focus = False
             yield parcel_input
             yield ParcelNotification(id="parcel_notify")
+            yield ProofOverlay(id="ledger_proof")
 
-        yield Footer()
+        yield Footer(show_command_palette=False, compact=True)
+
+    def on_resize(self, event) -> None:
+        self._reflow_hud()
+
+    def _reflow_hud(self) -> None:
+        """Stack the three HUD columns under ~100 cols (F-a0f79af3).
+
+        Fixed ``grid-columns: 28 1fr 28`` collapses the map to ~10 cells at
+        80 wide. Below ``_HUD_STACK_WIDTH`` the grid becomes a vertical stack
+        so status, supplies, and the map keep a usable width; at 120+ the
+        three-column layout with minmax tracks stays.
+        """
+        try:
+            main = self.query_one("#main")
+        except Exception:
+            return
+        main.set_class(self.size.width < _HUD_STACK_WIDTH, "-stack")
 
     def on_mount(self) -> None:
+        self._reflow_hud()
         if self._engine:
             self._sync_frame()
 
-        # Initialize voice bridge if configured
-        if self._voice_config and self._voice_config.enabled:
+        # Initialize voice bridge if configured. A --voice launch must
+        # toast Voice ON or an honest fail (extra missing / worker dead)
+        # — never silence, then a later V that claims Voice OFF.
+        voice_requested = bool(
+            self._voice_config and self._voice_config.enabled
+        )
+        if voice_requested:
             from .voice import VoiceBridge
 
             self._voice_bridge = VoiceBridge(self._voice_config)
             self._voice_enabled = self._voice_bridge.start()
 
         self._render_all()
+
+        if voice_requested:
+            if self._voice_enabled:
+                self.notify("Voice ON", markup=False)
+            else:
+                self._notify_voice_unavailable()
+            self._check_voice_health()
 
         # EC-04: if a finished run was loaded (the CLI normally refuses this,
         # but be robust), raise the end screen straight away.
@@ -642,6 +850,27 @@ class LedgerTrailApp(App):
             st = self._engine.state
             self.notify(
                 f"Resumed run {st.run_id} -- Day {st.day}. Press ? for keys.",
+                markup=False,
+            )
+        elif self._engine:
+            # F-42243a2c: new-game mount names the seed, profile, doctrine,
+            # taboo, and twists the survival guide says this run is using.
+            st = self._engine.state
+            profile = (
+                st.gm_profile.value
+                if hasattr(st.gm_profile, "value")
+                else str(st.gm_profile)
+            )
+            twists = ", ".join(
+                t.value if hasattr(t, "value") else str(t)
+                for t in st.twists
+            ) or "none"
+            doctrine = st.doctrine or "none"
+            taboo = st.taboo or "none"
+            self.notify(
+                f"Run {st.run_id} -- seed {st.seed} -- {profile}. "
+                f"Doctrine: {doctrine}. Taboo: {taboo}. "
+                f"Twists: {twists}. Press ? for keys.",
                 markup=False,
             )
 
@@ -708,6 +937,7 @@ class LedgerTrailApp(App):
             except Exception:
                 pass
         self.query_one("#parcel_notify").display = self.show_parcel_notify
+        self.query_one("#ledger_proof").display = self.show_ledger_proof
 
     def _after_step(self) -> None:
         """Sync frame, render, optionally narrate, and check nudge."""
@@ -762,27 +992,45 @@ class LedgerTrailApp(App):
         # told the storyteller went quiet, instead of a silent stale ON state.
         self._check_voice_health()
 
+    def _voice_unavailable_message(self) -> str:
+        """Honest next-step when voice was requested but is not running.
+
+        Same copy as ``trail self-check``: pip-install the voice extra when
+        it is missing, or ``last_error`` when the extra is present but dead.
+        """
+        status = self._voice_bridge.status() if self._voice_bridge else {}
+        last_error = status.get("last_error")
+        if last_error:
+            return f"Voice not available - {last_error}"
+        if status.get("installed"):
+            return "Voice not available - unavailable"
+        return 'Voice not available - pip install "escape-the-valley[voice]"'
+
+    def _notify_voice_unavailable(self) -> None:
+        """Tell the player voice is not running; latch so we do not nag."""
+        self._voice_enabled = False
+        self._voice_failure_notified = True
+        self.notify(self._voice_unavailable_message(), markup=False)
+
     def _check_voice_health(self) -> None:
-        """If the voice bridge failed at runtime, notify once and disable.
+        """If the voice bridge is not available, notify once and disable.
 
         gm-B-06 consumer for VoiceBridge.status(): when voice was on for the
         player but the bridge self-disabled on a runtime audio failure
         (status()['available'] is False with a last_error), surface the reason
         a single time and flip the UI's _voice_enabled False so the footer /
         toggle state stop claiming voice is on.
+
+        Also covers a missing extra (installed False, last_error None) so a
+        ``--voice`` launch is as honest as a later V press.
         """
         bridge = self._voice_bridge
         if bridge is None or self._voice_failure_notified:
             return
-        # Only act on a genuine runtime failure: the bridge reports a reason
-        # and is no longer available. (A bridge that was simply never started,
-        # or toggled off cleanly, has no last_error.)
         status = bridge.status()
-        if status["available"] or not status["last_error"]:
+        if status["available"]:
             return
-        self._voice_failure_notified = True
-        self._voice_enabled = False
-        self.notify(f"Voice unavailable - {status['last_error']}", markup=False)
+        self._notify_voice_unavailable()
         # Reflect the quieted state in the event bar / footer immediately.
         self._render_all()
 
@@ -809,14 +1057,30 @@ class LedgerTrailApp(App):
             self._voice_bridge = VoiceBridge(config)
             self._voice_enabled = self._voice_bridge.start()
             if not self._voice_enabled:
-                self.notify("Voice not available", markup=False)
+                self._notify_voice_unavailable()
                 return
             self.notify("Voice ON", markup=False)
             return
 
+        # A constructed-but-dead bridge (failed --voice start) must never
+        # report Voice OFF: toggle() would just flip config.enabled and lie.
+        status = self._voice_bridge.status()
+        if not status.get("available"):
+            self.notify(self._voice_unavailable_message(), markup=False)
+            self._voice_enabled = False
+            self._voice_failure_notified = True
+            return
+
+        was_enabled = bool(self._voice_bridge.config.enabled)
         new_state = self._voice_bridge.toggle()
         self._voice_enabled = new_state
-        self.notify("Voice ON" if new_state else "Voice OFF", markup=False)
+        if new_state:
+            self.notify("Voice ON", markup=False)
+            return
+        if was_enabled:
+            self.notify("Voice OFF", markup=False)
+            return
+        self._notify_voice_unavailable()
 
     def action_choose(self, choice_id: str) -> None:
         """Resolve a visible choice (A-G) to an intent and step the engine.
@@ -905,6 +1169,34 @@ class LedgerTrailApp(App):
             return
 
         self._run_step(PlayerIntent(action=action))
+
+    def action_change_pace(self) -> None:
+        """Cycle Slow → Steady → Hard through StepEngine.CHANGE_PACE.
+
+        F-f50297bc: the recommended TUI never wired the existing camp
+        intent. ``c`` is the live control; the engine's pace enum is the
+        only system. On the end screen ``c`` still copies the postcard.
+        """
+        if self.show_end:
+            self.action_copy_postcard()
+            return
+        if not self._engine or self._in_flight:
+            return
+
+        from .intent import GamePhase, IntentAction, PlayerIntent
+        from .models import Pace
+
+        if self._engine.phase != GamePhase.CAMP:
+            return
+
+        order = (Pace.SLOW, Pace.STEADY, Pace.HARD)
+        current = self._engine.state.wagon.pace
+        try:
+            idx = order.index(current)
+        except ValueError:
+            idx = order.index(Pace.STEADY)
+        nxt = order[(idx + 1) % len(order)]
+        self._run_step(PlayerIntent(action=IntentAction.CHANGE_PACE, pace=nxt.value))
 
     # ── Worker-driven stepping (cli-tui-B-02) ──────────────────────
 
@@ -1188,7 +1480,7 @@ class LedgerTrailApp(App):
 
     # _in_flight invariant (read before touching any @work worker below):
     #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
-    #     "ledger" group (enable/settle/wallet_info/send_parcel) are SEPARATE
+    #     "ledger" group (enable/settle/wallet_info/send_parcel/proof) are SEPARATE
     #     groups, so Textual will happily run one of each concurrently — its
     #     exclusivity only cancels a prior worker in the SAME group.
     #   * The cross-action guard (a gameplay step must not race a ledger call,
@@ -1441,6 +1733,55 @@ class LedgerTrailApp(App):
         ).update_from_info(info)
         self._render_all()
 
+    def action_ledger_proof(self) -> None:
+        """Proof the loaded save (F-ff0e4af0). Does not Rest, faucet, or settle."""
+        if not self._engine or self._in_flight:
+            return
+
+        if not self._has_worker_runtime():
+            self._ledger_proof_blocking()
+            return
+
+        self._in_flight = True
+        self._close_all_overlays()
+        self.show_ledger_proof = True
+        from .backpack_ui import ProofOverlay
+
+        self.query_one("#ledger_proof", ProofOverlay).update(
+            "[b]Ledger Proof[/b]\n\nProving this save..."
+        )
+        self._render_all()
+        self._ledger_proof_worker()
+
+    def _ledger_proof_blocking(self):
+        from .ledger_proof import proof_player_save
+
+        result = proof_player_save(self._engine.state)
+        self._finish_ledger_proof(result)
+        return result
+
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
+    def _ledger_proof_worker(self) -> None:
+        from .ledger_proof import proof_player_save
+
+        try:
+            result = proof_player_save(self._engine.state)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger proof", exc)
+            return
+        self.call_from_thread(self._finish_ledger_proof, result)
+
+    def _finish_ledger_proof(self, result) -> None:
+        self._in_flight = False
+        from .backpack_ui import ProofOverlay
+
+        self._close_all_overlays()
+        self.show_ledger_proof = True
+        self.query_one(
+            "#ledger_proof", ProofOverlay,
+        ).update_from_proof(result.to_overlay_dict())
+        self._render_all()
+
     def action_send_parcel(self) -> None:
         """Show the send parcel overlay with wallet + supply info."""
         if not self._engine:
@@ -1688,6 +2029,7 @@ class LedgerTrailApp(App):
         self.show_learn_more = False
         self.show_send_parcel = False
         self.show_parcel_notify = False
+        self.show_ledger_proof = False
 
     def on_key(self, event) -> None:
         """Handle overlay keys and voice interrupt."""
@@ -1711,6 +2053,7 @@ class LedgerTrailApp(App):
                 self.show_enable_flow, self.show_wallet_info,
                 self.show_learn_more, self.show_help,
                 self.show_send_parcel, self.show_parcel_notify,
+                self.show_ledger_proof,
             ])
             if no_overlay and key in ("e", "f", "g"):
                 event.prevent_default()
@@ -1723,6 +2066,7 @@ class LedgerTrailApp(App):
                 self.show_enable_flow, self.show_wallet_info,
                 self.show_learn_more, self.show_help,
                 self.show_send_parcel, self.show_parcel_notify,
+                self.show_ledger_proof,
             ]):
                 self._close_all_overlays()
                 self.show_help = False
@@ -1763,6 +2107,12 @@ class LedgerTrailApp(App):
                 self.action_ledger_settle()
                 event.prevent_default()
                 return
+            if key == "r":
+                # Overlay-scoped: Binding r is CAMP REST. prevent_default
+                # so the menu's "R) Proof this save" does not steal a rest.
+                event.prevent_default()
+                self.action_ledger_proof()
+                return
 
         # Nudge keys
         if self.show_nudge:
@@ -1791,6 +2141,7 @@ class LedgerTrailApp(App):
             self.show_enable_flow, self.show_wallet_info,
             self.show_learn_more, self.show_help,
             self.show_send_parcel, self.show_parcel_notify,
+            self.show_ledger_proof,
         ])
         if no_overlay and key in ("e", "f", "g"):
             self.action_choose(key.upper())

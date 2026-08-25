@@ -125,6 +125,17 @@ class TestDropLowest:
         drop_lowest(state, 0)
         assert len(state.memory_cards) == 1
 
+    def test_none_salience_does_not_raise(self):
+        # F-6001ae9a — drop_lowest sorted on c.salience; None TypeError'd.
+        state = create_new_run(seed=1)
+        state.memory_cards = [
+            _make_card(id="poison", salience=None),
+            _make_card(id="ok", salience=0.9),
+        ]
+        drop_lowest(state, 1)
+        assert len(state.memory_cards) == 1
+        assert state.memory_cards[0].id == "ok"
+
 
 # ── Pressures ────────────────────────────────────────────────────────
 
@@ -232,6 +243,37 @@ class TestComputeThemes:
         themes = compute_themes(state)
         assert "river" in themes
 
+    def test_none_journal_tags_does_not_raise(self):
+        # F-6001ae9a — JSON null journal tags used to TypeError on
+        # raw_tags.extend before _lowered_str_tags could skip them.
+        state = create_new_run(seed=1)
+        state.journal.append(JournalEntry(
+            day=1, location="test", event_id="e1",
+            scene_title="Test", narration="", choice_made="",
+            outcome="", tags=None,  # type: ignore[arg-type]
+        ))
+        assert compute_themes(state) == []
+        brief = build_gm_brief(state, mark_retrieved=False)
+        assert brief.themes == []
+
+    def test_none_recent_event_tags_does_not_raise(self):
+        # F-6001ae9a — same extend-before-filter hole on recent_event_tags.
+        state = create_new_run(seed=1)
+        state.recent_event_tags = None  # type: ignore[assignment]
+        assert compute_themes(state) == []
+        build_gm_brief(state, mark_retrieved=False)
+
+    def test_none_journal_tags_does_not_drop_sibling_themes(self):
+        state = create_new_run(seed=1)
+        state.journal.append(JournalEntry(
+            day=1, location="test", event_id="e1",
+            scene_title="Test", narration="", choice_made="",
+            outcome="", tags=None,  # type: ignore[arg-type]
+        ))
+        state.recent_event_tags = ["river", "crossing"]
+        themes = compute_themes(state)
+        assert "river" in themes
+
 
 # ── Retrieval ────────────────────────────────────────────────────────
 
@@ -326,6 +368,40 @@ class TestRetrieveMemories:
         state = create_new_run(seed=1)
         results = retrieve_memories(state)
         assert results == []
+
+    def test_none_salience_does_not_raise(self):
+        # F-6001ae9a — JSON null salience used to TypeError on score *= None.
+        state = create_new_run(seed=1)
+        state.recent_event_tags = ["river"]
+        card = _make_card(id="poison", tags=["river"], salience=None)
+        state.memory_cards = [card]
+        results = retrieve_memories(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in results)
+        brief = build_gm_brief(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in brief.callbacks)
+
+    def test_none_cooldown_does_not_raise(self):
+        # F-6001ae9a — None cooldown_until used to TypeError on `> state.day`.
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = _make_card(
+            id="poison", tags=["river"], cooldown_until=None, salience=0.7,
+        )
+        state.memory_cards = [card]
+        results = retrieve_memories(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in results)
+
+    def test_none_day_last_seen_does_not_raise(self):
+        state = create_new_run(seed=1)
+        state.day = 5
+        state.recent_event_tags = ["river"]
+        card = _make_card(
+            id="poison", tags=["river"], day_last_seen=None, salience=0.7,
+        )
+        state.memory_cards = [card]
+        results = retrieve_memories(state, mark_retrieved=False)
+        assert any(c.id == "poison" for c in results)
 
     def test_read_only_peek_does_not_touch_cooldown(self):
         # gm-B-09 — mark_retrieved=False returns the same cards but leaves

@@ -73,16 +73,18 @@ class TestBackpackManagerAvailability:
         line = mgr.status_line(state)
         assert "OFF" in line
 
-    def test_status_line_on(self):
+    def test_status_line_on(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         mgr = BackpackManager()
         line = mgr.status_line(state)
         assert "ON" in line
 
-    def test_status_line_unsettled(self):
+    def test_status_line_unsettled(self, monkeypatch):
         from escape_the_valley.backpack_models import SettlementRecord
 
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         state.backpack.pending_settlements = [
@@ -93,9 +95,10 @@ class TestBackpackManagerAvailability:
         assert "Unsettled: 1 checkpoint" in line
         assert "checkpoints" not in line  # singular
 
-    def test_status_line_unsettled_plural(self):
+    def test_status_line_unsettled_plural(self, monkeypatch):
         from escape_the_valley.backpack_models import SettlementRecord
 
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         state.backpack.enabled = True
         state.backpack.pending_settlements = [
@@ -234,12 +237,13 @@ class TestAcceptParcel:
 
 
 class TestSettleNoXrpl:
-    def test_settle_not_enabled(self):
+    def test_settle_not_enabled(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         mgr = BackpackManager()
         result = mgr.settle(state, "TestTown")
         assert result.success is False
-        assert "not enabled" in result.message.lower() or "not available" in result.message.lower()
+        assert "not enabled" in result.message.lower()
 
     def test_enable_without_xrpl(self):
         """Enable should fail gracefully if xrpl-py not installed."""
@@ -249,6 +253,7 @@ class TestSettleNoXrpl:
             result = mgr.enable(state)
             assert result.success is False
             assert "xrpl" in result.message.lower()
+            assert 'pip install "escape-the-valley[xrpl]"' in result.message
 
 
 class TestParcelMemo:
@@ -493,6 +498,7 @@ def _enabled_state(**overrides) -> RunState:
     bp.last_settled_supplies = {
         "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
     }
+    bp.minted_initial = dict(bp.last_settled_supplies)
     return state
 
 
@@ -552,6 +558,18 @@ class TestEnableMocked:
         assert state.backpack.trust_lines_ready is True
         # Snapshot captured from engine supplies.
         assert state.backpack.last_settled_supplies["food"] == 50
+        # F-a6efdd6c: enable-time mint snapshot frozen independently of
+        # later last_settled advances.
+        from escape_the_valley.backpack_models import (
+            XRPL_RESOURCES,
+            minted_snapshot_of,
+        )
+        snap = minted_snapshot_of(state.backpack)
+        assert XRPL_RESOURCES <= snap.keys()
+        assert snap["food"] == 50
+        assert snap == {
+            k: state.backpack.last_settled_supplies[k] for k in XRPL_RESOURCES
+        }
 
     @requires_xrpl
     def test_enable_idempotent_no_regen_no_remint(self, monkeypatch):
@@ -614,6 +632,8 @@ class TestSettleMocked:
         assert all(m == expected_memo for m in calls["memos"])
         # Snapshot advanced to the new supplies.
         assert state.backpack.last_settled_supplies["food"] == 38
+        # F-a6efdd6c: enable-time mint does not move with settlement.
+        assert state.backpack.minted_initial["food"] == 50
 
     @requires_xrpl
     def test_settle_failure_records_pending(self, monkeypatch):
@@ -1111,6 +1131,25 @@ class TestSendParcelMocked:
         res = mgr.send_parcel(state, "rRecipient", "food", 7)
         assert res.success is False
         assert state.supplies.food == before  # unchanged on failure
+        assert state.backpack.sent_parcels == []
+
+    @requires_xrpl
+    def test_send_get_client_error_degrades(self, monkeypatch):
+        """F-9517936e sweep: send_parcel already wraps _get_client; lock it."""
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.send_parcel(state, "rRecipient", "food", 7)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.SendResult)
+        assert state.supplies.food == before
         assert state.backpack.sent_parcels == []
 
 
@@ -1754,10 +1793,297 @@ class TestLastSettleFailedSignal:
         assert state.backpack.last_settle_failed is True
 
 
+class TestSettleSetupDegrades:
+    """F-86a4c19c: from_seed / _get_client / memo build must degrade to
+    SettlementResult(success=False), never raise out of settle()/_retry_pending.
+    """
+
+    @requires_xrpl
+    def test_settle_empty_secret_degrades_not_crash(self, monkeypatch):
+        """Live Wallet.from_seed on a missing sidecar seed is ValueError, not
+        an uncaught crash — queue remaining as pending, set last_settle_failed.
+        """
+        state = _enabled_state()
+        state.backpack.wallet_secret = ""
+        state.supplies.set("food", 40)  # -10, would have submitted FOD
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        # Intentionally do NOT mock from_seed: the real xrpl Wallet.from_seed
+        # raises ValueError('Invalid checksum') on an empty seed.
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        pending = state.backpack.pending_settlements[0]
+        assert pending.status == "pending"
+        assert pending.deltas == {"food": -10}
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+        assert res.record is pending
+
+    @requires_xrpl
+    def test_settle_from_seed_boom_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+
+    @requires_xrpl
+    def test_retry_from_seed_boom_does_not_raise(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"food": -5},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        mgr._retry_pending(state)
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.pending_settlements[0].deltas == {"food": -5}
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.settlements == []
+
+    @requires_xrpl
+    def test_settle_get_client_error_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+
+    @requires_xrpl
+    def test_settle_memo_build_error_degrades(self, monkeypatch):
+        state = _enabled_state()
+        state.supplies.set("food", 40)
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch)
+
+        def boom_memo(*a, **k):
+            raise KeyError("gold")
+
+        monkeypatch.setattr(backpack_mod, "_build_memo", boom_memo)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is False
+        assert len(state.backpack.pending_settlements) == 1
+        assert state.backpack.last_settle_failed is True
+        assert state.backpack.last_settled_supplies["food"] == 50
+
+    @requires_xrpl
+    def test_retry_unknown_pending_key_skipped_not_crash(self, monkeypatch):
+        """A stale pending record with deltas={'gold': -10} used to KeyError
+        in _settlement_memo_text; settle() always retries first, so even a
+        no-delta checkpoint crashed. Unknown keys are skipped like
+        accept_parcel, and the junk record is dropped.
+        """
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"gold": -10},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch)
+
+        res = mgr.settle(state, "Town")
+        assert res.success is True
+        assert res.message == "No changes to settle."
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.last_settle_failed is False
+        assert "gold" not in state.backpack.last_settled_supplies
+
+    @requires_xrpl
+    def test_retry_mixed_unknown_key_retries_known_only(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"gold": -10, "food": -5},
+                status="pending",
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        calls = _patch_signing(monkeypatch, submit_hashes=["RETRY-FOD"])
+
+        mgr._retry_pending(state)
+        assert state.backpack.pending_settlements == []
+        assert len(state.backpack.settlements) == 1
+        settled = state.backpack.settlements[0]
+        assert settled.deltas == {"food": -5}
+        assert "gold" not in settled.deltas
+        assert calls["submit"] == [("FOD", "RETRY-FOD")]
+        assert state.backpack.last_settled_supplies["food"] == 45
+        assert state.backpack.last_settle_failed is False
+
+
+class TestEnableSetupDegrades:
+    """F-9517936e: _get_client / from_seed on enable() must return
+    EnableResult(success=False), never raise uncaught. Mirrors
+    TestSettleSetupDegrades / test_settle_get_client_error_degrades.
+    """
+
+    @requires_xrpl
+    def test_enable_get_client_error_degrades(self, monkeypatch):
+        state = _make_state()
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+        assert not state.backpack.wallet_address
+        assert not state.backpack.issuer_secret
+        assert state.backpack.last_settled_supplies == {}
+        assert "Couldn't reach the faucet" in res.message
+
+    @requires_xrpl
+    def test_enable_resume_from_seed_boom_degrades(self, monkeypatch):
+        """Resume path: Wallet.from_seed raising must not escape enable()."""
+        state = _make_state()
+        bp = state.backpack
+        bp.wallet_address = "rPlayerAddr"
+        bp.wallet_secret = "sPlayerSeed"
+        bp.issuer_address = "rIssuerAddr"
+        bp.issuer_secret = "sIssuerSeed"
+        bp.trust_lines_ready = False  # incomplete so we don't short-circuit
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+        assert "Couldn't reach the faucet" in res.message
+
+    @requires_xrpl
+    def test_enable_resume_empty_secret_degrades_not_crash(self, monkeypatch):
+        """Live Wallet.from_seed on a missing sidecar seed is ValueError,
+        returned as EnableResult, not an uncaught crash.
+        """
+        state = _make_state()
+        bp = state.backpack
+        bp.wallet_address = "rPlayerAddr"
+        bp.wallet_secret = ""
+        bp.issuer_address = "rIssuerAddr"
+        bp.issuer_secret = "sIssuerSeed"
+        bp.trust_lines_ready = False
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        # Intentionally do NOT mock from_seed: the real xrpl Wallet.from_seed
+        # raises ValueError('Invalid checksum') on an empty seed.
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+
+
+class TestClientAndFromSeedSweep:
+    """F-9517936e: every _get_client() / Wallet.from_seed call in
+    backpack.py must sit inside a try that degrades to a result object.
+    Leftover sites outside a try must be none.
+    """
+
+    def test_every_get_client_and_from_seed_is_inside_try(self):
+        import ast
+        from pathlib import Path
+
+        src_path = Path(backpack_mod.__file__).resolve()
+        tree = ast.parse(src_path.read_text(encoding="utf-8"))
+        leftovers: list[tuple[str, str, int]] = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self) -> None:
+                self.try_depth = 0
+                self.fn = "<module>"
+
+            def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+                prev = self.fn
+                self.fn = node.name
+                self.generic_visit(node)
+                self.fn = prev
+
+            def visit_Try(self, node: ast.Try) -> None:
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node: ast.Call) -> None:
+                name = None
+                func = node.func
+                if isinstance(func, ast.Attribute) and func.attr in (
+                    "_get_client", "from_seed",
+                ):
+                    name = func.attr
+                elif isinstance(func, ast.Name) and func.id in (
+                    "_get_client", "from_seed",
+                ):
+                    name = func.id
+                if name is not None and self.try_depth == 0:
+                    leftovers.append((self.fn, name, node.lineno))
+                self.generic_visit(node)
+
+        Visitor().visit(tree)
+        assert leftovers == [], (
+            "found leftover _get_client/from_seed call sites outside try: "
+            f"{leftovers}"
+        )
+
+
 class TestStatusLineDegraded:
     """ledger-B04: status_line renders a distinct offline state."""
 
-    def test_degraded_line_when_failed_and_pending(self):
+    def test_degraded_line_when_failed_and_pending(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -1772,7 +2098,8 @@ class TestStatusLineDegraded:
         assert "testnet unreachable" in line.lower()
         assert "2 unsettled checkpoints" in line
 
-    def test_singular_unsettled_checkpoint(self):
+    def test_singular_unsettled_checkpoint(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -1785,9 +2112,10 @@ class TestStatusLineDegraded:
         assert "1 unsettled checkpoint" in line
         assert "checkpoints" not in line  # singular
 
-    def test_pending_without_failure_uses_plain_count(self):
+    def test_pending_without_failure_uses_plain_count(self, monkeypatch):
         """A backlog that did NOT fail (last_settle_failed False) reads plainly,
         not as 'testnet unreachable'."""
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", True)
         state = _make_state()
         bp = state.backpack
         bp.enabled = True
@@ -1962,6 +2290,10 @@ class TestEnableMintResume:
             "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
         }
         assert state.backpack.enabled is True
+        from escape_the_valley.backpack_models import minted_snapshot_of
+        assert minted_snapshot_of(state.backpack) == {
+            "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
+        }
 
     @requires_xrpl
     def test_setup_complete_false_while_mint_partial(self, monkeypatch):
@@ -2012,6 +2344,106 @@ class TestWalletInfoBalancesError:
         info = mgr.wallet_info(state)
         assert info["balances_error"] is False
         assert info["balances"] == {"FOD": 38}
+
+
+class TestExtraMissingRecovery:
+    """F-64e78470: extra gone after an already-enabled save must not
+    claim Ledger: ON, and must name the pip extra (testnet, not wallet).
+    """
+
+    _PIP = 'pip install "escape-the-valley[xrpl]"'
+
+    def test_status_line_does_not_claim_on(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        line = mgr.status_line(state)
+        assert "Ledger: ON" not in line
+        assert "ON (Testnet)" not in line
+        assert self._PIP in line
+        assert "extra missing" in line.lower()
+        assert "wallet" not in line.lower()
+        assert "mainnet" not in line.lower()
+
+    def test_settle_names_pip_extra_and_does_not_fold(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        state.supplies.set("food", 40)  # delta vs last_settled 50
+        mgr = BackpackManager()
+        result = mgr.settle(state, "TestTown")
+        assert result.success is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert not result.txids
+        assert state.backpack.last_settled_supplies["food"] == 50
+        assert state.backpack.last_settle_failed is False
+        assert state.backpack.pending_settlements == []
+        assert state.backpack.enabled is True  # save flag unchanged
+
+    def test_send_parcel_names_pip_extra_supplies_unchanged(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 5)
+        assert result.success is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert state.supplies.food == before
+
+    def test_wallet_info_sets_extra_missing_not_empty_balances(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        info = mgr.wallet_info(state)
+        assert info.get("balances") == {}
+        assert info.get("balances_error") is True
+        assert info.get("extra_missing") is True
+
+    def test_wallet_overlay_names_pip_extra_not_ambiguous_unavailable(
+        self, monkeypatch,
+    ):
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info(mgr.wallet_info(state))
+        rendered = overlay.visual.plain
+        assert "Couldn't reach the ledger" not in rendered
+        assert "couldn't reach the ledger" not in rendered
+        assert "xrpl extra missing" in rendered
+        assert self._PIP in rendered
+        assert "Wallet Info" in rendered
+        # Ambiguous empty-wallet line is not used on its own.
+        assert "Balances: unavailable\n" not in rendered + "\n" or (
+            "xrpl extra missing" in rendered
+        )
+
+    def test_send_overlay_shows_pip_command(self, monkeypatch):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _enabled_state()
+        mgr = BackpackManager()
+        result = mgr.send_parcel(state, "rRecipient", "food", 5)
+        overlay = SendParcelOverlay()
+        overlay.show_failure(result.message)
+        rendered = overlay.visual.plain
+        assert "Send failed" in rendered
+        assert self._PIP in rendered
+
+    def test_enable_still_names_pip_extra_and_stays_off(self, monkeypatch):
+        monkeypatch.setattr(backpack_mod, "_HAS_XRPL", False)
+        state = _make_state()
+        mgr = BackpackManager()
+        result = mgr.enable(state)
+        assert result.success is False
+        assert state.backpack.enabled is False
+        assert result.message == backpack_mod.XRPL_EXTRA_MISSING_MSG
+        assert self._PIP in result.message
+        assert mgr.status_line(state) == "Ledger: OFF"
 
 
 class TestParcelCapConstant:
@@ -2166,14 +2598,14 @@ class TestOverlayFailureMarkupSafety:
         from escape_the_valley.backpack_ui import ParcelNotification
 
         overlay = ParcelNotification()
-        # Empirical wave-11 repro: sender is >12 chars so it is shortened
-        # to 'rSender[...' before update(). textual.markup.escape() does not
-        # wrap that leftover '[' (it only covers complete tag-shaped runs),
-        # so the truncated sender used to unbalance the chrome [b] tags.
+        # Canonical short form is first-4 + last-4. textual.markup.escape()
+        # does not wrap leftover '[' in a truncated sender, so splicing it
+        # used to unbalance the chrome [b] tags. Contents still carry the
+        # orphan closing tag; sender short form is now rSen...pwn].
         overlay.show_parcel("rSender[/pwn]", "5 food [/pwn]")
 
         rendered = self._assert_heading_still_bold(overlay, "Parcel arrived!")
-        assert "rSender[..." in rendered
+        assert "rSen...pwn]" in rendered
         assert "5 food [/pwn]" in rendered
 
     def test_send_parcel_success_survives_orphan_closing_tag(self):
@@ -2265,6 +2697,23 @@ class TestOverlayFailureMarkupSafety:
         assert "Settlements: 3" in rendered
         assert "Pending: 0" in rendered
 
+    def test_proof_overlay_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import ProofOverlay
+
+        overlay = ProofOverlay()
+        overlay.update_from_proof({
+            "verdict": "FAIL",
+            "run_id": "run[/pwn]",
+            "settlements": "[/pwn]",
+            "pending": 0,
+            "memo": "ok [/pwn]",
+            "resources": [{"resource": "food[/pwn]", "ok": False}],
+            "notes": ["ledger 1 != engine [/pwn]"],
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Ledger Proof: FAIL")
+        assert "run[/pwn]" in rendered
+        assert "food[/pwn]" in rendered
+
     def test_production_shaped_parcel_and_success_unaffected(self):
         """Classic r-address + catalog labels must still render as before."""
         from escape_the_valley.backpack_ui import (
@@ -2276,7 +2725,7 @@ class TestOverlayFailureMarkupSafety:
         parcel = ParcelNotification()
         parcel.show_parcel("rN7qKvMzTdmhcjbw1234567890xKp", "5 food")
         rendered = self._assert_heading_still_bold(parcel, "Parcel arrived!")
-        assert "rN7qKvMz..." in rendered
+        assert "rN7q...0xKp" in rendered
         assert "5 food" in rendered
 
         overlay = SendParcelOverlay()
@@ -2288,7 +2737,7 @@ class TestOverlayFailureMarkupSafety:
         enable = EnableFlowOverlay()
         enable.show_success("rN7qKvMzTdmhcjbw1234567890xKp")
         rendered = self._assert_heading_still_bold(enable, "Ledger Backpack: Enabled")
-        assert "rN7q...0xKp" in rendered
+        assert "rN7qKvMzTdmhcjbw1234567890xKp" in rendered
 
     def test_leftover_open_bracket_raises_under_escape_not_escape_dynamic(self):
         """Truncating a tag-shaped sender to 'rSender[...' leaves a raw '['.
@@ -2300,14 +2749,19 @@ class TestOverlayFailureMarkupSafety:
 
         from escape_the_valley.backpack_ui import (
             ENABLE_FAILURE_TEXT,
+            ENABLE_SUCCESS_TEXT,
             EnableFlowOverlay,
             _escape_dynamic,
         )
 
         leftover = "rSender[..."
         overlay = EnableFlowOverlay()
+        # Failure now puts Esc above {message}, so a leftover '[' at the
+        # end of the template does not unbalance later chrome. Success
+        # still splices {address} before Press [b]Esc[/b] — that is the
+        # live-renderer proof that escape() is not enough.
         with pytest.raises(MarkupError):
-            overlay.update(ENABLE_FAILURE_TEXT.format(message=escape(leftover)))
+            overlay.update(ENABLE_SUCCESS_TEXT.format(address=escape(leftover)))
 
         overlay.update(ENABLE_FAILURE_TEXT.format(message=_escape_dynamic(leftover)))
         rendered = self._assert_heading_still_bold(
@@ -2347,8 +2801,8 @@ class TestOverlayFailureMarkupSafety:
         assert "[/pwn]" in rendered
 
     def test_enable_flow_success_survives_leftover_open_bracket(self):
-        """Address truncation (len>10 -> first 4 + '...' + last 4) can
-        leave a raw '[' in the fragment spliced before Press [b]Esc[/b].
+        """A leftover '[' in the full address spliced before Press [b]Esc[/b]
+        must not unbalance chrome markup.
         """
         from escape_the_valley.backpack_ui import EnableFlowOverlay
 
@@ -2358,13 +2812,605 @@ class TestOverlayFailureMarkupSafety:
         rendered = self._assert_heading_still_bold(
             overlay, "Ledger Backpack: Enabled",
         )
-        assert "r[/p...XXXX" in rendered
+        assert "r[/p]XXXXXXXXXX" in rendered
 
         overlay.show_success("rSender[...")
         rendered = self._assert_heading_still_bold(
             overlay, "Ledger Backpack: Enabled",
         )
-        assert "rSen...[..." in rendered
+        assert "rSender[..." in rendered
+
+
+# ──────────────────────────────────────────────────────────────────────
+# F-83d0832c / F-b7eeb393 / F-a95177ae: identity overlays must show a
+# usable classic r-address, a unique From stem, and 4-char token labels.
+# Live renderer — no mock of Static.update / Content.from_markup.
+# Visual proof at 80x24 and 120x30 (50% overlay width, matching tui.tcss).
+# ──────────────────────────────────────────────────────────────────────
+
+_CLASSIC_R = "rPT1Sjq2YGrBMTttX4gzHjKu9dyFZYYXrg"  # 34-char production r-address
+_CLASSIC_R_SHORT = "rPT1...YXrg"
+
+
+class TestOverlayIdentityReadability:
+    """Full address + unique From + FOOD labels on the live renderer."""
+
+    def _assert_heading_still_bold(self, overlay, heading: str) -> str:
+        rendered = overlay.visual.plain
+        assert "[b]" not in rendered
+        assert "[/b]" not in rendered
+        assert heading in rendered
+        start = rendered.index(heading)
+        bold_spans = [s for s in overlay.visual.spans if s.style == "b"]
+        assert any(
+            s.start == start and s.end == start + len(heading)
+            for s in bold_spans
+        ), bold_spans
+        return rendered
+
+    def test_wallet_and_enable_show_full_classic_address(self):
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            WalletInfoOverlay,
+        )
+
+        wallet = WalletInfoOverlay()
+        wallet.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 1,
+            "pending": 0,
+            "balances": {},
+        })
+        rendered = self._assert_heading_still_bold(wallet, "Wallet Info")
+        assert _CLASSIC_R in rendered
+        assert _CLASSIC_R_SHORT in rendered
+        assert f"Address: {_CLASSIC_R_SHORT}" in rendered
+
+        enable = EnableFlowOverlay()
+        enable.show_success(_CLASSIC_R)
+        rendered = self._assert_heading_still_bold(
+            enable, "Ledger Backpack: Enabled",
+        )
+        assert _CLASSIC_R in rendered
+        assert f"Wallet: {_CLASSIC_R}" in rendered
+
+    def test_wallet_balances_use_four_char_display_labels(self):
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 0,
+            "pending": 0,
+            "balances": {
+                "FOD": 40, "WTR": 50, "MED": 3, "AMO": 10, "PRT": 2,
+            },
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "FOOD (FOD): 40" in rendered
+        assert "WATR (WTR): 50" in rendered
+        assert "MEDS (MED): 3" in rendered
+        assert "AMMO (AMO): 10" in rendered
+        assert "PART (PRT): 2" in rendered
+        assert "FOD: 40" not in rendered
+
+    def test_parcel_from_distinguishes_prefix8_colliding_senders(self):
+        from escape_the_valley.backpack_ui import (
+            ParcelNotification,
+            WalletInfoOverlay,
+        )
+
+        a = "rN7qKvMzAAAAAAAAAAAAAAAAaaaa"
+        b = "rN7qKvMzBBBBBBBBBBBBBBBBbbbb"
+        parcel_a = ParcelNotification()
+        parcel_a.show_parcel(a, "5 food")
+        parcel_b = ParcelNotification()
+        parcel_b.show_parcel(b, "5 food")
+        from_a = self._assert_heading_still_bold(parcel_a, "Parcel arrived!")
+        from_b = self._assert_heading_still_bold(parcel_b, "Parcel arrived!")
+        assert "From: rN7q...aaaa" in from_a
+        assert "From: rN7q...bbbb" in from_b
+        assert "From: rN7q...aaaa" not in from_b
+        assert "From: rN7qKvMz..." not in from_a
+        assert "From: rN7qKvMz..." not in from_b
+
+        parcel = ParcelNotification()
+        parcel.show_parcel(_CLASSIC_R, "5 food")
+        rendered = self._assert_heading_still_bold(parcel, "Parcel arrived!")
+        assert f"From: {_CLASSIC_R_SHORT}" in rendered
+
+        wallet = WalletInfoOverlay()
+        wallet.update_from_info({
+            "address": _CLASSIC_R,
+            "address_short": _CLASSIC_R_SHORT,
+            "issuer": "rIss...XXYY",
+            "trust_lines": True,
+            "settlements": 0,
+            "pending": 0,
+            "balances": {},
+        })
+        wallet_text = self._assert_heading_still_bold(wallet, "Wallet Info")
+        assert _CLASSIC_R_SHORT in wallet_text
+        assert _CLASSIC_R_SHORT in rendered
+
+
+class TestOverlayIdentityVisualSizes:
+    """Coordinator: a layout that only works maximized is a failed fix."""
+
+    _SIZES = ((80, 24), (120, 30))
+    # CSS matches tui.tcss overlay rules (without display: none so Pilot
+    # paints them). visual.plain is not proof — assert render_line strips.
+    _OVERLAY_CSS = """
+Screen {
+  background: #0b0f14;
+  color: #e7ecef;
+}
+#wallet_info {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#enable_flow {
+  width: 50%;
+  height: auto;
+  max-height: 50%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#parcel_notify {
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #604030;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#ledger_menu {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#nudge {
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #605a30;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#learn_more {
+  width: 60%;
+  height: 70%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#send_parcel {
+  width: 50%;
+  height: auto;
+  max-height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#ledger_proof {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+"""
+
+    def _painted(self, widget) -> str:
+        # Concatenated render_line strips — the inner painted viewport,
+        # not visual.plain (which still holds overflow below the fold).
+        return "\n".join(
+            widget.render_line(y).text for y in range(widget.size.height)
+        )
+
+    def _on_screen(self, widget, cols: int, rows: int):
+        from textual.geometry import Region
+
+        visible = widget.region.intersection(Region(0, 0, cols, rows))
+        assert visible.width > 0 and visible.height > 0, (
+            f"overlay region {widget.region} misses screen {cols}x{rows}"
+        )
+        return visible
+
+    def test_identity_overlays_at_80x24_and_120x30(self):
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            ParcelNotification,
+            WalletInfoOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        classic = _CLASSIC_R
+        short = _CLASSIC_R_SHORT
+        painted_fn = self._painted
+        on_screen = self._on_screen
+
+        def _recover(widget) -> str:
+            return "".join(painted_fn(widget).split())
+
+        class _WalletApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield WalletInfoOverlay(id="wallet_info")
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        class _ParcelApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield ParcelNotification(id="parcel_notify")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            wallet_app = _WalletApp()
+            async with wallet_app.run_test(size=size) as pilot:
+                wallet = wallet_app.query_one("#wallet_info", WalletInfoOverlay)
+                wallet.update_from_info({
+                    "address": classic,
+                    "address_short": short,
+                    "issuer": "rIss...XXYY",
+                    "trust_lines": True,
+                    "settlements": 1,
+                    "pending": 0,
+                    "balances": {
+                        "FOD": 40, "WTR": 50, "MED": 3, "AMO": 10, "PRT": 2,
+                    },
+                })
+                await pilot.pause()
+                assert wallet.size.width <= cols
+                assert wallet.size.height <= rows
+                on_screen(wallet, cols, rows)
+                painted = painted_fn(wallet)
+                # visual.plain still contains FOOD when the painted region
+                # clips — that is a failed fix. Assert the strips.
+                assert "FOOD (FOD)" in painted
+                assert "WATR (WTR)" in painted
+                assert "MEDS (MED)" in painted
+                assert "AMMO (AMO)" in painted
+                assert "PART (PRT)" in painted
+                assert "Esc" in painted
+                assert classic in wallet.visual.plain
+                assert "[b]" not in wallet.visual.plain
+                assert classic in _recover(wallet)
+
+            enable_app = _EnableApp()
+            async with enable_app.run_test(size=size) as pilot:
+                enable = enable_app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_success(classic)
+                await pilot.pause()
+                assert enable.size.width <= cols
+                assert enable.size.height <= rows
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted
+                assert classic in enable.visual.plain
+                assert classic in _recover(enable)
+
+            parcel_app = _ParcelApp()
+            async with parcel_app.run_test(size=size) as pilot:
+                parcel = parcel_app.query_one("#parcel_notify", ParcelNotification)
+                parcel.show_parcel(classic, "5 food")
+                await pilot.pause()
+                assert parcel.size.width <= cols
+                assert parcel.size.height <= rows
+                on_screen(parcel, cols, rows)
+                painted = painted_fn(parcel)
+                assert "A) Accept" in painted
+                assert "R) Refuse" in painted
+                assert f"From: {short}" in parcel.visual.plain
+                assert short in _recover(parcel)
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
+
+    def test_enable_failure_paints_esc_for_production_copy(self):
+        """F-766d7cf5: faucet / extra-missing show_failure must paint Esc
+        in render_line at 80x24, not only in visual.plain.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_models import XRPL_EXTRA_MISSING_MSG
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+        # Production copy from backpack.enable except-path (not a test stub).
+        faucet = (
+            "Couldn't reach the faucet right now. "
+            "Ledger Backpack stays OFF. "
+            "You can try again at the next town."
+        )
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        async def scenario(size: tuple[int, int], message: str) -> None:
+            cols, rows = size
+            app = _EnableApp()
+            async with app.run_test(size=size) as pilot:
+                enable = app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_failure(message)
+                await pilot.pause()
+                assert enable.size.width <= cols
+                assert enable.size.height <= rows
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted, (
+                    f"Esc missing from render_line at {size}; "
+                    f"plain still has it={('Esc' in enable.visual.plain)!r}; "
+                    f"painted={painted!r}"
+                )
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size, faucet))
+            asyncio.run(scenario(size, XRPL_EXTRA_MISSING_MSG))
+
+    def test_menu_nudge_learn_paints_offered_keys(self):
+        """F-8b6e5842: menu / nudge / learn action chrome must paint at
+        80x24 via render_line, not only visual.plain.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_ui import (
+            LearnMoreOverlay,
+            LedgerMenuOverlay,
+            NudgeOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+
+        class _MenuApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield LedgerMenuOverlay(id="ledger_menu")
+
+        class _NudgeApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield NudgeOverlay(id="nudge")
+
+        class _LearnApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield LearnMoreOverlay(id="learn_more")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            menu_app = _MenuApp()
+            async with menu_app.run_test(size=size) as pilot:
+                menu = menu_app.query_one("#ledger_menu", LedgerMenuOverlay)
+                menu.update_from_state(False)
+                await pilot.pause()
+                on_screen(menu, cols, rows)
+                painted = painted_fn(menu)
+                assert "E) Enable" in painted, painted
+                assert "L) Learn" in painted, painted
+                assert "Esc" in painted, painted
+
+                menu.update_from_state(True)
+                await pilot.pause()
+                on_screen(menu, cols, rows)
+                painted = painted_fn(menu)
+                assert "W) Wallet" in painted, painted
+                assert "R) Proof" in painted, painted
+                assert "P) Send parcel" in painted, painted
+                assert "S) Settle" in painted, painted
+                assert "D) Disable" in painted, painted
+                assert "Esc" in painted, painted
+
+            nudge_app = _NudgeApp()
+            async with nudge_app.run_test(size=size) as pilot:
+                nudge = nudge_app.query_one("#nudge", NudgeOverlay)
+                await pilot.pause()
+                on_screen(nudge, cols, rows)
+                painted = painted_fn(nudge)
+                assert "E) Enable now" in painted, painted
+                assert "N) Not now" in painted, painted
+                assert "L) Learn" in painted, painted
+
+            learn_app = _LearnApp()
+            async with learn_app.run_test(size=size) as pilot:
+                learn = learn_app.query_one("#learn_more", LearnMoreOverlay)
+                await pilot.pause()
+                on_screen(learn, cols, rows)
+                painted = painted_fn(learn)
+                assert "FOOD (FOD)" in painted, painted
+                assert "Esc" in painted, painted
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
+
+    def test_class_sweep_remaining_overlays_paint_dismiss_row(self):
+        """Every backpack_ui overlay paints its dismiss/action row at 80x24
+        (render_line / region ∩ screen). visual.plain is not proof.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_models import XRPL_EXTRA_MISSING_MSG
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            ProofOverlay,
+            SendParcelOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+        quiet_ledger = (
+            "The ledger is quiet. Couldn't send the parcel right now. "
+            "Your supplies are unchanged."
+        )
+        invalid_address = (
+            "'rPT1Sjq2YGrBMTttX4gzHjKu9dyFZYYXrg' is not a valid XRPL "
+            "classic address (starts with 'r', 25-35 base58 chars)."
+        )
+        supplies = (
+            "  FOOD: 50\n  WATR: 50\n  MEDS: 5\n  AMMO: 20\n  PART: 3"
+        )
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        class _SendApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield SendParcelOverlay(id="send_parcel")
+
+        class _ProofApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield ProofOverlay(id="ledger_proof")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            enable_app = _EnableApp()
+            async with enable_app.run_test(size=size) as pilot:
+                enable = enable_app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_progress()
+                await pilot.pause()
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted, painted
+
+            send_app = _SendApp()
+            async with send_app.run_test(size=size) as pilot:
+                send = send_app.query_one("#send_parcel", SendParcelOverlay)
+                send.show_failure(XRPL_EXTRA_MISSING_MSG)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_failure(quiet_ledger)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_failure(invalid_address)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_success(
+                    "Sent 5 food to rPT1...YXrg. Receipt: ABCDEF123456..."
+                )
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_form(supplies)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                painted = painted_fn(send)
+                assert "cancel" in painted, painted
+
+            proof_app = _ProofApp()
+            async with proof_app.run_test(size=size) as pilot:
+                proof = proof_app.query_one("#ledger_proof", ProofOverlay)
+                proof.update_from_proof({
+                    "verdict": "PASS",
+                    "run_id": "abc123",
+                    "settlements": 2,
+                    "pending": 0,
+                    "memo": "ok",
+                    "resources": [
+                        {"resource": "food", "ok": True},
+                        {"resource": "water", "ok": True},
+                        {"resource": "meds", "ok": True},
+                        {"resource": "ammo", "ok": True},
+                        {"resource": "parts", "ok": True},
+                    ],
+                    "notes": [],
+                })
+                await pilot.pause()
+                on_screen(proof, cols, rows)
+                painted = painted_fn(proof)
+                assert "PASS" in painted, painted
+                assert "Esc" in painted, painted
+
+                proof.update_from_proof({
+                    "verdict": "INCONCLUSIVE",
+                    "run_id": "abc123",
+                    "settlements": 2,
+                    "pending": 1,
+                    "memo": "ok",
+                    "resources": [],
+                    "notes": ["1 settlement(s) still pending"],
+                    "summary": "pending checkpoints",
+                })
+                await pilot.pause()
+                on_screen(proof, cols, rows)
+                painted = painted_fn(proof)
+                assert "INCONCLUSIVE" in painted, painted
+                assert "Esc" in painted, painted
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
 
 
 # ──────────────────────────────────────────────────────────────────────

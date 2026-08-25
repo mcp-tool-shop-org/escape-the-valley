@@ -306,6 +306,7 @@ class _FakeMgr:
         bp.issuer_secret = "sIssuerProof"
         bp.trust_lines_ready = True
         bp.last_settled_supplies = {k: state.supplies.get(k) for k in XRPL_RESOURCES}
+        bp.minted_initial = dict(bp.last_settled_supplies)
         return EnableResult(success=True, message="ok", wallet_address=bp.wallet_address)
 
     def settle(self, state, location):
@@ -428,3 +429,196 @@ def test_run_proof_isolated_writes_no_save(tmp_path, monkeypatch):
     run_proof(13, max_steps=80, isolate_save=True)
 
     assert not (tmp_path / ".trail").exists()
+
+
+# ── proof_player_save / proof_loaded_save (F-a6efdd6c) ─────────────
+#
+# The player command proves the LOADED save, not a throwaway faucet seed.
+# Network is mocked; run_proof() is not called.
+
+
+def _player_state(*, pending=False, minted=True):
+    from escape_the_valley.backpack_models import stamp_minted_snapshot
+    from escape_the_valley.models import RunState, SuppliesState
+
+    state = RunState(
+        run_id=RUN_ID,
+        seed=SEED,
+        supplies=SuppliesState(items=dict(SETTLED)),
+    )
+    bp = state.backpack
+    bp.enabled = True
+    bp.wallet_address = "rPlayer"
+    bp.issuer_address = "rIssuer"
+    bp.trust_lines_ready = True
+    bp.last_settled_supplies = dict(SETTLED)
+    bp.settlements = _settlements()
+    if pending:
+        bp.pending_settlements = [
+            SettlementRecord(
+                day=12, location="Town C",
+                deltas={"water": -4}, status="pending",
+            ),
+        ]
+    if minted:
+        stamp_minted_snapshot(bp, dict(MINTED))
+    return state
+
+
+class _ProofMgr:
+    """Read-only fake manager for proof_player_save — no faucet, no settle."""
+
+    available = True
+    balances: dict = LEDGER_OK
+    balances_error = False
+    extra_missing = False
+
+    def wallet_info(self, state):
+        return {
+            "address": state.backpack.wallet_address,
+            "balances": dict(type(self).balances),
+            "balances_error": type(self).balances_error,
+            "extra_missing": type(self).extra_missing,
+        }
+
+    def fetch_onchain_memos(self, state):
+        return dict(_onchain_ok())
+
+    def close(self):
+        pass
+
+
+def test_proof_player_save_pass_on_loaded_save():
+    """Loaded save with mint snapshot + live receipts → PASS.
+
+    Must not call run_proof / faucet a seed.
+    """
+    from escape_the_valley.ledger_proof import (
+        proof_loaded_save,
+        proof_player_save,
+    )
+
+    state = _player_state()
+    result = proof_player_save(state, manager=_ProofMgr())
+    assert result.verdict == "PASS"
+    assert result.passed is True
+    assert result.report is not None
+    assert result.report.passed is True
+    assert "PASS" in result.markdown.split("\n", 1)[0]
+    # Alias is the same API.
+    alias = proof_loaded_save(state, manager=_ProofMgr())
+    assert alias.verdict == "PASS"
+
+
+def test_proof_player_save_fail_on_balance_drift():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Drift(_ProofMgr):
+        balances = dict(LEDGER_OK, FOD=1)
+
+    result = proof_player_save(_player_state(), manager=_Drift())
+    assert result.verdict == "FAIL"
+    assert "FAIL" in result.markdown.split("\n", 1)[0]
+    assert "INCONCLUSIVE" not in result.markdown.split("\n", 1)[0]
+
+
+def test_proof_player_save_inconclusive_when_pending():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    result = proof_player_save(_player_state(pending=True), manager=_ProofMgr())
+    assert result.verdict == "INCONCLUSIVE"
+    assert "INCONCLUSIVE" in result.markdown.split("\n", 1)[0]
+
+
+def test_proof_player_save_inconclusive_when_network_down():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Down(_ProofMgr):
+        balances = {}
+        balances_error = True
+
+    result = proof_player_save(_player_state(), manager=_Down())
+    assert result.verdict == "INCONCLUSIVE"
+    assert any("could not reach" in n.lower() for n in result.notes)
+
+
+def test_proof_player_save_inconclusive_when_backpack_off():
+    from escape_the_valley.ledger_proof import proof_player_save
+    from escape_the_valley.models import RunState
+
+    state = RunState(run_id="x", seed=1)
+    result = proof_player_save(state, manager=_ProofMgr())
+    assert result.verdict == "INCONCLUSIVE"
+    assert result.report is None
+    assert "not enabled" in result.markdown.lower()
+
+
+def test_proof_player_save_inconclusive_when_mint_snapshot_missing():
+    """Legacy save: last_settled already includes deltas, no mint snapshot.
+
+    Reconstructing minted from last_settled is tautological, so even a
+    clean live match is INCONCLUSIVE — not PASS.
+    """
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    state = _player_state(minted=False)
+    result = proof_player_save(state, manager=_ProofMgr())
+    assert result.verdict == "INCONCLUSIVE"
+    assert any("mint snapshot missing" in n for n in result.notes)
+
+
+def test_proof_player_save_still_fails_drift_without_mint_snapshot():
+    """Missing snapshot does not green-wash a live balance mismatch."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Drift(_ProofMgr):
+        balances = dict(LEDGER_OK, FOD=1)
+
+    result = proof_player_save(_player_state(minted=False), manager=_Drift())
+    assert result.verdict == "FAIL"
+
+
+def test_proof_player_save_does_not_call_run_proof(monkeypatch):
+    """The player path must not drive the throwaway faucet harness."""
+    import escape_the_valley.ledger_proof as proof_mod
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    def _boom(*a, **k):
+        raise AssertionError("run_proof must not be called")
+
+    monkeypatch.setattr(proof_mod, "run_proof", _boom)
+    result = proof_player_save(_player_state(), manager=_ProofMgr())
+    assert result.verdict == "PASS"
+
+
+def test_manager_proof_loaded_save_delegates(monkeypatch):
+    """BackpackManager.proof_loaded_save is the CLI-shaped hook."""
+    from escape_the_valley.backpack import BackpackManager
+    from escape_the_valley.ledger_proof import PlayerProofResult
+
+    captured = {}
+
+    def fake_proof(state, *, manager=None):
+        captured["mgr"] = manager
+        return PlayerProofResult(
+            verdict="PASS", report=None, markdown="# PASS", notes=[],
+        )
+
+    monkeypatch.setattr(
+        "escape_the_valley.ledger_proof.proof_player_save", fake_proof,
+    )
+    mgr = BackpackManager()
+    result = mgr.proof_loaded_save(_player_state())
+    assert result.verdict == "PASS"
+    assert captured["mgr"] is mgr
+
+
+def test_overlay_dict_has_no_secrets():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    result = proof_player_save(_player_state(), manager=_ProofMgr())
+    data = result.to_overlay_dict()
+    blob = json_str(data)
+    assert "wallet_secret" not in blob
+    assert "issuer_secret" not in blob
+    assert data["verdict"] == "PASS"

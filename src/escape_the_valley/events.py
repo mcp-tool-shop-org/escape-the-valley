@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -916,7 +917,7 @@ def build_event_library() -> list[EventSkeleton]:
                            "Slow but safe.", "Time."),
         ],
         outcome_templates={
-            "A": EventOutcome(morale_delta=2),
+            "A": EventOutcome(supplies_delta={"rope": -1}, morale_delta=2),
             "B": EventOutcome(health_delta=-12, morale_delta=-5),
             "C": EventOutcome(time_cost=1, morale_delta=-2),
         },
@@ -1098,7 +1099,9 @@ def build_event_library() -> list[EventSkeleton]:
                            "Risk of damage.", "Wagon, health."),
         ],
         outcome_templates={
-            "A": EventOutcome(time_cost=1, morale_delta=-2),
+            "A": EventOutcome(
+                supplies_delta={"rope": -1}, time_cost=1, morale_delta=-2,
+            ),
             "B": EventOutcome(
                 supplies_delta={"food": -5}, wagon_delta=-8, morale_delta=-4,
             ),
@@ -1873,6 +1876,189 @@ def select_event(
     return selected
 
 
+# ── Advertised inventory costs (F-54ac123d) ─────────────────────────────
+#
+# Hand-authored choices advertise rope/parts/food/tools/meds in cost_hint
+# and risk_hint. JSON-loaded choices leave those fields empty, so they are
+# not inferred here — we do not invent JSON preconditions.
+# Tools are durable gear (require, don't consume). Rope is spent.
+
+_INVENTORY_COST_KEYS = frozenset({"rope", "parts", "food", "tools", "meds"})
+_DURABLE_INVENTORY = frozenset({"tools"})
+
+_SUPPLY_WORD = r"(rope|parts?|food|tools?|meds?|medicine)"
+_NON_COST_CLAUSE = re.compile(
+    r"\b(time|speed|distance|health|morale|wagon|nothing|injury|"
+    r"danger|anxiety|unknown|unpredictable|uncertain)\b",
+    re.I,
+)
+_COST_NEGATE = re.compile(
+    r"\b(loss|lost|gained|reward|without|or)\b|\bno\s",
+    re.I,
+)
+_USES_NEED = re.compile(
+    rf"\b(?:uses?|needs?|safe if you have)\s+{_SUPPLY_WORD}\b",
+    re.I,
+)
+_QTY_SUPPLY = re.compile(
+    rf"\b(\d+)\s+{_SUPPLY_WORD}\b",
+    re.I,
+)
+_BARE_SUPPLY = re.compile(
+    rf"\b{_SUPPLY_WORD}\b",
+    re.I,
+)
+
+
+def _canonical_supply(word: str) -> str | None:
+    w = word.lower()
+    if w in ("part", "parts"):
+        return "parts"
+    if w in ("tool", "tools"):
+        return "tools"
+    if w in ("med", "meds", "medicine"):
+        return "meds"
+    if w in ("rope", "food"):
+        return w
+    return None
+
+
+def _choice_for(event: EventSkeleton, choice_id: str) -> ChoiceTemplate | None:
+    for choice in event.fallback_choices:
+        if choice.choice_id == choice_id:
+            return choice
+    return None
+
+
+def _parse_cost_hint_spend(hint: str) -> dict[str, int]:
+    """Parse a cost_hint into {supply: qty} advertised spends.
+
+    "Food for meds." treats only the left side as the cost. Clauses that are
+    time/distance/health or that describe loss/gain are skipped.
+    """
+    costs: dict[str, int] = {}
+    if not hint or not hint.strip():
+        return costs
+    head = hint.split(" for ")[0]
+    for raw_clause in head.split(","):
+        clause = raw_clause.strip().rstrip(".")
+        if not clause:
+            continue
+        if _COST_NEGATE.search(clause):
+            continue
+        if _NON_COST_CLAUSE.search(clause) and not _BARE_SUPPLY.search(clause):
+            continue
+        qty_match = _QTY_SUPPLY.search(clause)
+        if qty_match:
+            key = _canonical_supply(qty_match.group(2))
+            if key in _INVENTORY_COST_KEYS:
+                costs[key] = max(costs.get(key, 0), int(qty_match.group(1)))
+            continue
+        bare = _BARE_SUPPLY.search(clause)
+        if bare:
+            key = _canonical_supply(bare.group(1))
+            if key in _INVENTORY_COST_KEYS:
+                costs[key] = max(costs.get(key, 0), 1)
+    return costs
+
+
+def _parse_risk_hint_spend(hint: str) -> dict[str, int]:
+    """Parse 'Uses parts' / 'Needs tools' / 'Safe if you have rope'."""
+    costs: dict[str, int] = {}
+    if not hint:
+        return costs
+    for match in _USES_NEED.finditer(hint):
+        key = _canonical_supply(match.group(1))
+        if key in _INVENTORY_COST_KEYS:
+            costs[key] = max(costs.get(key, 0), 1)
+    return costs
+
+
+def advertised_inventory_cost(
+    choice: ChoiceTemplate | None,
+    outcome: EventOutcome,
+) -> dict[str, int]:
+    """Return {supply: qty} the player must have to honor advertised costs.
+
+    F-54ac123d: cost_hint + risk_hint (hand-authored) plus any matching
+    negative supplies_delta amounts. Positive deltas are loot, not costs.
+    JSON choices have empty hints, so they contribute nothing here.
+    """
+    costs: dict[str, int] = {}
+    if choice is not None:
+        costs.update(_parse_cost_hint_spend(choice.cost_hint))
+        for key, qty in _parse_risk_hint_spend(choice.risk_hint).items():
+            costs[key] = max(costs.get(key, 0), qty)
+    for key, val in outcome.supplies_delta.items():
+        if key in costs and val < 0:
+            costs[key] = max(costs[key], -val)
+        if key in costs and val > 0:
+            # Hint named a supply that this outcome actually grants — loot.
+            costs.pop(key, None)
+    return {k: v for k, v in costs.items() if k in _INVENTORY_COST_KEYS and v > 0}
+
+
+def _debit_advertised_costs(outcome: EventOutcome, costs: dict[str, int]) -> None:
+    """Fill empty supplies_delta for consumable advertised costs (rope/parts/...)."""
+    for key, qty in costs.items():
+        if key in _DURABLE_INVENTORY:
+            continue
+        current = outcome.supplies_delta.get(key, 0)
+        if current >= 0:
+            outcome.supplies_delta[key] = -qty
+
+
+def _unaffordable_costs(state: RunState, costs: dict[str, int]) -> list[str]:
+    return [key for key, qty in costs.items() if state.supplies.get(key) < qty]
+
+
+def _insufficient_supplies_outcome(
+    template: EventOutcome,
+    choice: ChoiceTemplate | None,
+) -> EventOutcome:
+    """Advertised success is denied. Spend nothing. Visible fail, not a no-op.
+
+    PAY without food is not free passage. REPAIR without parts/tools is not
+    a wagon fix (and a tools-less 'partial fix' is worse than with tools).
+    Advertised-safe rope/meds paths without the item are not safe.
+    """
+    flags = list(template.special_flags)
+    if "insufficient_supplies" not in flags:
+        flags.append("insufficient_supplies")
+
+    action = (choice.action if choice else "") or ""
+    risk = (choice.risk_hint if choice else "") or ""
+
+    time_cost = max(template.time_cost, 1)
+    morale = min(template.morale_delta, -2)
+    health = template.health_delta if template.health_delta < 0 else 0
+    wagon = 0 if template.wagon_delta > 0 else template.wagon_delta
+    distance = template.distance_delta
+
+    if action == "REPAIR" and wagon < 0:
+        wagon -= 5
+    elif action == "PAY":
+        distance = max(distance, 5)
+    elif re.search(r"\b(?:uses?|needs?)\s+(?:meds?|medicine)\b", risk, re.I):
+        health = min(health, -8)
+    elif (
+        re.search(r"\bsafe\b", risk, re.I)
+        and template.health_delta >= 0
+        and template.wagon_delta >= 0
+        and action != "PAY"
+    ):
+        health = -8
+
+    return EventOutcome(
+        time_cost=time_cost,
+        morale_delta=morale,
+        health_delta=health,
+        wagon_delta=wagon,
+        distance_delta=distance,
+        special_flags=flags,
+    )
+
+
 def resolve_event(
     state: RunState,
     event: EventSkeleton,
@@ -1895,6 +2081,13 @@ def resolve_event(
     templates already use for "nothing much happened," e.g. river_crossing's
     "B") plus a distinguishing flag -- instead of true silence. No RNG is
     drawn on this path, so it never perturbs the seeded draw sequence.
+
+    F-54ac123d: hand-authored cost_hint/risk_hint copy that names
+    rope/parts/food/tools/meds is honored here -- consumables are debited,
+    tools are required but not consumed, and an empty pack is denied the
+    advertised success (``insufficient_supplies``) instead of a silent
+    pay-nothing outcome. JSON choices have empty hints, so they are not
+    inferred; this wave does not invent JSON preconditions.
     """
     template = event.outcome_templates.get(choice_id)
     if not template:
@@ -1916,6 +2109,27 @@ def resolve_event(
         distance_delta=template.distance_delta,
         special_flags=list(template.special_flags),
     )
+
+    # F-54ac123d: advertised rope/parts/food/tools(/meds) costs must gate
+    # or debit. Check before health jitter so an unaffordable path draws
+    # no RNG (same determinism contract as undefined_choice_miss).
+    choice = _choice_for(event, choice_id)
+    costs = advertised_inventory_cost(choice, outcome)
+    _debit_advertised_costs(outcome, costs)
+    missing = _unaffordable_costs(state, costs)
+    if missing:
+        log.warning(
+            "event %s: choice_id %r advertised costs %s cannot be paid "
+            "(missing %s); denying advertised success",
+            event.event_id, choice_id, costs, missing,
+        )
+        denied = _insufficient_supplies_outcome(template, choice)
+        if (
+            "uncanny_token_spent" in denied.special_flags
+            and state.uncanny_tokens > 0
+        ):
+            state.uncanny_tokens -= 1
+        return denied
 
     # Add some randomness to deltas
     if outcome.health_delta != 0:

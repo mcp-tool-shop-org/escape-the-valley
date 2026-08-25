@@ -41,14 +41,24 @@ Standards compliance (workflow-standards.md):
   UNCERTAINTY_GATED_HUMANS=2  the testnet spend is gated on an explicit go.
 
 The pure reconcile() function has no network or xrpl dependency and is unit-tested
-offline (tests/test_ledger_proof.py). Only run_proof() touches the network.
+offline (tests/test_ledger_proof.py). run_proof() is the throwaway faucet harness
+(CI / scripts/ledger_proof.py). The player command is proof_player_save() /
+proof_loaded_save() — it audits the loaded save, never a fresh seed.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
-from .backpack_models import XRPL_RESOURCES, XRPL_TOKEN_MAP, SettlementRecord
+from .backpack_models import (
+    XRPL_RESOURCES,
+    XRPL_TOKEN_MAP,
+    SettlementRecord,
+    minted_snapshot_of,
+)
+
+ProofVerdict = Literal["PASS", "FAIL", "INCONCLUSIVE"]
 
 # ── Reconciliation result types (pure, no network) ───────────────────
 
@@ -317,25 +327,72 @@ def _is_inconclusive(report: ReconcileReport) -> bool:
     return resources_ok and report.memo_ok and report.pending_count > 0
 
 
-def report_to_markdown(report: ReconcileReport) -> str:
+def proof_verdict(
+    report: ReconcileReport,
+    *,
+    network_error: bool = False,
+    minted_missing: bool = False,
+) -> ProofVerdict:
+    """Classify a reconcile report as PASS, FAIL, or INCONCLUSIVE.
+
+    ANDON: a real balance / conservation / memo drift is always FAIL.
+    INCONCLUSIVE when the only blocker is unsettled checkpoints, an
+    unreachable testnet, or a missing enable-time mint snapshot (legacy
+    save) — never a green-washed drift, never a FAIL over a gap.
+    """
+    if network_error:
+        return "INCONCLUSIVE"
+    if report.passed:
+        return "INCONCLUSIVE" if minted_missing else "PASS"
+    if _is_inconclusive(report):
+        return "INCONCLUSIVE"
+    return "FAIL"
+
+
+def report_to_markdown(
+    report: ReconcileReport,
+    *,
+    verdict: ProofVerdict | None = None,
+) -> str:
     """Render a human-readable reconciliation report.
 
     Banner (ledger-B06): an INCONCLUSIVE verdict is shown when the only blocker
     is unsettled checkpoints (testnet unreachable). A genuine drift still reads
-    FAIL — ANDON is preserved.
+    FAIL — ANDON is preserved. ``verdict`` overrides the derived banner when
+    the player-save path has an extra inconclusive reason (missing mint
+    snapshot, network miss) that reconcile() itself does not encode.
     """
     inconclusive = _is_inconclusive(report)
-    verdict = "INCONCLUSIVE" if inconclusive else ("PASS" if report.passed else "FAIL")
+    if verdict is None:
+        verdict = (
+            "INCONCLUSIVE" if inconclusive
+            else ("PASS" if report.passed else "FAIL")
+        )
     lines = [
         f"# Ledger Reconciliation Proof — {verdict}",
         "",
     ]
-    if inconclusive:
+    if verdict == "INCONCLUSIVE" and inconclusive:
         lines += [
             f"> **INCONCLUSIVE — {report.pending_count} checkpoint(s) could not "
             f"settle (testnet unreachable). Re-run when the ledger is healthy. "
             f"This is NOT a drift failure:** every reconciled resource balanced "
             f"and the memo verified; only unsettled checkpoints remain.",
+            "",
+        ]
+    elif verdict == "INCONCLUSIVE" and not report.passed:
+        lines += [
+            "> **INCONCLUSIVE — the live ledger could not be reached, or this "
+            "save has no enable-time mint snapshot.** Not a drift FAIL. "
+            "Re-run `trail ledger proof` when the testnet is healthy "
+            "(or after enabling the backpack on a current build).",
+            "",
+        ]
+    elif verdict == "INCONCLUSIVE":
+        lines += [
+            "> **INCONCLUSIVE — conservation cannot be claimed for this save "
+            "(enable-time mint snapshot missing).** Live balance and on-chain "
+            "memo checks still ran; they did not report drift.",
             "",
         ]
     lines += [
@@ -378,6 +435,179 @@ def report_to_markdown(report: ReconcileReport) -> str:
         "engine's economy deltas — the engine cannot fake the ledger."
     )
     return "\n".join(lines)
+
+
+# ── Player-save proof (loaded run, not a faucet harness) ─────────────
+
+
+@dataclass
+class PlayerProofResult:
+    """PASS/FAIL/INCONCLUSIVE result of proving the loaded player save.
+
+    ``report`` is None when reconcile() never ran (backpack off, extra
+    missing). ``markdown`` is always the player-facing banner. The public
+    command name is ``trail ledger proof`` (cli.py, ui-owned); this is the
+    library those callers invoke.
+    """
+
+    verdict: ProofVerdict
+    report: ReconcileReport | None
+    markdown: str
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return self.verdict == "PASS"
+
+    def to_overlay_dict(self) -> dict:
+        """Compact dict for ProofOverlay (backpack_ui) — no secrets."""
+        resources: list[dict] = []
+        if self.report is not None:
+            resources = [
+                {"resource": r.resource, "ok": r.ok, "code": r.code}
+                for r in self.report.resources
+            ]
+        return {
+            "verdict": self.verdict,
+            "run_id": self.report.run_id if self.report else "",
+            "seed": self.report.seed if self.report else 0,
+            "settlements": (
+                self.report.settlements_count if self.report else 0
+            ),
+            "pending": self.report.pending_count if self.report else 0,
+            "memo": (
+                _memo_verdict(self.report) if self.report else "not run"
+            ),
+            "resources": resources,
+            "notes": list(self.notes),
+        }
+
+
+def _banner(verdict: ProofVerdict, body: str) -> str:
+    return (
+        f"# Ledger Reconciliation Proof — {verdict}\n\n"
+        f"> {body}\n"
+    )
+
+
+def proof_player_save(state, *, manager=None) -> PlayerProofResult:
+    """Reconcile the **loaded save** against live AccountLines + AccountTx.
+
+    Player command API for ``trail ledger proof``. Does not faucet a
+    throwaway wallet, does not drive a fresh seed, and does not retry
+    pending settlements (that remains ``trail ledger reconcile``). Uses
+    the backpack already on ``state`` — typically loaded from
+    ``.trail/run.json``.
+
+    Returns PASS / FAIL / INCONCLUSIVE. Network misses and a missing
+    enable-time mint snapshot are INCONCLUSIVE, not FAIL. Real drift
+    (balance, conservation with a real snapshot, on-chain memo) is FAIL.
+    """
+    from .backpack import BackpackManager
+    from .backpack_models import XRPL_EXTRA_MISSING_MSG
+
+    bp = state.backpack
+    notes: list[str] = []
+
+    if not bp.enabled or not bp.wallet_address:
+        md = _banner(
+            "INCONCLUSIVE",
+            "Backpack is not enabled on this save. "
+            "Enable it, play, then run `trail ledger proof` on the loaded run "
+            "— not the throwaway faucet harness.",
+        )
+        return PlayerProofResult(
+            verdict="INCONCLUSIVE",
+            report=None,
+            markdown=md,
+            notes=["backpack not enabled on this save"],
+        )
+
+    own_mgr = manager is None
+    mgr = manager or BackpackManager()
+    try:
+        if not mgr.available:
+            md = _banner("INCONCLUSIVE", XRPL_EXTRA_MISSING_MSG)
+            return PlayerProofResult(
+                verdict="INCONCLUSIVE",
+                report=None,
+                markdown=md,
+                notes=["xrpl extra missing"],
+            )
+
+        minted = minted_snapshot_of(bp)
+        minted_missing = not (XRPL_RESOURCES <= minted.keys())
+        if minted_missing:
+            # Reconstruct minted = last_settled - Σdeltas so conservation
+            # is tautological (the finding's point: without a persisted
+            # snapshot it cannot be an independent check). Live balance
+            # and on-chain memo checks still apply; a clean match is
+            # INCONCLUSIVE, not PASS.
+            sum_deltas: dict[str, int] = dict.fromkeys(XRPL_RESOURCES, 0)
+            for rec in bp.settlements:
+                for key, val in rec.deltas.items():
+                    if key in sum_deltas:
+                        sum_deltas[key] += val
+            minted = {
+                key: int(bp.last_settled_supplies.get(key, 0)) - sum_deltas[key]
+                for key in XRPL_RESOURCES
+            }
+            notes.append(
+                "mint snapshot missing from this save — conservation is "
+                "reconstructed (tautological); live balance + on-chain memo "
+                "checks still apply"
+            )
+
+        info = mgr.wallet_info(state)
+        network_error = bool(
+            info.get("balances_error") or info.get("extra_missing")
+        )
+        ledger_balances = info.get("balances") or {}
+        if network_error:
+            notes.append(
+                "could not reach the ledger (AccountLines); not a drift FAIL"
+            )
+            onchain_memos = None
+        else:
+            onchain_memos = mgr.fetch_onchain_memos(state)
+
+        last_settled = {
+            key: int(bp.last_settled_supplies.get(key, 0))
+            for key in XRPL_RESOURCES
+        }
+        report = reconcile(
+            run_id=state.run_id,
+            seed=state.seed,
+            minted_initial=minted,
+            ledger_balances=ledger_balances,
+            last_settled_supplies=last_settled,
+            settlements=list(bp.settlements),
+            pending=list(bp.pending_settlements),
+            player_address=bp.wallet_address,
+            issuer_address=bp.issuer_address,
+            onchain_memos=onchain_memos,
+        )
+        report.notes[0:0] = notes
+
+        verdict = proof_verdict(
+            report,
+            network_error=network_error,
+            minted_missing=minted_missing,
+        )
+        return PlayerProofResult(
+            verdict=verdict,
+            report=report,
+            markdown=report_to_markdown(report, verdict=verdict),
+            notes=list(report.notes),
+        )
+    finally:
+        if own_mgr:
+            mgr.close()
+
+
+def proof_loaded_save(state, *, manager=None) -> PlayerProofResult:
+    """Alias for ``proof_player_save`` — the loaded-save proof API."""
+    return proof_player_save(state, manager=manager)
 
 
 # ── Network driver (only this part touches the chain) ────────────────
@@ -444,7 +674,8 @@ def run_proof(
     mgr = BackpackManager()
     if not mgr.available:
         raise RuntimeError(
-            "xrpl-py is not installed. Install with: pip install escape-the-valley[xrpl]"
+            "xrpl-py is not installed. "
+            'Install with: pip install "escape-the-valley[xrpl]"'
         )
 
     state = create_new_run(seed=seed)
@@ -458,7 +689,10 @@ def run_proof(
         msg = enable_res.message if enable_res else "unknown error"
         raise RuntimeError(f"could not enable Ledger Backpack: {msg}")
 
-    minted_initial = dict(state.backpack.last_settled_supplies)
+    minted_initial = minted_snapshot_of(state.backpack) or {
+        key: int(state.backpack.last_settled_supplies.get(key, 0))
+        for key in XRPL_RESOURCES
+    }
 
     choose_a = PlayerIntent(IntentAction.CHOOSE, choice_id="A")
     # The proof does not need autosave; keep it from clobbering the user's

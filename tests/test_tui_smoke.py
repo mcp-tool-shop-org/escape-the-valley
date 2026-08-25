@@ -20,6 +20,7 @@ import pytest
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.tui_app import (
+    HELP_TEXT,
     Choice,
     EndScreen,
     EventBar,
@@ -101,6 +102,41 @@ def test_help_overlay_toggles():
             await pilot.press("question_mark")
             await pilot.pause()
             assert app.show_help is True
+
+    asyncio.run(scenario())
+
+
+def test_help_text_matches_live_bindings():
+    """F-a1a77615: help copy is the same document as BINDINGS + on_key.
+
+    Live choose keys are 1-7 (and e/f/g for E/F/G). Journal is Shift+J,
+    not unshifted j. Claiming a-g is the lie.
+    """
+    lower = HELP_TEXT.lower()
+    assert "letters a" not in lower
+    assert "a–g" not in HELP_TEXT
+    assert "a-g" not in lower
+    assert "1\u20137" in HELP_TEXT
+    assert "Shift+J" in HELP_TEXT
+    assert "\u2022 J Toggle journal" not in HELP_TEXT
+    assert "e/f/g" in HELP_TEXT
+    assert "c Cycle pace" in HELP_TEXT
+
+
+def test_help_overlay_copy_matches_bindings():
+    """Mounted '?' overlay shows the same live keys as HELP_TEXT."""
+
+    async def scenario():
+        app = _make_app()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("question_mark")
+            await pilot.pause()
+            text = app.query_one("#help").visual.plain
+            assert "Shift+J" in text
+            assert "letters a" not in text.lower()
+            assert "1" in text and "7" in text
+            assert "Cycle pace" in text
 
     asyncio.run(scenario())
 
@@ -810,7 +846,7 @@ class TestVoiceRuntimeFailureConsumer:
         app._check_voice_health()
         assert app._voice_enabled is False
         assert len(notes) == 1
-        assert "Voice unavailable" in notes[0]
+        assert "Voice not available" in notes[0]
         assert "no audio player found" in notes[0]
 
         # Second tick: already notified, no repeat nag.
@@ -838,7 +874,210 @@ class TestVoiceRuntimeFailureConsumer:
         app._sync_frame = lambda: None
         app._after_step()
         assert app._voice_enabled is False
-        assert any("Voice unavailable" in m for m in notes)
+        assert any("Voice not available" in m for m in notes)
+
+    def test_missing_extra_surfaces_pip_install_hint(self):
+        """_check_voice_health must not no-op when last_error is None."""
+
+        class _Missing:
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+        app, notes = self._voice_app(_Missing())
+        app._check_voice_health()
+        assert app._voice_enabled is False
+        assert len(notes) == 1
+        assert "Voice not available" in notes[0]
+        assert "escape-the-valley[voice]" in notes[0]
+
+
+class TestVoiceMountHonesty:
+    """F-bfcc8075: --voice must toast ON or an honest fail, never silence.
+
+    A constructed-but-dead bridge must say Voice not available on V, never
+    Voice OFF (toggle() would just flip config.enabled).
+    """
+
+    def test_voice_flag_notifies_fail_when_extra_missing(self, monkeypatch):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Missing:
+            def __init__(self, config=None):
+                self.config = config or VoiceConfig(enabled=True)
+
+            def start(self):
+                return False
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def stop(self):
+                pass
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Missing)
+
+        async def scenario():
+            state = create_new_run(seed=7)
+            engine = StepEngine(state, GMConfig(enabled=False))
+            app = LedgerTrailApp(
+                engine=engine, voice_config=VoiceConfig(enabled=True),
+            )
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._voice_enabled is False
+                assert app._voice_bridge is not None
+                assert any("Voice not available" in m for m in seen)
+                assert any("escape-the-valley[voice]" in m for m in seen)
+                assert not any(m == "Voice OFF" for m in seen)
+                assert not any(m == "Voice ON" for m in seen)
+                app.action_toggle_voice()
+                assert any("Voice not available" in m for m in seen)
+                assert not any(m == "Voice OFF" for m in seen)
+
+        asyncio.run(scenario())
+
+    def test_voice_mount_notifies_on_when_start_succeeds(self, monkeypatch):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Ok:
+            def __init__(self, config=None):
+                self.config = config
+
+            def start(self):
+                return True
+
+            def status(self):
+                return {
+                    "installed": True,
+                    "available": True,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def stop(self):
+                pass
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Ok)
+
+        async def scenario():
+            state = create_new_run(seed=7)
+            engine = StepEngine(state, GMConfig(enabled=False))
+            app = LedgerTrailApp(
+                engine=engine, voice_config=VoiceConfig(enabled=True),
+            )
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._voice_enabled is True
+                assert any(m == "Voice ON" for m in seen)
+                app.action_toggle_voice()
+                assert any(m == "Voice OFF" for m in seen)
+
+        asyncio.run(scenario())
+
+    def test_toggle_dead_bridge_never_says_voice_off(self):
+        from escape_the_valley.voice import VoiceConfig
+
+        class _Dead:
+            def __init__(self, config=None):
+                self.config = config or VoiceConfig(enabled=True)
+
+            def start(self):
+                return False
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": True,
+                    "last_error": None,
+                }
+
+            def toggle(self):
+                self.config.enabled = False
+                return False
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        app = LedgerTrailApp(engine=engine, voice_config=VoiceConfig(enabled=True))
+        app._render_all = lambda: None
+        app._sync_frame = lambda: None
+        notes = []
+        app.notify = lambda msg, *a, **k: notes.append(msg)
+        app._voice_bridge = _Dead()
+        app._voice_enabled = False
+        app.action_toggle_voice()
+        assert any("Voice not available" in m for m in notes)
+        assert not any(m == "Voice OFF" for m in notes)
+
+
+class TestCliRouteChoiceLetters:
+    """CLI sibling of F-2a57b303: show_route_choice must offer letters."""
+
+    def test_prompt_uses_letters_not_digits(self, monkeypatch):
+        from escape_the_valley import ui as ui_mod
+
+        printed = []
+        monkeypatch.setattr(
+            ui_mod.console,
+            "print",
+            lambda *a, **k: printed.append(" ".join(str(x) for x in a)),
+        )
+        monkeypatch.setattr(ui_mod.console, "input", lambda *a, **k: "B")
+        connections = [
+            ("n1", "River Ford", 12),
+            ("n2", "High Pass", 20),
+        ]
+        chosen = ui_mod.show_route_choice(connections)
+        assert chosen == "n2"
+        blob = "\n".join(printed)
+        assert "Choose 1-" not in blob
+        assert "[bold]A[/bold]" in blob
+        assert "[bold]B[/bold]" in blob
+
+    def test_invalid_retry_names_letters(self, monkeypatch):
+        from escape_the_valley import ui as ui_mod
+
+        printed = []
+        answers = iter(["9", "A"])
+        monkeypatch.setattr(
+            ui_mod.console,
+            "print",
+            lambda *a, **k: printed.append(" ".join(str(x) for x in a)),
+        )
+        monkeypatch.setattr(
+            ui_mod.console, "input", lambda *a, **k: next(answers),
+        )
+        connections = [
+            ("n1", "River Ford", 12),
+            ("n2", "High Pass", 20),
+        ]
+        chosen = ui_mod.show_route_choice(connections)
+        assert chosen == "n1"
+        blob = "\n".join(printed)
+        assert "Choose A, B" in blob
+        assert "Choose 1-" not in blob
 
 
 # ── F-133540bb: action_choose must not forward an unoffered choice_id ──
@@ -1099,6 +1338,10 @@ class TestMarkupSafety:
             biome=self.STRAY,
             pace=self.STRAY,
             party_summary=self.STRAY,
+            doctrine=self.STRAY,
+            taboo=self.STRAY,
+            twists=[self.STRAY],
+            morale_cue=self.STRAY,
             wagon=self.STRAY,
             backpack_status=self.STRAY,
             route_ascii=self.STRAY,
@@ -1603,3 +1846,408 @@ class TestFrozenCssPathResolution:
             Path(tui_app_module.__file__).resolve().parent / "tui.tcss"
         )
         assert resolved == expected
+
+
+# ── Wave 27 Stage D amend: HUD reflow, title, urgency paint ──────────
+
+
+def _assert_region_on_screen(widget, screen, label: str) -> None:
+    region = widget.region
+    screen_region = screen.region
+    assert region.width > 0 and region.height > 0, f"{label} collapsed {region}"
+    assert screen_region.contains_region(region), (
+        f"{label} {region} not inside screen {screen_region}"
+    )
+
+
+def _painted_text(widget) -> str:
+    """Visible strips only — widget.render_line, not visual.plain overflow."""
+    return "\n".join(
+        widget.render_line(y).text for y in range(widget.size.height)
+    )
+
+
+def _assert_hud_readable(app: LedgerTrailApp) -> None:
+    """F-a0f79af3: status + supplies regions stay on-screen; labels visible."""
+    screen = app.screen
+    status = app.query_one("#status", StatusPanel)
+    supplies = app.query_one("#supplies", SuppliesPanel)
+    left = app.query_one("#left")
+    main = app.query_one("#main")
+    eventbar = app.query_one("#eventbar", EventBar)
+    for widget, label in (
+        (status, "#status"),
+        (supplies, "#supplies"),
+        (left, "#left"),
+        (main, "#main"),
+        (eventbar, "#eventbar"),
+        (app.query_one("#map", MapPanel), "#map"),
+        (app.query_one("#party", PartyPanel), "#party"),
+    ):
+        _assert_region_on_screen(widget, screen, label)
+    assert left.region.contains_region(status.region), (
+        f"#status {status.region} not inside #left {left.region}"
+    )
+    assert left.region.contains_region(supplies.region), (
+        f"#supplies {supplies.region} not inside #left {left.region}"
+    )
+    status_text = status.visual.plain
+    supplies_text = supplies.visual.plain
+    assert "Day" in status_text, status_text
+    assert "Supplies" in supplies_text or "FOOD" in supplies_text, supplies_text
+
+
+class TestHudReflow:
+    """F-a0f79af3: the play HUD must stay readable at 80x24 and 120x30."""
+
+    def test_title_is_not_class_name(self):
+        """F-61040cc4: Header must not show LedgerTrailApp."""
+        app = _make_app()
+        assert app.TITLE == "Escape the Valley"
+        assert app.title == "Escape the Valley"
+        assert "LedgerTrailApp" not in app.title
+
+    def test_hud_readable_at_80x24(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                assert app.size == (80, 24)
+                _assert_hud_readable(app)
+                header_text = app.query_one("HeaderTitle").visual.plain
+                assert "Escape the Valley" in header_text
+                assert "LedgerTrailApp" not in header_text
+                footer = app.query_one("Footer")
+                assert footer.show_command_palette is False
+                assert len(footer.query("FooterKey.-command-palette")) == 0
+
+        asyncio.run(scenario())
+
+    def test_hud_readable_at_120x30(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(120, 30)) as pilot:
+                await pilot.pause()
+                assert app.size == (120, 30)
+                assert not app.query_one("#main").has_class("-stack")
+                _assert_hud_readable(app)
+                header_text = app.query_one("HeaderTitle").visual.plain
+                assert "Escape the Valley" in header_text
+                assert "LedgerTrailApp" not in header_text
+
+        asyncio.run(scenario())
+
+    def test_default_camp_eventbar_paints_repair_at_80x24(self):
+        """F-23cf9a9a: D) Repair must be in the painted EventBar at 80x24.
+
+        visual.plain is overflow and is not proof — a max-height: 5 dock with
+        a leftover tall border greens on plain while clipping Repair.
+        """
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                bar = app.query_one("#eventbar", EventBar)
+                border_top = bar.styles.border.top
+                # tui.tcss leftover is ('tall', ...); App.CSS must win.
+                assert border_top is None or border_top[0] in ("", "none"), (
+                    border_top
+                )
+                painted = _painted_text(bar)
+                assert "A) Travel" in painted, painted
+                assert "B) Rest" in painted, painted
+                assert "C) Hunt" in painted, painted
+                assert "D) Repair" in painted, painted
+                _assert_hud_readable(app)
+
+        asyncio.run(scenario())
+
+    def test_seven_choice_eventbar_stays_on_screen_at_80x24(self):
+        """A 7-choice EventBar (A–G valves) must not push the HUD off-screen."""
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                app._frame.choices = [
+                    Choice(id="A", label="Travel"),
+                    Choice(id="B", label="Rest"),
+                    Choice(id="C", label="Hunt"),
+                    Choice(id="D", label="Repair"),
+                    Choice(id="E", label="Abandon Cargo"),
+                    Choice(id="F", label="Desperate Repair"),
+                    Choice(id="G", label="Hard Ration"),
+                ]
+                app.query_one("#eventbar", EventBar).update_from(app._frame)
+                await pilot.pause()
+                _assert_hud_readable(app)
+                bar = app.query_one("#eventbar", EventBar)
+                assert bar.region.height <= 6
+                painted = _painted_text(bar)
+                assert "D) Repair" in painted, painted
+                # E/F/G may still sit in overflow (visual.plain), not the dock.
+                assert "Abandon Cargo" in bar.visual.plain
+                assert "Desperate Repair" in bar.visual.plain
+                assert "Hard Ration" in bar.visual.plain
+
+        asyncio.run(scenario())
+
+
+class TestTuiUrgencyCues:
+    """F-61040cc4: TUI paint reuses CLI (LOW)/(CRITICAL)/(!)/dead markers."""
+
+    def test_supplies_food_zero_distinct_from_default(self):
+        full = SuppliesPanel()
+        full.update_from(FrameState(supplies={"FOOD": 50, "WATR": 50, "MEDS": 5}))
+        empty = SuppliesPanel()
+        empty.update_from(FrameState(supplies={"FOOD": 0, "WATR": 50, "MEDS": 5}))
+        assert "(CRITICAL)" in empty.visual.plain
+        assert "FOOD: 0" in empty.visual.plain
+        assert "(CRITICAL)" not in full.visual.plain
+        assert empty.visual.plain != full.visual.plain
+        empty_styles = {str(sp.style) for sp in empty.visual.spans}
+        full_styles = {str(sp.style) for sp in full.visual.spans}
+        assert empty_styles != full_styles
+
+    def test_fresh_run_meds_parts_not_low_on_tui(self):
+        widget = SuppliesPanel()
+        state = create_new_run(seed=7)
+        from escape_the_valley.adapter import _build_supplies
+
+        widget.update_from(FrameState(supplies=_build_supplies(state)))
+        text = widget.visual.plain
+        assert "MEDS: 5 (LOW)" not in text
+        assert "PART: 3 (LOW)" not in text
+
+    def test_pilot_food_zero_and_health_12_paint_cues(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(120, 30)) as pilot:
+                await pilot.pause()
+                default_supplies = app.query_one("#supplies").visual.plain
+                app._engine.state.supplies.food = 0
+                app._engine.state.party.members[0].health = 12
+                app._engine.state.party.members[1].health = 0
+                app._engine.state.wagon.condition = 8
+                app._sync_frame()
+                app._render_all()
+                await pilot.pause()
+                supplies_text = app.query_one("#supplies").visual.plain
+                party_text = app.query_one("#party").visual.plain
+                status_text = app.query_one("#status").visual.plain
+                assert "(CRITICAL)" in supplies_text
+                assert "FOOD: 0" in supplies_text
+                assert supplies_text != default_supplies
+                assert "(!)" in party_text
+                assert "dead" in party_text
+                assert "(CRITICAL)" in status_text
+
+        asyncio.run(scenario())
+
+
+class TestWave34HudIdentityMoralePace:
+    """F-42243a2c / F-9f5f308e / F-f50297bc: recommended TUI start screen."""
+
+    def test_new_game_toasts_seed_doctrine_twists(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            seen = []
+            app.notify = lambda msg, *a, **k: seen.append(msg)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+            blob = " ".join(seen)
+            assert "seed 7" in blob
+            assert "travel_light" in blob
+            assert "leave_nothing" in blob
+            assert "sick_season" in blob
+            assert "flood_year" in blob
+            assert "fireside" in blob
+
+        asyncio.run(scenario())
+
+    def test_status_and_party_paint_rules_and_morale(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                status = app.query_one("#status", StatusPanel).visual.plain
+                party = app.query_one("#party", PartyPanel).visual.plain
+                assert "seed 7" in status
+                assert "travel_light" in status
+                assert "leave_nothing" in status
+                assert "sick_season" in status
+                assert "flood_year" in status
+                assert "Pace:" in status
+                assert "c cycles" in status
+                assert "Morale: 70/100" in party
+                assert "Morale: 70/100" in status
+
+        asyncio.run(scenario())
+
+    def test_party_panel_paints_morale_bands(self):
+        crit = PartyPanel()
+        crit.update_from(FrameState(morale=12, morale_cue=" (CRITICAL)"))
+        assert "Morale: 12/100 (CRITICAL)" in crit.visual.plain
+        low = PartyPanel()
+        low.update_from(FrameState(morale=35, morale_cue=" (LOW)"))
+        assert "Morale: 35/100 (LOW)" in low.visual.plain
+
+    def test_c_cycles_pace_through_change_pace(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "steady"
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "hard"
+                status = app.query_one("#status", StatusPanel).visual.plain
+                assert "Hard" in status
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "slow"
+                await pilot.press("c")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.wagon.pace.value == "steady"
+
+        asyncio.run(scenario())
+
+    def test_change_pace_is_a_binding(self):
+        keys = {b.key for b in LedgerTrailApp.BINDINGS if getattr(b, "key", None)}
+        assert "c" in keys
+        actions = {
+            getattr(b, "action", "") for b in LedgerTrailApp.BINDINGS
+        }
+        assert "change_pace" in actions
+
+
+class TestWave36LedgerProofOverlay:
+    """F-ff0e4af0: ledger-menu R proofs the loaded save; it does not Rest."""
+
+    def _canned_pass(self, *_a, **_k):
+        from escape_the_valley.ledger_proof import PlayerProofResult
+
+        return PlayerProofResult(
+            verdict="PASS", report=None, markdown="PASS", notes=["test"],
+        )
+
+    def test_compose_yields_ledger_proof(self):
+        async def scenario():
+            from escape_the_valley.backpack_ui import ProofOverlay
+
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                overlay = app.query_one("#ledger_proof", ProofOverlay)
+                assert overlay is not None
+                assert overlay.display is False
+
+        asyncio.run(scenario())
+
+    def test_l_opens_on_menu_with_proof_this_save(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            app._engine.state.backpack.enabled = True
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("l")
+                await pilot.pause()
+                assert app.show_ledger is True
+                menu = app.query_one("#ledger_menu")
+                assert "R) Proof this save" in menu.visual.plain
+
+        asyncio.run(scenario())
+
+    def test_ledger_r_proofs_save_and_does_not_rest(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "escape_the_valley.ledger_proof.proof_player_save",
+            self._canned_pass,
+        )
+
+        async def scenario():
+            from escape_the_valley.backpack_ui import ProofOverlay
+
+            app = _make_app(seed=7)
+            app._engine.state.backpack.enabled = True
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("l")
+                await pilot.pause()
+                assert app.show_ledger is True
+                before = app._engine.state.time_of_day
+
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+
+                assert app._engine.state.time_of_day == before
+                assert app.show_ledger_proof is True
+                proof = app.query_one("#ledger_proof", ProofOverlay)
+                assert proof.display is True
+                text = proof.visual.plain
+                assert "PASS" in text
+                assert any(v in text for v in ("PASS", "FAIL", "INCONCLUSIVE"))
+
+                await pilot.press("escape")
+                await pilot.pause()
+                assert app.show_ledger_proof is False
+                assert proof.display is False
+
+        asyncio.run(scenario())
+
+    def test_camp_r_still_rests_without_ledger_menu(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                before = app._engine.state.time_of_day
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.time_of_day != before
+                assert app.show_ledger_proof is False
+
+        asyncio.run(scenario())
+
+    def test_parcel_r_still_refuses_not_proof(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "escape_the_valley.ledger_proof.proof_player_save",
+            self._canned_pass,
+        )
+
+        async def scenario():
+            from escape_the_valley.backpack_models import ParcelRecord
+
+            app = _make_app(seed=7)
+            parcel = ParcelRecord(
+                parcel_id="rSender:FOD:5",
+                sender="rSender",
+                contents={"food": 5},
+                accepted=False,
+                day_received=1,
+            )
+            app._engine.state.backpack.parcels.append(parcel)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.action_show_parcel(parcel)
+                await pilot.pause()
+                assert app.show_parcel_notify is True
+                before = app._engine.state.time_of_day
+                await pilot.press("r")
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert app._engine.state.time_of_day == before
+                assert app.show_ledger_proof is False
+                assert parcel.parcel_id.startswith("refused:")
+
+        asyncio.run(scenario())

@@ -4,8 +4,72 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-25
+
+### Added
+
+- **Classic CLI (`trail new` / `trail play`) now runs graded endings, food
+  spoilage, escape valves, the rest/repair maintenance window, and town
+  ledger settle** — same helpers StepEngine already used. Not a merge.
+- **Hand-authored events that advertise rope/parts/food/tools now gate or
+  debit** instead of applying an empty `supplies_delta`.
+- **TUI start/HUD shows seed, doctrine, twists, taboo, and morale 0–100.**
+  `c` cycles pace via existing `CHANGE_PACE`.
+- **`trail ledger proof`** proves the loaded save (PASS/FAIL/INCONCLUSIVE).
+  Named in README Commands and the handbook.
+- **TUI Ledger ON menu `R` proofs this save** (PASS/FAIL/INCONCLUSIVE). It
+  does not Rest. Same `proof_player_save` as the CLI. Parcel `R` still refuses.
+
 ### Fixed
 
+- **Every ledger overlay paints its dismiss/action row at 80×24**
+  (enable failure, send-parcel failure, menu, nudge, learn, wallet, parcel,
+  progress). Proof is `render_line` / region ∩ screen, not `visual.plain`.
+- **EventBar paints D) Repair at 80×24.** App.CSS fully specifies `#eventbar`
+  so leftover `tui.tcss` `height: 9` + tall border cannot clip the dock.
+  Proof is `render_line` strips, not `visual.plain`.
+- **Ledger overlays at 80×24 paint Accept/Refuse, FOOD rows, and Esc.**
+  Compact templates; proof is painted strips ∩ screen.
+- **TUI HUD reflows at 80×24 and 120×30** so supplies and status stay on
+  screen. Title is Escape the Valley, not the class name. CLI `(CRITICAL)`
+  is the full word at 80 columns.
+- **Wallet Info and the XRPL postcard print the full classic r-address.**
+  Parcel `From:` uses first-4…last-4 so prefix-8 senders no longer collide.
+  Overlay balances use FOOD not FOD.
+- **Handbook dark tokens apply only under a dark media/class**, so Starlight’s
+  light palette is not beaten.
+- **EVENT/ROUTE retry copy names offered letters** (`A/B`), not `(1-4)` / `(1/2)`.
+  CLI `Choose` is letters too. Keyboard and prompt are the same document.
+- **Live death line names the cause:** `{name} has died ({cause}).` Both engines.
+- **Hard-ration refusals split:** food not low / cooldown remaining / already min.
+- **Ollama HTTP 404 is model-missing**, not a JSON reject. Player sees `ollama pull`
+  and `--gm-off`.
+- **Extra-missing ledger cannot stay ON.** Message names
+  `pip install "escape-the-valley[xrpl]"`.
+- **TUI help matches live keys:** 1–7 and Shift+J. `--voice` mount toasts ON or
+  an honest fail, never silence then OFF.
+- **Handbook beginners keys match that TUI.**
+- **`enable()` `_get_client()` lives inside the EnableResult try.** Every
+  `_get_client()` / `Wallet.from_seed` in `backpack.py` degrades to a result
+  object. Sweep leftover: found none.
+- **README Security sentence matches SECURITY.md:** GM on by default
+  (`--gm-off` to disable); XRPL off until `trail ledger enable`; voice opt-in.
+- **Loaded supplies go through `SuppliesState.set` clamps.** A hostile or
+  legacy save with negative stacks no longer loads illegal values.
+- **Malformed `rng_state` degrades to counter-replay.** Load no longer
+  bricks `trail play` on `SeededRNG.setstate`.
+- **GameEngine gained StepEngine's arrival/travel extras** (water refill,
+  supply cache, town trade, night-oil danger). Pairwise port, not a merge.
+  Same seed on the fixed CLI engine still reproduces.
+- **GM journal tags and scene narration no longer TypeError** on None /
+  non-list tags or a list-shaped narration. GM-JSON still never bricks a run.
+- **Ledger settle wraps `Wallet.from_seed` / memo build** into
+  `SettlementResult` failure. Testnet only. No invented txid-skipping.
+- **Missing `event_skeletons.json` still returns `[]` but logs ERROR.**
+- **`trail self-check` probes event-library count, voice, and xrpl extra.**
+  No third `__main__.py` env hook.
+- **SECURITY.md matches the live CLI:** GM on by default (local Ollama;
+  `--gm-off` to disable); XRPL off until enable.
 - **TUI markup splices neutralize leftover `[`.** `textual.markup.escape()`
   leaves an unmatched `[` intact, so a GM choice label like `Look [ west`
   crashed EventBar on chrome `[/i]`. Same class as the ledger overlay fix;

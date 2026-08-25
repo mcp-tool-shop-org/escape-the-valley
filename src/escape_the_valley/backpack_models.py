@@ -8,6 +8,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+# Player-facing extra-missing copy (F-64e78470). Quoted so shells do not
+# glob [xrpl]. Reused by enable/settle/send_parcel/status_line/wallet_info
+# so a recovery launch (save was enabled, extra later gone) names the
+# same pip extra as first-run enable-fail, and never claims Ledger: ON.
+# Testnet extra — not a wallet or mainnet issue.
+XRPL_EXTRA_PIP = 'pip install "escape-the-valley[xrpl]"'
+XRPL_EXTRA_MISSING_MSG = (
+    f"xrpl-py is not installed. Install with: {XRPL_EXTRA_PIP}"
+)
+
 
 @dataclass
 class SettlementRecord:
@@ -80,6 +90,12 @@ class BackpackState:
     last_settled_supplies: dict[str, int] = field(default_factory=dict)
     last_settlement_day: int = 0
 
+    # Enable-time mint snapshot (F-a6efdd6c). Frozen when enable() finishes
+    # minting; later settlements advance last_settled_supplies only. Required
+    # for conservation (minted + Σdeltas == settled) against a reloaded save
+    # — using last_settled as minted after play is tautological.
+    minted_initial: dict[str, int] = field(default_factory=dict)
+
     # Settlement history
     settlements: list[SettlementRecord] = field(default_factory=list)
     pending_settlements: list[SettlementRecord] = field(default_factory=list)
@@ -145,3 +161,88 @@ PARCEL_ACCEPT_CAP: int = 20
 # external verifier can branch on the version it reads back. Bump when the
 # TRAIL| memo grammar changes in a non-backward-compatible way.
 MEMO_SCHEMA_VERSION: str = "v1"
+
+# Persistence shim (F-a6efdd6c): save.py (engine-owned) does not yet
+# round-trip BackpackState.minted_initial. Until it does, the enable-time
+# mint snapshot is mirrored into a reserved PermitRecord so a reloaded
+# .trail/run.json can still run conservation without reconstructing the
+# snapshot tautologically from last_settled. Skip this id in any future
+# permit issue/spend path (the record is stamped used=True).
+MINTED_SNAPSHOT_PERMIT_ID: str = "__minted_initial__"
+
+
+def _encode_minted_txid(snapshot: dict[str, int]) -> str:
+    """Encode a mint snapshot into PermitRecord.txid (already persisted)."""
+    return ",".join(
+        f"{key}={int(snapshot.get(key, 0))}"
+        for key in sorted(XRPL_RESOURCES)
+    )
+
+
+def _parse_minted_txid(txid: str) -> dict[str, int]:
+    """Decode a mint snapshot from the reserved permit's txid field."""
+    out: dict[str, int] = {}
+    if not txid:
+        return out
+    for part in txid.split(","):
+        key, sep, raw = part.partition("=")
+        key = key.strip()
+        if not sep or key not in XRPL_RESOURCES:
+            continue
+        try:
+            out[key] = int(raw)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def stamp_minted_snapshot(
+    bp: BackpackState,
+    snapshot: dict[str, int] | None = None,
+) -> None:
+    """Freeze the enable-time mint snapshot and mirror it for save round-trip.
+
+    Writes ``bp.minted_initial`` (in-memory, the public field) AND a reserved
+    ``PermitRecord`` so current save.py — which serializes permits but not
+    ``minted_initial`` — still round-trips the snapshot through ``run.json``.
+    Only stamps a *complete* 5-resource snapshot; a half-minted pack waits
+    until enable() finishes the remaining resources.
+    """
+    data = dict(snapshot) if snapshot is not None else dict(bp.minted_initial)
+    if not XRPL_RESOURCES <= data.keys():
+        return
+    complete = {key: int(data[key]) for key in XRPL_RESOURCES}
+    bp.minted_initial = complete
+    encoded = _encode_minted_txid(complete)
+    bp.permits = [
+        p for p in bp.permits if p.permit_id != MINTED_SNAPSHOT_PERMIT_ID
+    ]
+    bp.permits.append(PermitRecord(
+        permit_id=MINTED_SNAPSHOT_PERMIT_ID,
+        txid=encoded,
+        used=True,
+        day_earned=bp.last_settlement_day,
+    ))
+
+
+def minted_snapshot_of(bp: BackpackState) -> dict[str, int]:
+    """Return the enable-time mint snapshot, hydrating from the save shim.
+
+    Prefers the dedicated ``minted_initial`` field (populated in-session and
+    once save.py grows the key). Falls back to the reserved PermitRecord so
+    a save written by current save.py still proves conservation. Empty dict
+    means the snapshot is missing (legacy save) — conservation cannot be
+    claimed without becoming tautological.
+    """
+    if XRPL_RESOURCES <= bp.minted_initial.keys():
+        return {key: int(bp.minted_initial[key]) for key in XRPL_RESOURCES}
+    for permit in bp.permits:
+        if permit.permit_id != MINTED_SNAPSHOT_PERMIT_ID:
+            continue
+        parsed = _parse_minted_txid(permit.txid)
+        if XRPL_RESOURCES <= parsed.keys():
+            bp.minted_initial = {
+                key: int(parsed[key]) for key in XRPL_RESOURCES
+            }
+            return dict(bp.minted_initial)
+    return {}

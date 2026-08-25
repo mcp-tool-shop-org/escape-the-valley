@@ -22,11 +22,15 @@ from .backpack_models import (
     PARCEL_ACCEPT_CAP,
     TESTNET_HOSTS,
     TESTNET_URL,
+    XRPL_EXTRA_MISSING_MSG,
+    XRPL_EXTRA_PIP,
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
     ParcelRecord,
     SentParcelRecord,
     SettlementRecord,
+    minted_snapshot_of,
+    stamp_minted_snapshot,
 )
 
 if TYPE_CHECKING:
@@ -151,7 +155,10 @@ def _settlement_memo_text(run_id: str, day: int, deltas: dict[str, int]) -> str:
     """
     delta_parts = []
     for key, diff in sorted(deltas.items()):
-        code = XRPL_TOKEN_MAP[key][0]
+        mapped = XRPL_TOKEN_MAP.get(key)
+        if mapped is None:
+            continue
+        code = mapped[0]
         sign = "+" if diff > 0 else ""
         delta_parts.append(f"{code}{sign}{diff}")
 
@@ -442,10 +449,7 @@ class BackpackManager:
         if not _HAS_XRPL:
             return EnableResult(
                 success=False,
-                message=(
-                    "xrpl-py is not installed. "
-                    "Install with: pip install escape-the-valley[xrpl]"
-                ),
+                message=XRPL_EXTRA_MISSING_MSG,
             )
 
         bp = state.backpack
@@ -462,16 +466,22 @@ class BackpackManager:
         # below using the wallets it already has.
         if bp.wallet_address and bp.issuer_secret and _setup_complete(bp):
             bp.enabled = True
+            # Hydrate minted_initial from the save shim. Do not copy
+            # last_settled_supplies — that may already include later deltas.
+            minted_snapshot_of(bp)
             return EnableResult(
                 success=True,
                 message="Ledger Backpack re-enabled. Your existing pack is back online.",
                 wallet_address=bp.wallet_address,
             )
 
-        client = self._get_client()
         resuming = bool(bp.wallet_address and bp.issuer_secret)
 
+        # F-9517936e: _get_client / from_seed / faucet / mint all live inside
+        # this try so a client-construct failure returns EnableResult
+        # (success=False), matching send_parcel / settle. Never raise out.
         try:
+            client = self._get_client()
             if resuming:
                 # Reuse the wallets a prior partial enable already created —
                 # generating new faucet wallets would strand the old addresses
@@ -546,8 +556,17 @@ class BackpackManager:
                     # exactly the ones that did not, instead of re-submitting
                     # every mint from scratch.
                     bp.last_settled_supplies[key] = amount
+                    # Freeze the enable-time mint independently of later
+                    # settlements (F-a6efdd6c). Resume must not overwrite a
+                    # resource already stamped on a prior partial enable.
+                    if key not in bp.minted_initial:
+                        bp.minted_initial[key] = amount
 
                 bp.last_settlement_day = state.day
+
+            # Persist the complete mint snapshot so a reloaded save can
+            # still prove conservation (save.py does not yet have the field).
+            stamp_minted_snapshot(bp)
 
             bp.enabled = True
 
@@ -606,7 +625,9 @@ class BackpackManager:
         unchanged from before.
         """
         if not _HAS_XRPL:
-            return SettlementResult(success=False, message="xrpl-py not available")
+            return SettlementResult(
+                success=False, message=XRPL_EXTRA_MISSING_MSG,
+            )
 
         bp = state.backpack
         if not bp.enabled or not bp.wallet_address:
@@ -630,23 +651,32 @@ class BackpackManager:
                 message="No changes to settle.",
             )
 
-        client = self._get_client()
-        player = Wallet.from_seed(bp.wallet_secret)
-        issuer = Wallet.from_seed(bp.issuer_secret)
-        # The on-chain memo for every Payment in this batch names the FULL set
-        # of deltas being settled together (ledger-003) — unchanged even if a
-        # later key in the loop fails, since it is the exact byte string
-        # already signed and broadcast for whichever resources clear below.
-        memos = _build_memo(state.run_id, state.day, deltas)
-
         confirmed: dict[str, int] = {}
         confirmed_txids: list[str] = []
         failure: Exception | None = None
         settled_record: SettlementRecord | None = None
+        client = None
+        player = None
+        issuer = None
+        memos = None
 
-        for key, diff in deltas.items():
-            code = XRPL_TOKEN_MAP[key][0]
+        # F-86a4c19c: wrap client/from_seed/memo into the same pending
+        # split as a submit failure — ValueError/KeyError must not escape.
+        try:
+            client = self._get_client()
+            player = Wallet.from_seed(bp.wallet_secret)
+            issuer = Wallet.from_seed(bp.issuer_secret)
+            # The on-chain memo for every Payment in this batch names the FULL set
+            # of deltas being settled together (ledger-003) — unchanged even if a
+            # later key in the loop fails, since it is the exact byte string
+            # already signed and broadcast for whichever resources clear below.
+            memos = _build_memo(state.run_id, state.day, deltas)
+        except Exception as e:  # noqa: BLE001 - routed into the pending split below
+            failure = e
+
+        for key, diff in (deltas.items() if failure is None else ()):
             try:
+                code = XRPL_TOKEN_MAP[key][0]
                 if diff < 0:
                     # Player lost supplies → send back to issuer
                     tx = Payment(
@@ -824,9 +854,34 @@ class BackpackManager:
         if not _HAS_XRPL:
             return
 
-        client = self._get_client()
-        player = Wallet.from_seed(bp.wallet_secret)
-        issuer = Wallet.from_seed(bp.issuer_secret)
+        # F-86a4c19c: skip unknown pending keys like accept_parcel so a
+        # stale {gold: N} record cannot KeyError out of retry/settle.
+        stripped = False
+        for record in list(bp.pending_settlements):
+            unknown = [k for k in record.deltas if k not in XRPL_TOKEN_MAP]
+            if not unknown:
+                continue
+            for k in unknown:
+                del record.deltas[k]
+            stripped = True
+            if not record.deltas:
+                bp.pending_settlements = [
+                    r for r in bp.pending_settlements if r is not record
+                ]
+        if stripped:
+            self._persist_state(state)
+        if not bp.pending_settlements:
+            bp.last_settle_failed = False
+            return
+
+        try:
+            client = self._get_client()
+            player = Wallet.from_seed(bp.wallet_secret)
+            issuer = Wallet.from_seed(bp.issuer_secret)
+        except Exception as e:  # noqa: BLE001 - degrade; retry later
+            log.warning("Retry settlement setup failed: %s", e)
+            bp.last_settle_failed = True
+            return
 
         # Snapshot to iterate; bp.pending_settlements itself is rebuilt
         # incrementally below (F-d178410b) as each record resolves, rather
@@ -842,15 +897,22 @@ class BackpackManager:
             # this pass actually carried on-chain, not whatever remains
             # after some keys have already been removed.
             original_deltas = dict(record.deltas)
-            memos = _build_memo(state.run_id, record.day, original_deltas)
             confirmed: dict[str, int] = {}
             confirmed_txids: list[str] = []
             failure: Exception | None = None
             settled_record: SettlementRecord | None = None
+            try:
+                memos = _build_memo(state.run_id, record.day, original_deltas)
+            except Exception as e:  # noqa: BLE001 - abort this pass, keep pending
+                log.warning(
+                    "Retry settlement day %d failed: %s", record.day, e,
+                )
+                bp.last_settle_failed = True
+                return
 
             for key, diff in original_deltas.items():
-                code = XRPL_TOKEN_MAP[key][0]
                 try:
+                    code = XRPL_TOKEN_MAP[key][0]
                     if diff < 0:
                         tx = Payment(
                             account=player.address,
@@ -1018,11 +1080,11 @@ class BackpackManager:
         if recipient == bp.wallet_address:
             return SendResult(success=False, message="Cannot send to yourself.")
 
-        # XRPL required for actual send
+        # XRPL required for actual send (F-64e78470: same pip extra as enable)
         if not _HAS_XRPL:
             return SendResult(
                 success=False,
-                message="xrpl-py is not installed.",
+                message=XRPL_EXTRA_MISSING_MSG,
             )
 
         # Build memo and send XRP micropayment (12 drops = minimum)
@@ -1322,7 +1384,15 @@ class BackpackManager:
         }
 
         # Query live balances if available
-        if _HAS_XRPL and bp.enabled:
+        if not _HAS_XRPL:
+            # F-64e78470: extra gone after an enabled save must not look
+            # like an empty wallet or a network miss. Testnet extra, not
+            # a wallet/mainnet issue. Overlay keys extra_missing so it
+            # can name the pip extra instead of "Balances: unavailable".
+            info["balances"] = {}
+            info["balances_error"] = True
+            info["extra_missing"] = True
+        elif bp.enabled:
             try:
                 client = self._get_client()
                 resp = client.request(AccountLines(
@@ -1353,6 +1423,18 @@ class BackpackManager:
 
         return info
 
+    def proof_loaded_save(self, state: RunState):
+        """Reconcile the loaded player's save against live Testnet receipts.
+
+        Thin hook for ``trail ledger proof`` (cli.py is ui-owned). Delegates
+        to ``ledger_proof.proof_player_save``; does not faucet a wallet or
+        retry pending settlements. Returns a ``PlayerProofResult`` whose
+        ``verdict`` is PASS, FAIL, or INCONCLUSIVE.
+        """
+        from .ledger_proof import proof_player_save
+
+        return proof_player_save(state, manager=self)
+
     def status_line(self, state: RunState) -> str:
         """One-line status for the TUI status panel.
 
@@ -1363,6 +1445,11 @@ class BackpackManager:
         backlog. The cli-tui renders this string verbatim.
         """
         bp = state.backpack
+        if not _HAS_XRPL and bp.enabled:
+            # F-64e78470: extra gone after an enabled save must not leave
+            # "Ledger: ON". Name the pip extra; this is not a wallet miss
+            # and not the B04 testnet-unreachable signal.
+            return f"Ledger: extra missing — {XRPL_EXTRA_PIP}"
         if bp.enabled:
             pending = len(bp.pending_settlements)
             if pending and bp.last_settle_failed:

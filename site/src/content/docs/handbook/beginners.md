@@ -11,7 +11,7 @@ This page is for players who have never played Escape the Valley before. It walk
 
 Escape the Valley is a survival game inspired by Oregon Trail. You lead a party of 4 settlers through procedurally generated wilderness, managing supplies and making hard choices until you reach the valley exit or die trying.
 
-The game runs in your terminal. An optional AI narrator (powered by Ollama) tells the story as you play. An optional XRPL Testnet ledger tracks your supplies on-chain. Both are disabled by default -- the core game works without them.
+The game runs in your terminal. An AI narrator (powered by local Ollama) is on by default; pass `--gm-off` to disable it. If Ollama is not running, the game falls back to deterministic narration and still plays. An optional XRPL Testnet ledger tracks your supplies on-chain and stays off until you run `trail ledger enable`. The core game works without either.
 
 Every run is seeded. The same seed with the same choices produces the same outcome. This means you can replay a seed to try different strategies.
 
@@ -43,8 +43,10 @@ When the game starts, you will see:
 
 - **Run ID and seed** -- identifies this specific run
 - **GM profile** -- the AI narrator voice (default: Fireside)
+- **Doctrine and taboo** -- this seed's rule modifiers
 - **Twists** -- 1-2 run modifiers that change conditions (like Bandit Year or Good Hunting)
 - **Party** -- your 4 settlers, each with 1-2 traits
+- **Morale 0–100** -- visible at camp. `c` cycles pace (Slow / Steady / Hard).
 
 The TUI shows your party status, supplies, wagon condition, and morale at all times.
 
@@ -118,12 +120,18 @@ The TUI displays several panels:
 - **Party panel** -- names, health bars, conditions (healthy/sick/injured/exhausted), and traits for each member
 - **Supplies panel** -- all 12 resource types with current amounts
 - **Wagon panel** -- condition percentage, animal health, current pace
-- **Journal** -- recent events and outcomes. Use `trail journal` to review from the CLI.
-- **Action menu** -- numbered options: 1=Travel, 2=Rest, 3=Hunt, 4=Repair, 5=Status, 6=Change Pace, 7=Journal, Q=Save and Quit
+- **Journal** -- recent events and outcomes. Press Shift+J in the TUI to toggle the journal drawer. Use `trail journal` to review from the CLI.
+- **Action menu** -- keys 1-7 pick camp actions and last-resort valves (not Status, Change Pace, or Journal):
+  - **1** Travel, **2** Rest, **3** Hunt, **4** Repair (camp hotkeys t / r / h / p do the same four)
+  - **5**, **6**, **7** fire last-resort valves when they appear: Abandon Cargo, Desperate Repair, Hard Ration. If a valve is not shown, that key does nothing -- it never opens Status, Change Pace, or Journal
+  - **Shift+J** journal, **L** ledger, **V** voice, **?** help, **q** quit
+  - The TUI has no Change Pace key. Pace exists only on the classic `trail new` / `trail play` menu.
+
+Press **?** for the in-game help overlay -- that list matches the live bindings (1-7 for camp/valves, Shift+J for journal). Classic CLI (`trail new` / `trail play`) uses a different 1-7 menu that includes Status, Change Pace, and Journal; do not use that list in the TUI.
 
 Warning callouts appear when resources hit critical levels. In verbose mode (default), you get early warnings and cliff-edge alerts. In minimal mode (`--callouts minimal`), you only see last-moment alerts.
 
-The game autosaves after every action. Press Q to save and quit. Resume with `trail tui --continue`.
+The game autosaves after every action. Press q to save and quit. Resume with `trail tui --continue`.
 
 ## 7. Next steps
 

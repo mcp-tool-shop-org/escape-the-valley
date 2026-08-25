@@ -76,6 +76,8 @@ log = logging.getLogger(__name__)
 # actually make it true for every EventChoiceInfo it builds, not just the
 # ones sourced from this engine's own static ChoiceTemplate data.
 _EVENT_CHOICE_LETTERS = "ABCDEFG"
+# F-2a57b303: ROUTE choice_ids the engine will actually accept, in offer order.
+_ROUTE_LETTERS = ("A", "B", "C", "D")
 
 
 def _template_choice_letters(event) -> list[str]:
@@ -85,6 +87,25 @@ def _template_choice_letters(event) -> list[str]:
     Offering a letter resolve_event cannot honor is the engine lying.
     """
     return [letter for letter in _EVENT_CHOICE_LETTERS if letter in event.outcome_templates]
+
+
+def _route_offered_letters(pending) -> list[str]:
+    """Letters currently on offer for a ROUTE fork (same order as idx_map)."""
+    return list(_ROUTE_LETTERS[: len(pending)])
+
+
+def _choose_one_of_line(offered: list[str]) -> str:
+    """Retry copy that names the letters the engine will honor.
+
+    F-2a57b303: wrong-action EVENT/ROUTE used to say (1-4)/(1/2) while
+    CHOOSE only accepts A/B/C. Keyboard and on-screen prompt are one document.
+    """
+    if not offered:
+        return "Choose an option for the current event."
+    return (
+        "That option isn't available -- choose one of: "
+        f"{'/'.join(offered)}."
+    )
 
 
 @dataclass
@@ -159,7 +180,16 @@ class StepEngine:
         # serialized Mersenne-Twister state when the save carries it. Legacy
         # saves without rng_state fall back to counter-replay (unchanged).
         if state.rng_state is not None:
-            self.rng.setstate(state.rng_state)
+            try:
+                self.rng.setstate(state.rng_state)
+            except (TypeError, ValueError):
+                # F-76bab66d: SeededRNG(seed, counter) above already replayed
+                # from rng_counter. A malformed payload must not brick construct.
+                log.warning(
+                    "malformed rng_state; falling back to counter-replay "
+                    "(rng_counter=%s)",
+                    state.rng_counter,
+                )
         self.event_library = build_event_library()
         self.gm = GMClient(gm_config or GMConfig())
         self.phase = GamePhase.CAMP
@@ -420,7 +450,11 @@ class StepEngine:
         effects = check_health_effects(self.state, self.rng)
         for eff in effects:
             if eff["type"] == "died":
-                self.msgs.lines.append(f"{eff['member']} has died.")
+                # F-1a1edd7a: cause is already on the effect (and the journal).
+                cause = eff.get("cause") or "the trail"
+                self.msgs.lines.append(
+                    f"{eff['member']} has died ({cause})."
+                )
             elif eff["type"] == "fell_sick":
                 self.msgs.lines.append(
                     f"{eff['member']} has fallen ill."
@@ -609,12 +643,25 @@ class StepEngine:
         )
         emit_escape_valve_card(self.state, "desperate_repair", detail)
 
+    def _hard_ration_refusal_line(self) -> str:
+        """Name the closed gate. F-9fabf995: one shared refusal hid three."""
+        state = self.state
+        alive = state.party.alive_count
+        if alive <= 0 or state.supplies.food >= alive * 3:
+            return "Food is not low enough to ration."
+        if state.escape_valve_cooldown > 0:
+            return (
+                f"Cannot ration again for {state.escape_valve_cooldown} "
+                "more actions."
+            )
+        if state.rationing_steps > 0:
+            return "Already rationing."
+        return "Cannot ration further right now."
+
     def _do_hard_ration(self) -> None:
         self.state.last_action = "HARD_RATION"
         if not can_hard_ration(self.state):
-            self.msgs.lines.append(
-                "Cannot ration further right now."
-            )
+            self.msgs.lines.append(self._hard_ration_refusal_line())
             return
 
         self.diagnostics["escape_valves_used"] += 1
@@ -831,12 +878,19 @@ class StepEngine:
         self.msgs.event_narration = narration
         self.msgs.event_choices = choices
 
+    def _re_present_event(self) -> None:
+        """Keep the offered scene on the frame after a rejected EVENT step."""
+        self.msgs.event_title = self._pending_event_title
+        self.msgs.event_narration = self._pending_event_narration
+        self.msgs.event_choices = self._pending_event_choices
+
     def _handle_event_choice(self, intent: PlayerIntent) -> None:
         """Resolve the pending event with the player's choice."""
+        offered_ids = [c.id for c in self._pending_event_choices]
         if intent.action != IntentAction.CHOOSE:
-            self.msgs.lines.append(
-                "Choose an option (1-4) for the current event."
-            )
+            # F-2a57b303: same letters as the invalid-id path, never (1-4).
+            self.msgs.lines.append(_choose_one_of_line(offered_ids))
+            self._re_present_event()
             return
 
         event = self._pending_event
@@ -849,15 +903,9 @@ class StepEngine:
         # ENG-B-06: an invalid choice id must not silently fizzle into an
         # arbitrary outcome. Tell the player what's on offer and return WITHOUT
         # clearing the pending event, so they can retry rather than lose it.
-        offered_ids = [c.id for c in self._pending_event_choices]
         if choice_id not in offered_ids:
-            self.msgs.lines.append(
-                "That option isn't available -- choose one of: "
-                f"{'/'.join(offered_ids)}."
-            )
-            self.msgs.event_title = self._pending_event_title
-            self.msgs.event_narration = self._pending_event_narration
-            self.msgs.event_choices = self._pending_event_choices
+            self.msgs.lines.append(_choose_one_of_line(offered_ids))
+            self._re_present_event()
             return
 
         outcome = resolve_event(
@@ -1043,26 +1091,24 @@ class StepEngine:
 
     def _handle_route_choice(self, intent: PlayerIntent) -> None:
         """Pick a fork."""
-        if intent.action != IntentAction.CHOOSE:
-            self.msgs.lines.append("Choose a path (1/2).")
-            self.msgs.route_options = self._pending_routes
-            return
-
         # F-7d3e005b: mirror ENG-B-06 (_handle_event_choice) -- an
         # unrecognized or out-of-range choice_id must be REJECTED, not
         # silently treated as "pick route A". Garbage, an empty string, or
         # the PlayerIntent dataclass default choice_id="" used to map via
         # idx_map.get(intent.choice_id, 0) straight to index 0, silently
         # committing the run to the first route with no warning.
-        idx_map = {"A": 0, "B": 1, "C": 2, "D": 3}
+        idx_map = {letter: i for i, letter in enumerate(_ROUTE_LETTERS)}
+        offered_letters = _route_offered_letters(self._pending_routes)
+        if intent.action != IntentAction.CHOOSE:
+            # F-2a57b303: same letters as the invalid-id path, never (1/2).
+            self.msgs.lines.append(_choose_one_of_line(offered_letters))
+            self.msgs.route_options = self._pending_routes
+            return
+
         idx = idx_map.get(intent.choice_id)
-        offered_letters = list(idx_map.keys())[: len(self._pending_routes)]
 
         if idx is None or idx >= len(self._pending_routes):
-            self.msgs.lines.append(
-                "That option isn't available -- choose one of: "
-                f"{'/'.join(offered_letters)}."
-            )
+            self.msgs.lines.append(_choose_one_of_line(offered_letters))
             self.msgs.route_options = self._pending_routes
             return
 

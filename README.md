@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -27,19 +27,21 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 
 ## What's New
 
+**1.2.0** — GitHub Release binaries launch (event library + stylesheet bundled; smoke asserts `--help` and ≥200 events). `trail ledger proof` audits the loaded save. TUI shows seed/doctrine/twists/morale; `c` cycles pace; ledger menu `R` proofs this save. HUD readable at 80×24 and 120×30.
+
 **1.1.1** — `pip install "escape-the-valley[voice]"` actually installs (the extra had pinned an unpublished package). The PyInstaller binary no longer pulls in the voice extra.
 
 **1.1.0** — streaming narration, graded endings, events that can wound, on-ledger reconciliation proof, run artifacts.
 
-Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a relative import in the frozen entrypoint). `pip install escape-the-valley` is the working install until the next release, which bundles the event library and stylesheet and smokes both `--help` and a loaded event count.
+Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a relative import in the frozen entrypoint). Use `pip install escape-the-valley` or the v1.2.0+ GitHub binary / `npx` launcher.
 
 ## Quick Start
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
-# v1.1.1 GitHub binaries do not start — use pip until then):
+# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)
@@ -48,11 +50,10 @@ trail tui --seed 42
 # Resume a saved game
 trail tui --continue
 
-# With AI narration (requires Ollama running locally)
+# Spoken voice (opt-in; needs pip install "escape-the-valley[voice]").
+# AI narration is already on by default when Ollama is running;
+# pass --gm-off to disable the GM. --voice does not turn the GM on.
 trail tui --seed 42 --voice
-
-# Spoken voice narration needs the voice extra:
-#   pip install "escape-the-valley[voice]"
 
 # With voice pacing control
 trail tui --seed 42 --voice --voice-pace slow
@@ -115,7 +116,10 @@ Completely optional. The game plays identically with it off (the default). Enabl
 trail ledger enable
 trail ledger status
 trail ledger reconcile  # retry failed settlements
+trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 ```
+
+In the TUI, **L** opens the ledger menu; with the backpack on, **R** proofs this save (same verdicts). It does not Rest.
 
 Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 
@@ -135,6 +139,7 @@ Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 | `trail ledger disable` | Disable XRPL backpack |
 | `trail ledger settle` | Manually settle a checkpoint |
 | `trail ledger reconcile` | Retry failed settlements |
+| `trail ledger proof` | Proof the loaded save (PASS/FAIL/INCONCLUSIVE) |
 | `trail ledger wallet` | Show wallet details |
 | `trail stats` | Show run statistics (supports `--json`) |
 | `trail parcel send <addr> <supply> <amount>` | Send supplies to another traveler |
@@ -172,7 +177,7 @@ The first narrated turn loads the model and can take 10-30s — that's normal, n
 
 ## Security
 
-No telemetry. No accounts. All network features (Ollama, XRPL) are opt-in and disabled by default. XRPL operations use Testnet only. See [SECURITY.md](SECURITY.md) for the full threat model.
+No telemetry. No accounts. GM narration is on by default (HTTP to local Ollama); pass `--gm-off` to disable. XRPL is off until `trail ledger enable` (Testnet only). Voice is opt-in (`--voice`). See [SECURITY.md](SECURITY.md) for the full threat model.
 
 ## License
 

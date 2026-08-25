@@ -548,6 +548,31 @@ class TestDegradedGmSignal:
         assert "thinking" in bar.content.lower()
         assert "Travel" not in bar.content
 
+    def test_eventbar_hint_matches_live_keys(self):
+        """F-a1a77615: EventBar must not claim a-g or unshifted J.
+
+        Live choose keys are 1-7; journal is Shift+J. Choice ids (A-G) are
+        the engine labels, shown in parentheses next to the digit keys.
+        """
+        from escape_the_valley.tui_app import Choice, EventBar, FrameState
+
+        bar = EventBar()
+        bar.update_from(FrameState(choices=[
+            Choice("A", "Travel"),
+            Choice("B", "Rest"),
+            Choice("C", "Hunt"),
+        ]))
+        text = bar.content
+        lower = text.lower()
+        assert "letters a" not in lower
+        assert "a–g" not in lower
+        assert "a-g" not in lower
+        assert "Choose 1, 2, 3 (A, B, C)" in text
+        assert "Shift+J journal" in text
+        assert " J journal" not in text
+        assert "number keys also work" not in lower
+        assert "t/r/h/p/c" in text
+
 
 # ── cli-tui-B-02: blocking work runs on a worker; sync fallback off-loop ─
 
@@ -766,6 +791,15 @@ class TestAccessibilityCues:
         assert _supply_cue(6) == ""
         assert _supply_cue(50) == ""
 
+    def test_morale_cue_matches_cli_bands(self):
+        from escape_the_valley.ui import _morale_cue
+
+        assert _morale_cue(70) == ""
+        assert _morale_cue(40) == " (LOW)"
+        assert _morale_cue(21) == " (LOW)"
+        assert _morale_cue(20) == " (CRITICAL)"
+        assert _morale_cue(0) == " (CRITICAL)"
+
     def test_no_color_env_detected(self, monkeypatch):
         from escape_the_valley import ui
 
@@ -792,3 +826,110 @@ class TestAccessibilityCues:
         assert "(CRITICAL)" in out  # food and/or morale
         assert "(LOW)" in out       # water
         assert "(!)" in out         # critical health marker
+
+    def test_supply_cue_uses_catalog_warning_low(self):
+        """F-c0b4e383: meds/parts warning_low is 1, not a global 5."""
+        from escape_the_valley.resources import RESOURCE_CATALOG
+        from escape_the_valley.ui import _supply_cue
+
+        meds_low = RESOURCE_CATALOG["meds"].warning_low
+        parts_low = RESOURCE_CATALOG["parts"].warning_low
+        assert meds_low == 1
+        assert parts_low == 1
+        assert _supply_cue(5, meds_low) == ""
+        assert _supply_cue(3, parts_low) == ""
+        assert _supply_cue(1, meds_low) == " (LOW)"
+        assert _supply_cue(0, meds_low) == " (CRITICAL)"
+
+    def test_fresh_run_default_meds_parts_are_not_low(self, monkeypatch, capsys):
+        """Starting meds=5 / parts=3 must not cry LOW on every new game."""
+        from escape_the_valley import ui
+
+        state = create_new_run(seed=7)
+        monkeypatch.setattr(
+            ui, "console",
+            ui.Console(no_color=True, force_terminal=True, width=80),
+        )
+        ui.show_status(state)
+        out = capsys.readouterr().out
+        assert "Medicine" in out
+        assert "Parts" in out
+        assert "Medicine (LOW)" not in out
+        assert "Parts (LOW)" not in out
+        assert "5 (LOW)" not in out
+        assert "3 (LOW)" not in out
+
+    def test_food_zero_critical_word_visible_at_80_col(
+        self, monkeypatch, capsys,
+    ):
+        """F-c0b4e383: 'CRITICAL' must not ellipsize to '(CRITI…' at width 80."""
+        from escape_the_valley import ui
+
+        state = create_new_run(seed=7)
+        state.supplies.food = 0
+        monkeypatch.setattr(
+            ui, "console",
+            ui.Console(no_color=True, force_terminal=True, width=80),
+        )
+        ui.show_status(state)
+        out = capsys.readouterr().out
+        assert "CRITICAL" in out
+        assert "CRITI…" not in out
+        assert "(CRITI" not in out.replace("CRITICAL", "")
+
+
+# ── Wave 34: run identity + morale on the frame ─────────────────────
+
+
+class TestRunIdentityOnFrame:
+    """F-42243a2c: FrameState carries seed, doctrine, taboo, twist names."""
+
+    def test_seed_7_identity_reaches_the_frame(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.seed == 7
+        assert frame.run_id == state.run_id
+        assert frame.gm_profile == "fireside"
+        assert frame.doctrine == "travel_light"
+        assert frame.taboo == "leave_nothing"
+        assert frame.twists == ["sick_season", "flood_year"]
+
+
+class TestMoraleOnFrame:
+    """F-9f5f308e: morale 0-100 copies onto the frame with CLI cue bands."""
+
+    def test_default_morale_on_fresh_run(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        frame = state_to_frame(engine)
+        assert frame.morale == 70
+        assert frame.morale_cue == ""
+        assert "Morale: 70/100" in frame.party_summary
+
+    def test_low_and_critical_bands_match_cli(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.step_engine import StepEngine
+
+        state = create_new_run(seed=7)
+        engine = StepEngine(state, GMConfig(enabled=False))
+        engine.state.party.morale = 40
+        frame = state_to_frame(engine)
+        assert frame.morale == 40
+        assert frame.morale_cue == " (LOW)"
+        assert "Morale: 40/100 (LOW)" in frame.party_summary
+
+        engine.state.party.morale = 15
+        frame = state_to_frame(engine)
+        assert frame.morale == 15
+        assert frame.morale_cue == " (CRITICAL)"
+        assert "Morale: 15/100 (CRITICAL)" in frame.party_summary

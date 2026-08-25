@@ -238,9 +238,17 @@ def load_json_events() -> list[EventSkeleton]:
     logs an error and yields an empty library instead of crashing
     build_event_library()/StepEngine.__init__. One malformed entry is skipped
     and logged so a single bad event never takes down the whole game.
+
+    F-2a9f896a: a missing file is the same graceful-degradation path — log
+    ERROR naming the expected path, then return [] so startup does not crash
+    (hand-authored events still load). Do not treat absence as a hard fail.
     """
     path = _DATA_DIR / "event_skeletons.json"
     if not path.exists():
+        log.error(
+            "event_skeletons.json could not be loaded: file not found at %s",
+            path,
+        )
         return []
 
     try:
