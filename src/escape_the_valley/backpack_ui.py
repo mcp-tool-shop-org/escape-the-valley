@@ -57,7 +57,7 @@ Optional. The trail is the same either way.
 
 LEDGER_ON_TEXT = """\
 [b]Ledger Backpack: ON[/b]  (Testnet)
-  [b]W[/b]) Wallet info
+  [b]W[/b]) Wallet  [b]R[/b]) Proof this save
   [b]P[/b]) Send parcel to traveler
   [b]S[/b]) Settle now
   [b]D[/b]) Disable Backpack
@@ -226,6 +226,57 @@ class WalletInfoOverlay(Static):
             settlements=_escape_dynamic(str(info.get("settlements", 0))),
             pending=_escape_dynamic(str(info.get("pending", 0))),
             balances_text=_escape_dynamic(balances_text),
+        ))
+
+
+# ── Ledger Proof Overlay ─────────────────────────────────────────
+
+# 80x24 inner box is 34x9 (same frame as Wallet Info). Verdict, packed
+# resource ticks, and Esc sit above wrapping notes so they paint at 80x24.
+# ui (tui_app.py / tui.tcss) must compose #ledger_proof and bind R.
+PROOF_TEXT = """\
+[b]Ledger Proof: {verdict}[/b]
+{resources_text}
+Press [b]Esc[/b] to close.
+Run: {run_id}
+Settled: {settled}  Pending: {pending}
+Memo: {memo}
+{notes_text}
+"""
+
+
+class ProofOverlay(Static):
+    """PASS/FAIL/INCONCLUSIVE report for the loaded save (F-a6efdd6c)."""
+
+    def update_from_proof(self, info: dict) -> None:
+        verdict = str(info.get("verdict") or "INCONCLUSIVE")
+        resources = info.get("resources") or []
+        if resources:
+            ticks = [
+                f"{r.get('resource', '?')} "
+                f"{'✓' if r.get('ok') else '✗'}"
+                for r in resources
+            ]
+            packed = [
+                "  ".join(ticks[i:i + 2])
+                for i in range(0, len(ticks), 2)
+            ]
+            resources_text = "\n".join(packed)
+        else:
+            resources_text = str(
+                info.get("summary")
+                or "No live report (backpack off or extra missing)."
+            )
+        notes = info.get("notes") or []
+        notes_text = notes[0] if notes else ""
+        self.update(PROOF_TEXT.format(
+            verdict=_escape_dynamic(verdict),
+            resources_text=_escape_dynamic(resources_text),
+            run_id=_escape_dynamic(str(info.get("run_id") or "—")),
+            settled=_escape_dynamic(str(info.get("settlements", 0))),
+            pending=_escape_dynamic(str(info.get("pending", 0))),
+            memo=_escape_dynamic(str(info.get("memo") or "not run")),
+            notes_text=_escape_dynamic(str(notes_text)),
         ))
 
 
