@@ -575,6 +575,114 @@ class TestMemoryProposalsNullSafety:
         assert cards[0].entities == []
 
 
+class TestSceneAndOutcomeFieldNullSafety:
+    """F-7cd35cbf — the F-9b0797f9 fix guarded exactly one field
+    (`memory_proposals`) on `SceneResponse.from_dict` / `OutcomeResponse.
+    from_dict`, leaving every sibling field on the unguarded
+    `data.get(key, default)` form. An explicit JSON `null` for an optional
+    field is schema-legal (the key IS present) and is exactly what a small
+    local model routinely emits to mean "nothing here" — the same premise
+    as F-9b0797f9 — so the two-arg `.get` default never fires and None
+    propagates. `tags` is the highest-risk sibling: `_validate_scene` never
+    inspects it, so a response with `"tags": null` is counted as a GM
+    success and `scene.tags` is `None` — the most ordinary use,
+    `",".join(scene.tags)`, then raises TypeError. This class pins the fix
+    across every field on both dataclasses, not just the one reported.
+    """
+
+    def test_scene_all_optional_fields_null_do_not_propagate_none(self):
+        data = {
+            "scene_id": None,
+            "title": None,
+            "narration": None,
+            "profile": None,
+            "uncanny_intensity": None,
+            "choices": None,
+            "tags": None,
+            "gm_aside": None,
+            "memory_proposals": None,
+        }
+        scene = SceneResponse.from_dict(data)
+        assert scene.scene_id == ""
+        assert scene.title == ""
+        assert scene.narration == ""
+        assert scene.profile == ""
+        assert scene.uncanny_intensity == "none"
+        assert scene.choices == []
+        assert scene.tags == []
+        assert scene.gm_aside == ""
+        assert scene.memory_proposals == []
+
+    def test_scene_null_tags_reproduction_matches_validate_scene_pass(self):
+        """The finding's exact repro: a schema-legal scene (passes
+        `_validate_scene`) whose `tags` is an explicit JSON null must not
+        hand the caller a None where `",".join(...)` — the most ordinary
+        possible use of a documented list[str] field — would raise.
+        """
+        data = {
+            "scene_id": "s1",
+            "narration": "The river runs wide and cold.",
+            "choices": [
+                {"id": "A", "label": "Ford it"},
+                {"id": "B", "label": "Wait for morning"},
+            ],
+            "tags": None,
+            "title": None,
+            "profile": None,
+            "gm_aside": None,
+        }
+        assert _validate_scene(data) is True  # tags isn't inspected at all
+        scene = SceneResponse.from_dict(data)
+        assert scene.tags == []
+        ",".join(scene.tags)  # must not raise TypeError
+
+    def test_scene_choices_null_does_not_propagate_none(self):
+        # choices is validated (2-4 entries) before from_dict is normally
+        # reached via _request_scene, but from_dict itself must still be
+        # safe standalone — it is unit-tested and called directly above.
+        data = {"scene_id": "s1", "narration": "hi", "choices": None}
+        assert SceneResponse.from_dict(data).choices == []
+
+    def test_outcome_all_optional_fields_null_do_not_propagate_none(self):
+        data = {
+            "scene_id": None,
+            "outcome_title": None,
+            "outcome_narration": None,
+            "callout": None,
+            "oregon_nod": None,
+            "memory_proposals": None,
+        }
+        outcome = OutcomeResponse.from_dict(data)
+        assert outcome.scene_id == ""
+        assert outcome.outcome_title == ""
+        assert outcome.outcome_narration == ""
+        assert outcome.callout == ""
+        assert outcome.oregon_nod == ""
+        assert outcome.memory_proposals == []
+
+    def test_scene_missing_keys_still_default_correctly(self):
+        # The ordinary "key absent" case (plain dict.get default) must keep
+        # working exactly as before — only the explicit-null case was ever
+        # broken.
+        scene = SceneResponse.from_dict({})
+        assert scene.scene_id == ""
+        assert scene.title == ""
+        assert scene.narration == ""
+        assert scene.profile == ""
+        assert scene.uncanny_intensity == "none"
+        assert scene.choices == []
+        assert scene.tags == []
+        assert scene.gm_aside == ""
+
+    def test_outcome_missing_keys_still_default_correctly(self):
+        outcome = OutcomeResponse.from_dict({})
+        assert outcome.scene_id == ""
+        assert outcome.outcome_title == ""
+        assert outcome.outcome_narration == ""
+        assert outcome.callout == ""
+        assert outcome.oregon_nod == ""
+
+
 class TestToneRepair:
     """gm-B-04 — local repair of slang-only misses; hard fail on punchlines."""
 

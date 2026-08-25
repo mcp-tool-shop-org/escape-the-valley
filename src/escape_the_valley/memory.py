@@ -10,10 +10,13 @@ card's `day_last_seen`/`cooldown_until` bookkeeping. Pure helpers
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from .models import Condition, MemoryCard, RunState
 from .physics import journey_pressure
+
+logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────
 
@@ -59,9 +62,24 @@ TAG_TO_THEME: dict[str, str] = {
 
 def add_card(state: RunState, card: MemoryCard) -> None:
     """Append a card, enforcing budget by evicting lowest-salience."""
-    # Deduplicate: skip if card with same id exists
+    # Deduplicate: skip if card with same id exists.
+    #
+    # F-6f03c718 (defense in depth) — this drop used to be completely
+    # silent: same id in, bare `return`, no trace. The dedup itself is
+    # still correct (id equality is the store's key), but a warning turns
+    # an invisible loss into something a log-reader or a re-audit can
+    # actually see and attribute to a specific id/kind/day, rather than
+    # having to rediscover it empirically the way this finding was found.
     for existing in state.memory_cards:
         if existing.id == card.id:
+            logger.warning(
+                "add_card: dropping card with duplicate id=%r "
+                "(incoming kind=%s day_created=%s source=%s; "
+                "kept existing kind=%s day_created=%s source=%s)",
+                card.id,
+                card.kind, card.day_created, card.source,
+                existing.kind, existing.day_created, existing.source,
+            )
             return
 
     state.memory_cards.append(card)

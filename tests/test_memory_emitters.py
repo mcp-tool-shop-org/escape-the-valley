@@ -278,7 +278,27 @@ class TestValidateGMCards:
         cards = validate_gm_cards(state, proposed)
         assert len(cards) == 1
         assert cards[0].id != "totally_not_engine_controlled"
-        assert cards[0].id == f"gm_npc_{state.day}_0"
+        # F-6f03c718 — the id is a content digest now (unique per card, not
+        # per call), so it is no longer the literal f"..._0" positional
+        # suffix; pin the stable parts (engine-owned prefix/kind/day) and
+        # determinism instead of the exact digest, which is an
+        # implementation detail.
+        assert cards[0].id.startswith(f"gm_npc_{state.day}_")
+        assert cards[0].id != f"gm_npc_{state.day}_0"
+
+    def test_id_is_deterministic_for_same_content(self):
+        # F-6f03c718 — the id must not depend on randomness or wall-clock;
+        # the same (kind, day, title, text) must always mint the same id so
+        # seeded / --gm off runs stay reproducible.
+        state = create_new_run(seed=1)
+        proposal = {
+            "kind": "omen",
+            "title": "A Dark Sign",
+            "text": "Crows gather over the ridge.",
+        }
+        first = validate_gm_cards(state, [proposal])
+        second = validate_gm_cards(state, [dict(proposal)])
+        assert first[0].id == second[0].id
 
     def test_crafted_id_does_not_suppress_future_engine_card(self):
         """The exact attack the finding describes: a GM proposal supplies
@@ -353,3 +373,84 @@ class TestValidateGMCards:
         assert len(cards) == 1
         assert cards[0].tags == []
         assert cards[0].entities == []
+
+
+class TestGMCardIdCrossCallUniqueness:
+    """F-6f03c718 — validate_gm_cards() is called at least twice per turn
+    (step_engine.py calls it once for the scene response and once for the
+    outcome response), and a calendar day can span multiple turns. The
+    previous fix (F-778637b3) made the id engine-computed but keyed it on
+    `len(accepted)`, a fresh-per-call local counter — unique WITHIN one
+    call, but two ordinary calls proposing the same `kind` on the same day
+    still minted identical ids, and add_card's id-equality dedup silently
+    dropped the second, legitimate card.
+
+    These tests simulate the real step_engine.py flow — validate, then
+    add_card each accepted card immediately, per call site — to prove the
+    id is now unique per CARD, not per CALL: same kind, same day, two
+    different call sites, both cards survive. No adversarial input
+    involved; this is the ordinary, encouraged usage the scene/outcome
+    prompts both explicitly invite ("up to 2 memory_proposals").
+    """
+
+    def test_two_same_kind_cards_same_day_both_call_sites_survive(self):
+        state = create_new_run(seed=1)
+
+        # Call site 1: scene response proposes an npc card.
+        scene_proposed = [{
+            "kind": "npc",
+            "title": "The Ferryman",
+            "text": "A gaunt figure waits at the crossing.",
+        }]
+        for card in validate_gm_cards(state, scene_proposed):
+            add_card(state, card)
+
+        # Call site 2: outcome response proposes a DIFFERENT npc card, same
+        # kind, same day — the exact collision shape the finding describes.
+        outcome_proposed = [{
+            "kind": "npc",
+            "title": "A Second Traveler",
+            "text": "Someone else waits a little further down the bank.",
+        }]
+        for card in validate_gm_cards(state, outcome_proposed):
+            add_card(state, card)
+
+        npc_cards = [c for c in state.memory_cards if c.kind == "npc"]
+        assert len(npc_cards) == 2, (
+            "both same-kind, same-day GM cards must survive — "
+            f"got {[c.title for c in npc_cards]}"
+        )
+        assert {c.title for c in npc_cards} == {
+            "The Ferryman", "A Second Traveler",
+        }
+        ids = [c.id for c in npc_cards]
+        assert len(set(ids)) == 2, f"card ids collided: {ids}"
+
+    def test_two_same_kind_cards_survive_across_multiple_days(self):
+        state = create_new_run(seed=1)
+
+        for day in (state.day, state.day + 1):
+            state.day = day
+            scene_proposed = [{
+                "kind": "rumor",
+                "title": f"Rumor at the fire, day {day}",
+                "text": f"Something said around the fire on day {day}.",
+            }]
+            for card in validate_gm_cards(state, scene_proposed):
+                add_card(state, card)
+
+            outcome_proposed = [{
+                "kind": "rumor",
+                "title": f"A second rumor, day {day}",
+                "text": f"Another thing overheard on day {day}.",
+            }]
+            for card in validate_gm_cards(state, outcome_proposed):
+                add_card(state, card)
+
+        rumor_cards = [c for c in state.memory_cards if c.kind == "rumor"]
+        assert len(rumor_cards) == 4, (
+            "all 4 same-kind cards across 2 days x 2 call sites must "
+            f"survive — got {[c.title for c in rumor_cards]}"
+        )
+        ids = [c.id for c in rumor_cards]
+        assert len(set(ids)) == 4, f"card ids collided: {ids}"
