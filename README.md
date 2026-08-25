@@ -172,7 +172,7 @@ The first narrated turn loads the model and can take 10-30s — that's normal, n
 
 ## Security
 
-No telemetry. No accounts. All network features (Ollama, XRPL) are opt-in and disabled by default. XRPL operations use Testnet only. See [SECURITY.md](SECURITY.md) for the full threat model.
+No telemetry. No accounts. GM narration is on by default (HTTP to local Ollama); pass `--gm-off` to disable. XRPL is off until `trail ledger enable` (Testnet only). Voice is opt-in (`--voice`). See [SECURITY.md](SECURITY.md) for the full threat model.
 
 ## License
 
