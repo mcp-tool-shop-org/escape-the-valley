@@ -211,10 +211,11 @@ def test_save_load_preserves_determinism(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "escape_the_valley.save.SAVE_DIR", tmp_path / ".trail"
     )
-    monkeypatch.setattr(
-        "escape_the_valley.step_engine.save_game",
-        lambda s: save_game(s),
-    )
+    # The SAVE_DIR patch above is what redirects the write — save_game() reads
+    # it at call time, so the engine's autosave lands in tmp_path too. (There
+    # used to be a second patch here replacing step_engine.save_game with an
+    # identity lambda; it forwarded to this same function and redirected
+    # nothing.)
 
     # Play a few turns
     engine = _make_engine(seed=77)
@@ -2163,3 +2164,42 @@ def test_memory_card_partial_batch_failure_commits_and_is_distinguishable(
     # The partial-add message must not be confused with a total validation
     # failure -- they are deliberately different log lines.
     assert not any("validation failed" in r.message for r in caplog.records)
+
+
+# ── Autosave scoping ───────────────────────────────────────────────
+
+
+def test_step_autosaves_by_default(tmp_path):
+    """The default engine still autosaves on every step (unchanged behavior)."""
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), base_path=tmp_path
+    )
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert (tmp_path / ".trail" / "run.json").exists()
+
+
+def test_autosave_false_skips_the_write(tmp_path, monkeypatch):
+    """autosave=False suppresses the write for THIS engine only."""
+    monkeypatch.chdir(tmp_path)
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), autosave=False
+    )
+    engine.step(PlayerIntent(IntentAction.REST))
+
+    assert not (tmp_path / ".trail").exists()
+    # ...and a sibling engine is unaffected — the option is per-instance.
+    other = StepEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    other.step(PlayerIntent(IntentAction.REST))
+    assert (tmp_path / ".trail" / "run.json").exists()
+
+
+def test_autosave_false_still_tracks_rng_state():
+    """Skipping the write must not skip the RNG bookkeeping callers read."""
+    engine = StepEngine(
+        create_new_run(seed=42), GMConfig(enabled=False), autosave=False
+    )
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+
+    assert engine.state.rng_counter == engine.rng.counter
+    assert engine.state.rng_state is not None

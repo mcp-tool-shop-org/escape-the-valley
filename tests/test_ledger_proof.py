@@ -388,3 +388,43 @@ def test_run_proof_external_memo_drift_fails(monkeypatch):
     if report.settlements_count > 0:
         assert report.onchain_memo_ok is False
         assert report.passed is False
+
+
+def test_run_proof_does_not_leak_save_isolation_into_the_process(monkeypatch):
+    """isolate_save must not disable autosave for anyone but the proof's engine.
+
+    The isolation used to be ``step_engine.save_game = lambda *a, **k: None``
+    with no restore, which silently no-op'd autosave for the whole process.
+    Under pytest that meant every test collected after this file ran against a
+    dead autosave, so any test asserting a save happened passed vacuously.
+    """
+    import escape_the_valley.backpack as backpack_mod
+    import escape_the_valley.step_engine as step_engine_mod
+    from escape_the_valley.ledger_proof import run_proof
+
+    _FakeMgr.onchain_memos = {}
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _FakeMgr)
+
+    # Compare against whatever is bound now rather than against save.save_game
+    # itself: the invariant is "run_proof leaves this alone", which must hold
+    # even when a plugin or fixture has legitimately wrapped it.
+    before = step_engine_mod.save_game
+
+    run_proof(13, max_steps=80, isolate_save=True)
+
+    # The module global is untouched — a later StepEngine still autosaves.
+    assert step_engine_mod.save_game is before
+
+
+def test_run_proof_isolated_writes_no_save(tmp_path, monkeypatch):
+    """The isolation still works: an isolated proof writes no .trail/ at all."""
+    import escape_the_valley.backpack as backpack_mod
+    from escape_the_valley.ledger_proof import run_proof
+
+    _FakeMgr.onchain_memos = {}
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _FakeMgr)
+    monkeypatch.chdir(tmp_path)
+
+    run_proof(13, max_steps=80, isolate_save=True)
+
+    assert not (tmp_path / ".trail").exists()

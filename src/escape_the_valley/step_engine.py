@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .events import (
     EventOutcome,
@@ -122,8 +123,18 @@ class StepEngine:
         self,
         state: RunState,
         gm_config: GMConfig | None = None,
+        *,
+        autosave: bool = True,
+        base_path: Path | None = None,
     ):
         self.state = state
+        # Where (and whether) step() autosaves. The defaults reproduce the
+        # historical behavior exactly: every step writes .trail/ under the
+        # process CWD. A caller that must not touch the player's save passes
+        # autosave=False; one that wants the save elsewhere passes base_path.
+        # Both are per-engine, so no caller can disable another's autosave.
+        self._autosave = autosave
+        self._base_path = base_path
         self.rng = SeededRNG(state.seed, state.rng_counter)
         # ENG-A-01: restore the exact PRNG position from the full saved state.
         # Counter-replay is lossy (variable draws per call), so prefer the
@@ -1251,9 +1262,14 @@ class StepEngine:
         return ending
 
     def _save(self) -> None:
+        # The RNG bookkeeping is unconditional: state.rng_counter/rng_state
+        # are read by callers that never save (the testnet proof runner), so
+        # they must stay current even when the write is skipped.
         self.state.rng_counter = self.rng.counter
         self.state.rng_state = self.rng.getstate()
-        save_game(self.state)
+        if not self._autosave:
+            return
+        save_game(self.state, self._base_path)
 
 
 # ── Module-level helpers ────────────────────────────────────────────

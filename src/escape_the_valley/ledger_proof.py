@@ -441,11 +441,6 @@ def run_proof(
     from .step_engine import StepEngine
     from .worldgen import create_new_run
 
-    # The proof does not need autosave; keep it from clobbering the user's save.
-    if isolate_save:
-        from . import step_engine as _se
-        _se.save_game = lambda *a, **k: None
-
     mgr = BackpackManager()
     if not mgr.available:
         raise RuntimeError(
@@ -466,7 +461,17 @@ def run_proof(
     minted_initial = dict(state.backpack.last_settled_supplies)
 
     choose_a = PlayerIntent(IntentAction.CHOOSE, choice_id="A")
-    engine = StepEngine(state, gm_config=GMConfig(enabled=False))
+    # The proof does not need autosave; keep it from clobbering the user's
+    # save. This is scoped to THIS engine on purpose. Rebinding the module
+    # global escape_the_valley.step_engine.save_game (what this used to do)
+    # has no scope and no restore: it silently disables autosave for every
+    # StepEngine the process builds afterwards, including — under pytest —
+    # every test collected after this one.
+    engine = StepEngine(
+        state,
+        gm_config=GMConfig(enabled=False),
+        autosave=not isolate_save,
+    )
     for _ in range(max_steps):
         if engine.phase == GamePhase.GAME_OVER:
             break
