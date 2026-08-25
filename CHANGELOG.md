@@ -6,6 +6,14 @@ All notable changes to Escape the Valley are documented here.
 
 ### Fixed
 
+- **TUI markup splices neutralize leftover `[`.** `textual.markup.escape()`
+  leaves an unmatched `[` intact, so a GM choice label like `Look [ west`
+  crashed EventBar on chrome `[/i]`. Same class as the ledger overlay fix;
+  the helper is duplicated in `tui_app.py` (ledger-owned, not imported).
+  Chrome `[b]`/`[i]`/`[dim]` stays markup.
+- **Wallet overlay `settlements`/`pending` go through `_escape_dynamic`.**
+  Production values are ints from `len()`; a hostile dict could still
+  unbalance chrome.
 - **Ledger overlay dynamic fragments all go through `_escape_dynamic`.**
   `show_failure` still used `escape()`, which does not neutralize a leftover
   `[` after truncation (`rSender[...`) — a reachable player-typed send-parcel
