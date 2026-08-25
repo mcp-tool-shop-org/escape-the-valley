@@ -498,6 +498,7 @@ def _enabled_state(**overrides) -> RunState:
     bp.last_settled_supplies = {
         "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
     }
+    bp.minted_initial = dict(bp.last_settled_supplies)
     return state
 
 
@@ -557,6 +558,18 @@ class TestEnableMocked:
         assert state.backpack.trust_lines_ready is True
         # Snapshot captured from engine supplies.
         assert state.backpack.last_settled_supplies["food"] == 50
+        # F-a6efdd6c: enable-time mint snapshot frozen independently of
+        # later last_settled advances.
+        from escape_the_valley.backpack_models import (
+            XRPL_RESOURCES,
+            minted_snapshot_of,
+        )
+        snap = minted_snapshot_of(state.backpack)
+        assert XRPL_RESOURCES <= snap.keys()
+        assert snap["food"] == 50
+        assert snap == {
+            k: state.backpack.last_settled_supplies[k] for k in XRPL_RESOURCES
+        }
 
     @requires_xrpl
     def test_enable_idempotent_no_regen_no_remint(self, monkeypatch):
@@ -619,6 +632,8 @@ class TestSettleMocked:
         assert all(m == expected_memo for m in calls["memos"])
         # Snapshot advanced to the new supplies.
         assert state.backpack.last_settled_supplies["food"] == 38
+        # F-a6efdd6c: enable-time mint does not move with settlement.
+        assert state.backpack.minted_initial["food"] == 50
 
     @requires_xrpl
     def test_settle_failure_records_pending(self, monkeypatch):
@@ -2275,6 +2290,10 @@ class TestEnableMintResume:
             "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
         }
         assert state.backpack.enabled is True
+        from escape_the_valley.backpack_models import minted_snapshot_of
+        assert minted_snapshot_of(state.backpack) == {
+            "food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3,
+        }
 
     @requires_xrpl
     def test_setup_complete_false_while_mint_partial(self, monkeypatch):
@@ -2678,6 +2697,23 @@ class TestOverlayFailureMarkupSafety:
         assert "Settlements: 3" in rendered
         assert "Pending: 0" in rendered
 
+    def test_proof_overlay_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import ProofOverlay
+
+        overlay = ProofOverlay()
+        overlay.update_from_proof({
+            "verdict": "FAIL",
+            "run_id": "run[/pwn]",
+            "settlements": "[/pwn]",
+            "pending": 0,
+            "memo": "ok [/pwn]",
+            "resources": [{"resource": "food[/pwn]", "ok": False}],
+            "notes": ["ledger 1 != engine [/pwn]"],
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Ledger Proof: FAIL")
+        assert "run[/pwn]" in rendered
+        assert "food[/pwn]" in rendered
+
     def test_production_shaped_parcel_and_success_unaffected(self):
         """Classic r-address + catalog labels must still render as before."""
         from escape_the_valley.backpack_ui import (
@@ -2982,6 +3018,15 @@ Screen {
   background: #0f1620;
   overflow-y: auto;
 }
+#ledger_proof {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
 """
 
     def _painted(self, widget) -> str:
@@ -3205,6 +3250,7 @@ Screen {
                 on_screen(menu, cols, rows)
                 painted = painted_fn(menu)
                 assert "W) Wallet" in painted, painted
+                assert "R) Proof" in painted, painted
                 assert "P) Send parcel" in painted, painted
                 assert "S) Settle" in painted, painted
                 assert "D) Disable" in painted, painted
@@ -3243,6 +3289,7 @@ Screen {
         from escape_the_valley.backpack_models import XRPL_EXTRA_MISSING_MSG
         from escape_the_valley.backpack_ui import (
             EnableFlowOverlay,
+            ProofOverlay,
             SendParcelOverlay,
         )
 
@@ -3272,6 +3319,12 @@ Screen {
 
             def compose(self) -> ComposeResult:
                 yield SendParcelOverlay(id="send_parcel")
+
+        class _ProofApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield ProofOverlay(id="ledger_proof")
 
         async def scenario(size: tuple[int, int]) -> None:
             cols, rows = size
@@ -3315,6 +3368,46 @@ Screen {
                 on_screen(send, cols, rows)
                 painted = painted_fn(send)
                 assert "cancel" in painted, painted
+
+            proof_app = _ProofApp()
+            async with proof_app.run_test(size=size) as pilot:
+                proof = proof_app.query_one("#ledger_proof", ProofOverlay)
+                proof.update_from_proof({
+                    "verdict": "PASS",
+                    "run_id": "abc123",
+                    "settlements": 2,
+                    "pending": 0,
+                    "memo": "ok",
+                    "resources": [
+                        {"resource": "food", "ok": True},
+                        {"resource": "water", "ok": True},
+                        {"resource": "meds", "ok": True},
+                        {"resource": "ammo", "ok": True},
+                        {"resource": "parts", "ok": True},
+                    ],
+                    "notes": [],
+                })
+                await pilot.pause()
+                on_screen(proof, cols, rows)
+                painted = painted_fn(proof)
+                assert "PASS" in painted, painted
+                assert "Esc" in painted, painted
+
+                proof.update_from_proof({
+                    "verdict": "INCONCLUSIVE",
+                    "run_id": "abc123",
+                    "settlements": 2,
+                    "pending": 1,
+                    "memo": "ok",
+                    "resources": [],
+                    "notes": ["1 settlement(s) still pending"],
+                    "summary": "pending checkpoints",
+                })
+                await pilot.pause()
+                on_screen(proof, cols, rows)
+                painted = painted_fn(proof)
+                assert "INCONCLUSIVE" in painted, painted
+                assert "Esc" in painted, painted
 
         for size in self._SIZES:
             asyncio.run(scenario(size))

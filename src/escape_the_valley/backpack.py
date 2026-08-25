@@ -29,6 +29,8 @@ from .backpack_models import (
     ParcelRecord,
     SentParcelRecord,
     SettlementRecord,
+    minted_snapshot_of,
+    stamp_minted_snapshot,
 )
 
 if TYPE_CHECKING:
@@ -464,6 +466,9 @@ class BackpackManager:
         # below using the wallets it already has.
         if bp.wallet_address and bp.issuer_secret and _setup_complete(bp):
             bp.enabled = True
+            # Hydrate minted_initial from the save shim. Do not copy
+            # last_settled_supplies — that may already include later deltas.
+            minted_snapshot_of(bp)
             return EnableResult(
                 success=True,
                 message="Ledger Backpack re-enabled. Your existing pack is back online.",
@@ -551,8 +556,17 @@ class BackpackManager:
                     # exactly the ones that did not, instead of re-submitting
                     # every mint from scratch.
                     bp.last_settled_supplies[key] = amount
+                    # Freeze the enable-time mint independently of later
+                    # settlements (F-a6efdd6c). Resume must not overwrite a
+                    # resource already stamped on a prior partial enable.
+                    if key not in bp.minted_initial:
+                        bp.minted_initial[key] = amount
 
                 bp.last_settlement_day = state.day
+
+            # Persist the complete mint snapshot so a reloaded save can
+            # still prove conservation (save.py does not yet have the field).
+            stamp_minted_snapshot(bp)
 
             bp.enabled = True
 
@@ -1408,6 +1422,18 @@ class BackpackManager:
                 info["balances_error"] = True
 
         return info
+
+    def proof_loaded_save(self, state: RunState):
+        """Reconcile the loaded player's save against live Testnet receipts.
+
+        Thin hook for ``trail ledger proof`` (cli.py is ui-owned). Delegates
+        to ``ledger_proof.proof_player_save``; does not faucet a wallet or
+        retry pending settlements. Returns a ``PlayerProofResult`` whose
+        ``verdict`` is PASS, FAIL, or INCONCLUSIVE.
+        """
+        from .ledger_proof import proof_player_save
+
+        return proof_player_save(state, manager=self)
 
     def status_line(self, state: RunState) -> str:
         """One-line status for the TUI status panel.

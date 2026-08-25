@@ -2,6 +2,7 @@
 
 from escape_the_valley.backpack_models import (
     MEMO_SCHEMA_VERSION,
+    MINTED_SNAPSHOT_PERMIT_ID,
     PARCEL_ACCEPT_CAP,
     TESTNET_HOSTS,
     TESTNET_URL,
@@ -13,6 +14,8 @@ from escape_the_valley.backpack_models import (
     ParcelRecord,
     PermitRecord,
     SettlementRecord,
+    minted_snapshot_of,
+    stamp_minted_snapshot,
 )
 
 
@@ -33,6 +36,8 @@ class TestBackpackState:
         assert bp.nudge_dismissed is False
         # ledger-B04 (CONTRACT): degraded-network signal defaults to False.
         assert bp.last_settle_failed is False
+        # F-a6efdd6c: enable-time mint snapshot starts empty.
+        assert bp.minted_initial == {}
 
     def test_settlement_record_defaults(self):
         rec = SettlementRecord()
@@ -109,3 +114,43 @@ class TestSafetyConstants:
         assert XRPL_EXTRA_MISSING_MSG.endswith(XRPL_EXTRA_PIP)
         assert "wallet" not in XRPL_EXTRA_MISSING_MSG.lower()
         assert "mainnet" not in XRPL_EXTRA_MISSING_MSG.lower()
+
+
+class TestMintedSnapshot:
+    """F-a6efdd6c: enable-time mint snapshot + save shim."""
+
+    _SNAP = {"food": 50, "water": 50, "meds": 10, "ammo": 20, "parts": 10}
+
+    def test_stamp_writes_field_and_reserved_permit(self):
+        bp = BackpackState()
+        stamp_minted_snapshot(bp, self._SNAP)
+        assert bp.minted_initial == self._SNAP
+        assert any(
+            p.permit_id == MINTED_SNAPSHOT_PERMIT_ID and p.used
+            for p in bp.permits
+        )
+
+    def test_stamp_ignores_partial_snapshot(self):
+        bp = BackpackState()
+        stamp_minted_snapshot(bp, {"food": 50, "water": 40})
+        assert bp.minted_initial == {}
+        assert bp.permits == []
+
+    def test_snapshot_prefers_in_memory_field(self):
+        bp = BackpackState(minted_initial=dict(self._SNAP))
+        assert minted_snapshot_of(bp) == self._SNAP
+
+    def test_snapshot_hydrates_from_permit_shim(self):
+        bp = BackpackState()
+        stamp_minted_snapshot(bp, self._SNAP)
+        bp.minted_initial = {}  # simulate save.py dropping the dedicated field
+        restored = minted_snapshot_of(bp)
+        assert restored == self._SNAP
+        assert bp.minted_initial == self._SNAP  # hydrated in place
+
+    def test_missing_snapshot_is_empty(self):
+        bp = BackpackState(
+            last_settled_supplies=dict(self._SNAP),
+            settlements=[],
+        )
+        assert minted_snapshot_of(bp) == {}

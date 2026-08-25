@@ -7,6 +7,8 @@ from pathlib import Path
 from escape_the_valley.backpack_models import (
     ParcelRecord,
     SettlementRecord,
+    minted_snapshot_of,
+    stamp_minted_snapshot,
 )
 from escape_the_valley.save import load_game, save_game
 from escape_the_valley.worldgen import create_new_run
@@ -127,3 +129,32 @@ class TestBackpackSaveRoundtrip:
             assert loaded.backpack.enabled is False
             assert loaded.backpack.wallet_address == ""
             assert loaded.backpack.settlements == []
+
+    def test_minted_initial_survives_save_via_permit_shim(self):
+        """F-a6efdd6c: save.py does not yet persist minted_initial, but the
+        reserved permit shim round-trips through run.json so conservation
+        can be replayed against a reloaded player save.
+        """
+        snap = {"food": 50, "water": 50, "meds": 10, "ammo": 20, "parts": 10}
+        state = create_new_run(seed=42)
+        state.backpack.enabled = True
+        state.backpack.wallet_address = "rTestWallet123"
+        state.backpack.last_settled_supplies = {
+            "food": 40, "water": 45, "meds": 10, "ammo": 18, "parts": 9,
+        }
+        stamp_minted_snapshot(state.backpack, snap)
+        # Dedicated field is in-memory; save.py will drop it on load.
+        assert state.backpack.minted_initial == snap
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+
+            # Direct field is gone until engine persists it...
+            # ...but the shim restores a complete snapshot.
+            restored = minted_snapshot_of(loaded.backpack)
+            assert restored == snap
+            # And conservation is not tautological: last_settled != minted.
+            assert loaded.backpack.last_settled_supplies["food"] == 40
+            assert restored["food"] == 50
