@@ -211,3 +211,122 @@ class TestVoiceRuntimeStatus:
         assert bridge.config.enabled is False
         assert bridge.last_error is not None
         assert "synth backend gone" in bridge.last_error
+
+
+class TestVoiceHealthMatchesLiveness:
+    """Wave-10 hardening: health signals must match worker liveness.
+
+    F-b68b2a77, F-1c310d6b, F-a4bc65d6 are three different ways this module
+    could report voice as healthy while the worker was actually dead (or
+    about to wedge forever). Each test below fails against the pre-fix
+    source and passes against the fix -- none of them mock the worker,
+    the queue, or the health flags they assert against.
+    """
+
+    # ── F-b68b2a77: a None reaching the queue must not kill the worker
+    #    silently ------------------------------------------------------
+
+    def test_enqueue_rejects_none_when_started(self):
+        # Before the fix, enqueue()'s only guard was `not self._engine`,
+        # so once a bridge had a truthy _engine, a stray None from any
+        # caller sailed straight onto the queue -- and the worker treated
+        # it exactly like stop()'s own sentinel. Only stop() may ever
+        # place a None on the queue.
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._engine = object()  # pretend a real engine is installed
+        bridge._stop.clear()
+        bridge.enqueue(None)  # type: ignore[arg-type]
+        assert bridge._queue.empty()
+
+    def test_worker_surfaces_unexpected_none_as_failure(self):
+        # A None reaching the queue outside stop()'s own path (the second
+        # defensive layer, independent of enqueue()'s guard above). Before
+        # the fix the worker just `break`s: the thread dies, but
+        # last_error/config.enabled/_runtime_failed all stay at their
+        # healthy defaults forever -- status() lies to the player.
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._stop.clear()
+        worker = threading.Thread(target=bridge._worker_loop, daemon=True)
+        worker.start()
+        bridge._queue.put(None)  # bypass enqueue()'s guard directly
+        worker.join(timeout=3.0)
+        assert not worker.is_alive()  # the worker does die...
+        assert bridge.last_error is not None  # ...but it's now observable
+        assert bridge.config.enabled is False
+        assert bridge._runtime_failed is True
+
+    # ── F-1c310d6b: toggle() must not claim a recovery it didn't make ──
+
+    def test_toggle_recovery_reports_failure_after_runtime_death(self):
+        # The exact live repro from the finding: a genuine failure via
+        # _fail_runtime leaves a stale-but-truthy _engine behind (standing
+        # in for a real dead engine object). The old toggle() gated
+        # restart on `if not self._engine`, saw a truthy object, skipped
+        # start() entirely, and still returned True -- claiming voice was
+        # back on when nothing would ever play again.
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._engine = object()  # stand-in for a real, now-dead engine
+        bridge._fail_runtime("synth backend gone")
+        assert bridge.config.enabled is False  # _fail_runtime's own work
+
+        recovered = bridge.toggle()
+
+        assert recovered is False  # must NOT claim recovery
+        assert bridge.available is False  # still dead; one toggle can't fix it
+
+    def test_toggle_off_on_reuses_live_worker(self, monkeypatch):
+        # Guard against a regression the fix above could introduce:
+        # toggle() now calls start() unconditionally, so start() itself
+        # must recognize an already-alive worker and no-op instead of
+        # stacking a second engine/thread on a healthy bridge during an
+        # ordinary toggle-off/toggle-on cycle. voice_soundboard isn't
+        # installed in this environment, so _HAS_VOICE/_VSConfig/_VSEngine
+        # (the module's own optional-import seam) are faked here to prove
+        # start() would otherwise really construct a second thread.
+        import escape_the_valley.voice as voice_module
+
+        monkeypatch.setattr(voice_module, "_HAS_VOICE", True)
+        monkeypatch.setattr(voice_module, "_VSConfig", lambda **_k: object())
+        monkeypatch.setattr(voice_module, "_VSEngine", lambda _cfg: object())
+
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._worker = threading.Thread(
+            target=bridge._worker_loop, daemon=True, name="voice-dm",
+        )
+        bridge._worker.start()
+        first_worker = bridge._worker
+
+        assert bridge.toggle() is False  # off
+        assert bridge.toggle() is True  # on: must reuse, not replace
+        assert bridge._worker is first_worker  # no second thread spawned
+        assert first_worker.is_alive()
+
+        bridge.stop()
+        assert not first_worker.is_alive()
+
+    # ── F-a4bc65d6: a hung speak() must time out, not wedge the worker ─
+
+    def test_speak_timeout_triggers_failure_not_indefinite_hang(self):
+        from escape_the_valley.narration import NarrationEvent, NarrationType
+
+        bridge = VoiceBridge(VoiceConfig(enabled=True))
+        bridge._speak_timeout_s = 0.2  # keep the test fast
+
+        class _HangingEngine:
+            def speak(self, *_a, **_k):
+                threading.Event().wait()  # never set: a genuine hang
+
+        bridge._engine = _HangingEngine()
+        bridge._stop.clear()
+        worker = threading.Thread(target=bridge._worker_loop, daemon=True)
+        worker.start()
+        bridge._queue.put(NarrationEvent(
+            type=NarrationType.SCENE_OPEN, voice_text="The river is wide.",
+        ))
+        worker.join(timeout=3.0)
+
+        assert not worker.is_alive()  # recovered, didn't wedge forever
+        assert bridge.available is False
+        assert bridge.config.enabled is False
+        assert bridge.last_error is not None
+        assert "timed out" in bridge.last_error
