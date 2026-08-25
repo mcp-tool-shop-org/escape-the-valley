@@ -27,19 +27,21 @@ Um Mestre de Jogo com inteligência artificial opcional (com tecnologia da Ollam
 
 ## O que há de novo? / Quais são as novidades?
 
+**1.2.0** — Lançamento dos binários da versão no GitHub (biblioteca de eventos + folha de estilo agrupados; testes básicos `--help` e ≥200 eventos). `trail ledger proof` verifica o arquivo salvo carregado. A interface TUI exibe a semente/doutrina/reviravoltas/moral; `c` ajusta o ritmo; o menu do livro-razão `R` comprova este arquivo salvo. O HUD é legível em 80×24 e 120×30.
+
 **1.1.1** – `pip install "escape-the-valley[voice]"` instala, na verdade, o pacote adicional (que estava fixado numa versão não publicada). O ficheiro binário do PyInstaller já não inclui o pacote de voz adicional.
 
 **1.1.0** – narração em fluxo contínuo, finais com diferentes níveis de dificuldade, eventos que podem causar dano, prova de reconciliação no livro-razão, artefatos de execução.
 
-Os arquivos binários anexados às versões v1.1.0 e v1.1.1 do GitHub não são executados (devido a uma importação relativa no ponto de entrada congelado). `pip install escape-the-valley` é a versão funcional até a próxima atualização, que inclui a biblioteca de eventos e a folha de estilo e testa tanto `--help` quanto a contagem de eventos carregada.
+Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a relative import in the frozen entrypoint). Use `pip install escape-the-valley` or the v1.2.0+ GitHub binary / `npx` launcher.
 
 ## Guia de Início Rápido
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
-# v1.1.1 GitHub binaries do not start — use pip until then):
+# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)

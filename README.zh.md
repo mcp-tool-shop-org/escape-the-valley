@@ -21,25 +21,27 @@
 
 ## 这是什么？
 
-《逃离山谷》是一款类似于俄勒冈小径的生存游戏，可在您的终端中运行。带领一群定居者穿越程序生成的荒野。在应对事件、危险和艰难选择时，管理食物、水、马车状况和士气。
+《逃离山谷》是一款类似于俄勒冈小径的生存游戏，可在你的终端中运行。带领一群定居者穿越程序生成的荒野。在应对事件、危险和艰难选择时，管理食物、水、马车状况和士气。
 
-可选的人工智能游戏主持人（由 Ollama 提供支持）以三种不同的叙事风格讲述您的旅程。可选的 XRPL 测试网络账本背包会跟踪您的物资变化，作为链上收据——证明您幸存下来，或者证明您尝试过。
+可选的人工智能游戏主持人（由 Ollama 提供支持）以三种不同的叙事风格讲述你的旅程。可选的 XRPL 测试网络账本背包会跟踪你的物资变化，并将其记录为链上收据——证明你幸存下来，或者证明你尝试过。
 
 ## 最新内容
 
-**1.1.1** — `pip install "escape-the-valley[voice]"` 现在可以正常安装（之前的版本固定了一个未发布的包）。PyInstaller 二进制文件不再包含语音扩展。
+**1.2.0** — GitHub 发布二进制文件（事件库 + 样式表捆绑；烟雾测试断言 `--help` 和 ≥200 个事件）。`trail ledger proof` 审核加载的存档。TUI 显示种子/教义/转折点/士气；`c` 循环调整节奏；账本菜单 `R` 证明此存档。HUD 在 80×24 和 120×30 分辨率下可读。
+
+**1.1.1** — `pip install "escape-the-valley[voice]"` 现在可以正确安装（之前的版本固定了一个未发布的包）。PyInstaller 二进制文件不再包含语音扩展。
 
 **1.1.0** — 流式叙述、分级结局、可能导致受伤的事件、链上对账证明、运行工件。
 
-附加到 v1.1.0 和 v1.1.1 GitHub 发布版中的二进制文件无法启动（冻结入口点中的相对导入）。`pip install escape-the-valley` 是在下一个发布之前可用的安装版本，该版本将捆绑事件库和样式表，并测试 `--help` 以及加载的事件计数。
+附加到 v1.1.0 和 v1.1.1 GitHub 发布中的二进制文件无法启动（冻结入口点中的相对导入）。使用 `pip install escape-the-valley` 或 v1.2.0+ GitHub 二进制文件 / `npx` 启动器。
 
 ## 快速入门
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
-# v1.1.1 GitHub binaries do not start — use pip until then):
+# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)
@@ -65,9 +67,9 @@ trail tui --seed 42 --model mistral
 
 ## 如何玩
 
-每回合您都会从营地中选择一个行动：
+在每个回合中，你从营地选择一个动作：
 
-| 行动 | 它会做什么 |
+| 动作 | 作用 |
 |--------|-------------|
 | **Travel** | 向山谷出口移动。消耗食物和水。存在故障和事件的风险。 |
 | **Rest** | 治疗队伍，恢复士气。消耗物资但不会取得进展。 |
@@ -76,39 +78,39 @@ trail tui --seed 42 --model mistral
 
 **事件**会通过选择（A/B/C）中断旅程。谨慎的选择更安全，但会消耗时间。大胆的选择更快，但也更有风险。没有总是正确的答案。
 
-**马车就是一切。**如果它在没有零件的情况下损坏，游戏就结束了。保持其状况超过一半，并进行维护（休息然后修理），以获得临时的故障抵抗力。
+**马车至关重要。**如果它在没有零件的情况下发生故障，游戏就结束了。保持其状况高于一半，并进行维护（休息然后修理），以获得临时的抗故障能力。
 
-**速度**控制速度与安全性。稳定是默认设置。快速移动可以覆盖更多的距离，但会消耗更多的物资并更快地损坏马车。
+**节奏**控制速度与安全性。稳定是默认设置。快速节奏可以更快地行进，但会消耗更多的物资并更快地损坏马车。
 
-**紧急措施**（硬性配给、绝望的修理、放弃货物）可用于应对紧急情况。它们具有副作用和冷却时间——最后的手段，而不是策略。
+**紧急措施**（严格配给、绝望的修理、放弃货物）可用于应对紧急情况。它们具有副作用和冷却时间——最后的手段，而不是策略。
 
 有关更深入的提示，请参阅[生存指南](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/)。
 
 ## GM 配置文件
 
-人工智能叙述者会影响语气，而不是游戏机制。所有三个配置文件都玩相同的游戏。
+人工智能叙述者决定了语气，而不是机制。所有三个配置文件都玩相同的游戏。
 
-- **编年史家**——务实、实际、简洁。极少有民间传说。报告发生了什么。
-- **篝火旁**——严肃的篝火叙述者。微妙的不祥时刻。默认设置。
-- **灯笼持有人**——怪异且超脱，但仍然以后果为基础。最奇怪的一个。
+- **编年史家** — 务实、实际、简洁。极少有民间传说。报告发生了什么。
+- **篝火旁** — 严肃的篝火叙述者。微妙的不祥时刻。默认设置。
+- **灯笼持有人** — 不祥且超脱，但仍然以后果为基础。最奇怪的一个。
 
 使用 `--gm-profile` 设置：`trail tui --gm-profile lantern`
 
 ## 物资
 
-游戏会跟踪两种类别中的 12 种资源类型：
+游戏跟踪两种类别中的 12 种资源类型：
 
 **消耗品：**食物、水、木柴、药品、盐、弹药、灯笼油、布料
 
 **装备：**零件、绳索、工具、靴子
 
-5 种核心物资（食物、水、药品、弹药、零件）是最重要的。扩展物资，如木柴、盐、灯笼油和布料，增加了深度：木柴为夜间营地提供燃料，盐可防止食物变质，灯笼油可在夜间更安全地旅行，布料可以修补装备和马车罩。
+5 种核心物资（食物、水、药品、弹药、零件）是最重要的。扩展物资，如木柴、盐、灯笼油和布料，增加了深度：木柴为夜间营地提供燃料，盐可防止食物变质，灯笼油可在夜间更安全地旅行，布料可修补装备和马车罩。
 
 ## 账本背包（可选）
 
-账本背包会将您的 5 种核心物资（食物、水、药品、弹药、零件）作为令牌跟踪在 XRPL 测试网络上。每个城镇检查点都会将结算收据记录在链上。在游戏结束时，您的旅程账本包含任何人都可以验证的交易 ID。
+账本背包跟踪你的 5 种核心物资（食物、水、药品、弹药、零件），并将它们作为令牌记录在 XRPL 测试网上。每个城镇检查点都会将结算收据记录到链上。在游戏结束时，你的旅程账本包含任何人都可以验证的交易 ID。
 
-完全可选。关闭它时，游戏玩法相同（默认设置）。从 TUI 中的 L 菜单或通过 CLI 中启用它：
+完全可选。关闭它时，游戏玩法相同（默认设置）。从 TUI 中的 L 菜单或通过 CLI 启用它：
 
 ```bash
 trail ledger enable
@@ -117,7 +119,7 @@ trail ledger reconcile  # retry failed settlements
 trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 ```
 
-在 TUI 中，**L** 会打开账本菜单；如果背包已开启，则 **R** 会证明此存档（相同的结果）。它不会休息。
+在 TUI 中，**L** 打开账本菜单；打开背包后，**R** 证明此存档（相同的结果）。它不会休息。
 
 需要 `pip install -e ".[xrpl]"` 用于 `xrpl-py` 依赖项。
 
@@ -139,12 +141,12 @@ trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 | `trail ledger reconcile` | 重试失败的结算 |
 | `trail ledger proof` | 证明加载的存档（通过/失败/不确定） |
 | `trail ledger wallet` | 显示钱包详细信息 |
-| `trail stats` | 显示游戏统计数据（支持 `--json`） |
+| `trail stats` | 显示游戏统计信息（支持 `--json`） |
 | `trail parcel send <addr> <supply> <amount>` | 将物资发送给其他旅行者 |
 | `trail parcel list` | 列出收到的包裹 |
 | `trail parcel accept <id>` | 接受待处理的包裹 |
-| `trail parcel sent` | 列出您已发送的包裹 |
-| `trail wallet share` | 打印您的钱包地址以进行交易 |
+| `trail parcel sent` | 列出你已发送的包裹 |
+| `trail wallet share` | 打印你的钱包地址以进行交易 |
 
 ## 警告提示
 
@@ -157,15 +159,15 @@ trail new --callouts minimal
 
 ## 故障排除
 
-**如果出现任何问题，请首先运行 `trail self-check`。** 它会报告 Ollama 是否可访问、您的存档是否可以加载以及安装了哪个模型。可能发生三种情况：
+**如果任何内容看起来不对劲，请首先运行 `trail self-check`。** 它会报告 Ollama 是否可访问、存档是否加载以及安装了哪个模型。可能出现三种问题：
 
 | 症状 | 原因 | 解决方法 |
 |---------|-------|-----|
-| **Generic / no narration** | Ollama 尚未运行（GM 是可选的，并且会回退，不会导致游戏崩溃） | 启动 Ollama (`ollama serve`)，或者以确定性的方式使用 `--gm-off`。运行 `trail self-check` 以确认。 |
-| **账本待处理/结算失败** | XRPL 测试网络是一个公共测试网络，有时可能会出现问题。 | `trail ledger reconcile` 会重试失败的结算；当网络恢复时，再次运行它。无论如何，本地供应量都是正确的。 |
-| **Save won't resume** | `run.json` 在写入过程中被截断或损坏。 | 引擎会在拒绝之前将其隔离为 `run.json.corrupt-<timestamp>`，因此您的下一次保存操作不会覆盖证据。从该备份中恢复，或者从种子开始新的运行。 |
+| **Generic / no narration** | Ollama 未运行（GM 是可选的，并且会回退，不会导致程序崩溃） | 启动 Ollama (`ollama serve`)，或者以确定性的方式使用 `--gm-off`。运行 `trail self-check` 以确认。 |
+| **账本待处理/结算失败** | XRPL 测试网络是一个公共测试网络，有时会不稳定。 | `trail ledger reconcile` 会重试失败的结算；当网络恢复时再次运行。无论如何，本地供应量都是正确的。 |
+| **Save won't resume** | `run.json` 在写入过程中被截断或损坏。 | 引擎会在拒绝之前将其隔离为 `run.json.corrupt-<timestamp>`，因此您下次保存的内容不会覆盖证据。从该备份中恢复，或者从种子开始新的运行。 |
 
-第一个叙述回合会加载模型，可能需要 10-30 秒——这是正常的，不是卡顿。完整详情：[故障排除手册](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/)。
+第一个叙述回合会加载模型，这可能需要 10-30 秒——这是正常的，不是程序卡死。完整详细信息：[故障排除手册](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/)。
 
 ## 要求
 
@@ -175,7 +177,7 @@ trail new --callouts minimal
 
 ## 安全性
 
-没有遥测数据。没有账户。默认情况下启用 GM 叙述（HTTP 连接到本地 Ollama）；传递 `--gm-off` 以禁用。XRPL 在 `trail ledger enable` 之前处于关闭状态（仅限测试网络）。语音功能是可选的（`--voice`）。有关完整的威胁模型，请参阅 [SECURITY.md](SECURITY.md)。
+没有遥测数据。没有账户。默认情况下启用 GM 叙述（HTTP 连接到本地 Ollama）；传递 `--gm-off` 以禁用。XRPL 在未设置 `trail ledger enable` 之前处于关闭状态（仅限测试网络）。语音功能是可选的（`--voice`）。有关完整的威胁模型，请参阅 [SECURITY.md](SECURITY.md)。
 
 ## 许可证
 

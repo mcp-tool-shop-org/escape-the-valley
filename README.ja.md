@@ -27,19 +27,21 @@
 
 ## 新機能
 
+**1.2.0** — GitHub Release binaries launch (event library + stylesheet bundled; smoke asserts `--help` and ≥200 events). `trail ledger proof` audits the loaded save. TUI shows seed/doctrine/twists/morale; `c` cycles pace; ledger menu `R` proofs this save. HUD readable at 80×24 and 120×30.
+
 **1.1.1** — `pip install "escape-the-valley[voice]"`が正しくインストールされるようになりました（以前は未公開パッケージにピン留めされていました）。PyInstallerバイナリは、音声関連の追加ファイルを読み込みません。
 
 **1.1.0** — ストリーミングによる実況、段階的なエンディング、負傷を引き起こすイベント、オンチェーンでの整合性確認、実行時のアーティファクト。
 
-v1.1.0およびv1.1.1のGitHubリリースに付属するバイナリは起動しません（フリーズされたエントリポイントにおける相対インポートの問題）。`pip install escape-the-valley`が、次のリリースまで使用できるインストール方法です。次回のリリースでは、イベントライブラリとスタイルシートをバンドルし、両方とも `--help` とロードされたイベント数をテストします。
+v1.1.0およびv1.1.1のGitHubリリース版に添付されているバイナリは起動しない（フリーズされたエントリーポイントにおける相対インポートの問題）。`pip install escape-the-valley`またはv1.2.0以降のGitHubバイナリ/`npx`ランチャーを使用してください。
 
 ## クイックスタート
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
-# v1.1.1 GitHub binaries do not start — use pip until then):
+# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)

@@ -4,6 +4,8 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-25
+
 ### Added
 
 - **Classic CLI (`trail new` / `trail play`) now runs graded endings, food

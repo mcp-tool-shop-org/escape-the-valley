@@ -27,19 +27,21 @@ Un Game Master AI opzionale (basato su Ollama) narra il tuo viaggio con tre voci
 
 ## Novità
 
+**1.2.0** — Lancio delle versioni binarie su GitHub (libreria di eventi + foglio di stile inclusi; vengono eseguiti test preliminari `--help` e almeno 200 eventi). `trail ledger proof` verifica il file di salvataggio caricato. L’interfaccia utente testuale mostra seme/dottrina/eventi/morale; `c` regola il ritmo; il menu del registro `R` conferma questo salvataggio. L’HUD è leggibile a 80×24 e 120×30.
+
 **1.1.1** — `pip install "escape-the-valley[voice]"` si installa effettivamente (la versione precedente aveva bloccato un pacchetto non pubblicato). Il file binario PyInstaller non include più la voce extra.
 
 **1.1.0** — narrazione in streaming, finali graduati, eventi che possono ferire, prova di riconciliazione on-ledger, artefatti eseguiti.
 
-I file binari allegati alle versioni v1.1.0 e v1.1.1 di GitHub non si avviano (un import relativo nel punto di ingresso congelato). `pip install escape-the-valley` è l'installazione funzionante fino alla prossima versione, che include la libreria degli eventi e il foglio di stile e verifica sia `--help` che un conteggio degli eventi caricati.
+Le versioni binarie allegate alle versioni v1.1.0 e v1.1.1 su GitHub non vengono eseguite (a causa di un import relativo nel punto di ingresso principale). Utilizzare `pip install escape-the-valley` o la versione binaria v1.2.0+ di GitHub / il programma di avvio `npx`.
 
 ## Avvio rapido
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (working from the next release; v1.1.0 and
-# v1.1.1 GitHub binaries do not start — use pip until then):
+# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
 # Launch the full-screen TUI (recommended)
