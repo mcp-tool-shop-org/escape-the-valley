@@ -438,8 +438,8 @@ def test_run_proof_isolated_writes_no_save(tmp_path, monkeypatch):
 
 
 def _player_state(*, pending=False, minted=True):
-    from escape_the_valley.models import RunState, SuppliesState
     from escape_the_valley.backpack_models import stamp_minted_snapshot
+    from escape_the_valley.models import RunState, SuppliesState
 
     state = RunState(
         run_id=RUN_ID,

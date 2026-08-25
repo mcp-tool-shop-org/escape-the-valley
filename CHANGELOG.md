@@ -4,6 +4,18 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Classic CLI (`trail new` / `trail play`) now runs graded endings, food
+  spoilage, escape valves, the rest/repair maintenance window, and town
+  ledger settle** — same helpers StepEngine already used. Not a merge.
+- **Hand-authored events that advertise rope/parts/food/tools now gate or
+  debit** instead of applying an empty `supplies_delta`.
+- **TUI start/HUD shows seed, doctrine, twists, taboo, and morale 0–100.**
+  `c` cycles pace via existing `CHANGE_PACE`.
+- **`trail ledger proof`** proves the loaded save (PASS/FAIL/INCONCLUSIVE).
+  Named in README Commands and the handbook.
+
 ### Fixed
 
 - **Every ledger overlay paints its dismiss/action row at 80×24**

@@ -850,6 +850,24 @@ def ledger_reconcile() -> None:
         raise typer.Exit(1)
 
 
+@ledger_app.command(name="proof")
+def ledger_proof() -> None:
+    """Proof the loaded save's receipts (PASS/FAIL/INCONCLUSIVE)."""
+    state = load_game()
+    if state is None:
+        console.print("[red]No saved game found.[/red]")
+        raise typer.Exit(1)
+
+    from .ledger_proof import proof_player_save
+
+    result = proof_player_save(state)
+    console.print(result.markdown)
+    if result.verdict == "FAIL":
+        raise typer.Exit(1)
+    if result.verdict == "INCONCLUSIVE":
+        raise typer.Exit(2)
+
+
 @ledger_app.command(name="wallet")
 def ledger_wallet() -> None:
     """Show wallet info."""

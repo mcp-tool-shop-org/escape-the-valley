@@ -889,3 +889,15 @@ class TestSelfCheckOptionalProbes:
         assert "voice extra absent" in result.output
         assert "event_skeletons.json" in result.output
         assert "missing" in result.output
+
+
+class TestLedgerProofCommand:
+    def test_help_lists_proof(self):
+        result = runner.invoke(app, ["ledger", "--help"])
+        assert result.exit_code == 0
+        assert "proof" in result.output
+
+    def test_no_save_exits_one(self):
+        result = runner.invoke(app, ["ledger", "proof"])
+        assert result.exit_code == 1
+        assert "No saved game" in result.output
