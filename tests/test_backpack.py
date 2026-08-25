@@ -2215,6 +2215,55 @@ class TestOverlayFailureMarkupSafety:
         assert "rABC[/pwn]" in rendered
         assert "rISS[/pwn]" in rendered
         assert "FOOD: 12[/pwn]" in rendered
+        assert "Settlements: 3" in rendered
+        assert "Pending: 0" in rendered
+
+    def test_wallet_info_survives_hostile_settlements_and_pending(self):
+        """Production wallet_info() passes ints, but the sink still
+        interpolates dict values. A hostile settlements/pending string
+        used to raise MarkupError on live Static.update (orphan [/pwn]
+        or leftover '[' eating into Press [b]Esc[/b]). Escape the
+        fragment; keep heading chrome as a real bold span.
+        """
+        from escape_the_valley.backpack_ui import WalletInfoOverlay
+
+        overlay = WalletInfoOverlay()
+        overlay.update_from_info({
+            "address_short": "rABC",
+            "issuer": "rISS",
+            "trust_lines": True,
+            "settlements": "[/pwn]",
+            "pending": 0,
+            "balances": {},
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "Settlements: [/pwn]" in rendered
+        assert "Pending: 0" in rendered
+
+        overlay.update_from_info({
+            "address_short": "rABC",
+            "issuer": "rISS",
+            "trust_lines": True,
+            "settlements": 0,
+            "pending": "foo [ bar",
+            "balances": {},
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "Settlements: 0" in rendered
+        assert "Pending: foo [ bar" in rendered
+
+        overlay.update_from_info({
+            "address_short": "rSender[...",
+            "issuer": "rISS",
+            "trust_lines": True,
+            "settlements": 3,
+            "pending": 0,
+            "balances": {},
+        })
+        rendered = self._assert_heading_still_bold(overlay, "Wallet Info")
+        assert "rSender[..." in rendered
+        assert "Settlements: 3" in rendered
+        assert "Pending: 0" in rendered
 
     def test_production_shaped_parcel_and_success_unaffected(self):
         """Classic r-address + catalog labels must still render as before."""
