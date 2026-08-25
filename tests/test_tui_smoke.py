@@ -999,6 +999,52 @@ class TestMarkupSafety:
         text = widget.visual.plain
         assert text.count(self.STRAY) >= 3  # title, prompt text, choice label
 
+    def test_eventbar_choice_id_survives_stray_closing_tag(self):
+        """F-d4a8ed17: EventChoiceInfo.id is GM-authored on the primary
+        EVENT path -- step_engine.py's _maybe_trigger_event builds
+        EventChoiceInfo(id=c.get('id', '?'), ...) straight from the GM's
+        own scene.choices[] JSON (gm.py's _validate_scene only checks
+        choice['id'] for truthiness, never that it's one of A-G), and
+        adapter.py's _build_prompt passes that id straight through to
+        Choice.id. That is the SAME untrusted source already established
+        for label/risk_hint/cost_hint -- so id must survive exactly like
+        its siblings, at BOTH interpolation points in EventBar.update_from:
+        the "[b]{id}[/b])" choice line, and the choice_letters joined into
+        the [i]...[/i]-wrapped hint_line. Reproduces the finding's own
+        repro shape (Choice(id='A[/b]', ...) raised
+        textual.markup.MarkupError pre-fix) using the shared STRAY
+        fixture so it exercises the identical crash class as every other
+        field in this class."""
+        widget = EventBar()
+        frame = FrameState(
+            prompt_title="A Fork in the Weather",
+            prompt_text="The wind picks up.",
+            choices=[
+                Choice(id=self.STRAY, label="Push on through the storm"),
+            ],
+        )
+
+        widget.update_from(frame)  # real Static.update() -- raises pre-fix
+
+        visual = widget.visual
+        text = visual.plain
+        # Escaping must not blank or mangle the real message -- the id
+        # text is still fully present at both interpolation points (the
+        # choice line and the folded-in pick_hint/hint_line).
+        assert text.count(self.STRAY) >= 2
+        assert "Push on through the storm" in text
+
+        # Chrome survives: "[b]...[/b]" around the id is literal chrome
+        # authored in EventBar and is never escaped -- only c.id itself
+        # is. So even this adversarial id still renders as a real bold
+        # span rather than degrading to literal bracket text.
+        assert "[b]" not in text
+        bold_texts = {
+            visual.plain[sp.start:sp.end]
+            for sp in visual.spans if "b" in str(sp.style)
+        }
+        assert self.STRAY in bold_texts
+
     def test_eventbar_chrome_survives_as_real_formatting(self):
         widget = EventBar()
         widget.update_from(

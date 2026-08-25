@@ -116,7 +116,18 @@ class _FakeBackpackManager:
 
     The real manager creates a testnet wallet (enable) or settles on-chain;
     here we only flip local flags so the TUI action paths run save-only.
+
+    F-d178410b: __init__ accepts (and stores) the same ``persist`` keyword
+    the real constructor takes, for call-site signature compatibility now
+    that every production ``BackpackManager(...)`` site passes
+    ``persist=save_game``. This fake does not exercise the persist-hook
+    crash-window fix itself (that lives in backpack.py / test_backpack.py,
+    owned by the ledger domain) -- these tests assert the TUI action's own
+    post-call ``_save()`` round-trip, unrelated to the hook.
     """
+
+    def __init__(self, *args, persist=None, **kwargs):
+        self._persist = persist
 
     def enable(self, state):
         from escape_the_valley.backpack import EnableResult
