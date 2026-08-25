@@ -107,25 +107,19 @@ Creating wallets on XRPL Testnet...
 This may take a moment.
 """
 
+# No spare blank rows: at 80x24 the overlay is 34x7 inner (50% x max-height
+# 50%, padding 1 2). Esc must sit in those painted lines, not below the fold.
 ENABLE_SUCCESS_TEXT = """\
 [b]Ledger Backpack: Enabled[/b]
-
 Wallet: {address}
-
-Your pack is now receipted.
-Supplies will settle at town checkpoints.
-
+Your pack is now receipted. Supplies settle at town checkpoints.
 Press [b]Esc[/b] to continue.
 """
 
 ENABLE_FAILURE_TEXT = """\
 [b]Couldn't enable right now[/b]
-
 {message}
-
-The trail continues. You can try again
-at the next town from the Ledger menu (L).
-
+The trail continues. Try again at the next town from the Ledger menu (L).
 Press [b]Esc[/b] to continue.
 """
 
@@ -155,14 +149,13 @@ class EnableFlowOverlay(Static):
 
 # ── Parcel Notification ──────────────────────────────────────────
 
+# A/R share one row so max-height 40% at 80x24 (inner 34x4) still paints
+# the action keys. Do not rely on overflow-y: auto — there is no scroll hint.
 PARCEL_TEXT = """\
 [b]Parcel arrived![/b]
-
 From: {sender}
 Contents: {contents}
-
-  [b]A[/b]) Accept
-  [b]R[/b]) Refuse
+  [b]A[/b]) Accept   [b]R[/b]) Refuse
 """
 
 
@@ -179,18 +172,18 @@ class ParcelNotification(Static):
 
 # ── Wallet Info Overlay ──────────────────────────────────────────
 
+# 80x24 inner box is 34x9 (width 50%, height 60%, padding 1 2). FOOD rows
+# and Esc go above the address block so they paint even when issuer/pending
+# wrap. Two-column balances are packed in update_from_info.
 WALLET_TEXT = """\
 [b]Wallet Info[/b]
-
+{balances_text}
+Press [b]Esc[/b] to close.
 Address: {address_short}
 {address}
 Issuer:  {issuer}
 Trust lines: {trust_lines}
-Settlements: {settlements}
-Pending: {pending}
-
-{balances_text}
-Press [b]Esc[/b] to close.
+Settlements: {settlements}  Pending: {pending}
 """
 
 
@@ -200,11 +193,17 @@ class WalletInfoOverlay(Static):
     def update_from_info(self, info: dict) -> None:
         balances = info.get("balances", {})
         if balances:
-            bal_lines = "\n".join(
-                f"  {_token_display_label(code)}: {amount}"
+            items = [
+                f"{_token_display_label(code)}: {amount}"
                 for code, amount in balances.items()
-            )
-            balances_text = f"Balances:\n{bal_lines}"
+            ]
+            # Two columns: five tokens fit in three 34-col rows (FOOD+WATR,
+            # MEDS+AMMO, PART). A stacked list clips MEDS/Esc at 80x24.
+            packed = [
+                "  ".join(items[i:i + 2])
+                for i in range(0, len(items), 2)
+            ]
+            balances_text = "\n".join(packed)
         elif info.get("extra_missing"):
             # F-64e78470: extra gone after an enabled save is not the
             # empty-wallet case and not a network miss. Name the pip extra.
