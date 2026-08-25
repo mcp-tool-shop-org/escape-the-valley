@@ -100,9 +100,37 @@ jobs:
       - name: npm pack dry-run (verify tarball shape)
         run: npm pack --dry-run
 
-      - name: Publish to npm with provenance (OIDC trusted publisher)
-        run: npm publish --provenance --access public
-
+      # F-f5e1f24d: this step (idempotent -- `gh release view` skip-guard
+      # below) now runs BEFORE the non-idempotent, irreversible npm publish.
+      # Previously npm publish ran first: if this step then failed for any
+      # reason (transient `gh` API error, GitHub outage), the whole workflow
+      # run failed, which means publish.yml and release-binaries.yml (both
+      # gated on `workflow_run.conclusion == 'success'` for THIS workflow)
+      # never ran -- yet a retry via workflow_dispatch would re-attempt the
+      # already-succeeded npm publish and fail every time with E403 ("cannot
+      # publish over previously published version"), permanently wedging the
+      # release chain until a human intervened by hand.
+      #
+      # With the idempotent step first: if IT fails, npm publish never runs
+      # (no side effect yet). If it succeeds and npm publish then fails, a
+      # re-run is now safe -- this step sees the release already exists and
+      # skips creation, and npm publish retries cleanly since it hasn't
+      # succeeded yet.
+      #
+      # Manual recovery (compensators, in case a retry still won't clear it):
+      #   - npm publish already succeeded but this workflow run shows failed:
+      #     check `npm view @mcptoolshop/escape-the-valley@<version> version`
+      #     -- if it resolves, npm is done; do NOT re-run npm publish. Instead
+      #     `workflow_dispatch` publish.yml and release-binaries.yml directly
+      #     (both already support manual dispatch) to finish PyPI + binaries.
+      #   - GitHub Release needs to be undone: `gh release delete <tag>
+      #     --yes` (owner: whoever is on call; this only removes the Release
+      #     object + its assets, it does not touch the git tag or npm).
+      #   - npm publish needs to be undone: npm does not support unpublishing
+      #     a version older than 72h in the general case -- the safe
+      #     compensator is `npm deprecate @mcptoolshop/escape-the-valley@<version>
+      #     "broken release, use <next-version> instead"` plus cutting a
+      #     fixed patch release, not a force-unpublish.
       - name: Create GitHub Release (idempotent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,3 +165,11 @@ jobs:
               --notes-file "${NOTES_FILE}" \
               --verify-tag
           fi
+
+      # F-f5e1f24d: intentionally last. npm publish is irreversible and NOT
+      # retry-safe (a second `npm publish` of the same version fails with
+      # E403), so it now runs only after the idempotent GitHub Release step
+      # above has already succeeded -- see the comment on that step for the
+      # full ordering rationale and the manual recovery/compensator steps.
+      - name: Publish to npm with provenance (OIDC trusted publisher)
+        run: npm publish --provenance --access public
