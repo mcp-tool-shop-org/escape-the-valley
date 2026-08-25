@@ -922,23 +922,51 @@ class TestWorkerFailureRecovery:
     the whole input surface froze forever (compounded by Textual's default
     exit_on_error=True turning the same raise into a hard app crash). Both
     outcomes are worse than a plain, recoverable notification.
+
+    F-82f88b31: the two live-Pilot tests below (step worker, enable worker)
+    previously monkeypatched app.notify before triggering the failure, so
+    they never exercised the real notify() -> Toast.render() ->
+    Content.from_markup() path — which is exactly where _worker_failed's
+    f-string-built message (a raw exception embedded with no markup=False)
+    raised MarkupError on any '[/...]'-shaped substring (routine in
+    HTTP/XRPL error text) and crashed the whole app. Both now run with
+    notifications=True and an UNMOCKED app.notify, using an exception
+    message containing a stray '[/...]' sequence, and capture the rendered
+    notification from app._notifications afterward instead of replacing
+    notify(). The other two tests below (on_worker_state_changed) still
+    mock notify() because they never call run_test() at all — there is no
+    live message pump or mounted screen for notify() to render into (a
+    bare app.notify() call on an unstarted app is a silent no-op: no
+    exception, but app._notifications stays empty), so mocking there isn't
+    hiding any rendering risk.
     """
 
     def test_step_worker_exception_recovers_and_app_stays_playable(self):
         """A real threaded step that raises still clears _in_flight, notifies,
-        and leaves the app interactive for the next (successful) step."""
+        and leaves the app interactive for the next (successful) step.
+
+        F-82f88b31: notify() runs LIVE here (notifications=True, app.notify
+        is never replaced) with an exception message shaped like an
+        HTTP/XRPL error — a stray '[/...]' substring. Pre-fix, Toast.render()
+        called Content.from_markup() on exactly this shape of string and
+        raised MarkupError from inside Textual's own compositor, which took
+        the whole app down (is_running went False right here, well before
+        run_test()'s deliberate teardown). A suite that mocks notify() can't
+        see that; this one doesn't mock it.
+        """
 
         async def scenario():
             app = _make_app(seed=7)
-            notified = []
-            async with app.run_test() as pilot:
+            async with app.run_test(notifications=True) as pilot:
                 await pilot.pause()
-                app.notify = lambda msg, *a, **k: notified.append(msg)
 
                 real_step = app._engine.step
 
                 def _boom(intent):
-                    raise RuntimeError("disk full")
+                    raise RuntimeError(
+                        "disk full: GET [/api/v1/accounts/rHb9CJ] failed: "
+                        "503 Service Unavailable"
+                    )
 
                 app._engine.step = _boom
                 before = (
@@ -950,12 +978,25 @@ class TestWorkerFailureRecovery:
                 await app.workers.wait_for_complete()
                 await pilot.pause()
 
+                # The money assertion: rendering a '[/...]'-shaped message
+                # through the REAL Toast pipeline must not crash the app.
+                assert app.is_running is True
+
                 # Cleared, not frozen — and the player was told plainly.
+                # Captured from the live notification collection *after*
+                # Toast.render() ran, not by replacing notify().
+                messages = [n.message for n in app._notifications]
                 assert app._in_flight is False
                 assert any(
                     "disk full" in m and "last save is intact" in m
-                    for m in notified
+                    for m in messages
                 )
+                # A Toast for it actually mounted and rendered without
+                # raising — the real reproduction of the bug, not a proxy.
+                from textual.widgets._toast import Toast
+
+                assert len(app.query(Toast)) >= 1
+
                 # The failed attempt never touched engine state.
                 assert (
                     app._engine.state.day,
@@ -980,28 +1021,39 @@ class TestWorkerFailureRecovery:
         asyncio.run(scenario())
 
     def test_enable_worker_exception_recovers(self, monkeypatch):
-        """The ledger-group worker path fails safe the same way as step."""
+        """The ledger-group worker path fails safe the same way as step.
+
+        F-82f88b31: same live-notify proof as the step-worker test above,
+        against the OTHER worker group (ledger, not step) — _worker_failed
+        is shared code, so this confirms the markup=False fix isn't a
+        one-group patch-over.
+        """
 
         async def scenario():
             from escape_the_valley.backpack import BackpackManager
 
             def _boom(self, state):
-                raise RuntimeError("xrpl testnet unreachable")
+                raise RuntimeError(
+                    "xrpl testnet unreachable: [/accounts/rHb9CJ] 503"
+                )
 
             monkeypatch.setattr(BackpackManager, "enable", _boom)
 
             app = _make_app(seed=7)
-            notified = []
-            async with app.run_test() as pilot:
+            async with app.run_test(notifications=True) as pilot:
                 await pilot.pause()
-                app.notify = lambda msg, *a, **k: notified.append(msg)
 
                 app.action_ledger_enable()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
 
+                # Live Toast render of a '[/...]'-shaped message must not
+                # crash the app (the F-82f88b31 regression).
+                assert app.is_running is True
+
+                messages = [n.message for n in app._notifications]
                 assert app._in_flight is False
-                assert any("xrpl testnet unreachable" in m for m in notified)
+                assert any("xrpl testnet unreachable" in m for m in messages)
                 # The failure was caught before any state mutation landed.
                 assert app._engine.state.backpack.enabled is False
 
