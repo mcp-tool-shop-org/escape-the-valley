@@ -2044,3 +2044,332 @@ class TestMemoSchemaVersion:
         assert memo.startswith("TRAIL|RUN:run1|DAY:5")
         # Version comes after DELTA, never before the header.
         assert memo.index("DELTA:") < memo.index("|V:")
+
+
+# ──────────────────────────────────────────────────────────────────────
+# F-78cd62e7: Static.update() parses markup EAGERLY and SYNCHRONOUSLY
+# (textual/widgets/_static.py's update() calls visualize() ->
+# Content.from_markup() inside update() itself, before refresh() ever
+# runs) -- unlike notify()/Toast, which defer Content.from_markup() to
+# their own render() call at paint time. An untrusted string embedded via
+# ENABLE_FAILURE_TEXT / SEND_PARCEL_FAILURE_TEXT's {message} placeholder
+# that happens to contain an orphan "[/tag]"-shaped substring (routine in
+# XRPL/HTTP error text, or an address/amount echoed back from a rejected
+# player command) used to raise textual.markup.MarkupError straight out
+# of show_failure(), crashing the whole app. These call the REAL
+# Static.update() / Content.from_markup() (no mocking of .update() itself
+# -- this wave's standing rule), so the fix is proven against the actual
+# renderer, not a stand-in for it.
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestOverlayFailureMarkupSafety:
+    """The fix escapes only the DYNAMIC fragment (textual.markup.escape()),
+    never the surrounding template -- chrome markup like [b]Send failed[/b]
+    must keep rendering bold. A uniform markup=False flip on the widget
+    would also pass a naive "does not crash" check while silently killing
+    that bold heading, so each test asserts the heading's bold span
+    survives, not just the absence of an exception.
+    """
+
+    def test_send_parcel_failure_survives_orphan_closing_tag(self):
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        overlay = SendParcelOverlay()
+        # Shaped exactly like the real trigger: an address a player typed
+        # or pasted, echoed back into the failure message by the caller's
+        # f-string (tui_app.py's on_input_submitted), containing a
+        # bracket-and-slash substring that reads as an orphan closing tag.
+        malicious = "'r_looks_ok[/pwn]' is not a valid XRPL address."
+
+        overlay.show_failure(malicious)  # pre-fix: raised MarkupError here
+
+        rendered = overlay.visual.plain
+        # The player's own text is preserved verbatim, not swallowed.
+        assert malicious in rendered
+        # Markup was not disabled wholesale: a literal, unparsed "[b]"
+        # would only appear in .plain if markup parsing were turned off
+        # for the whole widget instead of just escaping the dynamic part.
+        assert "[b]" not in rendered
+        assert "[/b]" not in rendered
+        # The chrome heading is still real bold markup, not stripped text.
+        heading = "Send failed"
+        assert heading in rendered
+        start = rendered.index(heading)
+        bold_spans = [s for s in overlay.visual.spans if s.style == "b"]
+        assert any(
+            s.start == start and s.end == start + len(heading)
+            for s in bold_spans
+        ), bold_spans
+
+    def test_enable_flow_failure_survives_orphan_closing_tag(self):
+        """EnableFlowOverlay has the identical .update()/.format() pattern.
+        It is not reachable with dynamic content today (enable()'s failure
+        messages are hardcoded literals), but the sink is the same and the
+        director's guidance is to fix it anyway rather than rely on that
+        staying true."""
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        overlay = EnableFlowOverlay()
+        malicious = "Couldn't reach the faucet: unexpected '[/oops]' reply."
+
+        overlay.show_failure(malicious)  # pre-fix: raised MarkupError here
+
+        rendered = overlay.visual.plain
+        assert malicious in rendered
+        assert "[b]" not in rendered
+        assert "[/b]" not in rendered
+        heading = "Couldn't enable right now"
+        assert heading in rendered
+        start = rendered.index(heading)
+        bold_spans = [s for s in overlay.visual.spans if s.style == "b"]
+        assert any(
+            s.start == start and s.end == start + len(heading)
+            for s in bold_spans
+        ), bold_spans
+
+    def test_plain_message_unaffected(self):
+        """A message with no bracket-shaped substring must render exactly
+        as before -- the escape must be a no-op for ordinary text."""
+        from escape_the_valley.backpack_ui import SendParcelOverlay
+
+        overlay = SendParcelOverlay()
+        overlay.show_failure("Not enough food (have 3, need 10).")
+        rendered = overlay.visual.plain
+        assert "Not enough food (have 3, need 10)." in rendered
+
+
+# ──────────────────────────────────────────────────────────────────────
+# F-d178410b: settle()/_retry_pending() fold confirmed Payments into
+# last_settled_supplies/bp.settlements/bp.pending_settlements PURELY in
+# memory; every real caller (tui_app.py, cli.py) persists separately,
+# strictly AFTER these methods return. A crash in that gap replays an
+# already-confirmed Payment on the next run -- a real duplicate on-chain
+# settlement local conservation math cannot detect, because the crashed
+# session's record was never persisted, so it is never summed either.
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestSettleCrashWindow:
+    """Chosen fix shape: persist per-resource as each Payment confirms
+    (a ``persist`` hook on BackpackManager, called from inside settle()/
+    _retry_pending() immediately after each resource's fold), rather than
+    querying the chain to avoid resubmitting an already-broadcast txid.
+
+    Chosen because the alternative's own source of truth for "did I
+    already submit this" is exactly the in-memory SettlementRecord this
+    bug loses in the crash -- after a crash, only the chain itself
+    survives, so "don't resubmit" would need to re-derive intent from
+    AccountTx memo text on EVERY settle() (not just a crash-recovery
+    path), adding a network round-trip to the common case and depending
+    on fragile memo-matching heuristics (batch membership, day, and
+    pagination all have to line up) for correctness. Persisting the fold
+    immediately is a same-process, no-I/O-in-between window instead of one
+    spanning a network round-trip and a full return to the caller, and its
+    correctness is a straightforward "write what you just confirmed,
+    right after you confirmed it" rather than a heuristic chain query.
+
+    The default (no hook) is UNCHANGED -- proven by test_backpack.py's
+    existing ~774-test baseline still passing byte-for-byte -- so wiring
+    persist=save_game at the real call sites (tui_app.py, cli.py,
+    step_engine.py, adapter.py) to make this live for real players is a
+    caller-side change outside this module's domain, not made here.
+    """
+
+    @requires_xrpl
+    def test_crash_before_caller_save_replays_confirmed_payment_without_persist_hook(
+        self, monkeypatch,
+    ):
+        """Documents the residual gap when no persist hook is wired -- which
+        is every real call site today (BackpackManager() takes no
+        arguments in tui_app.py/cli.py/step_engine.py/adapter.py). This
+        must keep passing before AND after this fix: it is not what the
+        fix closes by itself, only what wiring it in would close. Mirrors
+        the finding's own repro: two independent settle() calls against
+        the SAME engine truth, standing in for one process crashing before
+        its caller could save and a second process reloading the stale
+        (pre-settle) save.
+        """
+        state = _enabled_state()  # last_settled_supplies: food=50, ...
+        mgr = BackpackManager()  # no persist hook -- matches every real call site
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["BURN1"])
+
+        # "Session 1": consume food 50 -> 40 (delta -10). One real Payment
+        # burns 10 FOD, confirmed.
+        state.supplies.set("food", 40)
+        res1 = mgr.settle(state, "TownA")
+        assert res1.success is True
+        assert res1.txids == ["BURN1"]
+        assert state.backpack.last_settled_supplies["food"] == 40
+
+        # Simulate the crash exactly as the finding did: the caller's own
+        # save (tui_app.py's self._save() / cli.py's save_game(state) --
+        # always a separate, later step) never ran, so nothing from
+        # session 1 reached disk. A second process reloading now would
+        # reconstruct a RunState from whatever WAS last durable: the
+        # pre-settle baseline, with engine truth unchanged either.
+        state2 = _enabled_state()  # last_settled_supplies still food=50
+        state2.supplies.set("food", 40)  # SAME engine truth session 1 ended with
+        mgr2 = BackpackManager()
+        monkeypatch.setattr(mgr2, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["BURN2"])
+
+        res2 = mgr2.settle(state2, "TownA-after-crash")
+
+        # The bug: a SECOND real Payment burns another 10 FOD for a delta
+        # the engine only ever produced once -- 20 total burned on-chain
+        # for one true 10-unit consumption.
+        assert res2.success is True
+        assert res2.txids == ["BURN2"]
+        assert state2.backpack.last_settled_supplies["food"] == 40
+
+    @requires_xrpl
+    def test_persist_hook_closes_crash_window_no_replay(self, monkeypatch, tmp_path):
+        """With persist=save_game wired (what a real caller must do to get
+        this fix live), the SAME crash -- nothing extra saved after
+        settle() returns -- no longer loses the fold, because settle()
+        itself already wrote it to disk the moment the Payment confirmed.
+        Uses the REAL save_game()/load_game() round-trip (not a stand-in
+        for it), redirected to tmp_path via the same
+        escape_the_valley.save.SAVE_DIR monkeypatch
+        test_step_engine.py's test_save_load_preserves_determinism already
+        uses, so this test's disk I/O never touches the real working
+        directory.
+        """
+        from escape_the_valley.save import load_game, save_game
+
+        monkeypatch.setattr(
+            "escape_the_valley.save.SAVE_DIR", tmp_path / ".trail",
+        )
+
+        state = _enabled_state()
+        mgr = BackpackManager(persist=save_game)
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["BURN1"])
+
+        state.supplies.set("food", 40)  # -10
+        res1 = mgr.settle(state, "TownA")
+        assert res1.success is True
+        assert res1.txids == ["BURN1"]
+
+        # Crash simulated identically to the test above: no explicit save
+        # call after settle() returns. The only difference is that
+        # settle() itself already persisted via the hook.
+        reloaded = load_game()
+        assert reloaded is not None
+        assert reloaded.backpack.last_settled_supplies["food"] == 40
+        assert len(reloaded.backpack.settlements) == 1
+        assert reloaded.backpack.settlements[0].deltas == {"food": -10}
+
+        # "Session 2": settle again on the RELOADED state (reconstructed
+        # purely from what made it to disk, not the original `state`
+        # object) against the SAME unchanged engine truth. Any Payment
+        # submission at all would mean the crash window reopened.
+        def _must_not_submit(tx, client, signer):
+            raise AssertionError(
+                "must not submit a Payment -- nothing changed since the "
+                "persisted baseline"
+            )
+
+        def _fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        mgr2 = BackpackManager(persist=save_game)
+        monkeypatch.setattr(mgr2, "_get_client", lambda: _FakeClient())
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(_fake_from_seed),
+        )
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", _must_not_submit)
+
+        reloaded.supplies.set("food", 40)  # unchanged since session 1
+        res2 = mgr2.settle(reloaded, "TownA-again")
+
+        assert res2.success is True
+        assert res2.message == "No changes to settle."
+        assert reloaded.backpack.last_settled_supplies["food"] == 40
+        # Still exactly one settlement on record -- no duplicate receipt.
+        assert len(reloaded.backpack.settlements) == 1
+
+    @requires_xrpl
+    def test_persist_hook_narrows_pending_queue_durably(
+        self, monkeypatch, tmp_path,
+    ):
+        """The SAME crash-window gap exists in _retry_pending()'s queue
+        bookkeeping specifically: a multi-key pending record that partially
+        clears must have its narrowing (the cleared key dropped) persisted
+        immediately, not just the baseline -- otherwise a crash right after
+        the partial clear reverts bp.pending_settlements to its wider,
+        stale shape and a later retry resubmits the key that already
+        cleared. Uses the real save_game()/load_game() round-trip, same
+        SAVE_DIR isolation as the test above.
+        """
+        from escape_the_valley.save import load_game, save_game
+
+        monkeypatch.setattr(
+            "escape_the_valley.save.SAVE_DIR", tmp_path / ".trail",
+        )
+
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier",
+                deltas={"food": -10, "water": -6},
+                status="pending",
+                memo=_settlement_memo_text(
+                    state.run_id, 4, {"food": -10, "water": -6},
+                ),
+            ),
+        ]
+        mgr = BackpackManager(persist=save_game)
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def _fake_from_seed(seed, *a, **k):
+            return _FakeWallet(
+                "rPlayerAddr" if seed == "sPlayerSeed" else "rIssuerAddr",
+            )
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(_fake_from_seed),
+        )
+
+        def fake_submit_pass1(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            if code == "WTR":
+                raise RuntimeError("simulated WTR blip")
+            return _FakeResp({"hash": f"HASH-{code}"})
+
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_pass1)
+
+        mgr._retry_pending(state)  # food clears, water fails and stays pending
+
+        # Crash simulated: nothing else saves after this. Reload from disk.
+        reloaded = load_game()
+        assert reloaded is not None
+        assert reloaded.backpack.last_settled_supplies["food"] == 40
+        assert len(reloaded.backpack.pending_settlements) == 1
+        # The persisted queue is already NARROWED to just water -- not the
+        # original 2-key record -- so food can never be replayed.
+        assert reloaded.backpack.pending_settlements[0].deltas == {"water": -6}
+
+        # A second retry pass, on the reloaded state, must submit ONLY
+        # water. Resubmitting food would mean the narrowing was lost.
+        submitted: list[str] = []
+
+        def fake_submit_pass2(tx, client, signer):
+            amount = getattr(tx, "amount", None)
+            code = getattr(amount, "currency", None)
+            submitted.append(code)
+            return _FakeResp({"hash": f"HASH2-{code}"})
+
+        mgr2 = BackpackManager(persist=save_game)
+        monkeypatch.setattr(mgr2, "_get_client", lambda: _FakeClient())
+        monkeypatch.setattr(backpack_mod, "submit_and_wait", fake_submit_pass2)
+
+        mgr2._retry_pending(reloaded)
+
+        assert submitted == ["WTR"]
+        assert reloaded.backpack.pending_settlements == []

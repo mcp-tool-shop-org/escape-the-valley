@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from textual.markup import escape
 from textual.widgets import Static
 
 # ── Ledger Menu Overlay ──────────────────────────────────────────
@@ -104,7 +105,13 @@ class EnableFlowOverlay(Static):
         self.update(ENABLE_SUCCESS_TEXT.format(address=short))
 
     def show_failure(self, message: str) -> None:
-        self.update(ENABLE_FAILURE_TEXT.format(message=message))
+        # message may carry caller-supplied text (e.g. an exception string
+        # surfaced from a failed enable attempt). Static.update() parses
+        # markup eagerly (unlike notify()/Toast, which defer to paint time),
+        # so an orphan "[/tag]"-shaped substring would raise MarkupError and
+        # crash the whole app. Escape only the dynamic fragment so the
+        # literal [b]/[/b] chrome in ENABLE_FAILURE_TEXT still renders bold.
+        self.update(ENABLE_FAILURE_TEXT.format(message=escape(message)))
 
 
 # ── Parcel Notification ──────────────────────────────────────────
@@ -252,4 +259,12 @@ class SendParcelOverlay(Static):
         self.update(SEND_PARCEL_SUCCESS_TEXT.format(message=message))
 
     def show_failure(self, message: str) -> None:
-        self.update(SEND_PARCEL_FAILURE_TEXT.format(message=message))
+        # message routinely carries raw XRPL/HTTP error text, or an invalid
+        # address/amount echoed back from the caller's parser (see
+        # tui_app.py on_input_submitted) -- untrusted, unlike the [b]/[/b]
+        # chrome in SEND_PARCEL_FAILURE_TEXT. Static.update() parses markup
+        # eagerly and synchronously (unlike notify()/Toast, which defer to
+        # paint time), so an orphan "[/tag]"-shaped substring here would
+        # raise MarkupError and crash the whole app. Escape only the
+        # dynamic fragment so the literal chrome still renders bold.
+        self.update(SEND_PARCEL_FAILURE_TEXT.format(message=escape(message)))
