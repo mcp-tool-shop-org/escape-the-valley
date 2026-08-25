@@ -2713,14 +2713,19 @@ class TestOverlayFailureMarkupSafety:
 
         from escape_the_valley.backpack_ui import (
             ENABLE_FAILURE_TEXT,
+            ENABLE_SUCCESS_TEXT,
             EnableFlowOverlay,
             _escape_dynamic,
         )
 
         leftover = "rSender[..."
         overlay = EnableFlowOverlay()
+        # Failure now puts Esc above {message}, so a leftover '[' at the
+        # end of the template does not unbalance later chrome. Success
+        # still splices {address} before Press [b]Esc[/b] — that is the
+        # live-renderer proof that escape() is not enough.
         with pytest.raises(MarkupError):
-            overlay.update(ENABLE_FAILURE_TEXT.format(message=escape(leftover)))
+            overlay.update(ENABLE_SUCCESS_TEXT.format(address=escape(leftover)))
 
         overlay.update(ENABLE_FAILURE_TEXT.format(message=_escape_dynamic(leftover)))
         rendered = self._assert_heading_still_bold(
@@ -2903,6 +2908,8 @@ class TestOverlayIdentityVisualSizes:
     """Coordinator: a layout that only works maximized is a failed fix."""
 
     _SIZES = ((80, 24), (120, 30))
+    # CSS matches tui.tcss overlay rules (without display: none so Pilot
+    # paints them). visual.plain is not proof — assert render_line strips.
     _OVERLAY_CSS = """
 Screen {
   background: #0b0f14;
@@ -2934,6 +2941,44 @@ Screen {
   margin: 2 0 0 0;
   padding: 1 2;
   border: round #604030;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#ledger_menu {
+  width: 50%;
+  height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#nudge {
+  width: 50%;
+  height: auto;
+  max-height: 40%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #605a30;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#learn_more {
+  width: 60%;
+  height: 70%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a4b60;
+  background: #0f1620;
+  overflow-y: auto;
+}
+#send_parcel {
+  width: 50%;
+  height: auto;
+  max-height: 60%;
+  margin: 2 0 0 0;
+  padding: 1 2;
+  border: round #3a6040;
   background: #0f1620;
   overflow-y: auto;
 }
@@ -3053,6 +3098,223 @@ Screen {
                 assert "R) Refuse" in painted
                 assert f"From: {short}" in parcel.visual.plain
                 assert short in _recover(parcel)
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
+
+    def test_enable_failure_paints_esc_for_production_copy(self):
+        """F-766d7cf5: faucet / extra-missing show_failure must paint Esc
+        in render_line at 80x24, not only in visual.plain.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_models import XRPL_EXTRA_MISSING_MSG
+        from escape_the_valley.backpack_ui import EnableFlowOverlay
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+        # Production copy from backpack.enable except-path (not a test stub).
+        faucet = (
+            "Couldn't reach the faucet right now. "
+            "Ledger Backpack stays OFF. "
+            "You can try again at the next town."
+        )
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        async def scenario(size: tuple[int, int], message: str) -> None:
+            cols, rows = size
+            app = _EnableApp()
+            async with app.run_test(size=size) as pilot:
+                enable = app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_failure(message)
+                await pilot.pause()
+                assert enable.size.width <= cols
+                assert enable.size.height <= rows
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted, (
+                    f"Esc missing from render_line at {size}; "
+                    f"plain still has it={('Esc' in enable.visual.plain)!r}; "
+                    f"painted={painted!r}"
+                )
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size, faucet))
+            asyncio.run(scenario(size, XRPL_EXTRA_MISSING_MSG))
+
+    def test_menu_nudge_learn_paints_offered_keys(self):
+        """F-8b6e5842: menu / nudge / learn action chrome must paint at
+        80x24 via render_line, not only visual.plain.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_ui import (
+            LearnMoreOverlay,
+            LedgerMenuOverlay,
+            NudgeOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+
+        class _MenuApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield LedgerMenuOverlay(id="ledger_menu")
+
+        class _NudgeApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield NudgeOverlay(id="nudge")
+
+        class _LearnApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield LearnMoreOverlay(id="learn_more")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            menu_app = _MenuApp()
+            async with menu_app.run_test(size=size) as pilot:
+                menu = menu_app.query_one("#ledger_menu", LedgerMenuOverlay)
+                menu.update_from_state(False)
+                await pilot.pause()
+                on_screen(menu, cols, rows)
+                painted = painted_fn(menu)
+                assert "E) Enable" in painted, painted
+                assert "L) Learn" in painted, painted
+                assert "Esc" in painted, painted
+
+                menu.update_from_state(True)
+                await pilot.pause()
+                on_screen(menu, cols, rows)
+                painted = painted_fn(menu)
+                assert "W) Wallet" in painted, painted
+                assert "P) Send parcel" in painted, painted
+                assert "S) Settle" in painted, painted
+                assert "D) Disable" in painted, painted
+                assert "Esc" in painted, painted
+
+            nudge_app = _NudgeApp()
+            async with nudge_app.run_test(size=size) as pilot:
+                nudge = nudge_app.query_one("#nudge", NudgeOverlay)
+                await pilot.pause()
+                on_screen(nudge, cols, rows)
+                painted = painted_fn(nudge)
+                assert "E) Enable now" in painted, painted
+                assert "N) Not now" in painted, painted
+                assert "L) Learn" in painted, painted
+
+            learn_app = _LearnApp()
+            async with learn_app.run_test(size=size) as pilot:
+                learn = learn_app.query_one("#learn_more", LearnMoreOverlay)
+                await pilot.pause()
+                on_screen(learn, cols, rows)
+                painted = painted_fn(learn)
+                assert "FOOD (FOD)" in painted, painted
+                assert "Esc" in painted, painted
+
+        for size in self._SIZES:
+            asyncio.run(scenario(size))
+
+    def test_class_sweep_remaining_overlays_paint_dismiss_row(self):
+        """Every backpack_ui overlay paints its dismiss/action row at 80x24
+        (render_line / region ∩ screen). visual.plain is not proof.
+        """
+        import asyncio
+
+        from textual.app import App, ComposeResult
+
+        from escape_the_valley.backpack_models import XRPL_EXTRA_MISSING_MSG
+        from escape_the_valley.backpack_ui import (
+            EnableFlowOverlay,
+            SendParcelOverlay,
+        )
+
+        css = self._OVERLAY_CSS
+        painted_fn = self._painted
+        on_screen = self._on_screen
+        quiet_ledger = (
+            "The ledger is quiet. Couldn't send the parcel right now. "
+            "Your supplies are unchanged."
+        )
+        invalid_address = (
+            "'rPT1Sjq2YGrBMTttX4gzHjKu9dyFZYYXrg' is not a valid XRPL "
+            "classic address (starts with 'r', 25-35 base58 chars)."
+        )
+        supplies = (
+            "  FOOD: 50\n  WATR: 50\n  MEDS: 5\n  AMMO: 20\n  PART: 3"
+        )
+
+        class _EnableApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield EnableFlowOverlay(id="enable_flow")
+
+        class _SendApp(App):
+            CSS = css
+
+            def compose(self) -> ComposeResult:
+                yield SendParcelOverlay(id="send_parcel")
+
+        async def scenario(size: tuple[int, int]) -> None:
+            cols, rows = size
+
+            enable_app = _EnableApp()
+            async with enable_app.run_test(size=size) as pilot:
+                enable = enable_app.query_one("#enable_flow", EnableFlowOverlay)
+                enable.show_progress()
+                await pilot.pause()
+                on_screen(enable, cols, rows)
+                painted = painted_fn(enable)
+                assert "Esc" in painted, painted
+
+            send_app = _SendApp()
+            async with send_app.run_test(size=size) as pilot:
+                send = send_app.query_one("#send_parcel", SendParcelOverlay)
+                send.show_failure(XRPL_EXTRA_MISSING_MSG)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_failure(quiet_ledger)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_failure(invalid_address)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_success(
+                    "Sent 5 food to rPT1...YXrg. Receipt: ABCDEF123456..."
+                )
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                assert "Esc" in painted_fn(send), painted_fn(send)
+
+                send.show_form(supplies)
+                await pilot.pause()
+                on_screen(send, cols, rows)
+                painted = painted_fn(send)
+                assert "cancel" in painted, painted
 
         for size in self._SIZES:
             asyncio.run(scenario(size))
