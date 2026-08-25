@@ -21,9 +21,9 @@ We will acknowledge reports within 72 hours and aim to resolve confirmed vulnera
 Escape the Valley is a single-player terminal game. Its threat surface is minimal:
 
 **Network boundaries:**
-- **Ollama GM** (optional): HTTP to localhost:11434 only. No data leaves the machine unless `OLLAMA_HOST` is explicitly pointed at a remote server.
-- **XRPL Testnet** (optional): Connects to XRPL Testnet for ledger backpack features. Wallet seeds are stored locally only, in a gitignored secrets sidecar (see Data at rest). No mainnet interaction.
-- **Voice narration** (optional): Local audio synthesis. No network calls.
+- **Ollama GM** (on by default): `trail tui` / `trail new` / `trail play` issue HTTP to local Ollama at `OLLAMA_HOST` (default `http://localhost:11434`) on the first narrated turn. Pass `--gm-off` to disable. If Ollama is down, narration falls back to deterministic text; a missing GM never bricks a run. No data leaves the machine unless `OLLAMA_HOST` is explicitly pointed at a remote server.
+- **XRPL Testnet** (off until enable): Connects to XRPL Testnet for ledger backpack features only after `trail ledger enable`. Wallet seeds are stored locally only, in a gitignored secrets sidecar (see Data at rest). No mainnet interaction.
+- **Voice narration** (opt-in `--voice`): Local audio synthesis. No network calls.
 
 **Data at rest:**
 - Save files stored in `.trail/run.json` (local directory). Contains game state only — no wallet seeds.
@@ -40,7 +40,7 @@ Escape the Valley is a single-player terminal game. Its threat surface is minima
 
 - No secrets hardcoded in source
 - No telemetry or tracking
-- All network features are opt-in (disabled by default)
+- GM narration is on by default (HTTP to local Ollama); pass `--gm-off` to disable. XRPL is off until `trail ledger enable`. Voice is opt-in (`--voice`)
 - XRPL wallet seeds are Testnet-only and stored locally in a gitignored secrets sidecar (`.trail/secrets.json`), never in `run.json` and never committed
 - Error messages never expose stack traces to users
 - CLI uses structured exit codes (0 success, 1 error)

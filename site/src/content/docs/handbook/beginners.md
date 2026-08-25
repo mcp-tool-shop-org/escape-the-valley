@@ -11,7 +11,7 @@ This page is for players who have never played Escape the Valley before. It walk
 
 Escape the Valley is a survival game inspired by Oregon Trail. You lead a party of 4 settlers through procedurally generated wilderness, managing supplies and making hard choices until you reach the valley exit or die trying.
 
-The game runs in your terminal. An optional AI narrator (powered by Ollama) tells the story as you play. An optional XRPL Testnet ledger tracks your supplies on-chain. Both are disabled by default -- the core game works without them.
+The game runs in your terminal. An AI narrator (powered by local Ollama) is on by default; pass `--gm-off` to disable it. If Ollama is not running, the game falls back to deterministic narration and still plays. An optional XRPL Testnet ledger tracks your supplies on-chain and stays off until you run `trail ledger enable`. The core game works without either.
 
 Every run is seeded. The same seed with the same choices produces the same outcome. This means you can replay a seed to try different strategies.
 
