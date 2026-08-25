@@ -816,3 +816,53 @@ class TestAccessibilityCues:
         assert "(CRITICAL)" in out  # food and/or morale
         assert "(LOW)" in out       # water
         assert "(!)" in out         # critical health marker
+
+    def test_supply_cue_uses_catalog_warning_low(self):
+        """F-c0b4e383: meds/parts warning_low is 1, not a global 5."""
+        from escape_the_valley.resources import RESOURCE_CATALOG
+        from escape_the_valley.ui import _supply_cue
+
+        meds_low = RESOURCE_CATALOG["meds"].warning_low
+        parts_low = RESOURCE_CATALOG["parts"].warning_low
+        assert meds_low == 1
+        assert parts_low == 1
+        assert _supply_cue(5, meds_low) == ""
+        assert _supply_cue(3, parts_low) == ""
+        assert _supply_cue(1, meds_low) == " (LOW)"
+        assert _supply_cue(0, meds_low) == " (CRITICAL)"
+
+    def test_fresh_run_default_meds_parts_are_not_low(self, monkeypatch, capsys):
+        """Starting meds=5 / parts=3 must not cry LOW on every new game."""
+        from escape_the_valley import ui
+
+        state = create_new_run(seed=7)
+        monkeypatch.setattr(
+            ui, "console",
+            ui.Console(no_color=True, force_terminal=True, width=80),
+        )
+        ui.show_status(state)
+        out = capsys.readouterr().out
+        assert "Medicine" in out
+        assert "Parts" in out
+        assert "Medicine (LOW)" not in out
+        assert "Parts (LOW)" not in out
+        assert "5 (LOW)" not in out
+        assert "3 (LOW)" not in out
+
+    def test_food_zero_critical_word_visible_at_80_col(
+        self, monkeypatch, capsys,
+    ):
+        """F-c0b4e383: 'CRITICAL' must not ellipsize to '(CRITI…' at width 80."""
+        from escape_the_valley import ui
+
+        state = create_new_run(seed=7)
+        state.supplies.food = 0
+        monkeypatch.setattr(
+            ui, "console",
+            ui.Console(no_color=True, force_terminal=True, width=80),
+        )
+        ui.show_status(state)
+        out = capsys.readouterr().out
+        assert "CRITICAL" in out
+        assert "CRITI…" not in out
+        assert "(CRITI" not in out.replace("CRITICAL", "")

@@ -29,6 +29,9 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 from textual.worker import WorkerState
 
+from .resources import RESOURCE_CATALOG
+from .ui import _supply_cue
+
 
 # Matches backpack_ui._escape_dynamic (ledger-owned; duplicated here so
 # exclusive ownership holds).
@@ -131,6 +134,11 @@ class StatusPanel(Static):
         # the "Day N" header tag ([b]...[/b], hand-authored in this f-string)
         # is left as real markup. s.day is an int and cannot carry a stray
         # '[...]' tag, so it is not escaped.
+        wagon = _escape_dynamic(s.wagon)
+        if "(CRITICAL)" in s.wagon:
+            wagon = f"[bold red]{wagon}[/]"
+        elif "(LOW)" in s.wagon:
+            wagon = f"[yellow]{wagon}[/]"
         lines = [
             f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}",
             f"Next: {_escape_dynamic(s.next_stop)}",
@@ -138,7 +146,7 @@ class StatusPanel(Static):
             f"Pace: {_escape_dynamic(s.pace)}",
             "",
             _escape_dynamic(s.party_summary),
-            _escape_dynamic(s.wagon),
+            wagon,
         ]
         if s.backpack_status:
             lines.append("")
@@ -149,12 +157,25 @@ class StatusPanel(Static):
 class SuppliesPanel(Static):
     # Display keys that belong to the GEAR category (for visual grouping)
     _GEAR_KEYS = {"PART", "ROPE", "TOOL", "BOOT"}
+    _DEFS_BY_DISPLAY = {rdef.display: rdef for rdef in RESOURCE_CATALOG.values()}
 
     def update_from(self, s: FrameState) -> None:
+        # F-61040cc4: color + (LOW)/(CRITICAL) from ResourceDef.warning_low,
+        # not a hard-coded 5, so FOOD: 0 reads differently from FOOD: 50
+        # even on a monochrome terminal.
         consumables = []
         gear = []
         for k, v in s.supplies.items():
-            line = f"{_escape_dynamic(k)}: {v}"
+            rdef = self._DEFS_BY_DISPLAY.get(k)
+            warning_low = rdef.warning_low if rdef is not None else 5
+            cue = _supply_cue(v, warning_low)
+            label = f"{_escape_dynamic(k)}: {v}{cue}"
+            if v <= 0:
+                line = f"[bold red]{label}[/]"
+            elif warning_low > 0 and v <= warning_low:
+                line = f"[yellow]{label}[/]"
+            else:
+                line = label
             if k in self._GEAR_KEYS:
                 gear.append(line)
             else:
@@ -203,7 +224,16 @@ class NarrationPanel(Markdown):
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        body = "[b]Party[/b]\n" + "\n".join(_escape_dynamic(d) for d in s.party_detail)
+        member_lines = []
+        for d in s.party_detail:
+            esc = _escape_dynamic(d)
+            if d.endswith("dead"):
+                member_lines.append(f"[dim strikethrough]{esc}[/]")
+            elif " (!)" in d:
+                member_lines.append(f"[bold red]{esc}[/]")
+            else:
+                member_lines.append(esc)
+        body = "[b]Party[/b]\n" + "\n".join(member_lines)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
             body += "\n".join(f"\u2022 {_escape_dynamic(w)}" for w in s.warnings)
@@ -303,11 +333,13 @@ class EventBar(Static):
         # engine/ledger-derived text (also dynamic); both are escaped. The
         # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
+        # F-a0f79af3: keep the docked bar short so a 7-choice camp still
+        # leaves room for the HUD at 80x24 (overflow-y: auto on #eventbar).
         text = (
-            f"[b]{_escape_dynamic(s.prompt_title)}[/b]\n"
-            f"{_escape_dynamic(s.prompt_text)}\n\n"
+            f"[b]{_escape_dynamic(s.prompt_title)}[/b]  "
+            f"{_escape_dynamic(s.prompt_text)}\n"
             + body
-            + f"\n\n{hint_line}"
+            + f"\n{hint_line}"
             + degraded_line
         )
         self.update(text)
@@ -491,29 +523,112 @@ def _resolve_css_path() -> str:
     return str(source_default)
 
 
+# Footer groups so q/?/t/r/h/p/1-7 remain visible at 80 columns
+# (F-a0f79af3) instead of Rest collapsing to 'R' behind the palette key.
+_CAMP_KEYS = Binding.Group("Camp", compact=True)
+_CHOICE_KEYS = Binding.Group("A-G", compact=True)
+# Stack the three columns only when they would each drop below ~20 cells.
+# 80x24 (proof size) stays 3-col with 1fr 2fr 1fr; stacking there starves
+# #left of rows and pushes #supplies onto the EventBar.
+_HUD_STACK_WIDTH = 72
+
+
 class LedgerTrailApp(App):
+    TITLE = "Escape the Valley"
+    SUB_TITLE = "Ledger Trail"
     CSS_PATH = _resolve_css_path()
+    # Loaded after CSS_PATH, so these rules win over tui.tcss #main / #eventbar
+    # without editing the stylesheet (outside this domain's owned globs).
+    CSS = """
+    #main {
+        height: 1fr;
+        grid-size: 3 1;
+        grid-columns: 1fr 2fr 1fr;
+        grid-rows: 1fr;
+        padding: 0 1;
+        grid-gutter: 0 1;
+    }
+    #main.-stack {
+        layout: vertical;
+        grid-size: 1 3;
+        grid-columns: 1fr;
+        grid-rows: 1fr 2fr 1fr;
+    }
+    #left, #center, #right {
+        border: none;
+        padding: 0;
+        height: 1fr;
+        width: 100%;
+        overflow-y: auto;
+    }
+    #main.-stack #left {
+        height: 2fr;
+        min-height: 5;
+    }
+    #main.-stack #center {
+        height: 2fr;
+        min-height: 4;
+    }
+    #main.-stack #right {
+        height: 1fr;
+        min-height: 3;
+    }
+    #status, #supplies {
+        height: 1fr;
+        min-height: 1;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #map {
+        height: 1fr;
+        min-height: 3;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #narration {
+        height: 2fr;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #party {
+        height: 1fr;
+        overflow-y: auto;
+        padding: 0 1;
+        border: tall #223040;
+    }
+    #eventbar {
+        dock: bottom;
+        height: auto;
+        min-height: 3;
+        max-height: 5;
+        overflow-y: auto;
+        padding: 0 1;
+    }
+    """
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("question_mark", "toggle_help", "Help"),
-        Binding("shift+j", "toggle_journal", "Journal"),
-        Binding("l", "toggle_ledger", "Ledger"),
-        Binding("v", "toggle_voice", "Voice"),
-        Binding("t", "intent('TRAVEL')", "Travel"),
-        Binding("r", "intent('REST')", "Rest"),
-        Binding("h", "intent('HUNT')", "Hunt"),
-        Binding("p", "intent('REPAIR')", "Repair"),
-        Binding("1", "choose('A')", "A"),
-        Binding("2", "choose('B')", "B"),
-        Binding("3", "choose('C')", "C"),
-        Binding("4", "choose('D')", "D"),
+        Binding("shift+j", "toggle_journal", "Journal", show=False),
+        Binding("l", "toggle_ledger", "Ledger", show=False),
+        Binding("v", "toggle_voice", "Voice", show=False),
+        Binding("t", "intent('TRAVEL')", "Travel", group=_CAMP_KEYS),
+        Binding("r", "intent('REST')", "Rest", group=_CAMP_KEYS),
+        Binding("h", "intent('HUNT')", "Hunt", group=_CAMP_KEYS),
+        Binding("p", "intent('REPAIR')", "Repair", group=_CAMP_KEYS),
+        Binding("1", "choose('A')", "A", group=_CHOICE_KEYS),
+        Binding("2", "choose('B')", "B", group=_CHOICE_KEYS),
+        Binding("3", "choose('C')", "C", group=_CHOICE_KEYS),
+        Binding("4", "choose('D')", "D", group=_CHOICE_KEYS),
         # cli-tui-B-01: the escape valves are reachable. 5/6/7 map to the
         # conditional E/F/G choices; e/f/g are handled in on_key (so they don't
         # collide with the ledger/nudge overlay letters) when no overlay is up.
-        Binding("5", "choose('E')", "E"),
-        Binding("6", "choose('F')", "F"),
-        Binding("7", "choose('G')", "G"),
+        Binding("5", "choose('E')", "E", group=_CHOICE_KEYS),
+        Binding("6", "choose('F')", "F", group=_CHOICE_KEYS),
+        Binding("7", "choose('G')", "G", group=_CHOICE_KEYS),
     ]
 
     show_help: reactive[bool] = reactive(False)
@@ -623,9 +738,27 @@ class LedgerTrailApp(App):
             yield parcel_input
             yield ParcelNotification(id="parcel_notify")
 
-        yield Footer()
+        yield Footer(show_command_palette=False, compact=True)
+
+    def on_resize(self, event) -> None:
+        self._reflow_hud()
+
+    def _reflow_hud(self) -> None:
+        """Stack the three HUD columns under ~100 cols (F-a0f79af3).
+
+        Fixed ``grid-columns: 28 1fr 28`` collapses the map to ~10 cells at
+        80 wide. Below ``_HUD_STACK_WIDTH`` the grid becomes a vertical stack
+        so status, supplies, and the map keep a usable width; at 120+ the
+        three-column layout with minmax tracks stays.
+        """
+        try:
+            main = self.query_one("#main")
+        except Exception:
+            return
+        main.set_class(self.size.width < _HUD_STACK_WIDTH, "-stack")
 
     def on_mount(self) -> None:
+        self._reflow_hud()
         if self._engine:
             self._sync_frame()
 

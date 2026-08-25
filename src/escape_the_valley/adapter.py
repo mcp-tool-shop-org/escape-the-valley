@@ -12,6 +12,7 @@ from .physics import can_abandon_cargo, can_desperate_repair, can_hard_ration
 from .resources import RESOURCE_CATALOG, ResourceCategory
 from .step_engine import StepEngine, compute_ending
 from .tui_app import Choice, FrameState
+from .ui import _health_cue, _wagon_cue
 
 
 def camp_choices(state):
@@ -79,9 +80,10 @@ def state_to_frame(engine: StepEngine) -> FrameState:
     biome = cur_node.biome.value.title() if cur_node else "?"
     weather = s.time_of_day.value.title()
 
-    # Wagon summary
+    # Wagon summary — F-61040cc4: reuse CLI cue language so a monochrome
+    # read of the TUI wagon line still distinguishes 8% from 80%.
     wagon = (
-        f"Wagon: {s.wagon.condition}% \u2022 "
+        f"Wagon: {s.wagon.condition}%{_wagon_cue(s.wagon.condition)} \u2022 "
         f"Animals: {s.wagon.animals_health}%"
     )
 
@@ -119,14 +121,16 @@ def state_to_frame(engine: StepEngine) -> FrameState:
     if not narration:
         narration = _idle_narration(s, cur_node)
 
-    # Party detail
+    # Party detail — F-61040cc4: health-band (!) and dead marker, same
+    # language as ui.show_status, keyed off is_alive / health<=30.
     party_detail = []
     for m in s.party.members:
         if m.is_alive():
             traits = ", ".join(t.value for t in m.traits)
             cond = m.condition.value
+            cue = _health_cue(m.health, alive=True)
             party_detail.append(
-                f"{m.name} \u2014 {m.health}% ({cond})"
+                f"{m.name} \u2014 {m.health}%{cue} ({cond})"
                 + (f" [{traits}]" if traits else "")
             )
         else:
