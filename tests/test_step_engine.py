@@ -2420,29 +2420,27 @@ def test_gameengine_self_edge_single_connection_does_not_loop_or_manufacture_vic
 # true.
 
 
-class _MaliciousChoiceScene:
-    """A GM scene whose choice ids are attacker/model-controlled garbage
-    instead of the constrained A-G literal set -- script-injection-shaped,
-    empty, and (for the third choice) missing entirely."""
+class _ScriptedChoiceScene:
+    """A GM scene with caller-supplied choice dicts (ids may be garbage)."""
 
-    def __init__(self):
+    def __init__(self, choices):
         self.title = "A Stranger at Dusk"
         self.narration = "The trail narrows."
-        self.choices = [
-            {"id": "<script>alert(1)</script>", "label": "Press on",
-             "risk_hint": "", "cost_hint": ""},
-            {"id": "", "label": "Make camp", "risk_hint": "", "cost_hint": ""},
-            {"label": "Turn back", "risk_hint": "", "cost_hint": ""},
-        ]
+        self.choices = choices
         self.memory_proposals = []
 
 
-class _MaliciousChoiceGM:
-    def __init__(self):
-        self.config = GMConfig(enabled=True)
+class _ScriptedChoiceGM:
+    """Enabled GM that returns a scripted scene; records the event it saw."""
 
-    def generate_scene(self, *a, **k):
-        return _MaliciousChoiceScene()
+    def __init__(self, choices):
+        self.config = GMConfig(enabled=True)
+        self._choices = choices
+        self.last_event = None
+
+    def generate_scene(self, state, event, weather_str, brief=None):
+        self.last_event = event
+        return _ScriptedChoiceScene(self._choices)
 
     def generate_outcome(self, *a, **k):
         return _FakeOutcome()
@@ -2451,19 +2449,54 @@ class _MaliciousChoiceGM:
         pass
 
 
-def test_gm_choice_ids_are_coerced_to_the_constrained_letter_set(monkeypatch):
-    """F-d4a8ed17: EventChoiceInfo.id must always land in "A".."G" --
-    coerced positionally (list index -> letter) regardless of whatever the
-    GM put in each choice's "id" field, so the UI's markup-escaping
-    exemption for that field is actually safe."""
-    engine = _force_event_engine(seed=42, gm=_MaliciousChoiceGM())
-    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)  # force event trigger
+class _MaliciousChoiceGM(_ScriptedChoiceGM):
+    def __init__(self):
+        super().__init__([
+            {"id": "<script>alert(1)</script>", "label": "Press on",
+             "risk_hint": "", "cost_hint": ""},
+            {"id": "", "label": "Make camp", "risk_hint": "", "cost_hint": ""},
+            {"label": "Turn back", "risk_hint": "", "cost_hint": ""},
+        ])
 
+
+_FOUR_CHOICE_RAW = [
+    {"id": "wait", "label": "Wait it out", "risk_hint": "", "cost_hint": ""},
+    {"id": "push", "label": "Push through", "risk_hint": "", "cost_hint": ""},
+    {"id": "scout", "label": "Scout around", "risk_hint": "", "cost_hint": ""},
+    {"id": "back", "label": "Turn back", "risk_hint": "", "cost_hint": ""},
+]
+
+
+def _pin_library_event(engine, event_id: str):
+    """Restrict the engine's library to one real skeleton (select_event stays)."""
+    pinned = next(e for e in engine.event_library if e.event_id == event_id)
+    engine.event_library = [pinned]
+    return pinned
+
+
+def _force_gm_event(monkeypatch, event_id: str, gm, seed: int = 42):
+    """Travel into EVENT with a pinned library event and a scripted GM scene."""
+    engine = _force_event_engine(seed=seed, gm=gm)
+    pinned = _pin_library_event(engine, event_id)
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
     engine.step(PlayerIntent(IntentAction.TRAVEL))
+    return engine, pinned
+
+
+def test_gm_choice_ids_are_coerced_to_the_constrained_letter_set(monkeypatch):
+    """F-d4a8ed17 + F-15a1534a: EventChoiceInfo.id is coerced onto A-G AND
+    capped to keys that exist in the pinned event's outcome_templates --
+    not merely markup-safe letters. storm_sudden is a 3-template event,
+    so a 3-choice GM scene (with garbage ids) must offer A/B/C."""
+    gm = _MaliciousChoiceGM()
+    engine, pinned = _force_gm_event(monkeypatch, "storm_sudden", gm)
+
     assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B", "C"}
 
     ids = [c.id for c in engine._pending_event_choices]
     assert ids == ["A", "B", "C"]
+    assert set(ids) <= set(pinned.outcome_templates)
     assert "<script>alert(1)</script>" not in ids
     assert "" not in ids
     assert "?" not in ids
@@ -2471,6 +2504,93 @@ def test_gm_choice_ids_are_coerced_to_the_constrained_letter_set(monkeypatch):
     # Labels are untouched -- only the id field is coerced.
     labels = [c.label for c in engine._pending_event_choices]
     assert labels == ["Press on", "Make camp", "Turn back"]
+
+
+def test_gm_four_choices_on_two_template_event_offers_only_a_and_b(monkeypatch):
+    """F-15a1534a: a schema-valid 4-choice GM scene on a 2-template event
+    (good_water: A/B) must drop C/D rather than offer unresolvable letters."""
+    gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+    engine, pinned = _force_gm_event(monkeypatch, "good_water", gm)
+
+    assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B"}
+
+    offered = [(c.id, c.label) for c in engine._pending_event_choices]
+    assert offered == [("A", "Wait it out"), ("B", "Push through")]
+    assert "C" not in [c.id for c in engine._pending_event_choices]
+
+
+def test_gm_three_choices_on_three_template_event_offers_a_b_c(monkeypatch):
+    """F-15a1534a: a 3-choice GM scene on a 3-template event offers A/B/C."""
+    gm = _ScriptedChoiceGM([
+        {"id": "wait", "label": "Wait it out", "risk_hint": "", "cost_hint": ""},
+        {"id": "push", "label": "Push through", "risk_hint": "", "cost_hint": ""},
+        {"id": "scout", "label": "Scout around", "risk_hint": "", "cost_hint": ""},
+    ])
+    engine, pinned = _force_gm_event(monkeypatch, "storm_sudden", gm)
+
+    assert engine.phase == GamePhase.EVENT
+    assert set(pinned.outcome_templates) == {"A", "B", "C"}
+    ids = [c.id for c in engine._pending_event_choices]
+    assert ids == ["A", "B", "C"]
+    assert set(ids) <= set(pinned.outcome_templates)
+
+
+def test_choose_c_on_two_template_event_is_rejected_not_visible_miss(monkeypatch):
+    """F-15a1534a: CHOOSE C is no longer an offered id on a 2-template event,
+    so ENG-B-06 rejects rather than resolving to events' visible-miss."""
+    gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+    engine, _pinned = _force_gm_event(monkeypatch, "good_water", gm)
+    assert engine.phase == GamePhase.EVENT
+    offered = [c.id for c in engine._pending_event_choices]
+    assert "C" not in offered
+
+    journal_before = len(engine.state.journal)
+    msgs = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="C"))
+
+    assert engine.phase == GamePhase.EVENT
+    assert engine._pending_event is not None
+    assert any("isn't available" in line for line in msgs.lines)
+    assert len(engine.state.journal) == journal_before
+
+
+def test_gameengine_gm_scene_ids_are_letters_from_the_template_set(monkeypatch):
+    """F-15a1534a: GameEngine must coerce raw GM ids onto template letters
+    and cap to outcome_templates -- not forward wait/push/scout/back."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    state = create_new_run(seed=42)
+    engine = GameEngine(state, GMConfig(enabled=True))
+    pinned = _pin_library_event(engine, "good_water")
+    assert set(pinned.outcome_templates) == {"A", "B"}
+
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    engine.gm = _ScriptedChoiceGM(_FOUR_CHOICE_RAW)
+
+    captured: dict = {}
+
+    def _capture_scene(title, narration, choices):
+        captured["choices"] = list(choices)
+        return "A"
+
+    monkeypatch.setattr(engine_mod, "show_event_scene", _capture_scene)
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+
+    water_before = engine.state.supplies.water
+    engine._trigger_event()
+
+    ids = [c.get("id") for c in captured["choices"]]
+    labels = [c.get("label") for c in captured["choices"]]
+    assert ids == ["A", "B"]
+    assert set(ids) <= set(pinned.outcome_templates)
+    assert "wait" not in ids
+    assert "scout" not in ids
+    assert labels == ["Wait it out", "Push through"]
+    # Picking A honors the real template (water +10), not a visible-miss.
+    assert engine.state.supplies.water == water_before + 10
 
 
 # ── F-d178410b (wave 8): BackpackManager's persist hook wired at the ──
