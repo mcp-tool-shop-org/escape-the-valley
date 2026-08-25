@@ -193,6 +193,32 @@ def show_event_scene(title: str, narration: str, choices: list[dict]) -> str:
         console.print(f"  [dim]Choose one of: {', '.join(valid_ids)}[/dim]")
 
 
+def _is_numeric_delta(val: object) -> bool:
+    """True for a delta value safe to do arithmetic on (cli-tui-008 guard).
+
+    A corrupted/loaded save (an older schema, partial corruption, or a future
+    engine change) can carry a non-numeric delta value. Shared by
+    show_outcome and _delta_magnitude so both degrade the same way — skip the
+    bad value — instead of raising.
+    """
+    return isinstance(val, (int, float))
+
+
+def _delta_magnitude(deltas: dict) -> float:
+    """Magnitude of a journal entry's deltas, ignoring non-numeric values.
+
+    Sibling guard to cli-tui-008 (show_outcome): show_game_over ranks journal
+    entries by ``abs(sum(deltas.values()))`` to find the "most notable event".
+    The same non-numeric delta that show_outcome already defends against
+    would raise an uncaught TypeError here too — at the worst possible
+    moment, since this only runs once a run has ended and the player is about
+    to see the summary screen (F-5ed15e0b).
+    """
+    if not deltas:
+        return 0
+    return abs(sum(v for v in deltas.values() if _is_numeric_delta(v)))
+
+
 def show_outcome(title: str, narration: str, callout: str, deltas: dict) -> None:
     """Display the outcome of a choice."""
     text = narration
@@ -205,7 +231,7 @@ def show_outcome(title: str, narration: str, callout: str, deltas: dict) -> None
             # Guard against a corrupted/loaded save with a non-numeric delta —
             # skip it rather than raise a raw TypeError to the player
             # (cli-tui-008).
-            if not isinstance(val, (int, float)):
+            if not _is_numeric_delta(val):
                 continue
             if val > 0:
                 delta_parts.append(f"[green]+{val} {key}[/green]")
@@ -301,7 +327,12 @@ def show_game_over(state: RunState) -> None:
     summary += f"\nProfile: {state.gm_profile.value}"
 
     if state.journal:
-        best = max(state.journal, key=lambda e: abs(sum(e.deltas.values())) if e.deltas else 0)
+        # F-5ed15e0b: ranks by _delta_magnitude (the same non-numeric-safe
+        # guard as show_outcome above) instead of raw abs(sum(...)) — a
+        # corrupted/loaded save with a non-numeric delta must not crash the
+        # end-of-run screen, the one screen the player can least afford to
+        # lose.
+        best = max(state.journal, key=lambda e: _delta_magnitude(e.deltas))
         if best.scene_title:
             summary += f"\n\nMost notable event: {best.scene_title}"
 

@@ -14,7 +14,9 @@ Keys:
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 from textual import work
@@ -23,6 +25,7 @@ from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
+from textual.worker import WorkerState
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
@@ -374,8 +377,56 @@ class HelpOverlay(Static):
 # ── App ─────────────────────────────────────────────────────────────
 
 
+def _resolve_css_path() -> str:
+    """Resolve tui.tcss for both a source checkout and a frozen PyInstaller
+    onefile build (F-96d427ea).
+
+    Textual's own CSS_PATH resolution (for a bare relative string) calls
+    inspect.getfile() against the App subclass's module and resolves the
+    stylesheet relative to that file's parent directory. That is correct for
+    a normal install — pip/pipx unpack the whole ``escape_the_valley``
+    package, so tui.tcss sits right next to this module on disk — but it is
+    not something a frozen build can rely on: a PyInstaller onefile bundle
+    stores pure-Python modules in an in-memory PYZ archive, not as real files,
+    so there is no guarantee inspect.getfile() returns a path that exists on
+    disk, or that its parent lines up with wherever the release workflow's
+    ``--add-data`` actually extracted the stylesheet under sys._MEIPASS.
+
+    Rather than trust that alignment, resolve explicitly: outside a frozen
+    build, compute the exact same source-relative path Textual would have
+    (so behavior for every existing install is unchanged); inside one, search
+    the plausible extraction locations under sys._MEIPASS and use whichever
+    one is actually present. This is the *application* half of the fix — the
+    release workflow still has to ``--add-data`` the file for either
+    candidate to exist; see the release-binaries.yml `Build binary` step.
+    """
+    source_default = Path(__file__).resolve().parent / "tui.tcss"
+
+    meipass = getattr(sys, "_MEIPASS", None)
+    if not getattr(sys, "frozen", False) or not meipass:
+        return str(source_default)
+
+    meipass_dir = Path(meipass)
+    candidates = [
+        # --add-data ".../tui.tcss<sep>escape_the_valley" (package-relative,
+        # mirrors how --collect-data textual lays out that package's assets).
+        meipass_dir / "escape_the_valley" / "tui.tcss",
+        # --add-data ".../tui.tcss<sep>." (flat, dropped at the bundle root).
+        meipass_dir / "tui.tcss",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+
+    # Bundled nowhere we expect — fall back to the source-tree computation.
+    # It won't exist either (that's the underlying bug), but it fails with
+    # the same familiar "missing tui.tcss next to tui_app.py" shape rather
+    # than a silently-wrong _MEIPASS guess.
+    return str(source_default)
+
+
 class LedgerTrailApp(App):
-    CSS_PATH = "tui.tcss"
+    CSS_PATH = _resolve_css_path()
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -714,7 +765,12 @@ class LedgerTrailApp(App):
         In CAMP phase, the conditional escape valves E/F/G map to their own
         IntentActions via the shared camp_choices() table (cli-tui-B-01); a
         valve letter the gate hasn't opened resolves to nothing and is
-        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id.
+        ignored. In EVENT/ROUTE phase the engine consumes the raw CHOOSE id,
+        but only if it is one of the choices actually offered this frame
+        (F-133540bb) — mirroring CAMP's own 'ungated letter is ignored'
+        behavior instead of forwarding a phantom choice_id the player never
+        saw (all seven digit bindings stay live regardless of phase, and a
+        2-3 option EVENT/ROUTE frame never fills all seven).
         """
         # On the end screen the gameplay choice keys (1-7 / e-g) are dead: the
         # run is over and StepEngine.step short-circuits at GAME_OVER anyway, so
@@ -736,6 +792,16 @@ class LedgerTrailApp(App):
                 return
             intent = PlayerIntent(action=action)
         else:
+            # F-133540bb: the seven digit/letter choice bindings are always
+            # active, but a typical EVENT/ROUTE frame only ever offers 2-4
+            # choices. Validate against what the frame is actually showing
+            # instead of trusting the engine to reject an unlisted id — an
+            # unguarded id either raises inside StepEngine.step (feeding the
+            # worker-exception hang, F-9c0e7613) or silently resolves to an
+            # option the player never picked.
+            offered = {c.id for c in self._frame.choices}
+            if choice_id not in offered:
+                return
             intent = PlayerIntent(
                 action=IntentAction.CHOOSE,
                 choice_id=choice_id,
@@ -990,6 +1056,57 @@ class LedgerTrailApp(App):
         except Exception:
             return False
 
+    # ── Worker failure recovery (F-9c0e7613) ────────────────────────
+    #
+    # None of the five @work(thread=True) workers below used to catch
+    # exceptions from their blocking call before invoking call_from_thread on
+    # their finish_* handler. Every mutating action handler is gated on
+    # 'not self._in_flight', and that flag was only ever cleared from inside
+    # a finish_* handler — so a raise (a save-to-disk failure, a corrupted
+    # -state KeyError, an XRPL client error, an unexpected GM/network
+    # exception) skipped straight past the completion step and the entire
+    # input surface froze forever, with Textual's default exit_on_error=True
+    # handling on top of that turning the same raise into a hard app crash
+    # instead. Both outcomes are worse than telling the player plainly and
+    # staying interactive.
+    def _worker_failed(self, context: str, exc: BaseException) -> None:
+        """UI-thread failure completion shared by every worker below.
+
+        Every worker's except-block calls this via call_from_thread instead
+        of letting the exception escape: clear the busy flag so the input
+        surface is never stuck, tell the player what happened (their last
+        autosave is untouched — this only aborts the in-flight action), and
+        repaint immediately.
+        """
+        self._in_flight = False
+        self._token_sink = None
+        self._streaming = False
+        self.notify(
+            f"Something went wrong ({context}): {exc}. "
+            "Your last save is intact.",
+            severity="error",
+            timeout=8,
+        )
+        self._render_all()
+
+    def on_worker_state_changed(self, event) -> None:
+        """Belt-and-suspenders net: fail safe even without per-worker discipline.
+
+        Every current worker already catches its own exceptions (below) and
+        routes to _worker_failed directly, so in normal operation this should
+        never observe WorkerState.ERROR. It exists so a *future* worker added
+        without that discipline still unfreezes _in_flight and tells the
+        player, instead of leaving the input surface stuck forever — which is
+        only meaningful because every worker below also sets
+        exit_on_error=False, so Textual's default 'crash the whole app on an
+        unhandled worker exception' handling never pre-empts this recovery.
+        """
+        if event.state is not WorkerState.ERROR:
+            return
+        worker = event.worker
+        error = worker.error or RuntimeError("unknown worker failure")
+        self._worker_failed(worker.name or "background task", error)
+
     # _in_flight invariant (read before touching any @work worker below):
     #   * exclusive=True is PER-GROUP. The "step" group (gameplay step) and the
     #     "ledger" group (enable/settle/wallet_info/send_parcel) are SEPARATE
@@ -1004,10 +1121,14 @@ class LedgerTrailApp(App):
     #     the write (self._in_flight = True) are never interleaved across
     #     actions. The workers themselves only ever flip it back to False via
     #     call_from_thread, i.e. marshalled back onto that same loop.
-    @work(thread=True, exclusive=True, group="step")
+    @work(thread=True, exclusive=True, group="step", exit_on_error=False)
     def _step_worker(self, intent) -> None:
         """Thread worker: the actual blocking engine step + frame sync."""
-        self._engine.step(intent)
+        try:
+            self._engine.step(intent)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "step", exc)
+            return
         # Marshal all widget/state mutations back onto the UI thread.
         self.call_from_thread(self._finish_step)
 
@@ -1075,15 +1196,19 @@ class LedgerTrailApp(App):
         self._finish_enable(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _enable_worker(self) -> None:
         from .backpack import BackpackManager
 
-        mgr = BackpackManager()
-        result = mgr.enable(self._engine.state)
-        mgr.close()
-        if result.success:
-            self._save()
+        try:
+            mgr = BackpackManager()
+            result = mgr.enable(self._engine.state)
+            mgr.close()
+            if result.success:
+                self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger enable", exc)
+            return
         self.call_from_thread(self._finish_enable, result)
 
     def _finish_enable(self, result) -> None:
@@ -1155,14 +1280,18 @@ class LedgerTrailApp(App):
         self._finish_settle(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _settle_worker(self, location: str) -> None:
         from .backpack import BackpackManager
 
-        mgr = BackpackManager()
-        result = mgr.settle(self._engine.state, location)
-        mgr.close()
-        self._save()
+        try:
+            mgr = BackpackManager()
+            result = mgr.settle(self._engine.state, location)
+            mgr.close()
+            self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "ledger settle", exc)
+            return
         self.call_from_thread(self._finish_settle, result)
 
     def _finish_settle(self, result) -> None:
@@ -1203,12 +1332,16 @@ class LedgerTrailApp(App):
         self._finish_wallet_info(info)
         return info
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _wallet_info_worker(self) -> None:
         from .backpack import BackpackManager
 
-        mgr = BackpackManager()
-        info = mgr.wallet_info(self._engine.state)
+        try:
+            mgr = BackpackManager()
+            info = mgr.wallet_info(self._engine.state)
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "wallet info", exc)
+            return
         self.call_from_thread(self._finish_wallet_info, info)
 
     def _finish_wallet_info(self, info) -> None:
@@ -1342,17 +1475,21 @@ class LedgerTrailApp(App):
         self._finish_send_parcel(result)
         return result
 
-    @work(thread=True, exclusive=True, group="ledger")
+    @work(thread=True, exclusive=True, group="ledger", exit_on_error=False)
     def _send_parcel_worker(
         self, address: str, supply: str, amount: int,
     ) -> None:
         from .backpack import BackpackManager
 
-        mgr = BackpackManager()
-        result = mgr.send_parcel(self._engine.state, address, supply, amount)
-        mgr.close()
-        if result.success:
-            self._save()
+        try:
+            mgr = BackpackManager()
+            result = mgr.send_parcel(self._engine.state, address, supply, amount)
+            mgr.close()
+            if result.success:
+                self._save()
+        except Exception as exc:
+            self.call_from_thread(self._worker_failed, "send parcel", exc)
+            return
         self.call_from_thread(self._finish_send_parcel, result)
 
     def _finish_send_parcel(self, result) -> None:
