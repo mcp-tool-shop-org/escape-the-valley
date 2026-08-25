@@ -48,6 +48,20 @@ from .worldgen import generate_weather
 
 log = logging.getLogger(__name__)
 
+# F-d4a8ed17 / F-15a1534a: same letter set and template cap as
+# step_engine.py -- GameEngine's GM-scene branch used to forward raw
+# scene.choices, so non-letter GM ids made every offered choice a miss.
+_EVENT_CHOICE_LETTERS = "ABCDEFG"
+
+
+def _template_choice_letters(event) -> list[str]:
+    """A-G letters this event's outcome_templates actually define.
+
+    GM scenes may list 2-4 choices; the library's templates are A/B or A/B/C.
+    Offering a letter resolve_event cannot honor is the engine lying.
+    """
+    return [letter for letter in _EVENT_CHOICE_LETTERS if letter in event.outcome_templates]
+
 
 class GameEngine:
     """Main game engine that orchestrates turns, events, and GM interaction."""
@@ -270,7 +284,21 @@ class GameEngine:
         if scene and scene.choices:
             title = scene.title or event.title
             narration = scene.narration or event.fallback_narration
-            choices = scene.choices
+            # F-d4a8ed17: coerce positionally onto A-G rather than trusting
+            # the GM's id field. F-15a1534a: cap to keys that exist in
+            # event.outcome_templates so a 4-choice GM scene on a 2-template
+            # event offers A/B, never an unresolvable letter. zip drops
+            # extras; fallback_choices below already match templates 1:1.
+            letters = _template_choice_letters(event)
+            choices = [
+                {
+                    "id": letter,
+                    "label": c.get("label", "?"),
+                    "risk_hint": c.get("risk_hint", ""),
+                    "cost_hint": c.get("cost_hint", ""),
+                }
+                for letter, c in zip(letters, scene.choices, strict=False)
+            ]
         else:
             title = event.title
             narration = event.fallback_narration

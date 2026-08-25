@@ -78,6 +78,15 @@ log = logging.getLogger(__name__)
 _EVENT_CHOICE_LETTERS = "ABCDEFG"
 
 
+def _template_choice_letters(event) -> list[str]:
+    """A-G letters this event's outcome_templates actually define.
+
+    GM scenes may list 2-4 choices; the library's templates are A/B or A/B/C.
+    Offering a letter resolve_event cannot honor is the engine lying.
+    """
+    return [letter for letter in _EVENT_CHOICE_LETTERS if letter in event.outcome_templates]
+
+
 @dataclass
 class EventChoiceInfo:
     """A single choice the player can pick during an event."""
@@ -772,29 +781,23 @@ class StepEngine:
         if scene and scene.choices:
             title = scene.title or event.title
             narration = scene.narration or event.fallback_narration
-            # F-d4a8ed17: `c` here is unvalidated GM JSON (scene.choices).
-            # The fallback branch below sets `id=c.choice_id`, drawn from
-            # this engine's own static ChoiceTemplate data -- already
-            # safely constrained. This branch used to trust the GM's own
-            # `c.get("id", "?")` verbatim, which is exactly what the UI's
-            # markup-escaping exemption assumes never happens (see
-            # _EVENT_CHOICE_LETTERS above). Coerce positionally (list
-            # index -> letter) instead of trusting the GM's id field at
-            # all: the same enforcement-boundary pattern _handle_route_
-            # choice's idx_map already applies to player-submitted route
-            # picks. This guarantees every EventChoiceInfo.id is one of
-            # "A".."G" with no duplicates; a GM scene offering more than
-            # 7 choices has the excess dropped rather than assigned an
-            # id outside that set.
+            # F-d4a8ed17: coerce positionally onto A-G rather than trusting
+            # the GM's id field -- the UI's markup-escaping exemption for
+            # EventChoiceInfo.id assumes this module is that boundary.
+            # F-15a1534a: also cap to keys that exist in
+            # event.outcome_templates. A schema-valid 4-choice GM scene on a
+            # 2-template event must offer A/B, never C/D that resolve_event
+            # cannot honor. zip drops extras; fallback_choices below already
+            # match templates 1:1.
+            letters = _template_choice_letters(event)
             choices = [
                 EventChoiceInfo(
-                    id=_EVENT_CHOICE_LETTERS[i],
+                    id=letter,
                     label=c.get("label", "?"),
                     risk_hint=c.get("risk_hint", ""),
                     cost_hint=c.get("cost_hint", ""),
                 )
-                for i, c in enumerate(scene.choices)
-                if i < len(_EVENT_CHOICE_LETTERS)
+                for letter, c in zip(letters, scene.choices, strict=False)
             ]
         else:
             # ENG-B-05: GM was enabled but produced nothing usable — fall back to
