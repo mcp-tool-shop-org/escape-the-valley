@@ -643,3 +643,228 @@ class TestSelfCheckHints:
         assert result.exit_code == 0
         assert "reachable" in result.output
         assert "not found" not in result.output
+
+
+def _stub_ollama_down(monkeypatch):
+    """Keep self-check tests offline — Ollama is not the probe under test."""
+    import httpx
+
+    def _boom(*a, **k):
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr(httpx, "get", _boom)
+
+
+class TestSelfCheckOptionalProbes:
+    """F-6af2cd01: event-library, voice, xrpl, tui.tcss — non-failing probes."""
+
+    def test_source_names_optional_probes(self):
+        """inspect.getsource(self_check) must name the optional axes."""
+        import inspect
+
+        from escape_the_valley.cli import self_check
+
+        src = inspect.getsource(self_check)
+        assert "_HAS_XRPL" in src
+        assert "VoiceBridge" in src
+        assert "VoiceConfig" in src
+        assert "voice extra" in src
+        assert "tui.tcss" in src
+        assert "build_event_library" in src
+        assert "_resolve_css_path" in src
+
+    def test_reports_event_library_and_optionals(self, monkeypatch):
+        _stub_ollama_down(monkeypatch)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "Event library:" in result.output
+        assert "xrpl extra" in result.output
+        assert "voice extra" in result.output
+        assert "tui.tcss" in result.output
+
+    def test_event_library_count_meets_floor(self, monkeypatch):
+        import re
+
+        from escape_the_valley.cli import _EVENT_LIBRARY_FLOOR
+
+        _stub_ollama_down(monkeypatch)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        # Worktree ships event_skeletons.json; a real load is the probe.
+        match = re.search(r"Event library:.*?(\d+)\s+events", result.output)
+        assert match is not None
+        assert int(match.group(1)) >= _EVENT_LIBRARY_FLOOR
+
+    def test_low_event_count_prints_degraded(self, monkeypatch):
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr(
+            "escape_the_valley.events.build_event_library",
+            lambda: [object()] * 60,
+        )
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "60" in result.output
+        assert "event_skeletons.json" in result.output
+
+    def test_xrpl_absent_prints_extra_hint(self, monkeypatch):
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.backpack._HAS_XRPL", False)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "xrpl extra absent" in result.output
+        assert "escape-the-valley[xrpl]" in result.output
+
+    def test_xrpl_present_prints_present(self, monkeypatch):
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.backpack._HAS_XRPL", True)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "xrpl extra present" in result.output
+
+    def test_voice_absent_prints_extra_hint(self, monkeypatch):
+        class _Missing:
+            def __init__(self, config=None):
+                pass
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": False,
+                    "last_error": None,
+                }
+
+            def start(self):
+                raise AssertionError("self-check must not start the voice worker")
+
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Missing)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "voice extra absent" in result.output
+        assert "escape-the-valley[voice]" in result.output
+
+    def test_voice_installed_but_not_live(self, monkeypatch):
+        class _Dead:
+            started = False
+
+            def __init__(self, config=None):
+                pass
+
+            def status(self):
+                return {
+                    "installed": True,
+                    "available": False,
+                    "enabled": False,
+                    "last_error": "No audio player found",
+                }
+
+            def start(self):
+                _Dead.started = True
+                raise AssertionError("self-check must not start the voice worker")
+
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Dead)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "voice extra present but not live" in result.output
+        assert "No audio player found" in result.output
+        assert _Dead.started is False
+
+    def test_voice_live_does_not_start_worker(self, monkeypatch):
+        class _Live:
+            started = False
+
+            def __init__(self, config=None):
+                pass
+
+            def status(self):
+                return {
+                    "installed": True,
+                    "available": True,
+                    "enabled": False,
+                    "last_error": None,
+                }
+
+            def start(self):
+                _Live.started = True
+                return True
+
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Live)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "voice extra present" in result.output
+        assert "live" in result.output
+        assert _Live.started is False
+
+    def test_css_missing_prints_degraded(self, tmp_path, monkeypatch):
+        missing = tmp_path / "no-such" / "tui.tcss"
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr(
+            "escape_the_valley.tui_app._resolve_css_path",
+            lambda: str(missing),
+        )
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "tui.tcss" in result.output
+        assert "missing" in result.output
+        assert "TUI stylesheet missing" in result.output
+
+    def test_css_present_when_file_exists(self, tmp_path, monkeypatch):
+        css = tmp_path / "tui.tcss"
+        css.write_text("Screen { background: black; }\n", encoding="utf-8")
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr(
+            "escape_the_valley.tui_app._resolve_css_path",
+            lambda: str(css),
+        )
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "TUI stylesheet found" in result.output
+        assert "tui.tcss" in result.output
+
+    def test_self_check_does_not_write_save(self, tmp_path, monkeypatch):
+        """self-check must not call save_game into CWD (or the launch dir)."""
+        from pathlib import Path
+
+        _stub_ollama_down(monkeypatch)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        cwd = Path.cwd()
+        assert not (cwd / ".trail" / "run.json").exists()
+        assert not (tmp_path / ".trail" / "run.json").exists()
+        assert not (tmp_path / "_cwd" / ".trail" / "run.json").exists()
+
+    def test_degraded_optionals_still_exit_zero(self, tmp_path, monkeypatch):
+        missing_css = tmp_path / "gone" / "tui.tcss"
+        _stub_ollama_down(monkeypatch)
+        monkeypatch.setattr("escape_the_valley.backpack._HAS_XRPL", False)
+        monkeypatch.setattr(
+            "escape_the_valley.events.build_event_library",
+            lambda: [object()] * 60,
+        )
+        monkeypatch.setattr(
+            "escape_the_valley.tui_app._resolve_css_path",
+            lambda: str(missing_css),
+        )
+
+        class _Missing:
+            def __init__(self, config=None):
+                pass
+
+            def status(self):
+                return {
+                    "installed": False,
+                    "available": False,
+                    "enabled": False,
+                    "last_error": None,
+                }
+
+        monkeypatch.setattr("escape_the_valley.voice.VoiceBridge", _Missing)
+        result = runner.invoke(app, ["self-check"])
+        assert result.exit_code == 0
+        assert "xrpl extra absent" in result.output
+        assert "voice extra absent" in result.output
+        assert "event_skeletons.json" in result.output
+        assert "missing" in result.output
