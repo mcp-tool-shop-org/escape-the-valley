@@ -60,13 +60,22 @@ def _classify_weirdness(band: int) -> tuple[bool, FolkloreType | None]:
     return False, None
 
 
-def _convert_profile(profile: dict, *, event_id: str = "") -> EventOutcome:
+def _convert_profile(
+    profile: dict, *, event_id: str = "", costs_uncanny_token: bool = False,
+) -> EventOutcome:
     """Convert engine_effect_profile dict to EventOutcome.
 
     ENG-B-07: supply keys are validated against RESOURCE_CATALOG (after alias
     resolution). An unknown key (e.g. a typo'd "gold") is dropped with a warning
     rather than silently entering the supplies dict — otherwise it would become a
     permanent phantom supply that nothing in the game ever consumes or caps.
+
+    F-5f77f476: ``costs_uncanny_token`` (True for every choice on a
+    weirdness_band>=3 event — see ``_classify_weirdness``) marks the resulting
+    EventOutcome with ``special_flags=["uncanny_token_spent"]`` so
+    ``resolve_event()`` actually decrements ``state.uncanny_tokens`` when the
+    player picks it, exactly like the 5 hand-authored uncanny events already
+    do. Without this, JSON-loaded uncanny events resolved "for free."
     """
     supplies: dict[str, int] = {}
     health = 0
@@ -110,6 +119,8 @@ def _convert_profile(profile: dict, *, event_id: str = "") -> EventOutcome:
                 continue
             supplies[res_key] = int(val)
 
+    special_flags = ["uncanny_token_spent"] if costs_uncanny_token else []
+
     return EventOutcome(
         supplies_delta=supplies,
         health_delta=health,
@@ -118,6 +129,7 @@ def _convert_profile(profile: dict, *, event_id: str = "") -> EventOutcome:
         morale_delta=morale,
         time_cost=time_cost,
         distance_delta=distance,
+        special_flags=special_flags,
     )
 
 
@@ -143,10 +155,19 @@ def _convert_event(raw: dict) -> EventSkeleton:
     if not event_id or not isinstance(event_id, str):
         raise ValueError(f"event entry missing a valid 'id': {raw!r:.120}")
 
-    tags = raw.get("tags", [])
+    tags = list(raw.get("tags", []))  # copy: we may append below; raw is transient anyway
     band = raw.get("weirdness_band", 0)
     costs_token, folklore_type = _classify_weirdness(band)
     category = _classify_category(tags)
+
+    # F-001af851: can_spend_uncanny_token() gates FIRESIDE/LANTERN/CHRONICLER
+    # reachability on the literal compound tag "folklore:uncanny" (the
+    # convention the 5 hand-authored uncanny events use), not on the typed
+    # folklore_type enum set just above. Append the same tag here so JSON
+    # content satisfies the existing convention without changing the
+    # resolver's gating contract in events.py.
+    if folklore_type == FolkloreType.UNCANNY and "folklore:uncanny" not in tags:
+        tags.append("folklore:uncanny")
 
     # If we classified as folklore based on weirdness but tags don't say it,
     # override category if weirdness_band >= 2
@@ -170,7 +191,9 @@ def _convert_event(raw: dict) -> EventSkeleton:
         action = ch.get("intent_action", "INVESTIGATE")
         style = _infer_style(action)
         profile = ch.get("engine_effect_profile", {})
-        outcome = _convert_profile(profile, event_id=event_id)
+        outcome = _convert_profile(
+            profile, event_id=event_id, costs_uncanny_token=costs_token,
+        )
 
         choices.append(ChoiceTemplate(
             choice_id=cid,
