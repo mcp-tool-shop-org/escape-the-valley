@@ -196,7 +196,12 @@ class GameEngine:
         effects = check_health_effects(self.state, self.rng)
         for eff in effects:
             if eff["type"] == "died":
-                show_message(f"{eff['member']} has died.", "red bold")
+                # F-1a1edd7a: cause is already on the effect.
+                cause = eff.get("cause") or "the trail"
+                show_message(
+                    f"{eff['member']} has died ({cause}).",
+                    "red bold",
+                )
             elif eff["type"] == "fell_sick":
                 show_message(f"{eff['member']} has fallen ill.", "yellow")
             elif eff["type"] == "healed":

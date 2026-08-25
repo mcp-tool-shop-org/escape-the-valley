@@ -297,7 +297,29 @@ def test_hard_ration_rejected_with_plenty_food():
     engine = _make_engine()
     engine.state.supplies.food = 100
     msgs = engine.step(PlayerIntent(IntentAction.HARD_RATION))
-    assert any("cannot" in line.lower() for line in msgs.lines)
+    assert any("not low enough" in line.lower() for line in msgs.lines)
+
+
+def test_hard_ration_rejected_on_cooldown():
+    """F-9fabf995: cooldown is its own sentence, not the shared refusal."""
+    engine = _make_engine()
+    alive = engine.state.party.alive_count
+    engine.state.supplies.food = alive * 2
+    engine.state.escape_valve_cooldown = 3
+    msgs = engine.step(PlayerIntent(IntentAction.HARD_RATION))
+    assert any("3 more actions" in line for line in msgs.lines)
+    assert engine.state.rationing_steps == 0
+
+
+def test_hard_ration_rejected_already_rationing():
+    """F-9fabf995: already-min rations, cooldown cleared, food still critical."""
+    engine = _make_engine()
+    alive = engine.state.party.alive_count
+    engine.state.supplies.food = alive * 2
+    engine.state.rationing_steps = 2
+    engine.state.escape_valve_cooldown = 0
+    msgs = engine.step(PlayerIntent(IntentAction.HARD_RATION))
+    assert any("already rationing" in line.lower() for line in msgs.lines)
 
 
 def test_rationing_decrements_on_travel():
@@ -3039,3 +3061,113 @@ def test_gameengine_fixed_seed_reproduces(monkeypatch):
         snaps.append(_snap(engine))
 
     assert snaps[0] == snaps[1]
+
+
+# ── F-2a57b303: EVENT/ROUTE retry copy names offered letters ──────────
+
+
+def test_event_wrong_action_prints_offered_letters(monkeypatch):
+    """TRAVEL during EVENT must name A/B (or whatever is offered), not 1-4."""
+    engine = _force_event_engine(seed=42)
+    monkeypatch.setattr(engine.rng, "random", lambda: 0.0)
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+    offered = [c.id for c in engine.msgs.event_choices]
+    assert offered
+    joined = "/".join(offered)
+
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.EVENT
+    assert engine._pending_event is not None
+    assert any(joined in line for line in msgs.lines)
+    assert any("choose one of:" in line for line in msgs.lines)
+    assert not any("1-4" in line for line in msgs.lines)
+    # Same list as the invalid-id path (CHOOSE '1' is not a letter).
+    msgs2 = engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="1"))
+    assert any(joined in line for line in msgs2.lines)
+    assert engine.phase == GamePhase.EVENT
+
+
+def test_route_wrong_action_prints_offered_letters():
+    """REST during ROUTE must name A/B, not a fixed 1/2."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+        RouteOption(node_id="node-b", name="Southern Trail", distance=14),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+
+    msgs = engine.step(PlayerIntent(IntentAction.REST))
+    assert engine.phase == GamePhase.ROUTE
+    assert engine.state.destination_id == "unset"
+    assert any("A/B" in line for line in msgs.lines)
+    assert any("choose one of:" in line for line in msgs.lines)
+    assert not any("1/2" in line for line in msgs.lines)
+
+
+def test_route_wrong_action_one_option_prints_letter_a():
+    """A one-option pending route must not still say 1/2."""
+    from escape_the_valley.step_engine import RouteOption
+
+    engine = _make_engine(seed=42)
+    engine._pending_routes = [
+        RouteOption(node_id="node-a", name="Northern Pass", distance=10),
+    ]
+    engine.phase = GamePhase.ROUTE
+    engine.state.destination_id = "unset"
+
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.ROUTE
+    assert any("choose one of: A." in line for line in msgs.lines)
+    assert not any("1/2" in line for line in msgs.lines)
+
+
+# ── F-1a1edd7a: live death line names the cause ───────────────────────
+
+
+def test_stepengine_live_death_line_names_cause(monkeypatch):
+    """Survivors see '{name} has died ({cause}).' not a cause-free death."""
+    engine = _make_engine(seed=42)
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+    engine.state.supplies.food = 0
+    engine.state.supplies.water = 50
+    engine.state.distance_remaining = 80
+    victim = engine.state.party.members[0]
+    victim.health = 1
+    name = victim.name
+
+    msgs = engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert f"{name} has died (Starvation)." in msgs.lines
+    assert not any(
+        line == f"{name} has died." for line in msgs.lines
+    )
+
+
+def test_gameengine_live_death_line_names_cause(monkeypatch):
+    """F-1a1edd7a: GameEngine show_message matches StepEngine's live line."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    messages: list[str] = []
+    monkeypatch.setattr(
+        engine_mod, "show_message",
+        lambda text, *a, **k: messages.append(text),
+    )
+    monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+    monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+    monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+
+    engine = GameEngine(create_new_run(seed=42), GMConfig(enabled=False))
+    monkeypatch.setattr(engine.rng, "random", lambda: 1.0)
+    engine.state.supplies.food = 0
+    engine.state.supplies.water = 50
+    engine.state.distance_remaining = 80
+    victim = engine.state.party.members[0]
+    victim.health = 1
+    name = victim.name
+
+    engine._do_travel()
+    assert f"{name} has died (Starvation)." in messages
