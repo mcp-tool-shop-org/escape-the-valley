@@ -77,7 +77,7 @@ def _tui_check_and_exit() -> None:
         probe.stylesheet.read_all(probe.css_path)
     except StylesheetError as exc:
         print(f"TUI_CHECK_FAILED: {exc}")
-        raise SystemExit(1)
+        raise SystemExit(1) from None
     print("TUI_CHECK_OK")
 
 
