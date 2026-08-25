@@ -5,6 +5,8 @@ from escape_the_valley.backpack_models import (
     PARCEL_ACCEPT_CAP,
     TESTNET_HOSTS,
     TESTNET_URL,
+    XRPL_EXTRA_MISSING_MSG,
+    XRPL_EXTRA_PIP,
     XRPL_RESOURCES,
     XRPL_TOKEN_MAP,
     BackpackState,
@@ -100,3 +102,10 @@ class TestSafetyConstants:
         """ledger-B09: a schema-version token exists for the memo header."""
         assert isinstance(MEMO_SCHEMA_VERSION, str)
         assert MEMO_SCHEMA_VERSION
+
+    def test_extra_missing_copy_names_quoted_pip_extra(self):
+        """F-64e78470: extra-missing copy names the quoted pip extra."""
+        assert XRPL_EXTRA_PIP == 'pip install "escape-the-valley[xrpl]"'
+        assert XRPL_EXTRA_MISSING_MSG.endswith(XRPL_EXTRA_PIP)
+        assert "wallet" not in XRPL_EXTRA_MISSING_MSG.lower()
+        assert "mainnet" not in XRPL_EXTRA_MISSING_MSG.lower()
