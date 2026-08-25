@@ -1840,3 +1840,163 @@ class TestFrozenCssPathResolution:
             Path(tui_app_module.__file__).resolve().parent / "tui.tcss"
         )
         assert resolved == expected
+
+
+# ── Wave 27 Stage D amend: HUD reflow, title, urgency paint ──────────
+
+
+def _assert_region_on_screen(widget, screen, label: str) -> None:
+    region = widget.region
+    screen_region = screen.region
+    assert region.width > 0 and region.height > 0, f"{label} collapsed {region}"
+    assert screen_region.contains_region(region), (
+        f"{label} {region} not inside screen {screen_region}"
+    )
+
+
+def _assert_hud_readable(app: LedgerTrailApp) -> None:
+    """F-a0f79af3: status + supplies regions stay on-screen; labels visible."""
+    screen = app.screen
+    status = app.query_one("#status", StatusPanel)
+    supplies = app.query_one("#supplies", SuppliesPanel)
+    left = app.query_one("#left")
+    main = app.query_one("#main")
+    eventbar = app.query_one("#eventbar", EventBar)
+    for widget, label in (
+        (status, "#status"),
+        (supplies, "#supplies"),
+        (left, "#left"),
+        (main, "#main"),
+        (eventbar, "#eventbar"),
+        (app.query_one("#map", MapPanel), "#map"),
+        (app.query_one("#party", PartyPanel), "#party"),
+    ):
+        _assert_region_on_screen(widget, screen, label)
+    assert left.region.contains_region(status.region), (
+        f"#status {status.region} not inside #left {left.region}"
+    )
+    assert left.region.contains_region(supplies.region), (
+        f"#supplies {supplies.region} not inside #left {left.region}"
+    )
+    status_text = status.visual.plain
+    supplies_text = supplies.visual.plain
+    assert "Day" in status_text, status_text
+    assert "Supplies" in supplies_text or "FOOD" in supplies_text, supplies_text
+
+
+class TestHudReflow:
+    """F-a0f79af3: the play HUD must stay readable at 80x24 and 120x30."""
+
+    def test_title_is_not_class_name(self):
+        """F-61040cc4: Header must not show LedgerTrailApp."""
+        app = _make_app()
+        assert app.TITLE == "Escape the Valley"
+        assert app.title == "Escape the Valley"
+        assert "LedgerTrailApp" not in app.title
+
+    def test_hud_readable_at_80x24(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                assert app.size == (80, 24)
+                _assert_hud_readable(app)
+                header_text = app.query_one("HeaderTitle").visual.plain
+                assert "Escape the Valley" in header_text
+                assert "LedgerTrailApp" not in header_text
+                footer = app.query_one("Footer")
+                assert footer.show_command_palette is False
+                assert len(footer.query("FooterKey.-command-palette")) == 0
+
+        asyncio.run(scenario())
+
+    def test_hud_readable_at_120x30(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(120, 30)) as pilot:
+                await pilot.pause()
+                assert app.size == (120, 30)
+                assert not app.query_one("#main").has_class("-stack")
+                _assert_hud_readable(app)
+                header_text = app.query_one("HeaderTitle").visual.plain
+                assert "Escape the Valley" in header_text
+                assert "LedgerTrailApp" not in header_text
+
+        asyncio.run(scenario())
+
+    def test_seven_choice_eventbar_stays_on_screen_at_80x24(self):
+        """A 7-choice EventBar (A–G valves) must not push the HUD off-screen."""
+
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(80, 24)) as pilot:
+                await pilot.pause()
+                app._frame.choices = [
+                    Choice(id="A", label="Travel"),
+                    Choice(id="B", label="Rest"),
+                    Choice(id="C", label="Hunt"),
+                    Choice(id="D", label="Repair"),
+                    Choice(id="E", label="Abandon Cargo"),
+                    Choice(id="F", label="Desperate Repair"),
+                    Choice(id="G", label="Hard Ration"),
+                ]
+                app.query_one("#eventbar", EventBar).update_from(app._frame)
+                await pilot.pause()
+                _assert_hud_readable(app)
+                bar = app.query_one("#eventbar", EventBar)
+                assert bar.region.height <= 6
+                assert "Travel" in bar.visual.plain or "A" in bar.visual.plain
+
+        asyncio.run(scenario())
+
+
+class TestTuiUrgencyCues:
+    """F-61040cc4: TUI paint reuses CLI (LOW)/(CRITICAL)/(!)/dead markers."""
+
+    def test_supplies_food_zero_distinct_from_default(self):
+        full = SuppliesPanel()
+        full.update_from(FrameState(supplies={"FOOD": 50, "WATR": 50, "MEDS": 5}))
+        empty = SuppliesPanel()
+        empty.update_from(FrameState(supplies={"FOOD": 0, "WATR": 50, "MEDS": 5}))
+        assert "(CRITICAL)" in empty.visual.plain
+        assert "FOOD: 0" in empty.visual.plain
+        assert "(CRITICAL)" not in full.visual.plain
+        assert empty.visual.plain != full.visual.plain
+        empty_styles = {str(sp.style) for sp in empty.visual.spans}
+        full_styles = {str(sp.style) for sp in full.visual.spans}
+        assert empty_styles != full_styles
+
+    def test_fresh_run_meds_parts_not_low_on_tui(self):
+        widget = SuppliesPanel()
+        state = create_new_run(seed=7)
+        from escape_the_valley.adapter import _build_supplies
+
+        widget.update_from(FrameState(supplies=_build_supplies(state)))
+        text = widget.visual.plain
+        assert "MEDS: 5 (LOW)" not in text
+        assert "PART: 3 (LOW)" not in text
+
+    def test_pilot_food_zero_and_health_12_paint_cues(self):
+        async def scenario():
+            app = _make_app(seed=7)
+            async with app.run_test(size=(120, 30)) as pilot:
+                await pilot.pause()
+                default_supplies = app.query_one("#supplies").visual.plain
+                app._engine.state.supplies.food = 0
+                app._engine.state.party.members[0].health = 12
+                app._engine.state.party.members[1].health = 0
+                app._engine.state.wagon.condition = 8
+                app._sync_frame()
+                app._render_all()
+                await pilot.pause()
+                supplies_text = app.query_one("#supplies").visual.plain
+                party_text = app.query_one("#party").visual.plain
+                status_text = app.query_one("#status").visual.plain
+                assert "(CRITICAL)" in supplies_text
+                assert "FOOD: 0" in supplies_text
+                assert supplies_text != default_supplies
+                assert "(!)" in party_text
+                assert "dead" in party_text
+                assert "(CRITICAL)" in status_text
+
+        asyncio.run(scenario())
