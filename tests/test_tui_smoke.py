@@ -15,6 +15,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
+
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.step_engine import StepEngine
 from escape_the_valley.tui_app import (
@@ -29,6 +31,7 @@ from escape_the_valley.tui_app import (
     PartyPanel,
     StatusPanel,
     SuppliesPanel,
+    _escape_dynamic,
 )
 from escape_the_valley.worldgen import create_new_run
 
@@ -1145,6 +1148,141 @@ class TestMarkupSafety:
                 assert self.STRAY in journal_text
 
         asyncio.run(scenario())
+
+    def _assert_real_bold(self, widget, *headings: str) -> str:
+        visual = widget.visual
+        text = visual.plain
+        assert "[b]" not in text
+        assert "[/b]" not in text
+        bold_texts = {
+            visual.plain[sp.start:sp.end]
+            for sp in visual.spans if "b" in str(sp.style)
+        }
+        for heading in headings:
+            assert heading in bold_texts, (heading, bold_texts)
+        return text
+
+    def test_leftover_open_bracket_raises_under_escape_not_helper(self):
+        """F-c55ab193: textual.markup.escape() leaves leftover '[' intact, so
+        splicing Look [ west / a truncated hint into later [i]/[dim] chrome
+        raises MarkupError on the live renderer. _escape_dynamic does not.
+        Real Static.update / Content.from_markup — no update=lambda.
+        """
+        from textual.markup import MarkupError, escape
+
+        leftover = "Look [ west"
+        risk = "A["
+        widget = EventBar()
+
+        label_escape = (
+            f"[b]A[/b]) {escape(leftover)}\n\n[i]Actions: t/r/h/p[/i]"
+        )
+        with pytest.raises(MarkupError):
+            widget.update(label_escape)
+
+        widget.update(
+            f"[b]A[/b]) {_escape_dynamic(leftover)}\n\n[i]Actions: t/r/h/p[/i]"
+        )
+        text = self._assert_real_bold(widget, "A")
+        assert leftover in text
+        italic_spans = [sp for sp in widget.visual.spans if "i" in str(sp.style)]
+        assert italic_spans, "expected a real italic span for the hint chrome"
+
+        risk_escape = (
+            f"[b]A[/b]) Travel  (risk: {escape(risk)})\n\n"
+            f"[i]Actions: t/r/h/p[/i]"
+        )
+        with pytest.raises(MarkupError):
+            widget.update(risk_escape)
+
+        widget.update(
+            f"[b]A[/b]) Travel  (risk: {_escape_dynamic(risk)})\n\n"
+            f"[i]Actions: t/r/h/p[/i]"
+        )
+        text = self._assert_real_bold(widget, "A")
+        assert risk in text
+        italic_spans = [sp for sp in widget.visual.spans if "i" in str(sp.style)]
+        assert italic_spans, "expected a real italic span after risk leftover"
+
+        end = EndScreen()
+        epilogue_escape = (
+            f"[b]THE TRAIL CLAIMS ANOTHER[/b]\n"
+            f"{escape(leftover)}\n"
+            f"[dim]Press q to close.[/dim]"
+        )
+        with pytest.raises(MarkupError):
+            end.update(epilogue_escape)
+
+        end.update(
+            f"[b]THE TRAIL CLAIMS ANOTHER[/b]\n"
+            f"{_escape_dynamic(leftover)}\n"
+            f"[dim]Press q to close.[/dim]"
+        )
+        text = self._assert_real_bold(end, "THE TRAIL CLAIMS ANOTHER")
+        assert leftover in text
+        dim_spans = [sp for sp in end.visual.spans if "dim" in str(sp.style)]
+        assert dim_spans, "expected a real dim span for the close hint"
+
+    def test_eventbar_label_risk_cost_survive_leftover_open_bracket(self):
+        leftover = "Look [ west"
+        widget = EventBar()
+        widget.update_from(
+            FrameState(
+                prompt_title="Camp",
+                prompt_text="What will you do?",
+                choices=[
+                    Choice(
+                        id="A",
+                        label=leftover,
+                        risk_hint=leftover,
+                        cost_hint=leftover,
+                    ),
+                ],
+            ),
+        )
+
+        text = self._assert_real_bold(widget, "Camp", "A")
+        assert text.count(leftover) >= 3
+        italic_spans = [sp for sp in widget.visual.spans if "i" in str(sp.style)]
+        assert italic_spans, "expected a real italic span for the hint line"
+
+    def test_end_screen_epilogue_survives_leftover_open_bracket(self):
+        leftover = "Look [ west"
+        widget = EndScreen()
+        widget.update_from(FrameState(game_over=True, epilogue=leftover))
+
+        text = self._assert_real_bold(widget, "THE TRAIL CLAIMS ANOTHER")
+        assert leftover in text
+        dim_spans = [sp for sp in widget.visual.spans if "dim" in str(sp.style)]
+        assert dim_spans, "expected a real dim span for the close hint"
+
+    def test_party_panel_detail_then_warnings_survives_leftover_open_bracket(self):
+        leftover = "Look [ west"
+        widget = PartyPanel()
+        widget.update_from(
+            FrameState(party_detail=[leftover], warnings=["hungry"]),
+        )
+
+        text = self._assert_real_bold(widget, "Party", "Warnings")
+        assert leftover in text
+        assert "hungry" in text
+
+    def test_eventbar_complete_pwn_tag_still_escaped(self):
+        """Complete-tag '[/pwn]' is still wrapped by escape(); chrome stays
+        a real bold span at both interpolation sites."""
+        payload = "[/pwn]"
+        widget = EventBar()
+        widget.update_from(
+            FrameState(
+                prompt_title="Camp",
+                prompt_text="What will you do?",
+                choices=[Choice(id=payload, label="Travel")],
+            ),
+        )
+
+        text = self._assert_real_bold(widget, "Camp", payload)
+        assert text.count(payload) >= 2
+        assert "Travel" in text
 
 
 # ── F-9c0e7613: a worker exception must not freeze the input surface ───

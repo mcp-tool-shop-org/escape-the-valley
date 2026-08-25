@@ -14,6 +14,7 @@ Keys:
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,6 +28,19 @@ from textual.markup import escape
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Markdown, Rule, Static
 from textual.worker import WorkerState
+
+
+# Matches backpack_ui._escape_dynamic (ledger-owned; duplicated here so
+# exclusive ownership holds).
+def _escape_dynamic(text: str) -> str:
+    """Escape a fragment spliced into a markup template.
+
+    ``textual.markup.escape`` only wraps complete tag-shaped runs. A leftover
+    ``[`` (e.g. truncating ``rSender[/pwn]`` to ``rSender[...``) still opens a
+    tag into the chrome and raises MarkupError. Neutralize those after escape.
+    """
+    return re.sub(r"(?<!\\)\[", r"\\[", escape(text))
+
 
 # ── FrameState: the engine-to-UI contract ──────────────────────────
 
@@ -118,17 +132,17 @@ class StatusPanel(Static):
         # is left as real markup. s.day is an int and cannot carry a stray
         # '[...]' tag, so it is not escaped.
         lines = [
-            f"[b]Day {s.day}[/b]  \u2022  {escape(s.location)}",
-            f"Next: {escape(s.next_stop)}",
-            f"{escape(s.weather)}  \u2022  {escape(s.biome)}",
-            f"Pace: {escape(s.pace)}",
+            f"[b]Day {s.day}[/b]  \u2022  {_escape_dynamic(s.location)}",
+            f"Next: {_escape_dynamic(s.next_stop)}",
+            f"{_escape_dynamic(s.weather)}  \u2022  {_escape_dynamic(s.biome)}",
+            f"Pace: {_escape_dynamic(s.pace)}",
             "",
-            escape(s.party_summary),
-            escape(s.wagon),
+            _escape_dynamic(s.party_summary),
+            _escape_dynamic(s.wagon),
         ]
         if s.backpack_status:
             lines.append("")
-            lines.append(escape(s.backpack_status))
+            lines.append(_escape_dynamic(s.backpack_status))
         self.update("\n".join(lines))
 
 
@@ -140,7 +154,7 @@ class SuppliesPanel(Static):
         consumables = []
         gear = []
         for k, v in s.supplies.items():
-            line = f"{escape(k)}: {v}"
+            line = f"{_escape_dynamic(k)}: {v}"
             if k in self._GEAR_KEYS:
                 gear.append(line)
             else:
@@ -157,7 +171,7 @@ class SuppliesPanel(Static):
 
 class MapPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        self.update("[b]Route[/b]\n" + escape(s.route_ascii))
+        self.update("[b]Route[/b]\n" + _escape_dynamic(s.route_ascii))
 
 
 class NarrationPanel(Markdown):
@@ -189,10 +203,10 @@ class NarrationPanel(Markdown):
 
 class PartyPanel(Static):
     def update_from(self, s: FrameState) -> None:
-        body = "[b]Party[/b]\n" + "\n".join(escape(d) for d in s.party_detail)
+        body = "[b]Party[/b]\n" + "\n".join(_escape_dynamic(d) for d in s.party_detail)
         if s.warnings:
             body += "\n\n[b]Warnings[/b]\n"
-            body += "\n".join(f"\u2022 {escape(w)}" for w in s.warnings)
+            body += "\n".join(f"\u2022 {_escape_dynamic(w)}" for w in s.warnings)
         self.update(body)
 
 
@@ -239,12 +253,12 @@ class EventBar(Static):
         for c in s.choices:
             hints = []
             if c.risk_hint:
-                hints.append(f"risk: {escape(c.risk_hint)}")
+                hints.append(f"risk: {_escape_dynamic(c.risk_hint)}")
             if c.cost_hint:
-                hints.append(f"cost: {escape(c.cost_hint)}")
+                hints.append(f"cost: {_escape_dynamic(c.cost_hint)}")
             hint_txt = f"  ({'; '.join(hints)})" if hints else ""
             choice_lines.append(
-                f"[b]{escape(c.id)}[/b]) {escape(c.label)}{hint_txt}"
+                f"[b]{_escape_dynamic(c.id)}[/b]) {_escape_dynamic(c.label)}{hint_txt}"
             )
 
         # cli-tui-B-01 / B-08: the choose-prompt enumerates the *visible*
@@ -254,7 +268,7 @@ class EventBar(Static):
         # F-d4a8ed17 rationale above) since it folds into the [i]...[/i]
         # -wrapped hint_line below.
         choice_letters = (
-            ", ".join(escape(c.id) for c in s.choices) if s.choices else ""
+            ", ".join(_escape_dynamic(c.id) for c in s.choices) if s.choices else ""
         )
         pick_hint = (
             f"Choose {choice_letters} (number keys also work). "
@@ -284,8 +298,8 @@ class EventBar(Static):
         # [b]/[/b] wrapper is literal chrome authored right here, untouched.
         body = "\n".join(choice_lines)
         text = (
-            f"[b]{escape(s.prompt_title)}[/b]\n"
-            f"{escape(s.prompt_text)}\n\n"
+            f"[b]{_escape_dynamic(s.prompt_title)}[/b]\n"
+            f"{_escape_dynamic(s.prompt_text)}\n\n"
             + body
             + f"\n\n{hint_line}"
             + degraded_line
@@ -301,7 +315,7 @@ class JournalDrawer(Static):
         # (GM-authored, confirmed end-to-end from step_engine.py through
         # adapter.py:145) and choice_made -- escape the per-entry text, not
         # the "[b]Journal[/b]" header, which is literal chrome authored here.
-        lines = "\n".join(f"- {escape(entry)}" for entry in s.journal)
+        lines = "\n".join(f"- {_escape_dynamic(entry)}" for entry in s.journal)
         self.update("[b]Journal[/b]\n" + lines)
 
 
@@ -345,7 +359,7 @@ class EndScreen(Static):
             lines.append(f"[dim]{caption}[/dim]")
         if s.ending_headline:
             lines.append("")
-            lines.append(escape(s.ending_headline))
+            lines.append(_escape_dynamic(s.ending_headline))
 
         # The epilogue — the storyteller's closing words. While the GM is still
         # composing it on the worker, show a quiet placeholder rather than a
@@ -355,7 +369,7 @@ class EndScreen(Static):
         lines.append("")
         lines.append("─" * 30)
         if s.epilogue:
-            lines.append(escape(s.epilogue))
+            lines.append(_escape_dynamic(s.epilogue))
         else:
             lines.append("[dim]The storyteller gathers the last of it...[/dim]")
         lines.append("─" * 30)
@@ -367,14 +381,14 @@ class EndScreen(Static):
             lines.append("")
             lines.append("[b]The reckoning[/b]")
             for label, value in s.ending_facts:
-                lines.append(f"  {escape(label)}: {escape(value)}")
+                lines.append(f"  {_escape_dynamic(label)}: {_escape_dynamic(value)}")
 
         # Run diagnostics (the CLI `stats` data) -- same str/str shape.
         if s.run_stats:
             lines.append("")
             lines.append("[b]The run[/b]")
             for label, value in s.run_stats:
-                lines.append(f"  {escape(label)}: {escape(value)}")
+                lines.append(f"  {_escape_dynamic(label)}: {_escape_dynamic(value)}")
 
         # The trail ledger / XRPL postcard (ledger.py-built text lines).
         if s.postcard_lines:
@@ -382,7 +396,7 @@ class EndScreen(Static):
             heading = "[b]Postcard (on-ledger)[/b]" if s.is_postcard else "[b]Trail ledger[/b]"
             lines.append(heading)
             for ln in s.postcard_lines:
-                lines.append(escape(ln))
+                lines.append(_escape_dynamic(ln))
 
         lines.append("")
         if s.postcard_lines:
