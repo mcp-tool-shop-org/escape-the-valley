@@ -1113,6 +1113,25 @@ class TestSendParcelMocked:
         assert state.supplies.food == before  # unchanged on failure
         assert state.backpack.sent_parcels == []
 
+    @requires_xrpl
+    def test_send_get_client_error_degrades(self, monkeypatch):
+        """F-9517936e sweep: send_parcel already wraps _get_client; lock it."""
+        state = _enabled_state()
+        before = state.supplies.food
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.send_parcel(state, "rRecipient", "food", 7)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.SendResult)
+        assert state.supplies.food == before
+        assert state.backpack.sent_parcels == []
+
 
 class TestAcceptParcelIdempotentMocked:
     def test_accept_twice_applies_once(self):
@@ -1911,6 +1930,133 @@ class TestSettleSetupDegrades:
         assert calls["submit"] == [("FOD", "RETRY-FOD")]
         assert state.backpack.last_settled_supplies["food"] == 45
         assert state.backpack.last_settle_failed is False
+
+
+class TestEnableSetupDegrades:
+    """F-9517936e: _get_client / from_seed on enable() must return
+    EnableResult(success=False), never raise uncaught. Mirrors
+    TestSettleSetupDegrades / test_settle_get_client_error_degrades.
+    """
+
+    @requires_xrpl
+    def test_enable_get_client_error_degrades(self, monkeypatch):
+        state = _make_state()
+        mgr = BackpackManager()
+
+        def boom_client():
+            raise RuntimeError("client boom")
+
+        monkeypatch.setattr(mgr, "_get_client", boom_client)
+        _patch_signing(monkeypatch)
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+        assert not state.backpack.wallet_address
+        assert not state.backpack.issuer_secret
+        assert state.backpack.last_settled_supplies == {}
+        assert "Couldn't reach the faucet" in res.message
+
+    @requires_xrpl
+    def test_enable_resume_from_seed_boom_degrades(self, monkeypatch):
+        """Resume path: Wallet.from_seed raising must not escape enable()."""
+        state = _make_state()
+        bp = state.backpack
+        bp.wallet_address = "rPlayerAddr"
+        bp.wallet_secret = "sPlayerSeed"
+        bp.issuer_address = "rIssuerAddr"
+        bp.issuer_secret = "sIssuerSeed"
+        bp.trust_lines_ready = False  # incomplete so we don't short-circuit
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+
+        def boom(_seed, *a, **k):
+            raise ValueError("BoomSeed")
+
+        monkeypatch.setattr(
+            backpack_mod.Wallet, "from_seed", staticmethod(boom),
+        )
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+        assert "Couldn't reach the faucet" in res.message
+
+    @requires_xrpl
+    def test_enable_resume_empty_secret_degrades_not_crash(self, monkeypatch):
+        """Live Wallet.from_seed on a missing sidecar seed is ValueError,
+        returned as EnableResult, not an uncaught crash.
+        """
+        state = _make_state()
+        bp = state.backpack
+        bp.wallet_address = "rPlayerAddr"
+        bp.wallet_secret = ""
+        bp.issuer_address = "rIssuerAddr"
+        bp.issuer_secret = "sIssuerSeed"
+        bp.trust_lines_ready = False
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        # Intentionally do NOT mock from_seed: the real xrpl Wallet.from_seed
+        # raises ValueError('Invalid checksum') on an empty seed.
+
+        res = mgr.enable(state)
+        assert res.success is False
+        assert isinstance(res, backpack_mod.EnableResult)
+        assert state.backpack.enabled is False
+
+
+class TestClientAndFromSeedSweep:
+    """F-9517936e: every _get_client() / Wallet.from_seed call in
+    backpack.py must sit inside a try that degrades to a result object.
+    Leftover sites outside a try must be none.
+    """
+
+    def test_every_get_client_and_from_seed_is_inside_try(self):
+        import ast
+        from pathlib import Path
+
+        src_path = Path(backpack_mod.__file__).resolve()
+        tree = ast.parse(src_path.read_text(encoding="utf-8"))
+        leftovers: list[tuple[str, str, int]] = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self) -> None:
+                self.try_depth = 0
+                self.fn = "<module>"
+
+            def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+                prev = self.fn
+                self.fn = node.name
+                self.generic_visit(node)
+                self.fn = prev
+
+            def visit_Try(self, node: ast.Try) -> None:
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node: ast.Call) -> None:
+                name = None
+                func = node.func
+                if isinstance(func, ast.Attribute) and func.attr in (
+                    "_get_client", "from_seed",
+                ):
+                    name = func.attr
+                elif isinstance(func, ast.Name) and func.id in (
+                    "_get_client", "from_seed",
+                ):
+                    name = func.id
+                if name is not None and self.try_depth == 0:
+                    leftovers.append((self.fn, name, node.lineno))
+                self.generic_visit(node)
+
+        Visitor().visit(tree)
+        assert leftovers == [], (
+            "found leftover _get_client/from_seed call sites outside try: "
+            f"{leftovers}"
+        )
 
 
 class TestStatusLineDegraded:
