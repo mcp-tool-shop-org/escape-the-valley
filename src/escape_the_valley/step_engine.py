@@ -514,10 +514,11 @@ class StepEngine:
             self.msgs.lines.append("No ammunition for hunting.")
             return
 
-        deltas = attempt_hunt(self.state, self.rng)
-        self.state.supplies.apply_delta(deltas)
+        result = dict(attempt_hunt(self.state, self.rng))
+        injured = str(result.pop("injured", "") or "")
+        self.state.supplies.apply_delta(result)
 
-        food_gain = deltas.get("food", 0)
+        food_gain = int(result.get("food", 0) or 0)
         if food_gain > 0:
             self.msgs.lines.append(
                 f"Hunt successful! +{food_gain} food. -1 ammo."
@@ -526,6 +527,8 @@ class StepEngine:
             self.msgs.lines.append(
                 "The hunt yielded nothing. -1 ammo."
             )
+        if injured:
+            self.msgs.lines.append(f"{injured} was injured on the hunt.")
 
         # Half-day consumption (F-4d750550: round toward zero, not floor)
         half = halve_consumption(compute_daily_consumption(self.state))

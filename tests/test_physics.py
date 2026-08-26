@@ -167,6 +167,32 @@ class TestHunt:
         deltas = attempt_hunt(state, rng)
         assert deltas == {}
 
+    def test_failed_hunt_returns_injured_name(self):
+        """WAVE_12: attempt_hunt names the wounded member like desperate_repair."""
+        state = create_new_run(seed=42)
+        state.supplies.ammo = 10
+        name = state.party.members[0].name
+
+        class _ForceInjury:
+            def __init__(self):
+                self.n = 0
+
+            def random(self):
+                self.n += 1
+                if self.n == 1:
+                    return 1.0
+                return 0.0
+
+            def choice(self, seq):
+                return seq[0]
+
+            def randint(self, a, b):
+                return a
+
+        deltas = attempt_hunt(state, _ForceInjury())
+        assert deltas.get("injured") == name
+        assert state.party.members[0].condition.value == "injured"
+
 
 class TestRepair:
     def test_costs_parts(self):

@@ -3486,3 +3486,19 @@ def test_gameengine_spoilage_seed_reproduces(monkeypatch):
         snaps.append(_snap(engine))
 
     assert snaps[0] == snaps[1]
+
+
+def test_hunt_names_injured_member(monkeypatch):
+    """WAVE_12: StepEngine prints the name attempt_hunt returns."""
+    engine = _make_engine(seed=42)
+    engine.state.supplies.ammo = 10
+    wounded = engine.state.party.members[0].name
+
+    def _fake_hunt(state, rng):
+        return {"ammo": -1, "injured": wounded}
+
+    monkeypatch.setattr(
+        "escape_the_valley.step_engine.attempt_hunt", _fake_hunt,
+    )
+    engine._do_hunt()
+    assert f"{wounded} was injured on the hunt." in engine.msgs.lines

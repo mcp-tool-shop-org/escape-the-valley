@@ -237,12 +237,17 @@ def check_health_effects(state: RunState, rng: SeededRNG) -> list[dict]:
     return effects
 
 
-def attempt_hunt(state: RunState, rng: SeededRNG) -> dict[str, int]:
-    """Attempt to hunt. Costs ammo, may yield food, may cause injury."""
+def attempt_hunt(state: RunState, rng: SeededRNG) -> dict[str, object]:
+    """Attempt to hunt. Costs ammo, may yield food, may cause injury.
+
+    Integer keys are supply deltas. Optional ``injured`` is the wounded
+    member's name (same contract as ``desperate_repair``). Callers must
+    pop ``injured`` before ``supplies.apply_delta``.
+    """
     if state.supplies.ammo <= 0:
         return {}
 
-    deltas: dict[str, int] = {"ammo": -1}
+    deltas: dict[str, object] = {"ammo": -1}
 
     # Base success chance
     success_chance = 0.5
@@ -286,6 +291,7 @@ def attempt_hunt(state: RunState, rng: SeededRNG) -> dict[str, int]:
                 unlucky = rng.choice(alive)
                 unlucky.health = max(0, unlucky.health - rng.randint(5, 15))
                 unlucky.condition = Condition.INJURED
+                deltas["injured"] = unlucky.name
 
     return deltas
 
@@ -394,13 +400,16 @@ def check_spoilage(state: RunState, rng: SeededRNG) -> dict[str, int]:
 def check_night_travel_danger(
     state: RunState, rng: SeededRNG,
 ) -> dict[str, int] | None:
-    """Night travel without lantern oil increases breakdown/injury chance."""
+    """Night travel without lantern oil: 15% extra wagon damage.
+
+    Does not wound party members. Player copy is wagon damage only.
+    """
     if state.time_of_day not in (TimeOfDay.EVENING, TimeOfDay.NIGHT):
         return None
     if state.supplies.get("lantern_oil") > 0:
         return None
 
-    # 15% chance of an extra breakdown or injury
+    # 15% chance of extra wagon damage (not a party injury roll)
     if rng.random() < 0.15:
         damage = rng.randint(5, 15)
         return {"wagon_damage": damage}
