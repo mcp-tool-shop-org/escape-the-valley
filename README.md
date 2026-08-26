@@ -27,6 +27,8 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 
 ## What's New
 
+**1.3.0** — Four endings you can actually hit, including weathered. Wagon is a threat, not the whole game. Early Winter slows a tagged year. Desert fords stay off the sand. Hunt names who got hurt. `npx @mcptoolshop/escape-the-valley` launches the v1.3.0 binary (it had been stuck on the dead v1.1.1 GitHub artifact).
+
 **1.2.1** — PyPI wheel actually uploads (Metadata-Version 2.3). Same product as 1.2.0.
 
 **1.2.0** — GitHub Release binaries launch (event library + stylesheet bundled; smoke asserts `--help` and ≥200 events). `trail ledger proof` audits the loaded save. TUI shows seed/doctrine/twists/morale; `c` cycles pace; ledger menu `R` proofs this save. HUD readable at 80×24 and 120×30.
@@ -42,7 +44,7 @@ Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a rela
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# Zero-prerequisite npm launcher (GitHub v1.3.0 binary; v1.1.0 and v1.1.1
 # artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 

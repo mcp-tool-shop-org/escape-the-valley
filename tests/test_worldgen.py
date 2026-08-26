@@ -78,6 +78,15 @@ class TestCreateNewRun:
         assert run.supplies.food > 0
         assert run.supplies.water > 0
 
+    def test_wave3_default_parts_is_four(self):
+        """Wave 3 wagon lever: starting parts 3 → 4 via DEFAULT_SUPPLIES."""
+        from escape_the_valley.resources import DEFAULT_SUPPLIES, RESOURCE_CATALOG
+
+        assert RESOURCE_CATALOG["parts"].default == 4
+        assert DEFAULT_SUPPLIES["parts"] == 4
+        run = create_new_run(seed=42)
+        assert run.supplies.parts == 4
+
     def test_has_twists(self):
         run = create_new_run(seed=42)
         assert len(run.twists) >= 1

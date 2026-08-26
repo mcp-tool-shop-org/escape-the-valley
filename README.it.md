@@ -21,26 +21,30 @@
 
 ## Cos'è questo?
 
-Escape the Valley è un gioco di sopravvivenza in stile Oregon Trail che si svolge nel terminale. Guida un gruppo di coloni attraverso una natura selvaggia generata proceduralmente. Gestisci cibo, acqua, le condizioni del carro e il morale mentre affronti eventi, pericoli e scelte difficili.
+Escape the Valley è un gioco di sopravvivenza in stile Oregon Trail che si svolge nel tuo terminale. Guida un gruppo di coloni attraverso una natura selvaggia generata proceduralmente. Gestisci cibo, acqua, le condizioni del carro e il morale mentre affronti eventi, pericoli e scelte difficili.
 
 Un Game Master AI opzionale (basato su Ollama) narra il tuo viaggio con tre voci distinte. Un registro XRPL Testnet opzionale tiene traccia delle variazioni delle tue scorte come ricevute on-chain, una prova che sei sopravvissuto o che ci hai provato.
 
 ## Novità
 
-**1.2.0** — Lancio delle versioni binarie su GitHub (libreria di eventi + foglio di stile inclusi; vengono eseguiti test preliminari `--help` e almeno 200 eventi). `trail ledger proof` verifica il file di salvataggio caricato. L’interfaccia utente testuale mostra seme/dottrina/eventi/morale; `c` regola il ritmo; il menu del registro `R` conferma questo salvataggio. L’HUD è leggibile a 80×24 e 120×30.
+**1.3.0** — Quattro finali diversi che puoi effettivamente raggiungere, incluso quello "indurito". Il carro è una minaccia, non l'intero gioco. L'inizio dell'inverno rallenta un anno specifico. I guadi nel deserto evitano la sabbia. La caccia indica chi si è fatto male. `npx @mcptoolshop/escape-the-valley` avvia il binario v1.3.0 (era rimasto bloccato sull'obsoleto artefatto GitHub v1.1.1).
 
-**1.1.1** — `pip install "escape-the-valley[voice]"` si installa effettivamente (la versione precedente aveva bloccato un pacchetto non pubblicato). Il file binario PyInstaller non include più la voce extra.
+**1.2.1** — Il pacchetto PyPI viene effettivamente caricato (Metadata-Version 2.3). Stesso prodotto della versione 1.2.0.
+
+**1.2.0** — I binari di GitHub Release vengono lanciati (libreria eventi + foglio di stile inclusi; le asserzioni `--help` e ≥200 eventi). `trail ledger proof` controlla il salvataggio caricato. La TUI mostra seme/dottrina/imprevisti/morale; `c` regola il ritmo; il menu del registro `R` convalida questo salvataggio. L'HUD è leggibile a 80×24 e 120×30.
+
+**1.1.1** — `pip install "escape-the-valley[voice]"` viene effettivamente installato (la versione precedente aveva bloccato un pacchetto non pubblicato). Il binario PyInstaller non include più il componente aggiuntivo per la voce.
 
 **1.1.0** — narrazione in streaming, finali graduati, eventi che possono ferire, prova di riconciliazione on-ledger, artefatti eseguiti.
 
-Le versioni binarie allegate alle versioni v1.1.0 e v1.1.1 su GitHub non vengono eseguite (a causa di un import relativo nel punto di ingresso principale). Utilizzare `pip install escape-the-valley` o la versione binaria v1.2.0+ di GitHub / il programma di avvio `npx`.
+I binari allegati alle versioni GitHub v1.1.0 e v1.1.1 non vengono lanciati (un import relativo nel punto di ingresso congelato). Utilizza `pip install escape-the-valley` o il binario GitHub v1.2.0+ / launcher `npx`.
 
 ## Avvio rapido
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (v1.2.0+ GitHub binaries; v1.1.0 and v1.1.1
+# Zero-prerequisite npm launcher (GitHub v1.3.0 binary; v1.1.0 and v1.1.1
 # artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
@@ -71,16 +75,16 @@ Ad ogni turno, scegli un'azione dal campo:
 
 | Azione | Cosa fa |
 |--------|-------------|
-| **Travel** | Muoviti verso l'uscita della valle. Richiede cibo e acqua. Rischio di guasto ed eventi. |
+| **Travel** | Spostati verso l'uscita della valle. Richiede cibo e acqua. Rischio di guasto ed eventi. |
 | **Rest** | Cura il gruppo, ripristina il morale. Richiede provviste ma non comporta progressi. |
-| **Hunt** | Spendi munizioni per avere una possibilità di trovare cibo. Meglio nelle foreste e nelle pianure. |
+| **Hunt** | Spendi munizioni per avere una possibilità di ottenere cibo. Meglio nelle foreste e nelle pianure. |
 | **Repair** | Utilizza un pezzo di ricambio per riparare il carro. Fondamentale per la sopravvivenza. |
 
 Gli **eventi** interrompono il viaggio con delle scelte (A/B/C). Le scelte prudenti sono più sicure ma richiedono tempo. Le scelte audaci sono più veloci ma rischiose. Non esiste una risposta sempre corretta.
 
-**Il carro è tutto.** Se si rompe e non ci sono pezzi di ricambio, la partita finisce. Mantienilo in buone condizioni (almeno a metà) ed esegui interventi di manutenzione (riposo seguito da riparazione) per una temporanea resistenza ai guasti.
+**Il carro è tutto.** Se si rompe e non ci sono pezzi di ricambio, la partita finisce. Mantienilo in buone condizioni (almeno a metà) ed effettua delle pause per la manutenzione (riposo seguito da riparazione) per una resistenza temporanea ai guasti.
 
-Il **ritmo** controlla la velocità rispetto alla sicurezza. Il ritmo normale è l'impostazione predefinita. Un ritmo sostenuto copre più terreno ma consuma più provviste e danneggia i carri più velocemente.
+Il **ritmo** controlla la velocità rispetto alla sicurezza. Il ritmo normale è l'impostazione predefinita. Un ritmo sostenuto copre più terreno, ma consuma più provviste e danneggia i carri più velocemente.
 
 Le **valvole di emergenza** (razioni ridotte, riparazioni disperate, abbandono del carico) sono disponibili per le emergenze. Hanno effetti collaterali e tempi di ricarica: sono l'ultima risorsa, non delle strategie.
 
@@ -90,9 +94,9 @@ Per suggerimenti più approfonditi, consulta la [Guida alla sopravvivenza](https
 
 Il narratore AI definisce il tono, non la meccanica. Tutti e tre i profili giocano allo stesso gioco.
 
-- **Cronista:** sobrio, pratico, essenziale. Minimo folklore. Riporta ciò che è successo.
-- **Narratore del focolare:** narratore serio attorno al fuoco. Sottili momenti inquietanti. È l'impostazione predefinita.
-- **Portatore di lanterne:** inquietante e liminale, ma comunque ancorato alle conseguenze. È il più strano.
+- **Cronista** — Obiettivo, pratico, sobrio. Folklore minimo. Riporta ciò che è successo.
+- **Narratore attorno al fuoco** — Narratore serio attorno al falò. Sottili momenti inquietanti. È l'impostazione predefinita.
+- **Portatore di lanterna** — Inquietante e liminale, ma comunque ancorato alle conseguenze. È il profilo più strano.
 
 Imposta con `--gm-profile`: `trail tui --gm-profile lantern`
 
@@ -119,7 +123,7 @@ trail ledger reconcile  # retry failed settlements
 trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 ```
 
-Nella TUI, **L** apre il menu del registro; con lo zaino attivo, **R** verifica questo salvataggio (stessi risultati). Non riposa.
+Nella TUI, **L** apre il menu del registro; con lo zaino attivo, **R** convalida questo salvataggio (stessi risultati). Non riposa.
 
 Richiede `pip install -e ".[xrpl]"` per la dipendenza `xrpl-py`.
 
@@ -132,25 +136,25 @@ Richiede `pip install -e ".[xrpl]"` per la dipendenza `xrpl-py`.
 | `trail play` | Continua una partita salvata (modalità CLI classica) |
 | `trail status` | Mostra il gruppo, il carro e le provviste |
 | `trail journal` | Mostra le voci del diario recenti |
-| `trail self-check` | Verifica lo stato dell'ambiente di gioco |
+| `trail self-check` | Controlla lo stato dell'ambiente di gioco |
 | `trail version` | Mostra la versione |
 | `trail ledger status` | Mostra lo stato dello zaino |
 | `trail ledger enable` | Abilita lo zaino XRPL |
 | `trail ledger disable` | Disabilita lo zaino XRPL |
-| `trail ledger settle` | Effettua il controllo di un punto di passaggio manualmente |
-| `trail ledger reconcile` | Riprova i controlli non riusciti |
-| `trail ledger proof` | Verifica il salvataggio caricato (PASS/FAIL/INCONCLUSIVE) |
+| `trail ledger settle` | Stabilisci manualmente un punto di controllo |
+| `trail ledger reconcile` | Riprova gli insediamenti non riusciti |
+| `trail ledger proof` | Convalida il salvataggio caricato (PASS/FAIL/INCONCLUSIVE) |
 | `trail ledger wallet` | Mostra i dettagli del portafoglio |
 | `trail stats` | Mostra le statistiche della partita (supporta `--json`) |
 | `trail parcel send <addr> <supply> <amount>` | Invia provviste a un altro viaggiatore |
 | `trail parcel list` | Elenca i pacchi ricevuti |
 | `trail parcel accept <id>` | Accetta un pacco in sospeso |
 | `trail parcel sent` | Elenca i pacchi che hai inviato |
-| `trail wallet share` | Stampa l'indirizzo del tuo portafoglio per lo scambio |
+| `trail wallet share` | Stampa il tuo indirizzo del portafoglio per lo scambio |
 
 ## Avvisi
 
-Per impostazione predefinita, il gioco mostra avvisi dettagliati per aiutare i nuovi giocatori a individuare rapidamente i pericoli. I giocatori esperti possono passare alla modalità minima, che mostra solo gli avvisi di pericolo imminente (ultimi momenti, minacce critiche):
+Per impostazione predefinita, il gioco mostra avvisi dettagliati per aiutare i nuovi giocatori a individuare rapidamente i pericoli. I giocatori esperti possono passare alla modalità minima, che visualizza solo gli avvisi relativi ai bordi delle scogliere (minacce critiche dell'ultimo momento):
 
 ```bash
 trail tui --callouts minimal
@@ -159,15 +163,15 @@ trail new --callouts minimal
 
 ## Risoluzione dei problemi
 
-**Se qualcosa sembra non andare bene, esegui prima `trail self-check`.** Segnala se Ollama è raggiungibile, se il salvataggio si carica e quale modello è installato. Le tre cose che possono andare storte:
+**Se qualcosa sembra non funzionare, esegui prima `trail self-check`.** Questo comando indica se Ollama è raggiungibile, se il salvataggio viene caricato correttamente e quale modello è installato. Ecco le tre possibili cause di errore:
 
 | Sintomo | Causa | Soluzione |
 |---------|-------|-----|
-| **Generic / no narration** | Ollama non è in esecuzione (il Game Master è opzionale e si disattiva, ma non blocca il gioco) | Avvia Ollama (`ollama serve`) oppure esegui il programma in modo deterministico con `--gm-off`. Esegui `trail self-check` per confermare. |
-| **Transazione in sospeso / transazione non riuscita** | XRPL Testnet è una rete di test pubblica e a volte può presentare instabilità. | `trail ledger reconcile` tenta nuovamente le transazioni non riuscite; eseguilo di nuovo quando la rete sarà stabile. In ogni caso, i dati locali sono corretti. |
-| **Save won't resume** | `run.json` è stato troncato o danneggiato durante la scrittura. | Il motore lo mette in quarantena come `run.json.corrupt-<timestamp>` prima di rifiutarlo, quindi il tuo prossimo salvataggio non potrà sovrascrivere le prove. Ripristina da quel backup oppure avvia una nuova esecuzione partendo da un seme. |
+| **Generic / no narration** | Ollama non è in esecuzione (il GM è opzionale e viene utilizzato come fallback, ma non causa problemi irreparabili) | Avvia Ollama (`ollama serve`) oppure gioca in modalità deterministica con `--gm-off`. Esegui `trail self-check` per confermare. |
+| **Transazioni in sospeso / transazione non riuscita** | XRPL Testnet è una rete di test pubblica e a volte può essere instabile | `trail ledger reconcile` ritenta le transazioni non riuscite; eseguilo nuovamente quando la rete sarà stabile. In ogni caso, i dati locali sono corretti. |
+| **Save won't resume** | `run.json` è stato troncato o danneggiato durante la scrittura | Il motore lo mette in quarantena come `run.json.corrupt-<timestamp>` prima di rifiutarlo, quindi il tuo prossimo salvataggio non potrà sovrascrivere le prove. Ripristina dal backup oppure inizia una nuova partita da un seme. |
 
-La prima iterazione narrata carica il modello e può richiedere 10-30 secondi; è normale, non si tratta di un blocco del programma. Per maggiori dettagli: [Guida alla risoluzione dei problemi](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
+Il primo turno narrato carica il modello e può richiedere dai 10 ai 30 secondi: è normale, non si tratta di un blocco. Per maggiori dettagli: [Manuale per la risoluzione dei problemi](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
 
 ## Requisiti
 
@@ -177,7 +181,7 @@ La prima iterazione narrata carica il modello e può richiedere 10-30 secondi; �
 
 ## Sicurezza
 
-Nessuna telemetria. Nessun account. La narrazione GM è attiva per impostazione predefinita (HTTP verso Ollama locale); passa `--gm-off` per disattivarla. XRPL è disattivata fino a `trail ledger enable` (solo Testnet). La voce è attivabile (`--voice`). Consulta [SECURITY.md](SECURITY.md) per il modello completo delle minacce.
+Nessuna telemetria. Nessun account. La narrazione tramite GM è attiva per impostazione predefinita (HTTP verso Ollama locale); passa `--gm-off` per disabilitarla. XRPL è disattivato fino a `trail ledger enable` (solo Testnet). L'audio è attivabile (`--voice`). Consulta [SECURITY.md](SECURITY.md) per il modello completo delle minacce.
 
 ## Licenza
 

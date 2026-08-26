@@ -144,6 +144,14 @@ class TestExtractNarration:
         game_overs = [e for e in events if e.type == NarrationType.GAME_OVER]
         assert len(game_overs) == 1
 
+    def test_named_death_beat_spoken(self):
+        msgs = StepMessages(lines=["Martha has died (Starvation)."])
+        events = extract_narration(msgs, "camp")
+        deaths = [e for e in events if "has died" in e.voice_text.lower()]
+        assert len(deaths) == 1
+        assert "Martha" in deaths[0].voice_text
+        assert "Starvation" in deaths[0].voice_text
+
     def test_cliff_warning_narrated(self):
         msgs = StepMessages()
         warnings = ["Food for one day. After that, the hunger starts."]

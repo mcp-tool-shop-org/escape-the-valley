@@ -1243,19 +1243,41 @@ def test_pyrrhic_one_survivor_finish():
 
 
 def test_pyrrhic_when_taboo_broken_despite_full_survival():
-    from escape_the_valley.step_engine import compute_ending
+    """WAVE_4: broken vow is a fact, not a pyrrhic knife.
 
-    state = _victory_state(days=5)
-    state.victory = True
-    # leave_nothing taboo, but a member is dead → vow broken.
-    state.taboo = "leave_nothing"
-    state.party.members[0].health = 0
-    state.party.members[0].death_cause = "Injury"
+    On-time intact + broken vow → triumphant (headline must not claim
+    'vow unbroken'). Late intact + broken vow → weathered. Death-wins
+    stay pyrrhic via test_pyrrhic_one_survivor_finish.
+    """
+    from escape_the_valley.models import JournalEntry
+    from escape_the_valley.step_engine import compute_ending, compute_par_days
 
-    ending = compute_ending(state)
-    # Survivors < party_size AND taboo broken — still pyrrhic.
-    assert ending.tier == "pyrrhic"
-    assert ending.facts["taboo_kept"] is False
+    night = JournalEntry(
+        day=2, location="Camp", event_id="night_watch",
+        scene_title="Night", narration="",
+        choice_made="A: Keep watch",
+        outcome="", tags=["night"],
+    )
+
+    on_time = _victory_state(days=5)
+    on_time.victory = True
+    on_time.taboo = "never_night"
+    on_time.journal.append(night)
+    e_on_time = compute_ending(on_time)
+    assert on_time.party.alive_count == 4
+    assert e_on_time.facts["taboo_kept"] is False
+    assert e_on_time.tier == "triumphant"
+    assert "vow unbroken" not in e_on_time.headline.lower()
+
+    late = _victory_state()
+    late.victory = True
+    late.taboo = "never_night"
+    late.day = compute_par_days(late.total_distance) + 10
+    late.journal.append(night)
+    e_late = compute_ending(late)
+    assert late.party.alive_count == 4
+    assert e_late.facts["taboo_kept"] is False
+    assert e_late.tier == "weathered"
 
 
 def test_lost_total_loss():
@@ -1427,9 +1449,9 @@ def test_par_days_floor_and_scaling():
     # Floored for tiny/zero journeys.
     assert compute_par_days(0) == 8
     assert compute_par_days(4) == 8
-    # Scales with distance (ceil division by 4) above the floor.
-    assert compute_par_days(120) == 30
-    assert compute_par_days(121) == 31
+    # Scales with distance (ceil division by 8) above the floor.
+    assert compute_par_days(120) == 15
+    assert compute_par_days(121) == 16
 
 
 def test_taboo_kept_never_river_reads_journal():
@@ -3464,3 +3486,19 @@ def test_gameengine_spoilage_seed_reproduces(monkeypatch):
         snaps.append(_snap(engine))
 
     assert snaps[0] == snaps[1]
+
+
+def test_hunt_names_injured_member(monkeypatch):
+    """WAVE_12: StepEngine prints the name attempt_hunt returns."""
+    engine = _make_engine(seed=42)
+    engine.state.supplies.ammo = 10
+    wounded = engine.state.party.members[0].name
+
+    def _fake_hunt(state, rng):
+        return {"ammo": -1, "injured": wounded}
+
+    monkeypatch.setattr(
+        "escape_the_valley.step_engine.attempt_hunt", _fake_hunt,
+    )
+    engine._do_hunt()
+    assert f"{wounded} was injured on the hunt." in engine.msgs.lines

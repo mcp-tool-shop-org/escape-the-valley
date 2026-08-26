@@ -387,6 +387,9 @@ class JournalDrawer(Static):
         # (GM-authored, confirmed end-to-end from step_engine.py through
         # adapter.py:145) and choice_made -- escape the per-entry text, not
         # the "[b]Journal[/b]" header, which is literal chrome authored here.
+        if not s.journal:
+            self.update("[b]Journal[/b]\nNo journal entries yet.")
+            return
         lines = "\n".join(f"- {_escape_dynamic(entry)}" for entry in s.journal)
         self.update("[b]Journal[/b]\n" + lines)
 

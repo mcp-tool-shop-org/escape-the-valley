@@ -33,12 +33,13 @@ def emit_health_cards(
         eff_type = eff.get("type", "")
 
         if eff_type == "died":
+            cause = str(eff.get("cause") or "unknown")
             card = MemoryCard(
                 id=f"eng_death_{member.lower()}_d{state.day}",
                 kind="wound",
                 title=f"{member}'s Death",
-                text=f"{member} perished on day {state.day}.",
-                tags=["death", "loss"],
+                text=f"{member} perished on day {state.day} ({cause}).",
+                tags=["death", "loss", cause.lower().replace(" ", "_")],
                 day_created=state.day,
                 day_last_seen=state.day,
                 entities=[member],

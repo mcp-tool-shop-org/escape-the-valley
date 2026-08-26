@@ -17,6 +17,12 @@ sidebar:
 pip install escape-the-valley
 ```
 
+Zero-prerequisite npm launcher (downloads the v1.3.0 GitHub binary):
+
+```bash
+npx @mcptoolshop/escape-the-valley tui --seed 42
+```
+
 For development or optional features:
 
 ```bash

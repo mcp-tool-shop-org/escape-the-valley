@@ -514,10 +514,11 @@ class StepEngine:
             self.msgs.lines.append("No ammunition for hunting.")
             return
 
-        deltas = attempt_hunt(self.state, self.rng)
-        self.state.supplies.apply_delta(deltas)
+        result = dict(attempt_hunt(self.state, self.rng))
+        injured = str(result.pop("injured", "") or "")
+        self.state.supplies.apply_delta(result)
 
-        food_gain = deltas.get("food", 0)
+        food_gain = int(result.get("food", 0) or 0)
         if food_gain > 0:
             self.msgs.lines.append(
                 f"Hunt successful! +{food_gain} food. -1 ammo."
@@ -526,6 +527,8 @@ class StepEngine:
             self.msgs.lines.append(
                 "The hunt yielded nothing. -1 ammo."
             )
+        if injured:
+            self.msgs.lines.append(f"{injured} was injured on the hunt.")
 
         # Half-day consumption (F-4d750550: round toward zero, not floor)
         half = halve_consumption(compute_daily_consumption(self.state))
@@ -1490,12 +1493,12 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
 
 # ── EC-04: graded endings ───────────────────────────────────────────
 
-# Par is a deterministic distance->days yardstick. At STEADY pace the wagon
-# covers ~5 miles per travel-day, and a clean run mixes travel with rest/repair,
-# so we budget a little slack: par_days ≈ total_distance / 4, floored at 8 so a
-# very short map still has a meaningful target. Reading total_distance only, this
-# is pure and seed-stable.
-_PAR_MILES_PER_DAY = 4
+# Par is a deterministic distance->days yardstick. STEADY travel is ~5 miles
+# per travel-day; skilled calendar pace on this floor is ~8 map-miles/day
+# (median win distance/days, WAVE_3/4). Par is that median, not a slack-to-4
+# gift. Floored at 8 so a short map still has a target. Reading
+# total_distance only — pure and seed-stable.
+_PAR_MILES_PER_DAY = 8
 _PAR_DAYS_FLOOR = 8
 
 
@@ -1604,18 +1607,17 @@ def compute_ending(state: RunState) -> EndingResult:
             )
         else:
             headline = "None of them reached the valley."
-    elif survivors < party_size or not taboo_kept:
-        # Reached the valley, but the cost was real.
+    elif survivors < party_size:
+        # Reached the valley, but not everyone did. Taboo is a fact, not a
+        # pyrrhic knife (WAVE_4 / item 2): an intact finish with a broken
+        # vow is triumphant or weathered, not a death-win.
         tier = "pyrrhic"
-        if survivors < party_size:
-            lost = party_size - survivors
-            headline = (
-                f"The valley was reached — but {lost} did not live to see it."
-            )
-        else:
-            headline = "The valley was reached, but a vow was broken to get there."
+        lost = party_size - survivors
+        headline = (
+            f"The valley was reached — but {lost} did not live to see it."
+        )
     elif days > par_days:
-        # Whole party alive, taboo held, but slow.
+        # Whole party alive, late. Par is untouched this wave.
         tier = "weathered"
         headline = (
             f"All {party_size} reached the valley, weathered and late "
@@ -1623,9 +1625,15 @@ def compute_ending(state: RunState) -> EndingResult:
         )
     else:
         tier = "triumphant"
-        headline = (
-            f"All {party_size} reached the valley intact, on time, vow unbroken."
-        )
+        if taboo_kept:
+            headline = (
+                f"All {party_size} reached the valley intact, on time, "
+                "vow unbroken."
+            )
+        else:
+            headline = (
+                f"All {party_size} reached the valley intact, on time."
+            )
 
     return EndingResult(tier=tier, facts=facts, headline=headline)
 

@@ -1305,6 +1305,32 @@ class TestStreamingNarration:
         assert calls["n"] == 2
         assert client.stats["tone_rejects"] >= 1
 
+    def test_punchline_retry_does_not_concat_stream(self, monkeypatch):
+        """WAVE_12: discarded punchline tokens never reach on_token."""
+        client = GMClient(GMConfig(max_retries=1))
+        state, event = self._world()
+        bad = _valid_scene_json("Plot twist: the mule bolts.")
+        good_n = "The river runs wide and cold."
+        good = _valid_scene_json(good_n)
+        calls = {"n": 0}
+
+        def _stream(_method, _url, **_k):
+            calls["n"] += 1
+            payload = bad if calls["n"] == 1 else good
+            return _FakeStream(_chunk(payload, 6))
+
+        monkeypatch.setattr(client._client, "stream", _stream)
+        seen: list[str] = []
+        result = client.generate_scene(
+            state, event, "clear skies", on_token=seen.append,
+        )
+        assert result is not None
+        assert result.narration == good_n
+        joined = "".join(seen)
+        assert "Plot twist" not in joined
+        assert "Wait for it" not in joined
+        assert joined == good_n
+
     def test_on_token_exception_never_propagates(self, monkeypatch):
         # A buggy renderer must not brick generation: the scene still parses.
         client = GMClient(GMConfig(max_retries=1))

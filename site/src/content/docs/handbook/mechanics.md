@@ -169,9 +169,9 @@ There are four endings:
 
 | Ending | What it means |
 |--------|---------------|
-| **Triumphant** | A clean escape. The party came through whole, or close to it, without the trail extracting much in return. |
-| **Weathered** | You made it out, but worn down — losses absorbed, time spent, the wagon and the party showing every mile. |
-| **Pyrrhic** | An escape that cost more than it was worth. The valley is behind you, but so is much of what you started with. |
+| **Triumphant** | Everyone reached the valley, on time against par. |
+| **Weathered** | Everyone reached the valley, but late. A broken vow is a fact on the ending, not this tier. |
+| **Pyrrhic** | The valley was reached, and someone did not live to see it. |
 | **Lost** | The trail won. The party did not reach the exit. |
 
-The grade is not a single number on a scoreboard. It weighs survivors, days against par, and the run's taboo and uncanny along the way, then narrates the result as a proper epilogue rather than a bare cause-of-death line. Two runs that both "escape" can earn different endings depending on what the escape cost.
+The grade is not a single number on a scoreboard. It weighs survivors and days against par, then narrates the result as a proper epilogue rather than a bare cause-of-death line. Two runs that both "escape" can earn different endings depending on what the escape cost.

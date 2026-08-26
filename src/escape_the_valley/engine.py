@@ -286,13 +286,16 @@ class GameEngine:
             show_message("No ammunition for hunting.", "red")
             return
 
-        deltas = attempt_hunt(self.state, self.rng)
-        self.state.supplies.apply_delta(deltas)
+        result = dict(attempt_hunt(self.state, self.rng))
+        injured = str(result.pop("injured", "") or "")
+        self.state.supplies.apply_delta(result)
 
-        if deltas.get("food", 0) > 0:
-            show_message(f"Hunt successful! Gained {deltas['food']} food. Used 1 ammo.", "green")
+        if int(result.get("food", 0) or 0) > 0:
+            show_message(f"Hunt successful! Gained {result['food']} food. Used 1 ammo.", "green")
         else:
             show_message("The hunt yielded nothing. 1 ammo spent.", "yellow")
+        if injured:
+            show_message(f"{injured} was injured on the hunt.", "yellow")
 
         # Half-day action — partial consumption (F-4d750550: round toward
         # zero, not floor -- see physics.halve_consumption)

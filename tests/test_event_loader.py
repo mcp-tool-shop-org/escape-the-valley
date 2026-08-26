@@ -78,6 +78,48 @@ class TestJsonEventLoader:
         # route to animals_health_delta — none silently become health_delta.
         assert seen_animals
 
+    def test_river_ford_json_events_exclude_desert(self):
+        """WAVE_10: desert nodes do not draw JSON river/ford events."""
+        from escape_the_valley.models import Biome
+
+        events = load_json_events()
+        riverish = [
+            e for e in events
+            if {"river", "ford"} & {t.lower() for t in e.tags}
+        ]
+        assert riverish, "expected JSON river/ford events"
+        for e in riverish:
+            assert e.biome_filter is not None, e.event_id
+            assert Biome.DESERT not in e.biome_filter, e.event_id
+            assert set(e.biome_filter) == {b for b in Biome if b != Biome.DESERT}
+        dry = [
+            e for e in events
+            if not ({"river", "ford"} & {t.lower() for t in e.tags})
+        ]
+        assert any(e.biome_filter is None for e in dry)
+        for e in events:
+            for choice in e.fallback_choices:
+                assert choice.cost_hint == ""
+
+    def test_does_not_copy_empty_preconditions(self):
+        raw = {
+            "id": "w10_ford",
+            "title": "Test Ford",
+            "tags": ["river", "ford", "survival"],
+            "preconditions": [],
+            "weirdness_band": 0,
+            "choices": [
+                {"label": "Ford", "intent_action": "FORD", "engine_effect_profile": {}},
+                {"label": "Wait", "intent_action": "WAIT", "engine_effect_profile": {}},
+            ],
+            "narration_seed": "A river.",
+        }
+        event = _convert_event(raw)
+        from escape_the_valley.models import Biome
+        assert event.biome_filter is not None
+        assert Biome.DESERT not in event.biome_filter
+        assert all(c.cost_hint == "" for c in event.fallback_choices)
+
 
 class TestResourceCatalogComplete:
     def test_cloth_and_boots_in_catalog(self):

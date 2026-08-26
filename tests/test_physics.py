@@ -4,6 +4,8 @@ from escape_the_valley.models import (
     Biome,
     Pace,
     SeededRNG,
+    Trait,
+    TwistModifier,
 )
 from escape_the_valley.physics import (
     abandon_cargo,
@@ -130,6 +132,26 @@ class TestTravelDistance:
 
         assert d_bad < d_good
 
+    def test_early_winter_slows_only_that_twist(self):
+        """WAVE_6: Early Winter −1 mile/day; Sick Season / none unchanged."""
+        state = create_new_run(seed=42)
+        state.wagon.pace = Pace.STEADY
+        state.wagon.condition = 100
+        state.wagon.animals_health = 100
+        state.doctrine = ""
+
+        state.twists = []
+        d_none = compute_travel_distance(state)
+
+        state.twists = [TwistModifier.SICK_SEASON]
+        d_sick = compute_travel_distance(state)
+        assert d_sick == d_none
+
+        state.twists = [TwistModifier.EARLY_WINTER]
+        d_winter = compute_travel_distance(state)
+        assert d_winter == max(1, d_none - 1)
+        assert d_winter < d_none
+
 
 class TestHunt:
     def test_costs_ammo(self):
@@ -144,6 +166,32 @@ class TestHunt:
         rng = SeededRNG(42)
         deltas = attempt_hunt(state, rng)
         assert deltas == {}
+
+    def test_failed_hunt_returns_injured_name(self):
+        """WAVE_12: attempt_hunt names the wounded member like desperate_repair."""
+        state = create_new_run(seed=42)
+        state.supplies.ammo = 10
+        name = state.party.members[0].name
+
+        class _ForceInjury:
+            def __init__(self):
+                self.n = 0
+
+            def random(self):
+                self.n += 1
+                if self.n == 1:
+                    return 1.0
+                return 0.0
+
+            def choice(self, seq):
+                return seq[0]
+
+            def randint(self, a, b):
+                return a
+
+        deltas = attempt_hunt(state, _ForceInjury())
+        assert deltas.get("injured") == name
+        assert state.party.members[0].condition.value == "injured"
 
 
 class TestRepair:
@@ -430,6 +478,23 @@ class TestBreakdownCurve:
             if check_breakdown(state, SeededRNG(s)) is not None
         )
         assert breaks_maintained < breaks_normal
+
+    def test_wave1_damage_range_without_mechanic(self):
+        """Wave 1 wagon lever: per-hit damage is randint(8, 16) before mechanic."""
+        state = create_new_run(seed=42)
+        state.doctrine = ""
+        state.wagon.condition = 10
+        state.maintained_turns_remaining = 0
+        for member in state.party.members:
+            member.traits = [t for t in member.traits if t != Trait.MECHANIC]
+        damages = []
+        for s in range(3000):
+            hit = check_breakdown(state, SeededRNG(s))
+            if hit and "wagon_damage" in hit:
+                damages.append(hit["wagon_damage"])
+        assert damages, "expected some breakdowns at condition 10"
+        assert min(damages) >= 8
+        assert max(damages) <= 16
 
 
 class TestHuntVariance:
