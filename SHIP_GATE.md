@@ -5,7 +5,7 @@
 
 **Tags:** `[all]` every repo · `[npm]` `[pypi]` `[vsix]` `[desktop]` `[container]` published artifacts · `[mcp]` MCP servers · `[cli]` CLI tools
 
-**Release:** v1.2.1 — 2026-08-25. v1.2.0 GitHub/npm landed; PyPI rejected Metadata-Version 2.5. This tag is the PyPI-valid 1.2 line.
+**Release:** v1.3.0 — 2026-08-26. Content/enjoyability: endings, wagon, Early Winter, JSON biome filter, hunt names the wounded. npx launcher pins GitHub v1.3.0 (`F-05786299`). Hatchling stays `<1.27`.
 
 ---
 
@@ -35,7 +35,7 @@
 
 ## C. Operator Docs
 
-- [x] `[all]` README is current: what it does, install, usage, supported platforms + runtime versions (2026-06-15) — README updated with "What's New in 1.1.0", `pip install escape-the-valley`, Python 3.11+ stated, usage for CLI + TUI
+- [x] `[all]` README is current: what it does, install, usage, supported platforms + runtime versions (2026-08-26) — What's New 1.3.0; `pip install escape-the-valley`; npx pins v1.3.0; Python 3.11+ stated
 - [x] `[all]` CHANGELOG.md (Keep a Changelog format) (2026-06-15) — dated `## [1.1.0] - 2026-06-15` section with Added/Changed groups; `## [Unreleased]` header present
 - [x] `[all]` LICENSE file present and repo states support status (2026-06-15) — MIT LICENSE present; pyproject `license = "MIT"`; SECURITY.md states 1.x supported
 - [x] `[cli]` `--help` output accurate for all commands and flags (2026-06-15) — `trail --help` lists new/old commands (new, play, status, journal, self-check, tui, version, stats, postcard, ledger, parcel, wallet) + `--version`; `tui --gm-profile/--weirdness` verified to match CLI (A-01/02/03)
@@ -46,7 +46,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-08-25) — split honestly: `scripts/verify.sh` is lint + offline tests (`ruff check` + `pytest` under `set -e`). Build + content smoke for the PyInstaller artifact is `scripts/smoke_test_binary.py`, invoked from `release-binaries.yml` after the build: it runs the frozen binary `--help` *and* asserts a loaded event-library count ≥ 200 (the 60-event quarter-game if `event_skeletons.json` is missing). `verify.sh` alone is not a build-and-smoke check.
-- [x] `[all]` Version in manifest matches git tag (2026-08-25) — `pyproject.toml` version `1.2.1` == `__init__.__version__` `1.2.1` == `package.json` `1.2.1`; tag `v1.2.1` cut on this release commit.
+- [x] `[all]` Version in manifest matches git tag (2026-08-26) — `pyproject.toml` version `1.3.0` == `__init__.__version__` `1.3.0` == `package.json` `1.3.0` == npx launcher `v1.3.0`; tag `v1.3.0` cuts on this release commit.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) (2026-06-15) — `ci.yml` runs `pip-audit` against installed deps on every push/PR (non-blocking report; advisory surfaced in job log)
 - [ ] `[all]` SKIP: no `dependabot.yml` — org GitHub Actions budget rule forbids scheduled/dependabot workflows on tool repos (`.claude/rules/github-actions.md`: "Do NOT add dependabot.yml unless explicitly requested"; scheduled workflows allowed only in the marketing repo). Update cadence is manual + the CI `pip-audit` advisory feed.
 - [ ] `[npm]` SKIP: not an npm package (PyPI)

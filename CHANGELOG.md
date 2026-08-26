@@ -4,6 +4,34 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-26
+
+### Added
+
+- **Four live endings.** A skilled GM-off seed set hits triumphant,
+  weathered, pyrrhic, and lost. Weathered is intact-and-late; a broken
+  vow is a fact, not the pyrrhic knife.
+- **Early Winter** slows travel (−1 mile/day) when that twist is on the
+  run. Bandit Year and Flood Year still boost event tags. Good Hunting
+  and Sick Season stay tag-boosts (physics yield/chance moved the
+  four-tier pins and were reverted).
+- **JSON river/ford events no longer fire in the desert.**
+
+### Changed
+
+- Wagon breakdown damage is `8–16` (was `10–25`). Starting parts are 4
+  (was 3). Par is 8 miles/day (was 4).
+- Hunt injury names who was wounded. TUI journal death lines carry the
+  cause. Empty journal says so. CLI game-over prints the headline,
+  a short closer, and the named fallen.
+- **npx launcher pins GitHub `v1.3.0`** (was stuck on the dead `v1.1.1`
+  artifact — `F-05786299`).
+
+### Fixed
+
+- Punchline retries no longer concatenate the banned line onto the
+  accepted scene. Death memory cards keep the cause.
+
 ## [1.2.1] - 2026-08-25
 
 ### Fixed
