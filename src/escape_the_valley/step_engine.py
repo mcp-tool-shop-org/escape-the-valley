@@ -1604,18 +1604,17 @@ def compute_ending(state: RunState) -> EndingResult:
             )
         else:
             headline = "None of them reached the valley."
-    elif survivors < party_size or not taboo_kept:
-        # Reached the valley, but the cost was real.
+    elif survivors < party_size:
+        # Reached the valley, but not everyone did. Taboo is a fact, not a
+        # pyrrhic knife (WAVE_4 / item 2): an intact finish with a broken
+        # vow is triumphant or weathered, not a death-win.
         tier = "pyrrhic"
-        if survivors < party_size:
-            lost = party_size - survivors
-            headline = (
-                f"The valley was reached — but {lost} did not live to see it."
-            )
-        else:
-            headline = "The valley was reached, but a vow was broken to get there."
+        lost = party_size - survivors
+        headline = (
+            f"The valley was reached — but {lost} did not live to see it."
+        )
     elif days > par_days:
-        # Whole party alive, taboo held, but slow.
+        # Whole party alive, late. Par is untouched this wave.
         tier = "weathered"
         headline = (
             f"All {party_size} reached the valley, weathered and late "
@@ -1623,9 +1622,15 @@ def compute_ending(state: RunState) -> EndingResult:
         )
     else:
         tier = "triumphant"
-        headline = (
-            f"All {party_size} reached the valley intact, on time, vow unbroken."
-        )
+        if taboo_kept:
+            headline = (
+                f"All {party_size} reached the valley intact, on time, "
+                "vow unbroken."
+            )
+        else:
+            headline = (
+                f"All {party_size} reached the valley intact, on time."
+            )
 
     return EndingResult(tier=tier, facts=facts, headline=headline)
 
