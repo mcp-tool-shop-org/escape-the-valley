@@ -11,6 +11,7 @@ from .models import (
     SeededRNG,
     TimeOfDay,
     Trait,
+    TwistModifier,
 )
 
 # Pace modifiers
@@ -124,6 +125,11 @@ def compute_travel_distance(state: RunState) -> int:
     # Sick animals slow down
     if state.wagon.animals_health < 40:
         base = max(1, base - 2)
+
+    # Early Winter: snowed-in trail. Calendar stretch only when this twist
+    # is on the run — do not slow every seed. WAVE_6 / item 5.
+    if TwistModifier.EARLY_WINTER in state.twists:
+        base = max(1, base - 1)
 
     return base
 

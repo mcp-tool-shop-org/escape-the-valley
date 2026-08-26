@@ -5,6 +5,7 @@ from escape_the_valley.models import (
     Pace,
     SeededRNG,
     Trait,
+    TwistModifier,
 )
 from escape_the_valley.physics import (
     abandon_cargo,
@@ -130,6 +131,26 @@ class TestTravelDistance:
         d_bad = compute_travel_distance(state)
 
         assert d_bad < d_good
+
+    def test_early_winter_slows_only_that_twist(self):
+        """WAVE_6: Early Winter −1 mile/day; Sick Season / none unchanged."""
+        state = create_new_run(seed=42)
+        state.wagon.pace = Pace.STEADY
+        state.wagon.condition = 100
+        state.wagon.animals_health = 100
+        state.doctrine = ""
+
+        state.twists = []
+        d_none = compute_travel_distance(state)
+
+        state.twists = [TwistModifier.SICK_SEASON]
+        d_sick = compute_travel_distance(state)
+        assert d_sick == d_none
+
+        state.twists = [TwistModifier.EARLY_WINTER]
+        d_winter = compute_travel_distance(state)
+        assert d_winter == max(1, d_none - 1)
+        assert d_winter < d_none
 
 
 class TestHunt:
