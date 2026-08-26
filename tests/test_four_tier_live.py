@@ -14,12 +14,12 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from agents.skilled import choose_intent, reset_step_counter
-from escape_the_valley.gm import GMConfig
-from escape_the_valley.intent import GamePhase
-from escape_the_valley.models import GMProfile
-from escape_the_valley.step_engine import StepEngine
-from escape_the_valley.worldgen import create_new_run
+from agents.skilled import choose_intent, reset_step_counter  # noqa: E402
+from escape_the_valley.gm import GMConfig  # noqa: E402
+from escape_the_valley.intent import GamePhase  # noqa: E402
+from escape_the_valley.models import GMProfile  # noqa: E402
+from escape_the_valley.step_engine import StepEngine  # noqa: E402
+from escape_the_valley.worldgen import create_new_run  # noqa: E402
 
 MAX_STEPS = 3000
 
