@@ -1191,6 +1191,11 @@ class TestMarkupSafety:
     # brackets with no matching open tag anywhere in the string.
     STRAY = "the guide mutters something [/uncanny] under her breath"
 
+    def test_empty_journal_has_empty_state_line(self):
+        widget = JournalDrawer()
+        widget.update_from(FrameState(journal=[]))
+        assert "No journal entries yet" in widget.visual.plain
+
     def test_journal_drawer_survives_stray_closing_tag(self):
         """The brief's own worked example. Escaping must not blank or mangle
         the real message -- the player must still see what the GM wrote."""

@@ -107,6 +107,53 @@ class TestCalloutLevel:
         warnings = _build_warnings(state)
         assert not any("is sick" in w for w in warnings)
 
+    def test_verbose_lists_injured_like_sick(self):
+        """WAVE_12: injured companions are named in warnings, like sick."""
+        from escape_the_valley.models import Condition
+
+        state = create_new_run(seed=42)
+        state.callout_level = "verbose"
+        state.party.members[0].condition = Condition.INJURED
+        warnings = _build_warnings(state)
+        assert any(
+            f"{state.party.members[0].name} is injured" in w for w in warnings
+        )
+
+
+class TestStageCJournalAndDeath:
+    def test_death_milestone_uses_outcome_when_choice_empty(self):
+        from escape_the_valley.adapter import state_to_frame
+        from escape_the_valley.models import JournalEntry
+
+        engine = StepEngine(create_new_run(seed=42), GMConfig(enabled=False))
+        engine.state.journal.append(
+            JournalEntry(
+                day=5,
+                location="Springfield",
+                event_id="",
+                scene_title="Death: Alice",
+                narration="",
+                choice_made="",
+                outcome="Alice died of injury on day 5 near Springfield.",
+            )
+        )
+        frame = state_to_frame(engine)
+        assert any("Alice died of injury" in line for line in frame.journal)
+        assert not any(line.endswith("Death: Alice: ") for line in frame.journal)
+
+    def test_dead_party_row_includes_cause(self):
+        from escape_the_valley.adapter import state_to_frame
+
+        engine = StepEngine(create_new_run(seed=42), GMConfig(enabled=False))
+        dead = engine.state.party.members[0]
+        dead.health = 0
+        dead.death_cause = "Injury"
+        frame = state_to_frame(engine)
+        assert any(
+            f"{dead.name} — dead (Injury)" in row or f"{dead.name} \u2014 dead (Injury)" in row
+            for row in frame.party_detail
+        )
+
 
 # ── cli-tui-001: TUI persists ledger/parcel state ───────────────────
 

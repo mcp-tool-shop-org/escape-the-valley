@@ -137,7 +137,11 @@ def state_to_frame(engine: StepEngine) -> FrameState:
                 + (f" [{traits}]" if traits else "")
             )
         else:
-            party_detail.append(f"{m.name} \u2014 dead")
+            cause = m.death_cause or ""
+            if cause:
+                party_detail.append(f"{m.name} \u2014 dead ({cause})")
+            else:
+                party_detail.append(f"{m.name} \u2014 dead")
 
     # Warnings — driven by ResourceDef.warning_low
     warnings = _build_warnings(s)
@@ -148,9 +152,11 @@ def state_to_frame(engine: StepEngine) -> FrameState:
     # Journal
     journal = []
     for j in s.journal[-20:]:
-        journal.append(
-            f"Day {j.day} \u2014 {j.scene_title}: {j.choice_made}"
-        )
+        body = j.choice_made or j.outcome or ""
+        if body:
+            journal.append(f"Day {j.day} \u2014 {j.scene_title}: {body}")
+        else:
+            journal.append(f"Day {j.day} \u2014 {j.scene_title}")
 
     # Backpack status line
     from .backpack import BackpackManager
@@ -506,4 +512,6 @@ def _build_warnings(s) -> list[str]:
         for m in s.party.members:
             if m.is_alive() and m.condition.value == "sick":
                 warnings.append(f"{m.name} is sick")
+            elif m.is_alive() and m.condition.value == "injured":
+                warnings.append(f"{m.name} is injured")
     return warnings
