@@ -12,6 +12,7 @@ from .events import (
     EventSkeleton,
     FolkloreType,
 )
+from .models import Biome
 from .resources import RESOURCE_CATALOG
 
 log = logging.getLogger(__name__)
@@ -217,12 +218,22 @@ def _convert_event(raw: dict) -> EventSkeleton:
         )
         severity = "medium"
 
+    # WAVE_10: a desert node is not a river ford. Infer only when the JSON
+    # entry left biome_filter unset. Do not copy empty preconditions.
+    # Hand-authored skeletons never pass through here.
+    biome_filter = None
+    if not raw.get("biome_filter"):
+        tagset = {str(t).lower() for t in tags}
+        if "river" in tagset or "ford" in tagset:
+            biome_filter = [b for b in Biome if b != Biome.DESERT]
+
     return EventSkeleton(
         event_id=event_id,
         title=raw.get("title", ""),
         category=category,
         tags=tags,
         severity=severity,
+        biome_filter=biome_filter,
         costs_uncanny_token=costs_token,
         folklore_type=folklore_type,
         fallback_narration=raw.get("narration_seed", ""),
