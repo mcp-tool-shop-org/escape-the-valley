@@ -362,8 +362,28 @@ def show_game_over(state: RunState) -> None:
     summary += f"Distance covered: {state.distance_traveled} miles\n"
     summary += f"Survivors: {state.party.alive_count}/{len(state.party.members)}\n"
 
-    if state.cause_of_death and not state.victory:
+    if state.ending and state.ending.headline:
+        summary += f"\n{state.ending.headline}\n"
+    elif state.cause_of_death and not state.victory:
         summary += f"\n{state.cause_of_death}\n"
+
+    if state.ending:
+        from .gm import build_deterministic_epilogue
+        epi = build_deterministic_epilogue(state, state.ending)
+        if epi:
+            # Short closer — first two sentences, same idea as TUI EndScreen.
+            parts = [p.strip() for p in epi.replace("!", ".").split(".") if p.strip()]
+            short = ". ".join(parts[:2])
+            if short and not short.endswith("."):
+                short += "."
+            summary += f"\n{short}\n"
+
+    fallen = [m for m in state.party.members if not m.is_alive()]
+    if fallen:
+        summary += "\nThe fallen:\n"
+        for member in fallen:
+            cause = member.death_cause or "unknown"
+            summary += f"  {member.name} ({cause})\n"
 
     summary += f"\nSeed: {state.seed}  |  Run ID: {state.run_id}"
     summary += f"\nProfile: {state.gm_profile.value}"
