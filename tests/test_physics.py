@@ -4,6 +4,7 @@ from escape_the_valley.models import (
     Biome,
     Pace,
     SeededRNG,
+    Trait,
 )
 from escape_the_valley.physics import (
     abandon_cargo,
@@ -430,6 +431,23 @@ class TestBreakdownCurve:
             if check_breakdown(state, SeededRNG(s)) is not None
         )
         assert breaks_maintained < breaks_normal
+
+    def test_wave1_damage_range_without_mechanic(self):
+        """Wave 1 wagon lever: per-hit damage is randint(8, 16) before mechanic."""
+        state = create_new_run(seed=42)
+        state.doctrine = ""
+        state.wagon.condition = 10
+        state.maintained_turns_remaining = 0
+        for member in state.party.members:
+            member.traits = [t for t in member.traits if t != Trait.MECHANIC]
+        damages = []
+        for s in range(3000):
+            hit = check_breakdown(state, SeededRNG(s))
+            if hit and "wagon_damage" in hit:
+                damages.append(hit["wagon_damage"])
+        assert damages, "expected some breakdowns at condition 10"
+        assert min(damages) >= 8
+        assert max(damages) <= 16
 
 
 class TestHuntVariance:

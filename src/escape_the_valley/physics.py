@@ -152,8 +152,10 @@ def check_breakdown(state: RunState, rng: SeededRNG) -> dict[str, int] | None:
         chance *= 0.3
 
     if rng.random() < chance:
-        # Mechanic trait reduces damage
-        damage = rng.randint(10, 25)
+        # Mechanic trait reduces damage.
+        # Wave 1 wagon lever (swarm-1787723294-24cc): 10–25 → 8–16.
+        # Chance curve, mechanic offset, and game-over rule are untouched.
+        damage = rng.randint(8, 16)
         if state.party.has_trait(Trait.MECHANIC):
             damage = max(5, damage - 8)
         return {"wagon_damage": damage}
