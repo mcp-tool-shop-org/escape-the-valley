@@ -58,7 +58,7 @@ RESOURCE_CATALOG: dict[str, ResourceDef] = {
     ),
     "parts": ResourceDef(
         key="parts", display="PART", category=ResourceCategory.GEAR,
-        default=3, max_stack=10, daily_decay=0, warning_low=1,
+        default=4, max_stack=10, daily_decay=0, warning_low=1,
         description="Wagon parts. Required for repairs.",
     ),
     "rope": ResourceDef(
