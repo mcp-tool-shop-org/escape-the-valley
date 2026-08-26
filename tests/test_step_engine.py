@@ -1449,9 +1449,9 @@ def test_par_days_floor_and_scaling():
     # Floored for tiny/zero journeys.
     assert compute_par_days(0) == 8
     assert compute_par_days(4) == 8
-    # Scales with distance (ceil division by 4) above the floor.
-    assert compute_par_days(120) == 30
-    assert compute_par_days(121) == 31
+    # Scales with distance (ceil division by 8) above the floor.
+    assert compute_par_days(120) == 15
+    assert compute_par_days(121) == 16
 
 
 def test_taboo_kept_never_river_reads_journal():

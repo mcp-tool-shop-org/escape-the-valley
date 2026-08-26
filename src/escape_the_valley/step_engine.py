@@ -1490,12 +1490,12 @@ def _build_fallback_callout(outcome: EventOutcome) -> str:
 
 # ── EC-04: graded endings ───────────────────────────────────────────
 
-# Par is a deterministic distance->days yardstick. At STEADY pace the wagon
-# covers ~5 miles per travel-day, and a clean run mixes travel with rest/repair,
-# so we budget a little slack: par_days ≈ total_distance / 4, floored at 8 so a
-# very short map still has a meaningful target. Reading total_distance only, this
-# is pure and seed-stable.
-_PAR_MILES_PER_DAY = 4
+# Par is a deterministic distance->days yardstick. STEADY travel is ~5 miles
+# per travel-day; skilled calendar pace on this floor is ~8 map-miles/day
+# (median win distance/days, WAVE_3/4). Par is that median, not a slack-to-4
+# gift. Floored at 8 so a short map still has a target. Reading
+# total_distance only — pure and seed-stable.
+_PAR_MILES_PER_DAY = 8
 _PAR_DAYS_FLOOR = 8
 
 
