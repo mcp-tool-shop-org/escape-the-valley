@@ -699,6 +699,27 @@ class GMClient:
                     _safe_emit(on_token, streamer.feed(fragment))
         return 200, streamer.raw
 
+    @staticmethod
+    def _flush_accepted_stream(
+        on_token: Callable[[str], None] | None,
+        buffered: list[str],
+        accepted: str,
+    ) -> None:
+        """Forward streamed tokens only after tone-lint accepts.
+
+        Punchline retries discard the buffer. A local slang repair flushes
+        the repaired prose (never the banned words). A clean stream is
+        replayed token-for-token so progressive tests still see ≥2 deltas.
+        """
+        if not on_token:
+            return
+        raw = "".join(buffered)
+        if raw == accepted:
+            for tok in buffered:
+                _safe_emit(on_token, tok)
+        else:
+            _safe_emit(on_token, accepted)
+
     def _request_scene(
         self,
         system: str,
@@ -722,8 +743,14 @@ class GMClient:
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.stats["attempts"] += 1
+                buffered: list[str] = []
+
+                def _capture(tok: str, _buf: list[str] = buffered) -> None:
+                    _buf.append(tok)
+
                 status, text = self._post_text(
-                    system, user, narration_key="narration", on_token=on_token,
+                    system, user, narration_key="narration",
+                    on_token=_capture if on_token else None,
                 )
                 if status != 200:
                     if not self._on_http_status(status, text):
@@ -737,6 +764,7 @@ class GMClient:
                     if repaired is None:
                         # Hard tone failure (punchline structure) — local repair
                         # can't fix it, so retry with an explicit nudge.
+                        # Discard streamed tokens; do not concat onto the retry.
                         self.stats["tone_rejects"] += 1
                         logger.warning("Tone check failed (hard), retrying")
                         user = _nudge_prompt(user)
@@ -749,6 +777,7 @@ class GMClient:
                         data.get("profile", ""), requested_profile,
                     )
                     self._mark_ok()
+                    self._flush_accepted_stream(on_token, buffered, repaired)
                     return SceneResponse.from_dict(data)
                 self.stats["json_rejects"] += 1
                 logger.warning("Invalid scene JSON (attempt %d)", attempt + 1)
@@ -788,9 +817,15 @@ class GMClient:
         for _attempt in range(self.config.max_retries + 1):
             try:
                 self.stats["attempts"] += 1
+                buffered: list[str] = []
+
+                def _capture(tok: str, _buf: list[str] = buffered) -> None:
+                    _buf.append(tok)
+
                 status, text = self._post_text(
                     system, user,
-                    narration_key="outcome_narration", on_token=on_token,
+                    narration_key="outcome_narration",
+                    on_token=_capture if on_token else None,
                 )
                 if status != 200:
                     if not self._on_http_status(status, text):
@@ -810,6 +845,7 @@ class GMClient:
                         logger.info("Tone repaired locally; accepting outcome")
                         data["outcome_narration"] = repaired
                     self._mark_ok()
+                    self._flush_accepted_stream(on_token, buffered, repaired)
                     return OutcomeResponse.from_dict(data)
                 self.stats["json_rejects"] += 1
                 logger.warning(

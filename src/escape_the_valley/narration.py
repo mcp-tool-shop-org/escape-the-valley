@@ -170,7 +170,20 @@ def extract_narration(
             priority=1,
         ))
 
-    # 5. Game over
+    # 5. Named death beat — "{name} has died ({cause})."
+    death = next(
+        (line for line in msgs.lines if "has died" in line.lower()),
+        None,
+    )
+    if death:
+        events.append(NarrationEvent(
+            type=NarrationType.WARNING,
+            voice_text=_sanitize(death),
+            priority=3,
+            pause_before_ms=400,
+        ))
+
+    # 6. Game over
     game_over = next(
         (line for line in msgs.lines
          if "victory" in line.lower() or "journey ends" in line.lower()),

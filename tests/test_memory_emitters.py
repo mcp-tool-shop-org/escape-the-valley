@@ -29,6 +29,15 @@ class TestEmitHealthCards:
         assert "Martha" in card.entities
         assert card.salience == 0.7
         assert card.source == "engine"
+        assert "Starvation" in card.text or "unknown" in card.text
+
+    def test_death_card_keeps_cause(self):
+        state = create_new_run(seed=1)
+        effects = [{"member": "Martha", "type": "died", "cause": "Starvation"}]
+        emit_health_cards(state, effects)
+        card = state.memory_cards[0]
+        assert "Starvation" in card.text
+        assert "starvation" in card.tags
 
     def test_sickness_creates_wound_card(self):
         state = create_new_run(seed=1)
