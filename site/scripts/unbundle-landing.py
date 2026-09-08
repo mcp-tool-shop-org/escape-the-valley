@@ -26,13 +26,19 @@ import base64
 import gzip
 import html as html_mod
 import json
+import os
 import re
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Paths / config
 # ---------------------------------------------------------------------------
-EXPORT = Path(r"C:/Users/mikey/Downloads/Escape the Valley.html")
+# Derived from the environment, not hardcoded. This was an absolute path under
+# one developer's home directory: it resolved on exactly one machine, and it
+# published that username from a public repo. Override with EV_EXPORT if the
+# Claude-Design export lands somewhere else.
+EXPORT = Path(os.environ.get(
+    "EV_EXPORT", Path.home() / "Downloads" / "Escape the Valley.html"))
 SITE = Path(__file__).resolve().parents[1]          # site/
 PUBLIC = SITE / "public"
 FONTS_DIR = PUBLIC / "fonts"
