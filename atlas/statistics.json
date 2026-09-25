@@ -1,0 +1,1041 @@
+{
+  "authorship": {
+    "parts": [],
+    "places": []
+  },
+  "boundaries": [
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": ".github",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": [
+          "scripts",
+          "tests"
+        ]
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "agents",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "assets",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "bin",
+      "qualifyingSourceCommits": 2,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "docs",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "root",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "scripts",
+      "qualifyingSourceCommits": 4,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "site",
+      "qualifyingSourceCommits": 4,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [
+          "tests"
+        ],
+        "importsOnly": [
+          "agents",
+          "scripts"
+        ]
+      },
+      "cohesion": 0.087608,
+      "cohesionDropped": false,
+      "confidence": "full",
+      "highWater": null,
+      "name": "src",
+      "qualifyingSourceCommits": 67,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [
+          "src"
+        ],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": 0.065861,
+      "cohesionDropped": false,
+      "confidence": "full",
+      "highWater": null,
+      "name": "tests",
+      "qualifyingSourceCommits": 63,
+      "rebaseline": null
+    }
+  ],
+  "churn": {
+    "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
+    "files": [
+      {
+        "commits": 1,
+        "lines": 11,
+        "path": ".gitattributes"
+      },
+      {
+        "commits": 8,
+        "lines": 43,
+        "path": ".github/workflows/ci.yml"
+      },
+      {
+        "commits": 1,
+        "lines": 8,
+        "path": ".github/workflows/pages.yml"
+      },
+      {
+        "commits": 3,
+        "lines": 61,
+        "path": ".github/workflows/publish.yml"
+      },
+      {
+        "commits": 9,
+        "lines": 254,
+        "path": ".github/workflows/release-binaries.yml"
+      },
+      {
+        "commits": 6,
+        "lines": 317,
+        "path": ".github/workflows/release.yml"
+      },
+      {
+        "commits": 3,
+        "lines": 5,
+        "path": ".gitignore"
+      },
+      {
+        "commits": 23,
+        "lines": 393,
+        "path": "CHANGELOG.md"
+      },
+      {
+        "commits": 6,
+        "lines": 549,
+        "path": "README.es.md"
+      },
+      {
+        "commits": 6,
+        "lines": 581,
+        "path": "README.fr.md"
+      },
+      {
+        "commits": 6,
+        "lines": 543,
+        "path": "README.hi.md"
+      },
+      {
+        "commits": 6,
+        "lines": 557,
+        "path": "README.it.md"
+      },
+      {
+        "commits": 6,
+        "lines": 645,
+        "path": "README.ja.md"
+      },
+      {
+        "commits": 16,
+        "lines": 140,
+        "path": "README.md"
+      },
+      {
+        "commits": 6,
+        "lines": 763,
+        "path": "README.pt-BR.md"
+      },
+      {
+        "commits": 6,
+        "lines": 445,
+        "path": "README.zh.md"
+      },
+      {
+        "commits": 1,
+        "lines": 49,
+        "path": "SCORECARD.md"
+      },
+      {
+        "commits": 4,
+        "lines": 31,
+        "path": "SECURITY.md"
+      },
+      {
+        "commits": 11,
+        "lines": 134,
+        "path": "SHIP_GATE.md"
+      },
+      {
+        "commits": 4,
+        "lines": 34,
+        "path": "bin/escape-the-valley.js"
+      },
+      {
+        "commits": 1,
+        "lines": 59,
+        "path": "docs/landing-design-brief.md"
+      },
+      {
+        "commits": 1,
+        "lines": 56,
+        "path": "docs/survival-guide.md"
+      },
+      {
+        "commits": 7,
+        "lines": 56,
+        "path": "package.json"
+      },
+      {
+        "commits": 12,
+        "lines": 55,
+        "path": "pyproject.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 81,
+        "path": "scripts/ledger_proof.py"
+      },
+      {
+        "commits": 1,
+        "lines": 747,
+        "path": "scripts/sim_gm_panel.py"
+      },
+      {
+        "commits": 4,
+        "lines": 429,
+        "path": "scripts/smoke_test_binary.py"
+      },
+      {
+        "commits": 3,
+        "lines": 105,
+        "path": "scripts/yaml_to_json.py"
+      },
+      {
+        "commits": 1,
+        "lines": 5,
+        "path": "site/astro.config.mjs"
+      },
+      {
+        "commits": 1,
+        "lines": 6045,
+        "path": "site/package-lock.json"
+      },
+      {
+        "commits": 1,
+        "lines": 6,
+        "path": "site/package.json"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/ev-logo.png"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-400-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-400-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-400-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-400-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-400-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-500-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-500-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-500-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-500-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-500-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-600-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-600-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-600-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-600-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/ibm-plex-mono-600-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-italic-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-italic-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-italic-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-italic-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-italic-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-400-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-500-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-500-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-500-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-500-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-500-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-600-normal-cyrillic-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-600-normal-cyrillic.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-600-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-600-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/spectral-600-normal-vietnamese.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-500-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-500-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-600-italic-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-600-italic-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-600-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-600-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-700-italic-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-700-italic-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-700-normal-latin-ext.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 0,
+        "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
+      },
+      {
+        "commits": 1,
+        "lines": 818,
+        "path": "site/public/index.html"
+      },
+      {
+        "commits": 2,
+        "lines": 243,
+        "path": "site/scripts/unbundle-landing.py"
+      },
+      {
+        "commits": 8,
+        "lines": 183,
+        "path": "site/src/content/docs/handbook/beginners.md"
+      },
+      {
+        "commits": 5,
+        "lines": 20,
+        "path": "site/src/content/docs/handbook/commands.md"
+      },
+      {
+        "commits": 4,
+        "lines": 31,
+        "path": "site/src/content/docs/handbook/getting-started.md"
+      },
+      {
+        "commits": 4,
+        "lines": 68,
+        "path": "site/src/content/docs/handbook/gm-profiles.md"
+      },
+      {
+        "commits": 2,
+        "lines": 14,
+        "path": "site/src/content/docs/handbook/index.md"
+      },
+      {
+        "commits": 4,
+        "lines": 151,
+        "path": "site/src/content/docs/handbook/mechanics.md"
+      },
+      {
+        "commits": 1,
+        "lines": 6,
+        "path": "site/src/content/docs/handbook/survival-guide.md"
+      },
+      {
+        "commits": 1,
+        "lines": 56,
+        "path": "site/src/content/docs/handbook/troubleshooting.md"
+      },
+      {
+        "commits": 6,
+        "lines": 65,
+        "path": "site/src/content/docs/handbook/xrpl-ledger.md"
+      },
+      {
+        "commits": 1,
+        "lines": 33,
+        "path": "site/src/pages/index.astro"
+      },
+      {
+        "commits": 4,
+        "lines": 14,
+        "path": "site/src/site-config.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 72,
+        "path": "site/src/styles/starlight-custom.css"
+      },
+      {
+        "commits": 8,
+        "lines": 16,
+        "path": "src/escape_the_valley/__init__.py"
+      },
+      {
+        "commits": 7,
+        "lines": 378,
+        "path": "src/escape_the_valley/__main__.py"
+      },
+      {
+        "commits": 13,
+        "lines": 364,
+        "path": "src/escape_the_valley/adapter.py"
+      },
+      {
+        "commits": 19,
+        "lines": 3127,
+        "path": "src/escape_the_valley/backpack.py"
+      },
+      {
+        "commits": 6,
+        "lines": 345,
+        "path": "src/escape_the_valley/backpack_models.py"
+      },
+      {
+        "commits": 21,
+        "lines": 917,
+        "path": "src/escape_the_valley/backpack_ui.py"
+      },
+      {
+        "commits": 13,
+        "lines": 755,
+        "path": "src/escape_the_valley/cli.py"
+      },
+      {
+        "commits": 1,
+        "lines": 180,
+        "path": "src/escape_the_valley/data/event_skeletons.json"
+      },
+      {
+        "commits": 25,
+        "lines": 2321,
+        "path": "src/escape_the_valley/engine.py"
+      },
+      {
+        "commits": 11,
+        "lines": 261,
+        "path": "src/escape_the_valley/event_loader.py"
+      },
+      {
+        "commits": 8,
+        "lines": 794,
+        "path": "src/escape_the_valley/events.py"
+      },
+      {
+        "commits": 16,
+        "lines": 1970,
+        "path": "src/escape_the_valley/gm.py"
+      },
+      {
+        "commits": 6,
+        "lines": 84,
+        "path": "src/escape_the_valley/ledger.py"
+      },
+      {
+        "commits": 10,
+        "lines": 1309,
+        "path": "src/escape_the_valley/ledger_proof.py"
+      },
+      {
+        "commits": 10,
+        "lines": 291,
+        "path": "src/escape_the_valley/memory.py"
+      },
+      {
+        "commits": 10,
+        "lines": 293,
+        "path": "src/escape_the_valley/memory_emitters.py"
+      },
+      {
+        "commits": 8,
+        "lines": 118,
+        "path": "src/escape_the_valley/models.py"
+      },
+      {
+        "commits": 4,
+        "lines": 68,
+        "path": "src/escape_the_valley/narration.py"
+      },
+      {
+        "commits": 8,
+        "lines": 184,
+        "path": "src/escape_the_valley/physics.py"
+      },
+      {
+        "commits": 2,
+        "lines": 4,
+        "path": "src/escape_the_valley/resources.py"
+      },
+      {
+        "commits": 10,
+        "lines": 523,
+        "path": "src/escape_the_valley/save.py"
+      },
+      {
+        "commits": 26,
+        "lines": 2375,
+        "path": "src/escape_the_valley/step_engine.py"
+      },
+      {
+        "commits": 2,
+        "lines": 42,
+        "path": "src/escape_the_valley/tui.tcss"
+      },
+      {
+        "commits": 28,
+        "lines": 3575,
+        "path": "src/escape_the_valley/tui_app.py"
+      },
+      {
+        "commits": 15,
+        "lines": 546,
+        "path": "src/escape_the_valley/ui.py"
+      },
+      {
+        "commits": 5,
+        "lines": 512,
+        "path": "src/escape_the_valley/voice.py"
+      },
+      {
+        "commits": 2,
+        "lines": 162,
+        "path": "tests/conftest.py"
+      },
+      {
+        "commits": 19,
+        "lines": 1499,
+        "path": "tests/test_adapter.py"
+      },
+      {
+        "commits": 31,
+        "lines": 8147,
+        "path": "tests/test_backpack.py"
+      },
+      {
+        "commits": 3,
+        "lines": 24,
+        "path": "tests/test_backpack_ledger.py"
+      },
+      {
+        "commits": 6,
+        "lines": 192,
+        "path": "tests/test_backpack_models.py"
+      },
+      {
+        "commits": 4,
+        "lines": 126,
+        "path": "tests/test_backpack_save.py"
+      },
+      {
+        "commits": 10,
+        "lines": 1407,
+        "path": "tests/test_cli_stats.py"
+      },
+      {
+        "commits": 2,
+        "lines": 114,
+        "path": "tests/test_death_causes.py"
+      },
+      {
+        "commits": 8,
+        "lines": 410,
+        "path": "tests/test_event_loader.py"
+      },
+      {
+        "commits": 9,
+        "lines": 1412,
+        "path": "tests/test_events.py"
+      },
+      {
+        "commits": 3,
+        "lines": 122,
+        "path": "tests/test_four_tier_live.py"
+      },
+      {
+        "commits": 16,
+        "lines": 2883,
+        "path": "tests/test_gm.py"
+      },
+      {
+        "commits": 3,
+        "lines": 231,
+        "path": "tests/test_ledger.py"
+      },
+      {
+        "commits": 9,
+        "lines": 1054,
+        "path": "tests/test_ledger_proof.py"
+      },
+      {
+        "commits": 10,
+        "lines": 457,
+        "path": "tests/test_memory.py"
+      },
+      {
+        "commits": 10,
+        "lines": 743,
+        "path": "tests/test_memory_emitters.py"
+      },
+      {
+        "commits": 4,
+        "lines": 111,
+        "path": "tests/test_models.py"
+      },
+      {
+        "commits": 4,
+        "lines": 57,
+        "path": "tests/test_narration.py"
+      },
+      {
+        "commits": 2,
+        "lines": 80,
+        "path": "tests/test_npx_launcher.py"
+      },
+      {
+        "commits": 7,
+        "lines": 421,
+        "path": "tests/test_physics.py"
+      },
+      {
+        "commits": 10,
+        "lines": 1216,
+        "path": "tests/test_save.py"
+      },
+      {
+        "commits": 29,
+        "lines": 7690,
+        "path": "tests/test_step_engine.py"
+      },
+      {
+        "commits": 27,
+        "lines": 5232,
+        "path": "tests/test_tui_smoke.py"
+      },
+      {
+        "commits": 5,
+        "lines": 483,
+        "path": "tests/test_voice.py"
+      },
+      {
+        "commits": 2,
+        "lines": 18,
+        "path": "tests/test_worldgen.py"
+      }
+    ]
+  },
+  "confidence": {
+    "level": "low",
+    "reason": "fewer than 20 source files reach 10 revisions in the window"
+  },
+  "generatedAt": "2026-09-25T02:21:33.371Z",
+  "generatedFrom": {
+    "commit": "fa2660c9bab9c9d2828b88caa5677f10197511e8"
+  },
+  "pairs": [
+    {
+      "a": "README.md",
+      "b": "SHIP_GATE.md",
+      "either": 10,
+      "shared": 5,
+      "strength": 0.5
+    },
+    {
+      "a": "pyproject.toml",
+      "b": "src/escape_the_valley/__init__.py",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "src/escape_the_valley/backpack.py",
+      "b": "tests/test_backpack.py",
+      "either": 15,
+      "shared": 9,
+      "strength": 0.6
+    },
+    {
+      "a": "src/escape_the_valley/backpack_ui.py",
+      "b": "tests/test_backpack.py",
+      "either": 15,
+      "shared": 9,
+      "strength": 0.6
+    },
+    {
+      "a": "src/escape_the_valley/cli.py",
+      "b": "tests/test_cli_stats.py",
+      "either": 7,
+      "shared": 6,
+      "strength": 0.857143
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "src/escape_the_valley/step_engine.py",
+      "either": 15,
+      "shared": 11,
+      "strength": 0.733333
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "tests/test_step_engine.py",
+      "either": 16,
+      "shared": 12,
+      "strength": 0.75
+    },
+    {
+      "a": "src/escape_the_valley/gm.py",
+      "b": "tests/test_gm.py",
+      "either": 7,
+      "shared": 7,
+      "strength": 1
+    },
+    {
+      "a": "src/escape_the_valley/ledger_proof.py",
+      "b": "tests/test_ledger_proof.py",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "src/escape_the_valley/step_engine.py",
+      "b": "tests/test_step_engine.py",
+      "either": 16,
+      "shared": 14,
+      "strength": 0.875
+    },
+    {
+      "a": "src/escape_the_valley/tui_app.py",
+      "b": "tests/test_adapter.py",
+      "either": 13,
+      "shared": 8,
+      "strength": 0.615385
+    },
+    {
+      "a": "src/escape_the_valley/tui_app.py",
+      "b": "tests/test_tui_smoke.py",
+      "either": 13,
+      "shared": 12,
+      "strength": 0.923077
+    },
+    {
+      "a": "src/escape_the_valley/ui.py",
+      "b": "tests/test_adapter.py",
+      "either": 8,
+      "shared": 6,
+      "strength": 0.75
+    },
+    {
+      "a": "tests/test_adapter.py",
+      "b": "tests/test_tui_smoke.py",
+      "either": 13,
+      "shared": 7,
+      "strength": 0.538462
+    }
+  ],
+  "parameters": {
+    "appliedChangesetLimit": 38.5,
+    "changeset": 50,
+    "changesetFraction": 0.25,
+    "cohesionDrop": 0.2,
+    "couplingPopulation": "source",
+    "fallenShared": 3,
+    "floor": "fallen",
+    "floorHeld": false,
+    "floorTrigger": "revision-depth",
+    "headDate": "2026-09-17T18:33:41-07:00",
+    "inScopeFiles": 154,
+    "pinnedStart": null,
+    "priorFloor": null,
+    "qualifyingCommits": 96,
+    "qualifyingMinimum": 30,
+    "revisions": 5,
+    "shared": 10,
+    "sharedFloorUsed": 3,
+    "since": "2026-03-22T01:33:41.000Z",
+    "sourceExtensions": [
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".jsx",
+      ".ts",
+      ".tsx",
+      ".mts",
+      ".cts",
+      ".py",
+      ".rs",
+      ".gd"
+    ],
+    "sourceFileReach": 20,
+    "sourceFileRise": 25,
+    "sourceFilesReachingStrongFloor": 6,
+    "strength": 0.5,
+    "windowDays": 180
+  },
+  "strengthDefinition": "strength is the shared qualifying commits divided by either. either is the number of qualifying commits that touch either file."
+}

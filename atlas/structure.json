@@ -1,0 +1,5159 @@
+{
+  "boundaries": [
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "a00f394a155d1ba2ecaa0753d0711a588aa02cbb53261dfabbb2b73d6e7f3bc3",
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "hash": "93dc62c74dfddae3a1dc3291b236a3e266cc0f9963100f2967357b3f3833b310",
+          "path": ".github/workflows/pages.yml"
+        },
+        {
+          "hash": "e5fd1574654445dc303bde8306bdae26ca647aad67ba822788e46d669a798783",
+          "path": ".github/workflows/publish.yml"
+        },
+        {
+          "hash": "09297e4ce12731fb532338655e2065587a12af929232b99bbebf8a331925e0e5",
+          "path": ".github/workflows/release-binaries.yml"
+        },
+        {
+          "hash": "1aa70af7fcd2e501e0f5279b376a7296a9392a3253b068bf6710ebad4474db22",
+          "path": ".github/workflows/release.yml"
+        }
+      ],
+      "globs": [
+        ".github/**"
+      ],
+      "importConfidence": "full",
+      "name": ".github",
+      "origin": "authored",
+      "role": "config",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "exports": [
+            "choose_intent",
+            "reset_step_counter"
+          ],
+          "hash": "e9eb6f99a4fe067e7d977b256afeb13bdc4045640f273e510bf5018c761b1096",
+          "importsFiles": [
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py"
+          ],
+          "path": "agents/skilled.py"
+        }
+      ],
+      "globs": [
+        "agents/**"
+      ],
+      "importConfidence": "full",
+      "name": "agents",
+      "origin": "authored",
+      "role": "code",
+      "testedBy": 1,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "d8c551e8418a03c26213ce01d0b68e37dd3f3785343b5c33445a6aabf94d9ec0",
+          "path": "assets/readme-logo.png"
+        }
+      ],
+      "globs": [
+        "assets/**"
+      ],
+      "importConfidence": "full",
+      "name": "assets",
+      "origin": "authored",
+      "role": "data",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [
+        "bin/escape-the-valley.js"
+      ],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "e9981ce44adf519c71c83e505d7154096edb851d57a92bec20583306ea19eeb9",
+          "path": "bin/escape-the-valley.js"
+        }
+      ],
+      "globs": [
+        "bin/**"
+      ],
+      "importConfidence": "full",
+      "name": "bin",
+      "origin": "authored",
+      "role": "code",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "e226752a0d785525913750cd291a43d3c31c6d8af6c07e9948a3a7f3aee22308",
+          "path": "docs/landing-design-brief.md"
+        },
+        {
+          "hash": "8694eee992f51e5e43d1810db9e8050f74b39a84710c199034eb2a8f4cee3542",
+          "path": "docs/survival-guide.md"
+        }
+      ],
+      "globs": [
+        "docs/**"
+      ],
+      "importConfidence": "full",
+      "name": "docs",
+      "origin": "authored",
+      "role": "docs",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "6c05b6ba208da5b5e2400f21a0ddd78b272c75ade974d215a47884c3681580c2",
+          "path": ".gitattributes"
+        },
+        {
+          "hash": "88621e8f39777e4d26c789f9222e45d9e5cf9b289e659112671b3e517ee5aa00",
+          "path": ".gitignore"
+        },
+        {
+          "hash": "11293e52f2202bf5ae0beec3dc27bb9a26b0925c54ae2b871e6b2383e067e7b4",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "hash": "367e5141e4f5884e5791c4021f33a9faa958840a5decf44e1b273a87aad1c459",
+          "path": "LICENSE"
+        },
+        {
+          "hash": "f9dd6df5fe7325ca1248a0cd64cf483fbf07f911b20d43a5a77b1356a75fafe3",
+          "path": "README.es.md"
+        },
+        {
+          "hash": "38813d121368e99c6eff4e1cf258a5be0c5f1e7906587200ffea3515672ad735",
+          "path": "README.fr.md"
+        },
+        {
+          "hash": "45894a3450693b7751847267a04f93fc879cbb4fc0337d4ba81a8938ac520dc6",
+          "path": "README.hi.md"
+        },
+        {
+          "hash": "238b52288333c8ab2f61c9535b6cb645412bad595d5f0b5018ac49249d48b08f",
+          "path": "README.it.md"
+        },
+        {
+          "hash": "78107cd026b4ff2efcdfb840aeeba4aa7c15beb65ffe4aff55b6356086c10fe7",
+          "path": "README.ja.md"
+        },
+        {
+          "hash": "6dfbcf66b36db66f043b319551dcd39ba3bfddc3a43d3b5bf6a803f0b23fa91f",
+          "path": "README.md"
+        },
+        {
+          "hash": "86e4b0b8150d9b3b2d430e5213aa5a38fd6240b38ad75962cadf07e8d2634414",
+          "path": "README.pt-BR.md"
+        },
+        {
+          "hash": "4f1dba463a253e3eaa4b1339ac168935505be3777f4015b6b701b20105807ac8",
+          "path": "README.zh.md"
+        },
+        {
+          "hash": "b00fe74cf255d8d6944fb5374a73f2502e777569e36e2d5f52656be9af010c32",
+          "path": "SCORECARD.md"
+        },
+        {
+          "hash": "302439dccfa62424c57d22cb59c5ae49cb77b506f347fff15f3dbd0808135623",
+          "path": "SECURITY.md"
+        },
+        {
+          "hash": "737915ccc7a65209dbf0cf290c889b03a8119d0f876425d154e1add4833186f4",
+          "path": "SHIP_GATE.md"
+        },
+        {
+          "hash": "07b7ab25db81fa04eb48edb168b68208f12e8f3d83f1136642f790df89d7692f",
+          "path": "package.json"
+        },
+        {
+          "hash": "e80196c447031d4f56aa8fcad35dbcbb63ddb717820e60136c186795a517bf6f",
+          "path": "pyproject.toml"
+        }
+      ],
+      "globs": [
+        "*"
+      ],
+      "importConfidence": "full",
+      "name": "root",
+      "origin": "authored",
+      "role": "config",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 1,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "exports": [
+            "main"
+          ],
+          "hash": "efa6f91815911d474d1b2ccb520e8a27ad44f338179e4bac4b86b5b5e6b7dc55",
+          "importsFiles": [
+            "src/escape_the_valley/ledger_proof.py"
+          ],
+          "path": "scripts/ledger_proof.py"
+        },
+        {
+          "exports": [
+            "main"
+          ],
+          "hash": "6e9baceeb60ffee22de7d5c1ef2733c733213591465a94d2e7a5b4f4bbf38ceb",
+          "importsFiles": [
+            "agents/skilled.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "scripts/sim_gm_panel.py"
+        },
+        {
+          "exports": [
+            "main",
+            "simulate_run"
+          ],
+          "hash": "f966b0fe39641dc1ab614ae192dfae4726223f4afcbe25c7d7d9aa8dec75d777",
+          "importsFiles": [
+            "agents/skilled.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "scripts/sim_skilled.py"
+        },
+        {
+          "exports": [
+            "main",
+            "simulate_run"
+          ],
+          "hash": "ad96e994166d8e06553ba5b2541b04452eed9c7588e179ea69dcbf1872d62a79",
+          "importsFiles": [
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "scripts/simulate.py"
+        },
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "main"
+          ],
+          "hash": "a3475da49a3a3d137d2cbe348ab88f7f145da6291bc8e575194abd09a5e2e200",
+          "path": "scripts/smoke_test_binary.py",
+          "sequences": []
+        },
+        {
+          "hash": "0e7f1a70d974827f8c10ee234a32dcfcd0d8453c6eb78271069b734cc2a7b784",
+          "path": "scripts/verify.sh"
+        },
+        {
+          "exports": [
+            "main",
+            "parse_yaml_events"
+          ],
+          "hash": "21c381596440055334be0dcdc2e6bd9365ea43202e3a84e62070b43685a30f0e",
+          "path": "scripts/yaml_to_json.py"
+        }
+      ],
+      "globs": [
+        "scripts/**"
+      ],
+      "importConfidence": "full",
+      "name": "scripts",
+      "origin": "authored",
+      "outsidePlaces": [
+        {
+          "reads": 0,
+          "where": [
+            "caller"
+          ],
+          "writes": 3
+        }
+      ],
+      "outsideWrites": 3,
+      "role": "code",
+      "testedBy": 1,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 1,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "03efe6f926097b72968adbda4e86b82ae562008d0dd83e84a59fe5bc7e4ee265",
+          "path": "site/astro.config.mjs"
+        },
+        {
+          "hash": "af5d4f54dca60686724d306eb58759fb25b6f5ba4d66559ab84a968112a184e5",
+          "path": "site/package-lock.json"
+        },
+        {
+          "hash": "17ed487ab5049bb52f8c5e35f77f21be7da639f1fb6a3fa70e9b02ffabfe7be6",
+          "path": "site/package.json"
+        },
+        {
+          "hash": "a90e20a015820a0658ac77bb8b207b5265ba4b8802389e9c98de3a5de2e964c6",
+          "path": "site/public/ev-logo.png"
+        },
+        {
+          "hash": "f8c22ec1804bd6966b70f43ac7c327025645b4c09597117fca2a5a6c750106fe",
+          "path": "site/public/fonts/ibm-plex-mono-400-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "7635422bd10ddbbcb0e0caa1154b928298f5c8319b8c00b30978d4395f4783ce",
+          "path": "site/public/fonts/ibm-plex-mono-400-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "6bc0f226a5b7884a8170e3f62c63d7675609d4631bdc5931b5cdab81821f00eb",
+          "path": "site/public/fonts/ibm-plex-mono-400-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+          "path": "site/public/fonts/ibm-plex-mono-400-normal-latin.woff2"
+        },
+        {
+          "hash": "62632b6375305e70ddcafdd895218e6ae41a184fcd280a69c739460604ca00a9",
+          "path": "site/public/fonts/ibm-plex-mono-400-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "3febe5c7f22e4b07b4552738673c3dbe8bced2dc5f48b866edf7ccd9552d109a",
+          "path": "site/public/fonts/ibm-plex-mono-500-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "1d89462e86cb8e87e7e9d6f6635605bd7c3081baca6caaecee84916bf7b60edc",
+          "path": "site/public/fonts/ibm-plex-mono-500-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "6bb06407c97584b0867a959e05e8874693bfeb8c317de190811c51598f2d99ea",
+          "path": "site/public/fonts/ibm-plex-mono-500-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "path": "site/public/fonts/ibm-plex-mono-500-normal-latin.woff2"
+        },
+        {
+          "hash": "781633d95de88040fb77141d1e65d928c87c0144691fbc74da5a64d137a7e910",
+          "path": "site/public/fonts/ibm-plex-mono-500-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "83109cdd4f8665b475dfc11d61bd44da328bf7e6eab3d3953d39c49b1b9f6015",
+          "path": "site/public/fonts/ibm-plex-mono-600-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "2b05a8695c7f9f4abd7178b279646a3b005a8ce57546bef6fd145f25d131e0aa",
+          "path": "site/public/fonts/ibm-plex-mono-600-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "32057cf50dd14bdb21a2c93766c4a2c43e4abe688ea3922df3203cac7751a98b",
+          "path": "site/public/fonts/ibm-plex-mono-600-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83",
+          "path": "site/public/fonts/ibm-plex-mono-600-normal-latin.woff2"
+        },
+        {
+          "hash": "51b74d53e106ba8a26dd33464b231a562069be2a234b923c115beb622e6f6bc6",
+          "path": "site/public/fonts/ibm-plex-mono-600-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "2ffe627c5122156c7d49c79d69065ea98a90685fed57271648a44ea34452a7c7",
+          "path": "site/public/fonts/spectral-400-italic-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "800e7c4478044bd0861ddd67b822ac1bb18220e0ccb90c029fe88052262c99d4",
+          "path": "site/public/fonts/spectral-400-italic-cyrillic.woff2"
+        },
+        {
+          "hash": "f554218b51a0eadc0709d6027e684ad9b5b21ddc4f3dfd4ba171ba2b41b0c99f",
+          "path": "site/public/fonts/spectral-400-italic-latin-ext.woff2"
+        },
+        {
+          "hash": "db397149a9f73fd6a41dd2fdf3314cf8a9daf0485134465cc268cac578766b71",
+          "path": "site/public/fonts/spectral-400-italic-latin.woff2"
+        },
+        {
+          "hash": "4248dc09c3ff0a927c12158f48d35b982c3686c12c0218abee02f56373775b73",
+          "path": "site/public/fonts/spectral-400-italic-vietnamese.woff2"
+        },
+        {
+          "hash": "2063ca386de935a6ee88de6503ccbaa66bfd4588ca8e6516748f67f8b642122b",
+          "path": "site/public/fonts/spectral-400-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "26ed02d522d35ca1630be575f96df8fb290882061571a87ef3ab7fc323d28f87",
+          "path": "site/public/fonts/spectral-400-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "fc4b2566ccd9714a72c2137f822311cb0131296c83c8ee93848ae6f887969e85",
+          "path": "site/public/fonts/spectral-400-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "cf8daee3b83c1e662196c6e34e444bc41344d54bfeb4fb5351e197de6ce94539",
+          "path": "site/public/fonts/spectral-400-normal-latin.woff2"
+        },
+        {
+          "hash": "e8c68397acd8950ca955de46c130c6a393ea087d50e677bace1def6460f44883",
+          "path": "site/public/fonts/spectral-400-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "aeb9fb4f370161bf5ee60f3492a9592ea06cdb3d3f51b1c79ab11c8e0f81dc80",
+          "path": "site/public/fonts/spectral-500-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "48a05ffb93237d6d238ef45e0e906218fc6816f573fc0202c6f160813510369b",
+          "path": "site/public/fonts/spectral-500-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "747fb031bc07d1d88891efbab9d64ec5106407499fe8eb227c9bc47b3e5f77cd",
+          "path": "site/public/fonts/spectral-500-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "2b70215ed40f2c73bbc7bb53cff9c8975a244c8462569e60989c77b8c5a87a00",
+          "path": "site/public/fonts/spectral-500-normal-latin.woff2"
+        },
+        {
+          "hash": "682ecba3ca9a91afe404b4f8148d3f057a41fd002ad3d7c94cae52dcf7350ae8",
+          "path": "site/public/fonts/spectral-500-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "91038132400ffcf3db691aab8961e83e0c49e896e14f4509b064be49ca7822f6",
+          "path": "site/public/fonts/spectral-600-normal-cyrillic-ext.woff2"
+        },
+        {
+          "hash": "a8297883e0f04031243b893bee1b629eb43dd90b3957e89d61b67109d655b04f",
+          "path": "site/public/fonts/spectral-600-normal-cyrillic.woff2"
+        },
+        {
+          "hash": "dea6bd9ca650814af1f750b7474d7205b7fe0e4c79a6b58c6f7157d90dc8815c",
+          "path": "site/public/fonts/spectral-600-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "33faca8b5795a0de1af77cbc43a050a3655c4b1e03e04847fdef4d19d2e361d2",
+          "path": "site/public/fonts/spectral-600-normal-latin.woff2"
+        },
+        {
+          "hash": "84e2cc86832a0b2036ba03f00b79ef455083b3d459bafb4c8afab05f728b9335",
+          "path": "site/public/fonts/spectral-600-normal-vietnamese.woff2"
+        },
+        {
+          "hash": "2870101587d2fb86efd8812e4e28ea694e4e3094cbf45c8ad940cb4ca8e18329",
+          "path": "site/public/fonts/zilla-slab-500-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "993eac5cf2c8439fc1d781e6de24bbac2885b089e9f170795b8bcad280ca4790",
+          "path": "site/public/fonts/zilla-slab-500-normal-latin.woff2"
+        },
+        {
+          "hash": "db1805d310e041b8df4e8a9ea4bcc9f1c6d663c770c264f807078345132e6fe5",
+          "path": "site/public/fonts/zilla-slab-600-italic-latin-ext.woff2"
+        },
+        {
+          "hash": "1343fc14be8a00da60e3aab9b63d30bb268ded750981be4ddfdc38e9985fc0c1",
+          "path": "site/public/fonts/zilla-slab-600-italic-latin.woff2"
+        },
+        {
+          "hash": "9449fbfd648e56b42035c48e534a64a1909e30ba22268e06cb32a33bac859b0d",
+          "path": "site/public/fonts/zilla-slab-600-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "fd78ed94061d91a141bf6be05559398e21a3d8aab8f7e21594d434573fcf3305",
+          "path": "site/public/fonts/zilla-slab-600-normal-latin.woff2"
+        },
+        {
+          "hash": "cdc7fb32d30f4f8e89c726a4f9d3a7574a04540767310baa70990a30a593c630",
+          "path": "site/public/fonts/zilla-slab-700-italic-latin-ext.woff2"
+        },
+        {
+          "hash": "81dad87e98f037656238d0e49e98bbe93be520917c71e3871cb232226f98d6cc",
+          "path": "site/public/fonts/zilla-slab-700-italic-latin.woff2"
+        },
+        {
+          "hash": "f0a80835a620562dd6aceeceedc98ae450f6a31c731e725192680c25c5d2d88e",
+          "path": "site/public/fonts/zilla-slab-700-normal-latin-ext.woff2"
+        },
+        {
+          "hash": "896b6ebb8cd10aca90bdff88a5a1b648cbc0d50751740bd5a6d012007aef9ebe",
+          "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
+        },
+        {
+          "hash": "55dd7b8a54c65c6299a018c6b5015c3ee3aefdb618b24e16ed611d72659c641c",
+          "path": "site/public/index.html"
+        },
+        {
+          "exports": [
+            "asset_bytes",
+            "slug"
+          ],
+          "hash": "110e68b899c6ecf0ff20cf54eee443bd400398a8bfc78cfc19a413d7e956ae26",
+          "path": "site/scripts/unbundle-landing.py"
+        },
+        {
+          "hash": "ee756dfba4122d2acc94a39b2555d9f200fff56a87a8c0b10f9cd01df26a8b62",
+          "path": "site/src/content.config.ts"
+        },
+        {
+          "hash": "5c015747621ec7f4965e535ba706550ac8ef0b856247ef034c6dace26e40f920",
+          "path": "site/src/content/docs/handbook/beginners.md"
+        },
+        {
+          "hash": "ad57cefba286db5dd41c6339454428ae38cf719faa05151b1aa672d560f32496",
+          "path": "site/src/content/docs/handbook/commands.md"
+        },
+        {
+          "hash": "403d0e8797d1c5401f7e7ccd51b96a9ba07a84a52ecc1ebb6c95e5f3a62823ee",
+          "path": "site/src/content/docs/handbook/getting-started.md"
+        },
+        {
+          "hash": "17e6a5420737006c2d1011d59c670ca322afce526145b1999326b926e7aa48d4",
+          "path": "site/src/content/docs/handbook/gm-profiles.md"
+        },
+        {
+          "hash": "ee0f15b422a48353264da9aba11b6b3a274eb97ee6af075109e53516ded4ef65",
+          "path": "site/src/content/docs/handbook/index.md"
+        },
+        {
+          "hash": "cf84caf0225ca44f52fe55922b2ce6592862d2b5fbd88b6cc71805bd10165a4c",
+          "path": "site/src/content/docs/handbook/mechanics.md"
+        },
+        {
+          "hash": "5ef72efed5e538aae9b1b38d6d6308935e3e589d449aef68b3c9c77c9a4084bc",
+          "path": "site/src/content/docs/handbook/survival-guide.md"
+        },
+        {
+          "hash": "dcc1f2ab6f75d5b8da36a8934ddd2be4f7d47bfc6ca13f3cb66ba55c05c3fe37",
+          "path": "site/src/content/docs/handbook/troubleshooting.md"
+        },
+        {
+          "hash": "c60dd418eb3808c38b4458ccec92d2460d31e82ff7aae0438f0e469676337c91",
+          "path": "site/src/content/docs/handbook/xrpl-ledger.md"
+        },
+        {
+          "hash": "26f136ef997b3165e0278b1504f08d96398057f49a69546ea4a74395ff115238",
+          "path": "site/src/site-config.ts"
+        },
+        {
+          "hash": "5dbcbc2352c162fd0d22e21f2d909104a09d275c86b09b4f4acbb3226da2f945",
+          "path": "site/src/styles/global.css"
+        },
+        {
+          "hash": "74d8acb45f821d29ecb2fdd086db599ceff4808aeee1c821ab5f951ecbaaeb37",
+          "path": "site/src/styles/starlight-custom.css"
+        },
+        {
+          "hash": "b5b0a5b04a14cddd7713c5e1c82e86c79c17c2f86b170e26e9b170b3d5e01cd9",
+          "path": "site/tsconfig.json"
+        }
+      ],
+      "globs": [
+        "site/**"
+      ],
+      "importConfidence": "full",
+      "name": "site",
+      "origin": "authored",
+      "outsidePlaces": [
+        {
+          "reads": 1,
+          "where": [
+            "caller"
+          ],
+          "writes": 0
+        }
+      ],
+      "outsideReads": 1,
+      "role": "site",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 1,
+      "entryPoints": [
+        "src/escape_the_valley/cli.py"
+      ],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "cccb98a069d170411348314de904305a47b5a62db86114bcd1b83b0f588d44cb",
+          "path": "src/escape_the_valley/__init__.py"
+        },
+        {
+          "entry": "_print_event_count_and_exit",
+          "entryRule": 1,
+          "hash": "6c96b8367d78595159314d7f2e9635c6203617afc50514126194dbfcae5ec82d",
+          "importsFiles": [
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/tui_app.py"
+          ],
+          "path": "src/escape_the_valley/__main__.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "inner": [
+                    {
+                      "line": 1668,
+                      "name": "load_json_events",
+                      "target": {
+                        "file": "src/escape_the_valley/event_loader.py"
+                      }
+                    }
+                  ],
+                  "line": 36,
+                  "name": "build_event_library",
+                  "target": {
+                    "file": "src/escape_the_valley/events.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": true,
+              "isDefaultExport": false,
+              "name": "_print_event_count_and_exit"
+            },
+            {
+              "calls": [
+                {
+                  "line": 114,
+                  "name": "LedgerTrailApp",
+                  "target": {
+                    "file": "src/escape_the_valley/tui_app.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": true,
+              "isDefaultExport": false,
+              "name": "_tui_check_and_exit"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "build_ending_facts",
+            "build_run_stats",
+            "camp_choice_intent",
+            "camp_choices",
+            "populate_end_data",
+            "state_to_frame"
+          ],
+          "hash": "e9db39585af99194c95b233c6e17a936d972dc7bae93c288acca8aa4a1660ad5",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py"
+          ],
+          "path": "src/escape_the_valley/adapter.py"
+        },
+        {
+          "hash": "5d4c858bf65cd92484f233fd46101af12ea29d41dfc615ae79f4a1ecddc2c0ec",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py"
+          ],
+          "path": "src/escape_the_valley/backpack.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 158,
+                  "name": "get",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_settlement_memo_text"
+            },
+            {
+              "calls": [
+                {
+                  "line": 158,
+                  "name": "get",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_settlement_memo_text"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_build_memo"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "minted_snapshot_of",
+            "stamp_minted_snapshot"
+          ],
+          "hash": "b299173f89dda4655fe322c07e29c0cbd91757efb34213efd2a488bbb5b2bd6e",
+          "path": "src/escape_the_valley/backpack_models.py"
+        },
+        {
+          "hash": "3a924073a76af5eef089ad4ebd3b7a41bfe8eca2fe88e7371c3e24cb80687595",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py"
+          ],
+          "path": "src/escape_the_valley/backpack_ui.py"
+        },
+        {
+          "entry": "tui",
+          "entryRule": 4,
+          "exports": [
+            "journal",
+            "ledger_disable",
+            "ledger_enable",
+            "ledger_proof",
+            "ledger_reconcile",
+            "ledger_settle",
+            "ledger_status",
+            "ledger_wallet",
+            "main_callback",
+            "new",
+            "parcel_accept",
+            "parcel_list",
+            "parcel_send",
+            "parcel_sent",
+            "play",
+            "postcard",
+            "self_check",
+            "stats",
+            "status",
+            "tui",
+            "version",
+            "wallet_share",
+            "write_postcard_file"
+          ],
+          "hash": "4347133ed87881706aac629860d91bc62d3bd63200616745d745d609d99a68db",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/voice.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "src/escape_the_valley/cli.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "branch": "state.backpack.enabled and state.backpack.settlements",
+                  "line": 53,
+                  "name": "build_xrpl_postcard",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  }
+                },
+                {
+                  "line": 54,
+                  "name": "build_trail_ledger",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_postcard_lines"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "state.backpack.enabled and state.backpack.settlements",
+                  "line": 53,
+                  "name": "build_xrpl_postcard",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  },
+                  "via": "_postcard_lines"
+                },
+                {
+                  "line": 54,
+                  "name": "build_trail_ledger",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  },
+                  "via": "_postcard_lines"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "write_postcard_file"
+            },
+            {
+              "calls": [
+                {
+                  "line": 160,
+                  "name": "show_title_screen",
+                  "target": {
+                    "file": "src/escape_the_valley/ui.py"
+                  }
+                },
+                {
+                  "line": 164,
+                  "name": "GMProfile",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 179,
+                  "name": "has_save",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 184,
+                  "name": "create_new_run",
+                  "target": {
+                    "file": "src/escape_the_valley/worldgen.py"
+                  }
+                },
+                {
+                  "line": 198,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 204,
+                  "name": "GameEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/engine.py"
+                  }
+                },
+                {
+                  "line": 205,
+                  "name": "run",
+                  "receiver": "GameEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/engine.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "new"
+            },
+            {
+              "calls": [
+                {
+                  "line": 214,
+                  "name": "show_title_screen",
+                  "target": {
+                    "file": "src/escape_the_valley/ui.py"
+                  }
+                },
+                {
+                  "line": 216,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 228,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 234,
+                  "name": "GameEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/engine.py"
+                  }
+                },
+                {
+                  "line": 235,
+                  "name": "run",
+                  "receiver": "GameEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/engine.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "play"
+            },
+            {
+              "calls": [
+                {
+                  "line": 241,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 246,
+                  "name": "show_status",
+                  "target": {
+                    "file": "src/escape_the_valley/ui.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "status"
+            },
+            {
+              "calls": [
+                {
+                  "line": 254,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 259,
+                  "name": "show_journal",
+                  "target": {
+                    "file": "src/escape_the_valley/ui.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "journal"
+            },
+            {
+              "calls": [
+                {
+                  "line": 295,
+                  "name": "has_save",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 296,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 342,
+                  "name": "build_event_library",
+                  "target": {
+                    "file": "src/escape_the_valley/events.py"
+                  }
+                },
+                {
+                  "line": 377,
+                  "name": "VoiceConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/voice.py"
+                  }
+                },
+                {
+                  "line": 377,
+                  "name": "VoiceBridge",
+                  "target": {
+                    "file": "src/escape_the_valley/voice.py"
+                  }
+                },
+                {
+                  "line": 405,
+                  "name": "_resolve_css_path",
+                  "target": {
+                    "file": "src/escape_the_valley/tui_app.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "self_check"
+            },
+            {
+              "calls": [
+                {
+                  "inner": [
+                    {
+                      "line": 190,
+                      "name": "exists",
+                      "target": null,
+                      "via": "_backup_corrupt_save"
+                    },
+                    {
+                      "line": 197,
+                      "name": "with_name",
+                      "target": null,
+                      "via": "_backup_corrupt_save"
+                    },
+                    {
+                      "line": 206,
+                      "name": "rename",
+                      "target": null,
+                      "via": "_backup_corrupt_save"
+                    },
+                    {
+                      "line": 415,
+                      "name": "Condition",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 416,
+                      "name": "Trait",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 412,
+                      "name": "PartyMember",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 454,
+                      "name": "TimeOfDay",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 463,
+                      "name": "GMProfile",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 464,
+                      "name": "TwistModifier",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 558,
+                      "name": "SeededRNG",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_coerce_rng_state"
+                    },
+                    {
+                      "line": 475,
+                      "name": "PartyState",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    },
+                    {
+                      "line": 480,
+                      "name": "Pace",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "_dict_to_state"
+                    }
+                  ],
+                  "innerTruncated": true,
+                  "line": 459,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 477,
+                  "name": "GMProfile",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "inner": [
+                    {
+                      "line": 235,
+                      "name": "SeededRNG",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      }
+                    },
+                    {
+                      "line": 60,
+                      "name": "choice",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 62,
+                      "name": "shuffle",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 76,
+                      "name": "randint",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 99,
+                      "name": "random",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 94,
+                      "name": "MapNode",
+                      "target": {
+                        "file": "src/escape_the_valley/models.py"
+                      },
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 107,
+                      "name": "randint",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 112,
+                      "name": "random",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 113,
+                      "name": "randint",
+                      "target": null,
+                      "via": "generate_map"
+                    },
+                    {
+                      "line": 140,
+                      "name": "weighted_choice",
+                      "target": null,
+                      "via": "_place_caches"
+                    },
+                    {
+                      "line": 155,
+                      "name": "choice",
+                      "target": null,
+                      "via": "_place_caches"
+                    },
+                    {
+                      "line": 199,
+                      "name": "shuffle",
+                      "target": null,
+                      "via": "generate_party"
+                    }
+                  ],
+                  "innerTruncated": true,
+                  "line": 486,
+                  "name": "create_new_run",
+                  "target": {
+                    "file": "src/escape_the_valley/worldgen.py"
+                  }
+                },
+                {
+                  "line": 497,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 511,
+                  "name": "VoicePace",
+                  "target": {
+                    "file": "src/escape_the_valley/voice.py"
+                  }
+                },
+                {
+                  "line": 519,
+                  "name": "VoiceConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/voice.py"
+                  }
+                },
+                {
+                  "line": 525,
+                  "name": "StepEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/step_engine.py"
+                  }
+                },
+                {
+                  "line": 526,
+                  "name": "LedgerTrailApp",
+                  "target": {
+                    "file": "src/escape_the_valley/tui_app.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "tui"
+            },
+            {
+              "calls": [
+                {
+                  "line": 550,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 550,
+                  "name": "GMClient",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 554,
+                  "name": "is_available",
+                  "receiver": "GMClient",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_gm_diagnostics"
+            },
+            {
+              "calls": [
+                {
+                  "line": 575,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 550,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  },
+                  "via": "_gm_diagnostics"
+                },
+                {
+                  "line": 550,
+                  "name": "GMClient",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  },
+                  "via": "_gm_diagnostics"
+                },
+                {
+                  "line": 554,
+                  "name": "is_available",
+                  "receiver": "GMClient",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  },
+                  "via": "_gm_diagnostics"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "stats"
+            },
+            {
+              "calls": [
+                {
+                  "line": 672,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "branch": "state.backpack.enabled and state.backpack.settlements",
+                  "line": 53,
+                  "name": "build_xrpl_postcard",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  },
+                  "via": "_postcard_lines"
+                },
+                {
+                  "line": 54,
+                  "name": "build_trail_ledger",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger.py"
+                  },
+                  "via": "_postcard_lines"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "postcard"
+            },
+            {
+              "calls": [
+                {
+                  "line": 696,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 704,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 704,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 705,
+                  "name": "status_line",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 708,
+                  "name": "wallet_info",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_status"
+            },
+            {
+              "calls": [
+                {
+                  "line": 717,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 729,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 729,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 732,
+                  "name": "enable",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 734,
+                  "name": "close",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 737,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_enable"
+            },
+            {
+              "calls": [
+                {
+                  "line": 749,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 761,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 761,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 762,
+                  "name": "disable",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 763,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_disable"
+            },
+            {
+              "calls": [
+                {
+                  "line": 770,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 789,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 789,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 792,
+                  "name": "settle",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 794,
+                  "name": "close",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 797,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_settle"
+            },
+            {
+              "calls": [
+                {
+                  "line": 812,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 829,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 829,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 832,
+                  "name": "_retry_pending",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 834,
+                  "name": "close",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 838,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_reconcile"
+            },
+            {
+              "calls": [
+                {
+                  "line": 856,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 863,
+                  "name": "proof_player_save",
+                  "target": {
+                    "file": "src/escape_the_valley/ledger_proof.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_proof"
+            },
+            {
+              "calls": [
+                {
+                  "line": 874,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 882,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 882,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 883,
+                  "name": "wallet_info",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "ledger_wallet"
+            },
+            {
+              "calls": [
+                {
+                  "line": 915,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 941,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 941,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 944,
+                  "name": "send_parcel",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 946,
+                  "name": "close",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 949,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parcel_send"
+            },
+            {
+              "calls": [
+                {
+                  "line": 963,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parcel_list"
+            },
+            {
+              "calls": [
+                {
+                  "line": 993,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 1011,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 1011,
+                  "name": "save_game",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                },
+                {
+                  "line": 1012,
+                  "name": "accept_parcel",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 1013,
+                  "name": "save_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parcel_accept"
+            },
+            {
+              "calls": [
+                {
+                  "line": 1022,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parcel_sent"
+            },
+            {
+              "calls": [
+                {
+                  "line": 1050,
+                  "name": "load_game",
+                  "target": {
+                    "file": "src/escape_the_valley/save.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "wallet_share"
+            }
+          ]
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "noStatements": true,
+          "path": "src/escape_the_valley/data/__init__.py"
+        },
+        {
+          "hash": "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576",
+          "path": "src/escape_the_valley/data/event_skeletons.json"
+        },
+        {
+          "hash": "e25bb921112060c5528bc597ccfc8051b843be341baf0f43eebf1e6b615f1075",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "src/escape_the_valley/engine.py"
+        },
+        {
+          "exports": [
+            "load_json_events"
+          ],
+          "hash": "4b827c2c95004791b0947ca7bfc0298a4c6f82a4cf53be028cec3a3e62ec0ba0",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py"
+          ],
+          "path": "src/escape_the_valley/event_loader.py"
+        },
+        {
+          "entry": "select_event",
+          "entryRule": 4,
+          "exports": [
+            "advertised_inventory_cost",
+            "apply_outcome",
+            "build_event_library",
+            "can_spend_uncanny_token",
+            "resolve_event",
+            "select_event"
+          ],
+          "hash": "a30554549f655dbd59b14635c4578ccd96e3692b594a53e5399d1790cc8cff43",
+          "importsFiles": [
+            "src/escape_the_valley/event_loader.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py"
+          ],
+          "path": "src/escape_the_valley/events.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 1668,
+                  "name": "load_json_events",
+                  "target": {
+                    "file": "src/escape_the_valley/event_loader.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "build_event_library"
+            },
+            {
+              "calls": [
+                {
+                  "line": 1841,
+                  "name": "journey_pressure",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                },
+                {
+                  "branch": "not candidates",
+                  "line": 1869,
+                  "name": "choice",
+                  "target": null
+                },
+                {
+                  "line": 1871,
+                  "name": "weighted_choice",
+                  "target": null
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "select_event"
+            },
+            {
+              "calls": [
+                {
+                  "line": 2136,
+                  "name": "randint",
+                  "target": null
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "resolve_event"
+            },
+            {
+              "calls": [
+                {
+                  "line": 2160,
+                  "name": "_proximate_death_cause",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "apply_outcome"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "build_deterministic_epilogue"
+          ],
+          "hash": "33276502da9fc51343577c96b226a9dc2a82522d25003273bf7dccc207e28ebc",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py"
+          ],
+          "path": "src/escape_the_valley/gm.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 216,
+                  "name": "json",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_tag_names"
+            },
+            {
+              "calls": [
+                {
+                  "line": 256,
+                  "name": "json",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_http_error_body"
+            },
+            {
+              "calls": [
+                {
+                  "line": 946,
+                  "name": "rfind",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_parse_json"
+            },
+            {
+              "calls": [
+                {
+                  "line": 946,
+                  "name": "rfind",
+                  "target": null,
+                  "via": "_parse_json"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_extract_epilogue_prose"
+            }
+          ]
+        },
+        {
+          "hash": "d5b86b47c2a343dd33631795d240a0fe8e89a4a37148f1c75ddf747de2f86221",
+          "path": "src/escape_the_valley/intent.py"
+        },
+        {
+          "entry": "build_trail_ledger",
+          "entryRule": 4,
+          "exports": [
+            "build_trail_ledger",
+            "build_xrpl_postcard"
+          ],
+          "hash": "eb87830b35a38f0b6008d51e23ad752c7e1eac579ce62f714faf6105172dfd93",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py"
+          ],
+          "path": "src/escape_the_valley/ledger.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 79,
+                  "name": "journey_pressure",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  },
+                  "via": "_journey"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "build_trail_ledger"
+            },
+            {
+              "calls": [
+                {
+                  "line": 79,
+                  "name": "journey_pressure",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  },
+                  "via": "_journey"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "build_xrpl_postcard"
+            },
+            {
+              "calls": [
+                {
+                  "line": 79,
+                  "name": "journey_pressure",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_journey"
+            }
+          ]
+        },
+        {
+          "entry": "run_proof",
+          "entryRule": 4,
+          "exports": [
+            "proof_loaded_save",
+            "proof_player_save",
+            "proof_verdict",
+            "reconcile",
+            "report_to_dict",
+            "report_to_markdown",
+            "run_proof"
+          ],
+          "hash": "27a970b297de08aa17c8ea237c44ae5b3551c6feefd16d2cfd5a147bcc780688",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "src/escape_the_valley/ledger_proof.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 148,
+                  "name": "XRPL_RESOURCES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "reconcile"
+            },
+            {
+              "calls": [
+                {
+                  "line": 527,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "branch": "not mgr.available",
+                  "line": 530,
+                  "name": "XRPL_EXTRA_MISSING_MSG",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 538,
+                  "name": "minted_snapshot_of",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 546,
+                  "name": "XRPL_RESOURCES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "proof_player_save"
+            },
+            {
+              "calls": [
+                {
+                  "line": 527,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  },
+                  "via": "proof_player_save"
+                },
+                {
+                  "branch": "not mgr.available",
+                  "line": 530,
+                  "name": "XRPL_EXTRA_MISSING_MSG",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "proof_player_save"
+                },
+                {
+                  "line": 538,
+                  "name": "minted_snapshot_of",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "proof_player_save"
+                },
+                {
+                  "line": 546,
+                  "name": "XRPL_RESOURCES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "proof_player_save"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "proof_loaded_save"
+            },
+            {
+              "calls": [
+                {
+                  "line": 622,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "line": 626,
+                  "name": "can_hard_ration",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                },
+                {
+                  "branch": "can_hard_ration(state)",
+                  "line": 627,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "line": 628,
+                  "name": "can_desperate_repair",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                },
+                {
+                  "branch": "can_desperate_repair(state)",
+                  "line": 629,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "line": 630,
+                  "name": "can_abandon_cargo",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  }
+                },
+                {
+                  "branch": "can_abandon_cargo(state)",
+                  "line": 631,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "branch": "state.last_action == \"REST\"",
+                  "line": 636,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "branch": "state.last_action != \"REPAIR\"",
+                  "line": 638,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "branch": "state.wagon.condition < 50 and state.supplies.parts > 0",
+                  "line": 641,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "branch": "state.supplies.food < state.party.alive_count * 4 and state…",
+                  "line": 643,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "branch": "sick_or_hurt >= 2",
+                  "line": 650,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_pick_action"
+            },
+            {
+              "calls": [
+                {
+                  "line": 674,
+                  "name": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 681,
+                  "name": "create_new_run",
+                  "target": {
+                    "file": "src/escape_the_valley/worldgen.py"
+                  }
+                },
+                {
+                  "line": 685,
+                  "name": "enable",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 692,
+                  "name": "minted_snapshot_of",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 697,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  }
+                },
+                {
+                  "line": 706,
+                  "name": "GMConfig",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                },
+                {
+                  "line": 704,
+                  "name": "StepEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/step_engine.py"
+                  }
+                },
+                {
+                  "line": 713,
+                  "name": "step",
+                  "receiver": "StepEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/step_engine.py"
+                  }
+                },
+                {
+                  "line": 622,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "line": 626,
+                  "name": "can_hard_ration",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "can_hard_ration(state)",
+                  "line": 627,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "line": 628,
+                  "name": "can_desperate_repair",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "can_desperate_repair(state)",
+                  "line": 629,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "line": 630,
+                  "name": "can_abandon_cargo",
+                  "target": {
+                    "file": "src/escape_the_valley/physics.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "can_abandon_cargo(state)",
+                  "line": 631,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "state.last_action == \"REST\"",
+                  "line": 636,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "state.last_action != \"REPAIR\"",
+                  "line": 638,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "state.wagon.condition < 50 and state.supplies.parts > 0",
+                  "line": 641,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "state.supplies.food < state.party.alive_count * 4 and state…",
+                  "line": 643,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "branch": "sick_or_hurt >= 2",
+                  "line": 650,
+                  "name": "PlayerIntent",
+                  "target": {
+                    "file": "src/escape_the_valley/intent.py"
+                  },
+                  "via": "_pick_action"
+                },
+                {
+                  "line": 715,
+                  "name": "step",
+                  "receiver": "StepEngine",
+                  "target": {
+                    "file": "src/escape_the_valley/step_engine.py"
+                  }
+                },
+                {
+                  "line": 721,
+                  "name": "settle",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 723,
+                  "name": "wallet_info",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                },
+                {
+                  "line": 728,
+                  "name": "fetch_onchain_memos",
+                  "receiver": "BackpackManager",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "run_proof",
+              "truncated": true
+            }
+          ]
+        },
+        {
+          "exports": [
+            "add_card",
+            "build_gm_brief",
+            "compute_pressures",
+            "compute_themes",
+            "drop_lowest",
+            "format_brief_for_prompt",
+            "retrieve_memories"
+          ],
+          "hash": "9c05d4b1e038227e16f3a76ccc87cb04c062679e960e9472f0a2ea89b9cd0d77",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py"
+          ],
+          "path": "src/escape_the_valley/memory.py"
+        },
+        {
+          "exports": [
+            "check_resource_crises",
+            "emit_arrival_card",
+            "emit_escape_valve_card",
+            "emit_event_card",
+            "emit_health_cards",
+            "emit_resource_crisis_card",
+            "emit_wagon_card",
+            "validate_gm_cards"
+          ],
+          "hash": "c7b7512f4a2deef7af026bf356d45f6f171a6ae699b6c8047a3917db2c649782",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py"
+          ],
+          "path": "src/escape_the_valley/memory_emitters.py"
+        },
+        {
+          "hash": "d4caa78ae6f30ca2c6bd2e99912a12dece62badcac84231a83053152da40fe8b",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py"
+          ],
+          "path": "src/escape_the_valley/models.py"
+        },
+        {
+          "exports": [
+            "extract_narration"
+          ],
+          "hash": "2c980e9ceff2545fa3612556fa45fa6932e2fc374cf0e68a4d94c0c3c838ac06",
+          "importsFiles": [
+            "src/escape_the_valley/step_engine.py"
+          ],
+          "path": "src/escape_the_valley/narration.py"
+        },
+        {
+          "exports": [
+            "abandon_cargo",
+            "apply_breakdown",
+            "attempt_hunt",
+            "attempt_repair",
+            "can_abandon_cargo",
+            "can_desperate_repair",
+            "can_hard_ration",
+            "check_breakdown",
+            "check_game_over",
+            "check_health_effects",
+            "check_night_travel_danger",
+            "check_spoilage",
+            "compute_daily_consumption",
+            "compute_travel_distance",
+            "desperate_repair",
+            "determine_cause_of_death",
+            "halve_consumption",
+            "hard_ration",
+            "journey_pressure",
+            "rest_day",
+            "update_morale"
+          ],
+          "hash": "838edd8cfde34ad9a81e0050c0bfc02d6867149b57453bd2326fc284c0ec084b",
+          "importsFiles": [
+            "src/escape_the_valley/models.py"
+          ],
+          "path": "src/escape_the_valley/physics.py"
+        },
+        {
+          "hash": "823aec6a6a3605f373b9ac3904242adad533d15a43478737b7f75122c7cb8522",
+          "path": "src/escape_the_valley/resources.py"
+        },
+        {
+          "entry": "load_game_result",
+          "entryRule": 4,
+          "exports": [
+            "has_save",
+            "load_game",
+            "load_game_result",
+            "save_game"
+          ],
+          "hash": "b7dbe3e8a652b72363d774d6efe754036fc29d14b506669853e80e458eac7fdf",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py"
+          ],
+          "path": "src/escape_the_valley/save.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 190,
+                  "name": "exists",
+                  "target": null
+                },
+                {
+                  "line": 197,
+                  "name": "with_name",
+                  "target": null
+                },
+                {
+                  "line": 206,
+                  "name": "rename",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_backup_corrupt_save"
+            },
+            {
+              "calls": [
+                {
+                  "line": 190,
+                  "name": "exists",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 197,
+                  "name": "with_name",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 206,
+                  "name": "rename",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 415,
+                  "name": "Condition",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 416,
+                  "name": "Trait",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 412,
+                  "name": "PartyMember",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 454,
+                  "name": "TimeOfDay",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 463,
+                  "name": "GMProfile",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 464,
+                  "name": "TwistModifier",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 558,
+                  "name": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_coerce_rng_state"
+                },
+                {
+                  "line": 475,
+                  "name": "PartyState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 480,
+                  "name": "Pace",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 476,
+                  "name": "WagonState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 575,
+                  "name": "DEFAULT_SUPPLIES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/resources.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 575,
+                  "name": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 587,
+                  "name": "set",
+                  "receiver": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 484,
+                  "name": "JournalEntry",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 501,
+                  "name": "Biome",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 498,
+                  "name": "MapNode",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 513,
+                  "name": "MemoryCard",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "branch": "not data",
+                  "line": 673,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 685,
+                  "name": "SettlementRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 709,
+                  "name": "ParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 720,
+                  "name": "SentParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "load_game_result",
+              "truncated": true
+            },
+            {
+              "calls": [
+                {
+                  "line": 190,
+                  "name": "exists",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 197,
+                  "name": "with_name",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 206,
+                  "name": "rename",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 415,
+                  "name": "Condition",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 416,
+                  "name": "Trait",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 412,
+                  "name": "PartyMember",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 454,
+                  "name": "TimeOfDay",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 463,
+                  "name": "GMProfile",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 464,
+                  "name": "TwistModifier",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 558,
+                  "name": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_coerce_rng_state"
+                },
+                {
+                  "line": 475,
+                  "name": "PartyState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 480,
+                  "name": "Pace",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 476,
+                  "name": "WagonState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 575,
+                  "name": "DEFAULT_SUPPLIES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/resources.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 575,
+                  "name": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 587,
+                  "name": "set",
+                  "receiver": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 484,
+                  "name": "JournalEntry",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 501,
+                  "name": "Biome",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 498,
+                  "name": "MapNode",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "line": 513,
+                  "name": "MemoryCard",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_dict_to_state"
+                },
+                {
+                  "branch": "not data",
+                  "line": 673,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 685,
+                  "name": "SettlementRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 709,
+                  "name": "ParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 720,
+                  "name": "SentParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "load_game",
+              "truncated": true
+            },
+            {
+              "calls": [
+                {
+                  "line": 415,
+                  "name": "Condition",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 416,
+                  "name": "Trait",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 412,
+                  "name": "PartyMember",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 454,
+                  "name": "TimeOfDay",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 463,
+                  "name": "GMProfile",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 464,
+                  "name": "TwistModifier",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 558,
+                  "name": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_coerce_rng_state"
+                },
+                {
+                  "line": 475,
+                  "name": "PartyState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 480,
+                  "name": "Pace",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 476,
+                  "name": "WagonState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 575,
+                  "name": "DEFAULT_SUPPLIES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/resources.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 575,
+                  "name": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 587,
+                  "name": "set",
+                  "receiver": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "_load_supplies"
+                },
+                {
+                  "line": 484,
+                  "name": "JournalEntry",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 501,
+                  "name": "Biome",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 498,
+                  "name": "MapNode",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 513,
+                  "name": "MemoryCard",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "branch": "not data",
+                  "line": 673,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 685,
+                  "name": "SettlementRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 709,
+                  "name": "ParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 720,
+                  "name": "SentParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 731,
+                  "name": "PermitRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 675,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  },
+                  "via": "_load_backpack"
+                },
+                {
+                  "line": 450,
+                  "name": "RunState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_dict_to_state"
+            },
+            {
+              "calls": [
+                {
+                  "line": 558,
+                  "name": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_coerce_rng_state"
+            },
+            {
+              "calls": [
+                {
+                  "line": 575,
+                  "name": "DEFAULT_SUPPLIES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/resources.py"
+                  }
+                },
+                {
+                  "line": 575,
+                  "name": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 587,
+                  "name": "set",
+                  "receiver": "SuppliesState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_load_supplies"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "not data",
+                  "line": 673,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 685,
+                  "name": "SettlementRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 709,
+                  "name": "ParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 720,
+                  "name": "SentParcelRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 731,
+                  "name": "PermitRecord",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                },
+                {
+                  "line": 675,
+                  "name": "BackpackState",
+                  "target": {
+                    "file": "src/escape_the_valley/backpack_models.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_load_backpack"
+            }
+          ]
+        },
+        {
+          "entry": "compute_ending",
+          "entryRule": 4,
+          "exports": [
+            "compute_ending",
+            "compute_par_days"
+          ],
+          "hash": "ee97ac6e94e5f0df7b5768a4d5c675a1f6e8f4b5a24e6d70acce2f3ffdc5dd80",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/memory_emitters.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "src/escape_the_valley/step_engine.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 1638,
+                  "name": "EndingResult",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "compute_ending"
+            }
+          ]
+        },
+        {
+          "hash": "22e4d74b8d8bd40bc479acf9b63403c1f7a6a6bfb6a5fcca2a729e7d8ea72885",
+          "path": "src/escape_the_valley/tui.tcss"
+        },
+        {
+          "hash": "ae33e156011f0c1fe4cf6eb599d29806a8110c7f82b330d5880eb32915ffcb86",
+          "importsFiles": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/backpack_ui.py",
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/narration.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/voice.py"
+          ],
+          "path": "src/escape_the_valley/tui_app.py"
+        },
+        {
+          "entry": "_no_color",
+          "entryRule": 1,
+          "exports": [
+            "show_action_menu",
+            "show_event_scene",
+            "show_game_over",
+            "show_journal",
+            "show_message",
+            "show_outcome",
+            "show_pace_menu",
+            "show_route_choice",
+            "show_status",
+            "show_title_screen"
+          ],
+          "hash": "d61f88bb3897b91b9695a6d7802cc2853a44efa2d5f1500954785514ef47c591",
+          "importsFiles": [
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py"
+          ],
+          "path": "src/escape_the_valley/ui.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 372,
+                  "name": "build_deterministic_epilogue",
+                  "target": {
+                    "file": "src/escape_the_valley/gm.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "show_game_over"
+            }
+          ]
+        },
+        {
+          "hash": "d7992ecea0d2f7606d39bbdc28bd7f36180c3d31eef97132efeaf9a6ebf4a2d9",
+          "importsFiles": [
+            "src/escape_the_valley/narration.py"
+          ],
+          "path": "src/escape_the_valley/voice.py"
+        },
+        {
+          "entry": "create_new_run",
+          "entryRule": 4,
+          "exports": [
+            "create_new_run",
+            "generate_map",
+            "generate_party",
+            "generate_weather",
+            "pick_twists"
+          ],
+          "hash": "5fdb5d6270890606a453e4d3008dec42e7a933caa1677dd1baaef55c24e639d4",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py"
+          ],
+          "path": "src/escape_the_valley/worldgen.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 60,
+                  "name": "choice",
+                  "target": null
+                },
+                {
+                  "line": 62,
+                  "name": "shuffle",
+                  "target": null
+                },
+                {
+                  "line": 76,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 99,
+                  "name": "random",
+                  "target": null
+                },
+                {
+                  "line": 94,
+                  "name": "MapNode",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 107,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 112,
+                  "name": "random",
+                  "target": null
+                },
+                {
+                  "line": 113,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 140,
+                  "name": "weighted_choice",
+                  "target": null,
+                  "via": "_place_caches"
+                },
+                {
+                  "line": 155,
+                  "name": "choice",
+                  "target": null,
+                  "via": "_place_caches"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "generate_map"
+            },
+            {
+              "calls": [
+                {
+                  "line": 140,
+                  "name": "weighted_choice",
+                  "target": null
+                },
+                {
+                  "line": 155,
+                  "name": "choice",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_place_caches"
+            },
+            {
+              "calls": [
+                {
+                  "line": 193,
+                  "name": "weighted_choice",
+                  "target": null
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "generate_weather"
+            },
+            {
+              "calls": [
+                {
+                  "line": 199,
+                  "name": "shuffle",
+                  "target": null
+                },
+                {
+                  "line": 200,
+                  "name": "Trait",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 204,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 205,
+                  "name": "sample",
+                  "target": null
+                },
+                {
+                  "line": 208,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 206,
+                  "name": "PartyMember",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 214,
+                  "name": "PartyState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "generate_party"
+            },
+            {
+              "calls": [
+                {
+                  "line": 219,
+                  "name": "TwistModifier",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 220,
+                  "name": "randint",
+                  "target": null
+                },
+                {
+                  "line": 221,
+                  "name": "sample",
+                  "target": null
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "pick_twists"
+            },
+            {
+              "calls": [
+                {
+                  "line": 235,
+                  "name": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 60,
+                  "name": "choice",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 62,
+                  "name": "shuffle",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 76,
+                  "name": "randint",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 99,
+                  "name": "random",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 94,
+                  "name": "MapNode",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "generate_map"
+                },
+                {
+                  "line": 107,
+                  "name": "randint",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 112,
+                  "name": "random",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 113,
+                  "name": "randint",
+                  "target": null,
+                  "via": "generate_map"
+                },
+                {
+                  "line": 140,
+                  "name": "weighted_choice",
+                  "target": null,
+                  "via": "_place_caches"
+                },
+                {
+                  "line": 155,
+                  "name": "choice",
+                  "target": null,
+                  "via": "_place_caches"
+                },
+                {
+                  "line": 199,
+                  "name": "shuffle",
+                  "target": null,
+                  "via": "generate_party"
+                },
+                {
+                  "line": 200,
+                  "name": "Trait",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "generate_party"
+                },
+                {
+                  "line": 204,
+                  "name": "randint",
+                  "target": null,
+                  "via": "generate_party"
+                },
+                {
+                  "line": 205,
+                  "name": "sample",
+                  "target": null,
+                  "via": "generate_party"
+                },
+                {
+                  "line": 208,
+                  "name": "randint",
+                  "target": null,
+                  "via": "generate_party"
+                },
+                {
+                  "line": 206,
+                  "name": "PartyMember",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "generate_party"
+                },
+                {
+                  "line": 214,
+                  "name": "PartyState",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "generate_party"
+                },
+                {
+                  "line": 219,
+                  "name": "TwistModifier",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  },
+                  "via": "pick_twists"
+                },
+                {
+                  "line": 220,
+                  "name": "randint",
+                  "target": null,
+                  "via": "pick_twists"
+                },
+                {
+                  "line": 221,
+                  "name": "sample",
+                  "target": null,
+                  "via": "pick_twists"
+                },
+                {
+                  "line": 241,
+                  "name": "Doctrine",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 241,
+                  "name": "choice",
+                  "receiver": "SeededRNG",
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                },
+                {
+                  "line": 242,
+                  "name": "Taboo",
+                  "passed": true,
+                  "target": {
+                    "file": "src/escape_the_valley/models.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "create_new_run",
+              "truncated": true
+            }
+          ]
+        }
+      ],
+      "globs": [
+        "src/**"
+      ],
+      "importConfidence": "full",
+      "name": "src",
+      "origin": "mixed",
+      "outsidePlaces": [
+        {
+          "reads": 1,
+          "where": [
+            "caller"
+          ],
+          "writes": 0
+        },
+        {
+          "reads": 1,
+          "where": [
+            "cwd:.trail/"
+          ],
+          "writes": 0
+        }
+      ],
+      "outsideReads": 2,
+      "role": "code",
+      "testedBy": 23,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "noStatements": true,
+          "path": "tests/__init__.py"
+        },
+        {
+          "hash": "e5de409d8483e92e42525036e712898715025638d544cf499445051375de1e41",
+          "path": "tests/conftest.py"
+        },
+        {
+          "hash": "2702870271b01b1596a3e501dc4a84b6675f10db249965a65403ccd9a00ee1c6",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_adapter.py"
+        },
+        {
+          "hash": "8ccaed49788855b968f6557cd16294faf4642840a62136709b3625f471f1b562",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/backpack_ui.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/save.py"
+          ],
+          "path": "tests/test_backpack.py"
+        },
+        {
+          "hash": "833a6d6743b61cd0c91cd83150c0c07aee0bf90f7c7205875a56379e4924f120",
+          "importsFiles": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_backpack_ledger.py"
+        },
+        {
+          "hash": "a93d6b0dc176b821ec7c8c6d15789a643aade49e791cf650508669c5c846e4e1",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py"
+          ],
+          "path": "tests/test_backpack_models.py"
+        },
+        {
+          "hash": "c665bfaaca8cafd4ad72218147b81d43fd6672b2191adc87821c566925c5e9fc",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_backpack_save.py"
+        },
+        {
+          "hash": "29378bda456d9408cc39d6c28701e8ff1bc96e40683b07fa7a335840eedcf5c4",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_cli_stats.py"
+        },
+        {
+          "hash": "a38a1c5488ec3efabb10c7fd5abc3f24a1af499a7d85634fd82016e3240f5747",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_death_causes.py"
+        },
+        {
+          "hash": "8d569387df9deeb178b9b66133c0977d159e8d7b4b37ab11965e3ac2f2263819",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/event_loader.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_event_loader.py"
+        },
+        {
+          "hash": "db0179b7efa7873034e5833590d56f0fb38d6bead6493b13d7f63cead5ea6ae9",
+          "importsFiles": [
+            "src/escape_the_valley/event_loader.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_events.py"
+        },
+        {
+          "exports": [
+            "test_live_four_tier_gate"
+          ],
+          "hash": "05dedaf5159dc3ba666988e8e9ab2b34904c5943dc0f5a0b2ebf91e10b6bac20",
+          "importsFiles": [
+            "agents/skilled.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_four_tier_live.py"
+        },
+        {
+          "hash": "6dee2f8823acf4e491cac5fefa890cdba07943ce6231b660ae510fb453b41226",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/memory_emitters.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_gm.py"
+        },
+        {
+          "hash": "863bbcb26254e864fecb033d96c7c0af6fc6b56bdfe5b9df88bb365b00df651d",
+          "importsFiles": [
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/models.py"
+          ],
+          "path": "tests/test_ledger.py"
+        },
+        {
+          "exports": [
+            "json_str",
+            "test_broken_conservation_fails",
+            "test_clean_pass",
+            "test_clean_pass_markdown_is_pass_not_inconclusive",
+            "test_dict_inconclusive_flag",
+            "test_local_memo_accepts_delta_suffix",
+            "test_manager_proof_loaded_save_delegates",
+            "test_markdown_inconclusive_when_only_pending",
+            "test_markdown_real_drift_still_fails_not_inconclusive",
+            "test_memo_mismatch_fails",
+            "test_missing_ledger_balance_fails",
+            "test_no_onchain_memos_marks_unverified",
+            "test_onchain_memo_drift_fails",
+            "test_onchain_memo_missing_txid_fails",
+            "test_onchain_memo_pass",
+            "test_overlay_dict_has_no_secrets",
+            "test_pending_settlement_fails",
+            "test_proof_player_save_does_not_call_run_proof",
+            "test_proof_player_save_fail_on_balance_drift",
+            "test_proof_player_save_inconclusive_when_backpack_off",
+            "test_proof_player_save_inconclusive_when_mint_snapshot_missing",
+            "test_proof_player_save_inconclusive_when_network_down",
+            "test_proof_player_save_inconclusive_when_pending",
+            "test_proof_player_save_pass_on_loaded_save",
+            "test_proof_player_save_still_fails_drift_without_mint_snapshot",
+            "test_run_proof_does_not_leak_save_isolation_into_the_process",
+            "test_run_proof_external_memo_drift_fails",
+            "test_run_proof_isolated_writes_no_save",
+            "test_run_proof_wires_driver_to_reconcile",
+            "test_serialization_roundtrip",
+            "test_settled_record_empty_txids_fails_external",
+            "test_tampered_balance_fails"
+          ],
+          "hash": "cb5c56f0a0bf447e87340d2878ea682e47f6cd0b7f548baf50954694bac67c65",
+          "importsFiles": [
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py"
+          ],
+          "path": "tests/test_ledger_proof.py"
+        },
+        {
+          "hash": "33287cd90aeb5b7c3bc4f2104c92718383173cf2d466bd4ee32f911f82aa8d15",
+          "importsFiles": [
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_memory.py"
+        },
+        {
+          "hash": "ec69d169d35a0ebd756220049d80be40ce64f7347096235f5bbfbe4a69230e4b",
+          "importsFiles": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/memory_emitters.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_memory_emitters.py"
+        },
+        {
+          "hash": "695d8018c0cb91ac0ce7e364c8f054d946c0d485484a02431fed02653a36a91a",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_models.py"
+        },
+        {
+          "hash": "9ead7f145e83c989914360c9357eb812461b980721f6fd3c84b3bc49d23043e9",
+          "importsFiles": [
+            "src/escape_the_valley/narration.py",
+            "src/escape_the_valley/step_engine.py"
+          ],
+          "path": "tests/test_narration.py"
+        },
+        {
+          "exports": [
+            "test_npx_launcher_pins_current_github_release",
+            "test_python_and_npm_versions_match"
+          ],
+          "hash": "b47ed46d1b003c696875e69a1a5b0c9d4179296aa83103e33bfb0c7e416724d9",
+          "path": "tests/test_npx_launcher.py"
+        },
+        {
+          "hash": "fd8e7f501d71bd42040647e51ad7e58be40d7cf92322ab964458e1b4c84efced",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_physics.py"
+        },
+        {
+          "hash": "6f41ec6f5b0ba95887dd892baf8ce203a202d51dfb7c43650e00df481208da1b",
+          "importsFiles": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_save.py"
+        },
+        {
+          "exports": [
+            "test_abandon_cargo_in_engine",
+            "test_abandon_cargo_rejected_when_wagon_ok",
+            "test_adapter_after_travel",
+            "test_adapter_camp_shows_camp_actions",
+            "test_adapter_event_shows_event_choices",
+            "test_adapter_hides_valves_when_not_available",
+            "test_adapter_produces_frame",
+            "test_adapter_shows_escape_valves",
+            "test_apply_outcome_stays_pure_engine_owns_the_clock",
+            "test_autosave_false_skips_the_write",
+            "test_autosave_false_still_tracks_rng_state",
+            "test_backpack_persist_hook_honors_autosave_and_base_path",
+            "test_breakdown_milestone_helper",
+            "test_cache_collected_on_arrival",
+            "test_callout_reports_charged_time",
+            "test_change_pace",
+            "test_check_parcels_wires_a_persist_hook",
+            "test_choose_c_on_two_template_event_is_rejected_not_visible_miss",
+            "test_compute_ending_is_deterministic_under_fixed_seed",
+            "test_dangling_destination_fails_safe_not_victory",
+            "test_dangling_destination_single_valid_connection_self_heals_bounded",
+            "test_dangling_mid_map_fork_does_not_manufacture_victory",
+            "test_dangling_route_connections_recover_at_construction",
+            "test_dangling_route_connections_recover_mid_travel",
+            "test_dangling_single_connection_does_not_manufacture_victory",
+            "test_dead_party_does_not_call_gm",
+            "test_dead_party_short_circuits_to_game_over",
+            "test_death_recorded_in_journal",
+            "test_desperate_repair_in_engine",
+            "test_desperate_repair_rejected_with_parts",
+            "test_diagnostics_tracks_breakdowns",
+            "test_different_seeds_different_results",
+            "test_distinct_tiers_have_distinct_facts",
+            "test_engine_populates_ending_on_death",
+            "test_engine_populates_ending_on_victory",
+            "test_event_phase_requires_choose",
+            "test_event_time_cost_advances_clock",
+            "test_event_wrong_action_prints_offered_letters",
+            "test_finalize_run_is_idempotent_and_preserves_clean_ending",
+            "test_finalize_run_yields_ending_on_timeout",
+            "test_game_over_phase",
+            "test_game_over_shows_trail_ledger",
+            "test_gameengine_abandon_cargo_valve",
+            "test_gameengine_arrival_refills_water_and_consumes_cache",
+            "test_gameengine_brief_allowance_none_below_floor",
+            "test_gameengine_brief_allowance_present_at_high_weirdness",
+            "test_gameengine_camp_menu_classic_when_valves_closed",
+            "test_gameengine_camp_menu_offers_valves_when_can",
+            "test_gameengine_dangling_destination_fails_safe_not_victory",
+            "test_gameengine_dangling_mid_map_fork_does_not_manufacture_victory",
+            "test_gameengine_dangling_route_connections_recover_mid_travel",
+            "test_gameengine_dangling_single_connection_does_not_manufacture_victory",
+            "test_gameengine_death_computes_lost_ending",
+            "test_gameengine_desperate_repair_valve",
+            "test_gameengine_fixed_seed_reproduces",
+            "test_gameengine_gm_scene_ids_are_letters_from_the_template_set",
+            "test_gameengine_hard_ration_valve",
+            "test_gameengine_live_death_line_names_cause",
+            "test_gameengine_night_danger_without_oil",
+            "test_gameengine_night_travel_spends_lantern_oil",
+            "test_gameengine_passes_brief_to_gm_calls",
+            "test_gameengine_rejects_unrecognized_event_choice_id",
+            "test_gameengine_rejects_unrecognized_route_choice_id",
+            "test_gameengine_repair_then_rest_grants_maintenance",
+            "test_gameengine_rest_then_repair_grants_maintenance",
+            "test_gameengine_route_choice_single_resolvable_connection_used_directly",
+            "test_gameengine_run_dispatches_abandon_cargo",
+            "test_gameengine_salt_skips_spoilage",
+            "test_gameengine_self_edge_fork_connection_excluded_and_terminates",
+            "test_gameengine_self_edge_single_connection_does_not_loop_or_manufacture_victory",
+            "test_gameengine_single_resolvable_connection_message_is_accurate",
+            "test_gameengine_spoilage_seed_reproduces",
+            "test_gameengine_town_settles_when_backpack_enabled",
+            "test_gameengine_town_skips_settle_when_backpack_off",
+            "test_gameengine_town_trade_mirrors_stepengine",
+            "test_gameengine_travel_decrements_maintenance",
+            "test_gameengine_travel_spoils_unsalted_food",
+            "test_gameengine_victory_computes_ending",
+            "test_gm_choice_ids_are_coerced_to_the_constrained_letter_set",
+            "test_gm_connect_error_turn_completes_with_journal_and_fallback",
+            "test_gm_degraded_note_only_once",
+            "test_gm_fallback_sets_degraded_and_counts",
+            "test_gm_four_choices_on_two_template_event_offers_only_a_and_b",
+            "test_gm_off_does_not_count_calls_or_degrade",
+            "test_gm_three_choices_on_three_template_event_offers_a_b_c",
+            "test_hard_ration_in_engine",
+            "test_hard_ration_rejected_already_rationing",
+            "test_hard_ration_rejected_on_cooldown",
+            "test_hard_ration_rejected_with_plenty_food",
+            "test_hunt_half_day_consumption_rounds_toward_zero",
+            "test_hunt_names_injured_member",
+            "test_hunt_no_ammo",
+            "test_hunt_uses_ammo",
+            "test_invalid_choice_retains_event",
+            "test_invalid_route_choice_id_rejected",
+            "test_long_run_deaths_leave_records",
+            "test_lost_total_loss",
+            "test_maintenance_decrements_on_travel",
+            "test_malformed_gm_memory_proposals_do_not_crash_step",
+            "test_memory_card_partial_batch_failure_commits_and_is_distinguishable",
+            "test_par_days_floor_and_scaling",
+            "test_parcel_check_failure_logs_and_continues",
+            "test_pyrrhic_one_survivor_finish",
+            "test_pyrrhic_when_taboo_broken_despite_full_survival",
+            "test_rationing_decrements_on_travel",
+            "test_rationing_ends_message",
+            "test_repair_half_day_consumption_rounds_toward_zero",
+            "test_repair_not_needed",
+            "test_repair_then_rest_grants_maintenance",
+            "test_repair_uses_parts",
+            "test_rest_produces_messages",
+            "test_rest_then_repair_grants_maintenance",
+            "test_route_choice_id_out_of_range_rejected",
+            "test_route_wrong_action_one_option_prints_letter_a",
+            "test_route_wrong_action_prints_offered_letters",
+            "test_same_seed_same_intents_same_result",
+            "test_save_load_preserves_determinism",
+            "test_self_edge_fork_connection_excluded_and_terminates",
+            "test_self_edge_fork_with_one_real_alternative_takes_the_real_route",
+            "test_self_edge_single_connection_does_not_loop_or_manufacture_victory",
+            "test_settle_checkpoint_wires_a_persist_hook",
+            "test_settlement_failure_enqueues_pending_record",
+            "test_settlement_failure_no_pending_when_no_delta",
+            "test_spoilage_fires_at_most_once_per_day",
+            "test_spoilage_guard_advances_to_the_next_qualifying_day",
+            "test_starts_in_camp",
+            "test_step_autosaves_by_default",
+            "test_stepengine_arrival_same_water_cache_on_dest_town",
+            "test_stepengine_live_death_line_names_cause",
+            "test_taboo_kept_never_river_reads_journal",
+            "test_town_arrival_recorded_in_journal",
+            "test_travel_breaks_maintenance_chain",
+            "test_travel_produces_messages",
+            "test_triumphant_all_survivors_on_time",
+            "test_victory_shows_trail_ledger",
+            "test_weathered_all_survive_but_slow"
+          ],
+          "hash": "265f3b373c8fd7122ac44be2373cd7ff12bf11d378bec7036a3f29749c9320a7",
+          "importsFiles": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_step_engine.py"
+        },
+        {
+          "exports": [
+            "test_app_mounts_with_core_panels",
+            "test_help_overlay_copy_matches_bindings",
+            "test_help_overlay_toggles",
+            "test_help_text_matches_live_bindings",
+            "test_overlay_css_selectors_apply",
+            "test_parcel_input_does_not_steal_initial_focus",
+            "test_resume_notifies_run_and_day",
+            "test_travel_action_advances_via_worker"
+          ],
+          "hash": "076699b7e10f6bcff3f09efebf575c4e2337604b5d5b92f756cbfbdbd3f54a66",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/backpack_ui.py",
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/voice.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_tui_smoke.py"
+        },
+        {
+          "hash": "3498e03f4c243b5f436ee738677e48da09775be3166863340d19d03c56c5aebe",
+          "importsFiles": [
+            "src/escape_the_valley/narration.py",
+            "src/escape_the_valley/voice.py"
+          ],
+          "path": "tests/test_voice.py"
+        },
+        {
+          "hash": "f453f2e3661645ab8a2692589ca4097e2519b7579acf6c54febb82f69d023083",
+          "importsFiles": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_worldgen.py"
+        }
+      ],
+      "globs": [
+        "tests/**"
+      ],
+      "importConfidence": "full",
+      "name": "tests",
+      "origin": "authored",
+      "role": "test",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    }
+  ],
+  "doors": [
+    {
+      "checksCount": 1,
+      "commands": [
+        {
+          "job": "test",
+          "step": "Atlas check",
+          "text": "npx --yes @dogfood-lab/atlas@1.20.0 check"
+        },
+        {
+          "job": "test",
+          "step": "Install dependencies",
+          "text": "pip install -e \".[dev,xrpl]\""
+        },
+        {
+          "job": "test",
+          "step": "Lint",
+          "text": "ruff check src/ tests/"
+        },
+        {
+          "job": "test",
+          "step": "Dependency audit",
+          "text": "pip install pip-audit\npip-audit || true\n"
+        },
+        {
+          "job": "test",
+          "step": "Test",
+          "text": "pytest --tb=short -q"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/ci.yml",
+      "landings": [],
+      "mentions": [],
+      "name": "CI",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 27
+        },
+        {
+          "boundary": "tests",
+          "depth": 0,
+          "files": 26
+        },
+        {
+          "boundary": "agents",
+          "depth": 1,
+          "enters": {
+            "file": "agents/skilled.py",
+            "from": "tests/test_four_tier_live.py"
+          },
+          "files": 1
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "directory": true,
+          "job": "test",
+          "path": "src/",
+          "runKind": "checks"
+        },
+        {
+          "directory": true,
+          "job": "test",
+          "path": "tests/",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "pull_request",
+          "paths": [
+            ".github/workflows/**",
+            "atlas/**",
+            "pyproject.toml",
+            "site/astro.config.mjs",
+            "site/package-lock.json",
+            "site/package.json",
+            "src/**",
+            "tests/**"
+          ]
+        },
+        {
+          "event": "push",
+          "paths": [
+            ".github/workflows/**",
+            "atlas/**",
+            "pyproject.toml",
+            "site/astro.config.mjs",
+            "site/package-lock.json",
+            "site/package.json",
+            "src/**",
+            "tests/**"
+          ]
+        },
+        {
+          "event": "workflow_call"
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/setup-node",
+        "actions/setup-python"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [
+        {
+          "job": "build",
+          "step": "Install site dependencies",
+          "text": "npm ci"
+        },
+        {
+          "job": "build",
+          "step": "Build site",
+          "text": "npm run build"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/pages.yml",
+      "landings": [],
+      "mentions": [],
+      "name": "Deploy site to GitHub Pages",
+      "permissions": [
+        "contents:read",
+        "id-token:write",
+        "pages:write"
+      ],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "site",
+          "depth": 0,
+          "files": 3
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "job": "build",
+          "matched": true,
+          "path": "site/astro.config.mjs",
+          "runKind": "executes",
+          "via": "astro build"
+        },
+        {
+          "directory": true,
+          "job": "build",
+          "matched": true,
+          "path": "site/src/",
+          "runKind": "executes",
+          "via": "astro build"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "deploysPages": true,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "branches": [
+            "main"
+          ],
+          "event": "push",
+          "paths": [
+            ".github/workflows/pages.yml",
+            "site/**"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/deploy-pages",
+        "actions/setup-node",
+        "actions/upload-pages-artifact"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 1,
+      "commands": [
+        {
+          "job": "publish",
+          "step": "Build sdist + wheel",
+          "text": "python -m pip install --upgrade build\npython -m build\n"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/publish.yml",
+      "landings": [],
+      "mentions": [],
+      "name": "Publish to PyPI",
+      "permissions": [
+        "id-token:write"
+      ],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 27
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "directory": true,
+          "job": "publish",
+          "path": "src/escape_the_valley/",
+          "runKind": "checks",
+          "via": "build pyproject.toml"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": true,
+        "publishesTo": [
+          "pypi"
+        ],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "release",
+          "types": [
+            "published"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        },
+        {
+          "event": "workflow_run",
+          "types": [
+            "completed"
+          ],
+          "workflows": [
+            "Release"
+          ]
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/setup-python",
+        "pypa/gh-action-pypi-publish"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [
+        {
+          "job": "build",
+          "step": "2",
+          "text": "uv python install 3.12"
+        },
+        {
+          "job": "build",
+          "step": "3",
+          "text": "uv venv"
+        },
+        {
+          "job": "build",
+          "step": "Install dependencies + PyInstaller",
+          "text": "uv pip install . \"pyinstaller>=6.9.0\""
+        },
+        {
+          "job": "build",
+          "step": "Build binary",
+          "text": "REF_NAME=\"$REF_NAME_RAW\"\nVERSION=${REF_NAME#v}\n# F-a4d8291c: PyInstaller's --add-data separator is OS-specific (`;`\n# on Windows, `:` elsewhere) -- this step runs under bash on every\n# matrix leg via `shell: bash`, but PyInstaller itself is a native\n# Windows Python process on windows-latest and parses the\n# SRC<sep>DEST spec using the target OS's separator, not the\n# invoking shell's.\nif [ \"${{ runner.os }}\" = \"Windows\" ]; then\n  DATA_SEP=\";\"\nelse\n  DATA_SEP=\":\"\nfi\n# --no-sync: build from the base env created by `uv pip install .`\n# above; do NOT re-resolve the project (which would drag in optional\n# extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and\n# bloat the binary). The binary ships the base game only; voice is\n# pip-install-only via `escape-the-valley[voice]`.\n#\n# F-a4d8291c: --add-data bundles the two non-Python files the game\n# needs at runtime that PyInstaller cannot discover on its own:\n# tui.tcss (TrailApp.CSS_PATH) and data/event_skeletons.json (~200\n# of the game's ~260 events -- event_loader.load_json_events()\n# silently returns [] if this is missing, so an unbundled JSON\n# ships a binary that starts cleanly and plays a quarter-game).\nuv run --no-sync pyinstaller --onefile --name \"${{ env.TOOL_NAME }}\" --console \\\n  --collect-submodules rich \\\n  --collect-submodules textual \\\n  --collect-data textual \\\n  --add-data \"src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley\" \\\n  --add-data \"src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data\" \\\n  \"${{ env.ENTRYPOINT }}\"\nOUTNAME=\"${{ env.TOOL_NAME }}-${VERSION}-${{ matrix.target }}${{ matrix.ext }}\"\nmv \"dist/${{ env.TOOL_NAME }}${{ matrix.ext }}\" \"dist/${OUTNAME}\"\necho \"ASSET_NAME=${OUTNAME}\" >> \"$GITHUB_ENV\"\n"
+        },
+        {
+          "job": "build",
+          "step": "Smoke test binary",
+          "text": "uv run --no-sync python scripts/smoke_test_binary.py \"dist/$ASSET_NAME\""
+        },
+        {
+          "job": "release",
+          "step": "Generate checksums",
+          "text": "REF_NAME=\"$REF_NAME_RAW\"\nVERSION=${REF_NAME#v}\ncd artifacts\nsha256sum * > \"checksums-${VERSION}.txt\"\ncat \"checksums-${VERSION}.txt\"\n"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/release-binaries.yml",
+      "landings": [],
+      "mentions": [],
+      "name": "Release Binaries",
+      "permissions": [
+        "contents:write"
+      ],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "scripts",
+          "depth": 0,
+          "files": 1
+        },
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 26
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "job": "build",
+          "path": "scripts/smoke_test_binary.py",
+          "runKind": "executes"
+        },
+        {
+          "built": true,
+          "job": "build",
+          "path": "src/escape_the_valley/__main__.py",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "assets": [
+          "binary:darwin-arm64",
+          "binary:linux-x64",
+          "binary:win-x64"
+        ],
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": true
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "release",
+          "types": [
+            "published"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        },
+        {
+          "event": "workflow_run",
+          "types": [
+            "completed"
+          ],
+          "workflows": [
+            "Release"
+          ]
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/download-artifact",
+        "actions/upload-artifact",
+        "astral-sh/setup-uv",
+        "softprops/action-gh-release"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [
+        {
+          "job": "release",
+          "step": "Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth",
+          "text": "# Node 22 ships npm 10.9, which signs Sigstore provenance but cannot\n# negotiate the OIDC auth path for trusted publishing (the PUT returns\n# a misleading 404 \"not in this registry\"). An in-place\n# `npm install -g npm@latest` races on the bundled npm's arborist\n# rebuild and breaks irrecoverably; a sandbox install + PATH shadow\n# avoids the race. See memory: npm-115-required-for-oidc.\nSANDBOX=\"$HOME/.npm-cli-sandbox\"\nmkdir -p \"$SANDBOX\"\npushd \"$SANDBOX\" >/dev/null\necho '{\"name\":\"npm-cli-sandbox\",\"version\":\"0.0.0\",\"private\":true}' > package.json\nnpm install --no-save --no-audit --no-fund --silent npm@latest\npopd >/dev/null\necho \"$SANDBOX/node_modules/.bin\" >> \"$GITHUB_PATH\"\n\"$SANDBOX/node_modules/.bin/npm\" --version\n"
+        },
+        {
+          "job": "release",
+          "step": "Verify tag matches package.json version",
+          "text": "PKG_VERSION=$(node -p \"require('./package.json').version\")\nTAG_VERSION=\"${GITHUB_REF_NAME#v}\"\necho \"Tag: ${GITHUB_REF_NAME} -> ${TAG_VERSION} | package.json: ${PKG_VERSION}\"\nif [ \"${PKG_VERSION}\" != \"${TAG_VERSION}\" ]; then\n  echo \"::error::Tag ${TAG_VERSION} does not match package.json version ${PKG_VERSION}\"\n  exit 1\nfi\n"
+        },
+        {
+          "job": "release",
+          "step": "Verify tag matches pyproject.toml version",
+          "text": "PY_VERSION=$(python3 -c \"import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])\")\nTAG_VERSION=\"${GITHUB_REF_NAME#v}\"\necho \"pyproject.toml: ${PY_VERSION}\"\nif [ \"${PY_VERSION}\" != \"${TAG_VERSION}\" ]; then\n  echo \"::error::Tag ${TAG_VERSION} does not match pyproject.toml version ${PY_VERSION}\"\n  exit 1\nfi\n"
+        },
+        {
+          "job": "release",
+          "step": "Install dependencies",
+          "text": "npm install --no-audit --no-fund"
+        },
+        {
+          "job": "release",
+          "step": "npm pack dry-run (verify tarball shape)",
+          "text": "npm pack --dry-run"
+        },
+        {
+          "job": "release",
+          "step": "Create GitHub Release (idempotent)",
+          "text": "# Extract the `## [<version>] - ...` section from CHANGELOG.md as notes;\n# fall back to the tag name if the section is missing.\nVERSION=\"${GITHUB_REF_NAME#v}\"\nNOTES_FILE=\"$(mktemp)\"\n# Match the heading literally with index() — a dynamic regex with\n# escaped brackets (\\[ \\]) is treated as a character class by some awk\n# variants, which silently yields empty notes.\nawk -v hdr=\"## [${VERSION}]\" '\n  index($0, hdr) == 1 {capture=1; next}\n  capture && /^## / {exit}\n  capture {print}\n' CHANGELOG.md > \"${NOTES_FILE}\"\n\nif [ ! -s \"${NOTES_FILE}\" ]; then\n  echo \"Escape the Valley ${GITHUB_REF_NAME}\" > \"${NOTES_FILE}\"\n  echo \"\" >> \"${NOTES_FILE}\"\n  echo \"See CHANGELOG.md for details.\" >> \"${NOTES_FILE}\"\nfi\n\n# Idempotent: skip creation if the release already exists (re-pushed\n# tag / workflow_dispatch re-run). Publishing the release lets the\n# downstream workflow_run chain (publish.yml + release-binaries.yml) run.\nif gh release view \"${GITHUB_REF_NAME}\" >/dev/null 2>&1; then\n  echo \"Release ${GITHUB_REF_NAME} already exists; skipping create.\"\nelse\n  gh release create \"${GITHUB_REF_NAME}\" \\\n    --title \"Escape the Valley ${GITHUB_REF_NAME}\" \\\n    --notes-file \"${NOTES_FILE}\" \\\n    --verify-tag\nfi\n"
+        },
+        {
+          "job": "release",
+          "step": "Publish to npm with provenance (OIDC trusted publisher)",
+          "text": "npm publish --provenance --access public"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/release.yml",
+      "landings": [],
+      "mentions": [
+        {
+          "job": "release",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "job": "release",
+          "path": "package.json"
+        },
+        {
+          "job": "release",
+          "path": "pyproject.toml"
+        }
+      ],
+      "name": "Release",
+      "permissions": [
+        "contents:read",
+        "contents:write",
+        "id-token:write"
+      ],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [],
+      "runsCount": 0,
+      "secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "packages": [
+          {
+            "dir": "",
+            "name": "@mcptoolshop/escape-the-valley",
+            "registry": "npm"
+          }
+        ],
+        "publishes": true,
+        "publishesTo": [
+          "npm"
+        ],
+        "releases": true
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "push",
+          "tags": [
+            "v*"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/setup-node",
+        "actions/setup-python"
+      ],
+      "usesWorkflowToken": true
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "package.json",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "escape-the-valley",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "bin",
+          "depth": 0,
+          "files": 1
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "bin/escape-the-valley.js",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "package.json",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "trail",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "bin",
+          "depth": 0,
+          "files": 1
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "bin/escape-the-valley.js",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "pyproject.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "trail",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 25
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "src/escape_the_valley/cli.py",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "agents",
+      "kind": "file",
+      "to": "src"
+    },
+    {
+      "from": "scripts",
+      "kind": "file",
+      "to": "agents"
+    },
+    {
+      "from": "scripts",
+      "kind": "file",
+      "to": "src"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
+      "kind": "file",
+      "to": "agents"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
+      "kind": "file",
+      "to": "src"
+    }
+  ],
+  "generatedFrom": {
+    "commit": "fa2660c9bab9c9d2828b88caa5677f10197511e8",
+    "tracked": 154
+  },
+  "landings": [
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/release.yml"
+        }
+      ],
+      "target": "CHANGELOG.md",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "pyproject.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "README.md",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/release.yml"
+        },
+        {
+          "by": "bin/escape-the-valley.js",
+          "call": "import",
+          "confidence": "ast"
+        }
+      ],
+      "target": "package.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/release.yml"
+        }
+      ],
+      "target": "pyproject.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "site/astro.config.mjs",
+          "call": "content-collection",
+          "confidence": "ast"
+        }
+      ],
+      "target": "site/src/content/docs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "site/astro.config.mjs",
+          "call": "autogenerate",
+          "confidence": "ast"
+        }
+      ],
+      "target": "site/src/content/docs/handbook",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "scripts/verify.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "src",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "pyproject.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "src/escape_the_valley",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/event_loader.py",
+          "call": "read_text",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/data/event_skeletons.json",
+      "writers": [
+        {
+          "by": "scripts/yaml_to_json.py",
+          "confidence": "ast"
+        }
+      ]
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/tui_app.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/tui.tcss",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "scripts/verify.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "tests",
+      "writers": []
+    }
+  ],
+  "overlaps": [],
+  "submodules": [],
+  "symlinks": [],
+  "testFiles": 26,
+  "unassigned": []
+}
