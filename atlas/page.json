@@ -1,0 +1,449 @@
+{
+  "authored": [
+    ".github/",
+    "assets/",
+    "docs/",
+    "root",
+    "site/"
+  ],
+  "breaks": [
+    {
+      "doors": 4,
+      "importedBy": [
+        "agents",
+        "scripts"
+      ],
+      "importedByTests": [
+        "tests"
+      ],
+      "kind": "part",
+      "name": "src",
+      "partLabel": "src"
+    },
+    {
+      "doors": 1,
+      "importedBy": [
+        "scripts"
+      ],
+      "importedByTests": [
+        "tests"
+      ],
+      "kind": "part",
+      "name": "agents",
+      "partLabel": "agents"
+    },
+    {
+      "doors": 2,
+      "importedBy": [],
+      "importedByTests": [],
+      "kind": "part",
+      "name": "bin",
+      "partLabel": "bin"
+    }
+  ],
+  "changes": {
+    "first": true
+  },
+  "changesTogether": [
+    {
+      "a": "src/escape_the_valley/tui_app.py",
+      "b": "tests/test_tui_smoke.py",
+      "either": 13,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 12
+    },
+    {
+      "a": "src/escape_the_valley/cli.py",
+      "b": "tests/test_cli_stats.py",
+      "either": 7,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 6
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "tests/test_step_engine.py",
+      "either": 16,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 12
+    },
+    {
+      "a": "src/escape_the_valley/ui.py",
+      "b": "tests/test_adapter.py",
+      "either": 8,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 6
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "src/escape_the_valley/step_engine.py",
+      "either": 15,
+      "partLabels": [
+        "src",
+        "src"
+      ],
+      "parts": [
+        "src",
+        "src"
+      ],
+      "relation": "inside",
+      "shared": 11
+    }
+  ],
+  "changesTogetherNote": [
+    "4 files changed together with their own tests, as expected.",
+    "Confidence is low: fewer than 20 source files reach 10 revisions in the window.",
+    "Window: 180 days; a pair counts from 3 shared commits, since 6 source files reach 10 revisions; the floor rises to 10 when 25 do."
+  ],
+  "changesTogetherWithTests": 4,
+  "commit": "fa2660c9bab9c9d2828b88caa5677f10197511e8",
+  "defaultBranch": "main",
+  "derived": "10 parts, mostly Python (61 files), JavaScript (2) and TypeScript (2). Work enters through 8 doors; the busiest is CI, which reaches 3 parts. It publishes to npm and PyPI. People run escape-the-valley and trail.",
+  "doors": [
+    {
+      "checks": [
+        "src/"
+      ],
+      "checksCount": 1,
+      "checksMore": 0,
+      "file": ".github/workflows/ci.yml",
+      "id": ".github/workflows/ci.yml",
+      "landings": [],
+      "name": "CI",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 27
+        },
+        {
+          "boundary": "tests",
+          "depth": 0,
+          "files": 26
+        },
+        {
+          "boundary": "agents",
+          "depth": 1,
+          "files": 1
+        }
+      ],
+      "runs": [
+        "tests/"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [
+        "on a pull request touching 8 paths",
+        "on a push touching 8 paths",
+        "on a `workflow_call` event",
+        "or by hand"
+      ]
+    },
+    {
+      "builds": [
+        "src/escape_the_valley/__main__.py"
+      ],
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": ".github/workflows/release-binaries.yml",
+      "id": ".github/workflows/release-binaries.yml",
+      "landings": [],
+      "name": "Release Binaries",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "scripts",
+          "depth": 0,
+          "files": 1
+        },
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 26
+        }
+      ],
+      "runs": [
+        "scripts/smoke_test_binary.py"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [
+        "creates a GitHub release",
+        "builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release"
+      ],
+      "stages": [],
+      "triggers": [
+        "when a release is published",
+        "when the workflow Release completes",
+        "or by hand"
+      ]
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": ".github/workflows/pages.yml",
+      "id": ".github/workflows/pages.yml",
+      "landings": [],
+      "name": "Deploy site to GitHub Pages",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "site",
+          "depth": 0,
+          "files": 3
+        }
+      ],
+      "runs": [
+        "site/astro.config.mjs",
+        "site/src/"
+      ],
+      "runsCount": 2,
+      "runsMore": 0,
+      "sends": [
+        "deploys the site"
+      ],
+      "stages": [],
+      "triggers": [
+        "on a push to main touching 2 paths",
+        "or by hand"
+      ]
+    },
+    {
+      "checks": [
+        "src/escape_the_valley/"
+      ],
+      "checksCount": 1,
+      "checksMore": 0,
+      "file": ".github/workflows/publish.yml",
+      "id": ".github/workflows/publish.yml",
+      "landings": [],
+      "name": "Publish to PyPI",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 27
+        }
+      ],
+      "runs": [],
+      "runsCount": 0,
+      "runsMore": 0,
+      "sends": [
+        "publishes to PyPI"
+      ],
+      "stages": [],
+      "triggers": [
+        "when a release is published",
+        "when the workflow Release completes",
+        "or by hand"
+      ]
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": ".github/workflows/release.yml",
+      "id": ".github/workflows/release.yml",
+      "landings": [],
+      "name": "Release",
+      "pushes": false,
+      "reach": [],
+      "runs": [],
+      "runsCount": 0,
+      "runsMore": 0,
+      "sends": [
+        "publishes to npm",
+        "creates a GitHub release"
+      ],
+      "stages": [],
+      "triggers": [
+        "when a tag matching `v*` is pushed",
+        "or by hand"
+      ]
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "package.json",
+      "id": "package.json#escape-the-valley",
+      "kind": "command",
+      "landings": [],
+      "name": "escape-the-valley",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "bin",
+          "depth": 0,
+          "files": 1
+        }
+      ],
+      "runs": [
+        "bin/escape-the-valley.js"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": []
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "package.json",
+      "id": "package.json#trail",
+      "kind": "command",
+      "landings": [],
+      "name": "trail",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "bin",
+          "depth": 0,
+          "files": 1
+        }
+      ],
+      "runs": [
+        "bin/escape-the-valley.js"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": []
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "pyproject.toml",
+      "id": "pyproject.toml#trail",
+      "kind": "command",
+      "landings": [],
+      "name": "trail",
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 25
+        }
+      ],
+      "runs": [
+        "src/escape_the_valley/cli.py"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": []
+    }
+  ],
+  "duplicates": [],
+  "duplicatesLead": null,
+  "duplicatesNote": [],
+  "edges": [
+    {
+      "from": "agents",
+      "fromTests": false,
+      "to": "src"
+    }
+  ],
+  "generated": [
+    {
+      "place": "src/escape_the_valley/data/event_skeletons.json",
+      "writers": [
+        "scripts/yaml_to_json.py"
+      ]
+    }
+  ],
+  "generatedAt": "2026-09-25T02:21:33.371Z",
+  "limits": [
+    "2 writes and 1 read use paths built at run time and are not named here.",
+    "3 writes and 2 reads go to a path their caller passes, not to this repository.",
+    "1 read goes to the directory the command is run in (.trail/), not to this repository.",
+    "Statistics confidence is low: fewer than 20 source files reach 10 revisions in the window."
+  ],
+  "mainDoor": ".github/workflows/ci.yml",
+  "partLabels": {
+    ".github": ".github",
+    "agents": "agents",
+    "assets": "assets",
+    "bin": "bin",
+    "docs": "docs",
+    "root": "the repository root",
+    "scripts": "scripts",
+    "site": "the site",
+    "src": "src",
+    "tests": "tests"
+  },
+  "parts": 10,
+  "readers": [],
+  "repo": "mcp-tool-shop-org/escape-the-valley",
+  "sequences": [],
+  "startDoor": "pyproject.toml#trail",
+  "startHere": [
+    "src/escape_the_valley/cli.py"
+  ],
+  "startReason": "This path follows trail (a command people run, from pyproject.toml) from its entry, since CI runs only tests.",
+  "summary": null,
+  "summaryFrom": null,
+  "testFiles": 26,
+  "testedBy": {
+    "agents": 1,
+    "bin": 0,
+    "scripts": 1,
+    "src": 23
+  },
+  "unnamedWrites": 2,
+  "unread": [],
+  "unreadFiles": 0,
+  "unreadNote": [],
+  "untested": [
+    {
+      "part": "bin",
+      "partLabel": "bin",
+      "testedBy": 0
+    }
+  ],
+  "untestedNote": [],
+  "written": 1
+}
