@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "a00f394a155d1ba2ecaa0753d0711a588aa02cbb53261dfabbb2b73d6e7f3bc3",
+          "hash": "898d3a7019eedf1b0fccbdaff4b1c353779da5a4f46f6208b0540debf1301e7a",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -215,6 +215,10 @@
           "path": "SHIP_GATE.md"
         },
         {
+          "hash": "59ca3f6a5be96b80fee73bebf2b778211208d17cd3fb82e2134608dff0729c76",
+          "path": "codecov.yml"
+        },
+        {
           "hash": "07b7ab25db81fa04eb48edb168b68208f12e8f3d83f1136642f790df89d7692f",
           "path": "package.json"
         },
@@ -234,7 +238,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 1,
+      "dynamicReads": 0,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -245,6 +249,17 @@
           "exports": [
             "main"
           ],
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 59
+            },
+            {
+              "kind": "raise",
+              "line": 81
+            }
+          ],
           "hash": "efa6f91815911d474d1b2ccb520e8a27ad44f338179e4bac4b86b5b5e6b7dc55",
           "importsFiles": [
             "src/escape_the_valley/ledger_proof.py"
@@ -254,6 +269,22 @@
         {
           "exports": [
             "main"
+          ],
+          "failurePaths": [
+            {
+              "in": "_run_one",
+              "kind": "except",
+              "line": 255
+            },
+            {
+              "in": "_run_one",
+              "kind": "except",
+              "line": 296
+            },
+            {
+              "kind": "raise",
+              "line": 747
+            }
           ],
           "hash": "6e9baceeb60ffee22de7d5c1ef2733c733213591465a94d2e7a5b4f4bbf38ceb",
           "importsFiles": [
@@ -304,6 +335,17 @@
           "exports": [
             "main"
           ],
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 114
+            },
+            {
+              "kind": "raise",
+              "line": 155
+            }
+          ],
           "hash": "a3475da49a3a3d137d2cbe348ab88f7f145da6291bc8e575194abd09a5e2e200",
           "path": "scripts/smoke_test_binary.py",
           "sequences": []
@@ -316,6 +358,33 @@
           "exports": [
             "main",
             "parse_yaml_events"
+          ],
+          "failurePaths": [
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 125
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 128
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 140
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 143
+            },
+            {
+              "in": "main",
+              "kind": "raise",
+              "line": 190
+            }
           ],
           "hash": "21c381596440055334be0dcdc2e6bd9365ea43202e3a84e62070b43685a30f0e",
           "path": "scripts/yaml_to_json.py"
@@ -331,12 +400,13 @@
         {
           "reads": 0,
           "where": [
-            "caller"
+            "caller",
+            "cwd:.trail/"
           ],
-          "writes": 3
+          "writes": 5
         }
       ],
-      "outsideWrites": 3,
+      "outsideWrites": 5,
       "role": "code",
       "testedBy": 1,
       "unresolvedSites": 0
@@ -558,6 +628,7 @@
           "path": "site/scripts/unbundle-landing.py"
         },
         {
+          "constantOnly": true,
           "hash": "ee756dfba4122d2acc94a39b2555d9f200fff56a87a8c0b10f9cd01df26a8b62",
           "path": "site/src/content.config.ts"
         },
@@ -598,6 +669,7 @@
           "path": "site/src/content/docs/handbook/xrpl-ledger.md"
         },
         {
+          "constantOnly": true,
           "hash": "26f136ef997b3165e0278b1504f08d96398057f49a69546ea4a74395ff115238",
           "path": "site/src/site-config.ts"
         },
@@ -638,19 +710,37 @@
       "dynamicReads": 0,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
-      "dynamicWrites": 1,
+      "dynamicWrites": 0,
       "entryPoints": [
         "src/escape_the_valley/cli.py"
       ],
       "externals": 0,
       "files": [
         {
+          "constantOnly": true,
           "hash": "cccb98a069d170411348314de904305a47b5a62db86114bcd1b83b0f588d44cb",
           "path": "src/escape_the_valley/__init__.py"
         },
         {
           "entry": "_print_event_count_and_exit",
           "entryRule": 1,
+          "failurePaths": [
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "except",
+              "line": 118
+            },
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "raise",
+              "line": 120
+            },
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "raise",
+              "line": 123
+            }
+          ],
           "hash": "6c96b8367d78595159314d7f2e9635c6203617afc50514126194dbfcae5ec82d",
           "importsFiles": [
             "src/escape_the_valley/cli.py",
@@ -710,6 +800,17 @@
             "state_to_frame"
           ],
           "hash": "e9db39585af99194c95b233c6e17a936d972dc7bae93c288acca8aa4a1660ad5",
+          "importOrder": [
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/save.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/intent.py",
@@ -724,7 +825,123 @@
           "path": "src/escape_the_valley/adapter.py"
         },
         {
+          "failurePaths": [
+            {
+              "kind": "except",
+              "line": 101
+            },
+            {
+              "in": "_balance_to_int",
+              "kind": "raise",
+              "line": 212
+            },
+            {
+              "in": "_decode_parcel_memo",
+              "kind": "except",
+              "line": 253
+            },
+            {
+              "in": "_decode_parcel_memo",
+              "kind": "except",
+              "line": 271
+            },
+            {
+              "in": "_worker",
+              "kind": "except",
+              "line": 329
+            },
+            {
+              "in": "_submit_and_wait_bounded",
+              "kind": "raise",
+              "line": 337
+            },
+            {
+              "in": "_submit_and_wait_bounded",
+              "kind": "raise",
+              "line": 342
+            },
+            {
+              "in": "__init__",
+              "kind": "raise",
+              "line": 389
+            },
+            {
+              "in": "_persist_state",
+              "kind": "except",
+              "line": 429
+            },
+            {
+              "in": "enable",
+              "kind": "except",
+              "line": 584
+            },
+            {
+              "in": "settle",
+              "kind": "except",
+              "line": 674
+            },
+            {
+              "in": "settle",
+              "kind": "except",
+              "line": 706
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 881
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 906
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 940
+            },
+            {
+              "in": "send_parcel",
+              "kind": "except",
+              "line": 1131
+            },
+            {
+              "in": "check_parcels",
+              "kind": "except",
+              "line": 1237
+            },
+            {
+              "in": "fetch_onchain_memos",
+              "kind": "except",
+              "line": 1347
+            },
+            {
+              "in": "fetch_onchain_memos",
+              "kind": "except",
+              "line": 1363
+            },
+            {
+              "in": "wallet_info",
+              "kind": "except",
+              "line": 1409
+            },
+            {
+              "in": "wallet_info",
+              "kind": "except",
+              "line": 1415
+            },
+            {
+              "in": "close",
+              "kind": "except",
+              "line": 1474
+            }
+          ],
           "hash": "5d4c858bf65cd92484f233fd46101af12ea29d41dfc615ae79f4a1ecddc2c0ec",
+          "importOrder": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/ledger_proof.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py",
             "src/escape_the_valley/ledger_proof.py",
@@ -770,6 +987,13 @@
             "minted_snapshot_of",
             "stamp_minted_snapshot"
           ],
+          "failurePaths": [
+            {
+              "in": "_parse_minted_txid",
+              "kind": "except",
+              "line": 194
+            }
+          ],
           "hash": "b299173f89dda4655fe322c07e29c0cbd91757efb34213efd2a488bbb5b2bd6e",
           "path": "src/escape_the_valley/backpack_models.py"
         },
@@ -807,6 +1031,258 @@
             "version",
             "wallet_share",
             "write_postcard_file"
+          ],
+          "failurePaths": [
+            {
+              "in": "_version_callback",
+              "kind": "raise",
+              "line": 33
+            },
+            {
+              "in": "new",
+              "kind": "except",
+              "line": 165
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 170
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 176
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 181
+            },
+            {
+              "in": "play",
+              "kind": "raise",
+              "line": 219
+            },
+            {
+              "in": "play",
+              "kind": "raise",
+              "line": 223
+            },
+            {
+              "in": "status",
+              "kind": "raise",
+              "line": 244
+            },
+            {
+              "in": "journal",
+              "kind": "raise",
+              "line": 257
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 326
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 353
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 367
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 393
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 412
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 465
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 471
+            },
+            {
+              "in": "tui",
+              "kind": "except",
+              "line": 478
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 483
+            },
+            {
+              "in": "tui",
+              "kind": "except",
+              "line": 512
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 517
+            },
+            {
+              "in": "stats",
+              "kind": "raise",
+              "line": 578
+            },
+            {
+              "in": "postcard",
+              "kind": "raise",
+              "line": 675
+            },
+            {
+              "in": "ledger_status",
+              "kind": "raise",
+              "line": 699
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 720
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 724
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 743
+            },
+            {
+              "in": "ledger_disable",
+              "kind": "raise",
+              "line": 752
+            },
+            {
+              "in": "ledger_disable",
+              "kind": "raise",
+              "line": 756
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 773
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 777
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 806
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 815
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 819
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 824
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 850
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 859
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 866
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 868
+            },
+            {
+              "in": "ledger_wallet",
+              "kind": "raise",
+              "line": 877
+            },
+            {
+              "in": "ledger_wallet",
+              "kind": "raise",
+              "line": 887
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 918
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 922
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 936
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 957
+            },
+            {
+              "in": "parcel_list",
+              "kind": "raise",
+              "line": 966
+            },
+            {
+              "in": "parcel_accept",
+              "kind": "raise",
+              "line": 996
+            },
+            {
+              "in": "parcel_accept",
+              "kind": "raise",
+              "line": 1006
+            },
+            {
+              "in": "parcel_sent",
+              "kind": "raise",
+              "line": 1025
+            },
+            {
+              "in": "wallet_share",
+              "kind": "raise",
+              "line": 1053
+            },
+            {
+              "in": "wallet_share",
+              "kind": "raise",
+              "line": 1058
+            }
           ],
           "hash": "4347133ed87881706aac629860d91bc62d3bd63200616745d745d609d99a68db",
           "importsFiles": [
@@ -1873,7 +2349,37 @@
           "path": "src/escape_the_valley/data/event_skeletons.json"
         },
         {
+          "failurePaths": [
+            {
+              "in": "__init__",
+              "kind": "except",
+              "line": 90
+            },
+            {
+              "in": "_settle_checkpoint",
+              "kind": "except",
+              "line": 506
+            },
+            {
+              "in": "_check_parcels",
+              "kind": "except",
+              "line": 555
+            }
+          ],
           "hash": "e25bb921112060c5528bc597ccfc8051b843be341baf0f43eebf1e6b615f1075",
+          "importOrder": [
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -1892,6 +2398,23 @@
         {
           "exports": [
             "load_json_events"
+          ],
+          "failurePaths": [
+            {
+              "in": "_convert_event",
+              "kind": "raise",
+              "line": 157
+            },
+            {
+              "in": "load_json_events",
+              "kind": "except",
+              "line": 267
+            },
+            {
+              "in": "load_json_events",
+              "kind": "except",
+              "line": 282
+            }
           ],
           "hash": "4b827c2c95004791b0947ca7bfc0298a4c6f82a4cf53be028cec3a3e62ec0ba0",
           "importsFiles": [
@@ -1994,6 +2517,88 @@
         {
           "exports": [
             "build_deterministic_epilogue"
+          ],
+          "failurePaths": [
+            {
+              "in": "_tag_names",
+              "kind": "except",
+              "line": 217
+            },
+            {
+              "in": "_http_error_body",
+              "kind": "except",
+              "line": 261
+            },
+            {
+              "in": "_http_error_body",
+              "kind": "except",
+              "line": 270
+            },
+            {
+              "in": "is_available",
+              "kind": "except",
+              "line": 359
+            },
+            {
+              "in": "is_available",
+              "kind": "except",
+              "line": 364
+            },
+            {
+              "in": "_request_epilogue",
+              "kind": "except",
+              "line": 636
+            },
+            {
+              "in": "_request_epilogue",
+              "kind": "except",
+              "line": 643
+            },
+            {
+              "in": "_post_text",
+              "kind": "except",
+              "line": 695
+            },
+            {
+              "in": "_request_scene",
+              "kind": "except",
+              "line": 785
+            },
+            {
+              "in": "_request_scene",
+              "kind": "except",
+              "line": 796
+            },
+            {
+              "in": "_request_outcome",
+              "kind": "except",
+              "line": 855
+            },
+            {
+              "in": "_request_outcome",
+              "kind": "except",
+              "line": 862
+            },
+            {
+              "in": "_parse_json",
+              "kind": "except",
+              "line": 941
+            },
+            {
+              "in": "_parse_json",
+              "kind": "except",
+              "line": 950
+            },
+            {
+              "in": "_decode_u",
+              "kind": "except",
+              "line": 1385
+            },
+            {
+              "in": "_safe_emit",
+              "kind": "except",
+              "line": 1411
+            }
           ],
           "hash": "33276502da9fc51343577c96b226a9dc2a82522d25003273bf7dccc207e28ebc",
           "importsFiles": [
@@ -2136,6 +2741,18 @@
             "report_to_dict",
             "report_to_markdown",
             "run_proof"
+          ],
+          "failurePaths": [
+            {
+              "in": "run_proof",
+              "kind": "raise",
+              "line": 676
+            },
+            {
+              "in": "run_proof",
+              "kind": "raise",
+              "line": 690
+            }
           ],
           "hash": "27a970b297de08aa17c8ea237c44ae5b3551c6feefd16d2cfd5a147bcc780688",
           "importsFiles": [
@@ -2590,6 +3207,18 @@
           "path": "src/escape_the_valley/memory_emitters.py"
         },
         {
+          "failurePaths": [
+            {
+              "in": "setstate",
+              "kind": "except",
+              "line": 426
+            },
+            {
+              "in": "setstate",
+              "kind": "raise",
+              "line": 427
+            }
+          ],
           "hash": "d4caa78ae6f30ca2c6bd2e99912a12dece62badcac84231a83053152da40fe8b",
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py"
@@ -2648,6 +3277,73 @@
             "load_game",
             "load_game_result",
             "save_game"
+          ],
+          "failurePaths": [
+            {
+              "in": "_enum_to_str",
+              "kind": "raise",
+              "line": 74
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "except",
+              "line": 120
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "except",
+              "line": 124
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "raise",
+              "line": 126
+            },
+            {
+              "in": "_write_secrets_sidecar",
+              "kind": "except",
+              "line": 145
+            },
+            {
+              "in": "_write_secrets_sidecar",
+              "kind": "except",
+              "line": 161
+            },
+            {
+              "in": "_read_secrets_sidecar",
+              "kind": "except",
+              "line": 175
+            },
+            {
+              "in": "_backup_corrupt_save",
+              "kind": "except",
+              "line": 209
+            },
+            {
+              "in": "load_game_result",
+              "kind": "except",
+              "line": 231
+            },
+            {
+              "in": "load_game_result",
+              "kind": "except",
+              "line": 255
+            },
+            {
+              "in": "_dict_to_state",
+              "kind": "raise",
+              "line": 406
+            },
+            {
+              "in": "_coerce_rng_state",
+              "kind": "except",
+              "line": 559
+            },
+            {
+              "in": "_load_supplies",
+              "kind": "except",
+              "line": 588
+            }
           ],
           "hash": "b7dbe3e8a652b72363d774d6efe754036fc29d14b506669853e80e458eac7fdf",
           "importsFiles": [
@@ -3371,6 +4067,38 @@
             "compute_ending",
             "compute_par_days"
           ],
+          "failurePaths": [
+            {
+              "in": "__init__",
+              "kind": "except",
+              "line": 185
+            },
+            {
+              "in": "_do_change_pace",
+              "kind": "except",
+              "line": 580
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 780
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 788
+            },
+            {
+              "in": "_settle_checkpoint",
+              "kind": "except",
+              "line": 1332
+            },
+            {
+              "in": "_check_parcels",
+              "kind": "except",
+              "line": 1386
+            }
+          ],
           "hash": "ee97ac6e94e5f0df7b5768a4d5c675a1f6e8f4b5a24e6d70acce2f3ffdc5dd80",
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
@@ -3409,7 +4137,106 @@
           "path": "src/escape_the_valley/tui.tcss"
         },
         {
+          "failurePaths": [
+            {
+              "in": "_reflow_hud",
+              "kind": "except",
+              "line": 814
+            },
+            {
+              "in": "_render_all",
+              "kind": "except",
+              "line": 940
+            },
+            {
+              "in": "action_change_pace",
+              "kind": "except",
+              "line": 1199
+            },
+            {
+              "in": "_on_narration_token",
+              "kind": "except",
+              "line": 1292
+            },
+            {
+              "in": "_compute_epilogue",
+              "kind": "except",
+              "line": 1366
+            },
+            {
+              "in": "action_copy_postcard",
+              "kind": "except",
+              "line": 1396
+            },
+            {
+              "in": "_has_worker_runtime",
+              "kind": "except",
+              "line": 1410
+            },
+            {
+              "in": "_worker_failed",
+              "kind": "except",
+              "line": 1458
+            },
+            {
+              "in": "_step_worker",
+              "kind": "except",
+              "line": 1503
+            },
+            {
+              "in": "_enable_worker",
+              "kind": "except",
+              "line": 1585
+            },
+            {
+              "in": "_settle_worker",
+              "kind": "except",
+              "line": 1671
+            },
+            {
+              "in": "_wallet_info_worker",
+              "kind": "except",
+              "line": 1723
+            },
+            {
+              "in": "_ledger_proof_worker",
+              "kind": "except",
+              "line": 1772
+            },
+            {
+              "in": "action_send_parcel",
+              "kind": "except",
+              "line": 1825
+            },
+            {
+              "in": "on_input_submitted",
+              "kind": "except",
+              "line": 1865
+            },
+            {
+              "in": "_send_parcel_worker",
+              "kind": "except",
+              "line": 1922
+            }
+          ],
           "hash": "ae33e156011f0c1fe4cf6eb599d29806a8110c7f82b330d5880eb32915ffcb86",
+          "importOrder": [
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/backpack_ui.py",
+            "src/escape_the_valley/voice.py",
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/narration.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/backpack_models.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/adapter.py",
             "src/escape_the_valley/backpack.py",
@@ -3445,6 +4272,11 @@
             "show_title_screen"
           ],
           "hash": "d61f88bb3897b91b9695a6d7802cc2853a44efa2d5f1500954785514ef47c591",
+          "importOrder": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/gm.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/gm.py",
             "src/escape_the_valley/models.py",
@@ -3470,6 +4302,92 @@
           ]
         },
         {
+          "failurePaths": [
+            {
+              "kind": "except",
+              "line": 31
+            },
+            {
+              "in": "_wav_duration_seconds",
+              "kind": "except",
+              "line": 100
+            },
+            {
+              "in": "start",
+              "kind": "except",
+              "line": 257
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 278
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 282
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 286
+            },
+            {
+              "in": "interrupt",
+              "kind": "except",
+              "line": 295
+            },
+            {
+              "in": "interrupt",
+              "kind": "except",
+              "line": 301
+            },
+            {
+              "in": "stop",
+              "kind": "except",
+              "line": 310
+            },
+            {
+              "in": "_worker_loop",
+              "kind": "except",
+              "line": 347
+            },
+            {
+              "in": "_worker_loop",
+              "kind": "except",
+              "line": 381
+            },
+            {
+              "in": "_run",
+              "kind": "except",
+              "line": 414
+            },
+            {
+              "in": "_speak_with_timeout",
+              "kind": "raise",
+              "line": 423
+            },
+            {
+              "in": "_speak_with_timeout",
+              "kind": "raise",
+              "line": 428
+            },
+            {
+              "in": "_play_audio",
+              "kind": "except",
+              "line": 470
+            },
+            {
+              "in": "_play_audio",
+              "kind": "except",
+              "line": 480
+            },
+            {
+              "in": "_play_audio",
+              "kind": "raise",
+              "line": 483
+            }
+          ],
           "hash": "d7992ecea0d2f7606d39bbdc28bd7f36180c3d31eef97132efeaf9a6ebf4a2d9",
           "importsFiles": [
             "src/escape_the_valley/narration.py"
@@ -3845,21 +4763,15 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 1,
+          "reads": 12,
           "where": [
             "caller"
           ],
-          "writes": 0
-        },
-        {
-          "reads": 1,
-          "where": [
-            "cwd:.trail/"
-          ],
-          "writes": 0
+          "writes": 2
         }
       ],
-      "outsideReads": 2,
+      "outsideReads": 12,
+      "outsideWrites": 2,
       "role": "code",
       "testedBy": 23,
       "unresolvedSites": 0
@@ -3879,10 +4791,26 @@
         },
         {
           "hash": "e5de409d8483e92e42525036e712898715025638d544cf499445051375de1e41",
-          "path": "tests/conftest.py"
+          "path": "tests/conftest.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "2702870271b01b1596a3e501dc4a84b6675f10db249965a65403ccd9a00ee1c6",
+          "importOrder": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/resources.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/__init__.py",
             "src/escape_the_valley/adapter.py",
@@ -3902,6 +4830,15 @@
         },
         {
           "hash": "8ccaed49788855b968f6557cd16294faf4642840a62136709b3625f471f1b562",
+          "importOrder": [
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/backpack_ui.py",
+            "src/escape_the_valley/save.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/__init__.py",
             "src/escape_the_valley/backpack.py",
@@ -3911,10 +4848,20 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/save.py"
           ],
-          "path": "tests/test_backpack.py"
+          "path": "tests/test_backpack.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "833a6d6743b61cd0c91cd83150c0c07aee0bf90f7c7205875a56379e4924f120",
+          "importOrder": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/adapter.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/adapter.py",
             "src/escape_the_valley/backpack_models.py",
@@ -3944,6 +4891,14 @@
         },
         {
           "hash": "29378bda456d9408cc39d6c28701e8ff1bc96e40683b07fa7a335840eedcf5c4",
+          "importOrder": [
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/backpack_models.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -3956,6 +4911,14 @@
         },
         {
           "hash": "a38a1c5488ec3efabb10c7fd5abc3f24a1af499a7d85634fd82016e3240f5747",
+          "importOrder": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/ledger.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/ledger.py",
@@ -3976,7 +4939,8 @@
             "src/escape_the_valley/resources.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_event_loader.py"
+          "path": "tests/test_event_loader.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "db0179b7efa7873034e5833590d56f0fb38d6bead6493b13d7f63cead5ea6ae9",
@@ -4001,7 +4965,8 @@
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_four_tier_live.py"
+          "path": "tests/test_four_tier_live.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "6dee2f8823acf4e491cac5fefa890cdba07943ce6231b660ae510fb453b41226",
@@ -4058,6 +5023,13 @@
             "test_tampered_balance_fails"
           ],
           "hash": "cb5c56f0a0bf447e87340d2878ea682e47f6cd0b7f548baf50954694bac67c65",
+          "importOrder": [
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/models.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -4093,7 +5065,8 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_models.py"
+          "path": "tests/test_models.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "9ead7f145e83c989914360c9357eb812461b980721f6fd3c84b3bc49d23043e9",
@@ -4109,6 +5082,9 @@
             "test_python_and_npm_versions_match"
           ],
           "hash": "b47ed46d1b003c696875e69a1a5b0c9d4179296aa83103e33bfb0c7e416724d9",
+          "names": [
+            "bin/escape-the-valley.js"
+          ],
           "path": "tests/test_npx_launcher.py"
         },
         {
@@ -4122,6 +5098,17 @@
         },
         {
           "hash": "6f41ec6f5b0ba95887dd892baf8ce203a202d51dfb7c43650e00df481208da1b",
+          "importOrder": [
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/backpack_models.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py",
             "src/escape_the_valley/engine.py",
@@ -4133,7 +5120,8 @@
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_save.py"
+          "path": "tests/test_save.py",
+          "testFramework": "pytest"
         },
         {
           "exports": [
@@ -4275,6 +5263,20 @@
             "test_weathered_all_survive_but_slow"
           ],
           "hash": "265f3b373c8fd7122ac44be2373cd7ff12bf11d378bec7036a3f29749c9320a7",
+          "importOrder": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/memory.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/adapter.py",
             "src/escape_the_valley/backpack.py",
@@ -4303,6 +5305,23 @@
             "test_travel_action_advances_via_worker"
           ],
           "hash": "076699b7e10f6bcff3f09efebf575c4e2337604b5d5b92f756cbfbdbd3f54a66",
+          "importOrder": [
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/voice.py",
+            "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/backpack.py",
+            "src/escape_the_valley/ledger_proof.py",
+            "src/escape_the_valley/backpack_ui.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/__init__.py",
             "src/escape_the_valley/adapter.py",
@@ -4316,21 +5335,33 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py",
             "src/escape_the_valley/voice.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_tui_smoke.py"
+          "path": "tests/test_tui_smoke.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "3498e03f4c243b5f436ee738677e48da09775be3166863340d19d03c56c5aebe",
+          "importOrder": [
+            "src/escape_the_valley/voice.py",
+            "src/escape_the_valley/narration.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/narration.py",
             "src/escape_the_valley/voice.py"
           ],
-          "path": "tests/test_voice.py"
+          "path": "tests/test_voice.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "f453f2e3661645ab8a2692589ca4097e2519b7579acf6c54febb82f69d023083",
+          "importOrder": [
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/resources.py"
+          ],
           "importsFiles": [
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/resources.py",
@@ -4352,40 +5383,125 @@
   ],
   "doors": [
     {
-      "checksCount": 1,
+      "checksCount": 2,
       "commands": [
         {
+          "dir": "",
           "job": "test",
-          "step": "Atlas check",
-          "text": "npx --yes @dogfood-lab/atlas@1.20.0 check"
+          "programs": [
+            "npx"
+          ],
+          "step": "Atlas check"
         },
         {
+          "dir": "",
           "job": "test",
-          "step": "Install dependencies",
-          "text": "pip install -e \".[dev,xrpl]\""
+          "programs": [
+            "pip"
+          ],
+          "step": "Install dependencies"
         },
         {
+          "dir": "",
           "job": "test",
-          "step": "Lint",
-          "text": "ruff check src/ tests/"
+          "programs": [
+            "ruff"
+          ],
+          "step": "Lint"
         },
         {
+          "dir": "",
           "job": "test",
-          "step": "Dependency audit",
-          "text": "pip install pip-audit\npip-audit || true\n"
+          "programs": [
+            "pip",
+            "pip-audit"
+          ],
+          "step": "Dependency audit"
         },
         {
+          "dir": "",
           "job": "test",
-          "step": "Test",
-          "text": "pytest --tb=short -q"
+          "programs": [
+            "pytest"
+          ],
+          "step": "Test"
         }
       ],
       "elsewhere": [],
       "file": ".github/workflows/ci.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "test",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                },
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                },
+                {
+                  "from": "3.13",
+                  "range": ">=3.13.0 <3.14.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "${{ matrix.python-version }}"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Set up Node for Atlas",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "CI",
-      "permissions": [],
+      "permissions": [
+        "contents:read",
+        "id-token:write"
+      ],
       "pushes": false,
       "reach": [
         {
@@ -4420,7 +5536,7 @@
           "directory": true,
           "job": "test",
           "path": "tests/",
-          "runKind": "executes"
+          "runKind": "checks"
         }
       ],
       "runsCount": 2,
@@ -4436,12 +5552,23 @@
         "releases": false
       },
       "stages": [],
+      "tests": [
+        {
+          "config": "pyproject.toml",
+          "files": 0,
+          "job": "test",
+          "junit": true,
+          "runner": "pytest",
+          "step": "Test"
+        }
+      ],
       "triggers": [
         {
           "event": "pull_request",
           "paths": [
             ".github/workflows/**",
             "atlas/**",
+            "codecov.yml",
             "pyproject.toml",
             "site/astro.config.mjs",
             "site/package-lock.json",
@@ -4455,6 +5582,7 @@
           "paths": [
             ".github/workflows/**",
             "atlas/**",
+            "codecov.yml",
             "pyproject.toml",
             "site/astro.config.mjs",
             "site/package-lock.json",
@@ -4472,8 +5600,11 @@
       ],
       "uses": [
         "actions/checkout",
+        "actions/download-artifact",
         "actions/setup-node",
-        "actions/setup-python"
+        "actions/setup-python",
+        "actions/upload-artifact",
+        "codecov/codecov-action"
       ],
       "usesWorkflowToken": false
     },
@@ -4481,18 +5612,74 @@
       "checksCount": 0,
       "commands": [
         {
+          "dir": "site",
           "job": "build",
-          "step": "Install site dependencies",
-          "text": "npm ci"
+          "programs": [
+            "npm"
+          ],
+          "step": "Install site dependencies"
         },
         {
+          "dir": "site",
           "job": "build",
-          "step": "Build site",
-          "text": "npm run build"
+          "programs": [
+            "npm"
+          ],
+          "step": "Build site"
         }
       ],
       "elsewhere": [],
       "file": ".github/workflows/pages.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "environment": {
+            "name": "github-pages"
+          },
+          "name": "deploy",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Deploy site to GitHub Pages",
@@ -4567,13 +5754,50 @@
       "checksCount": 1,
       "commands": [
         {
+          "dir": "",
           "job": "publish",
-          "step": "Build sdist + wheel",
-          "text": "python -m pip install --upgrade build\npython -m build\n"
+          "programs": [
+            "python"
+          ],
+          "step": "Build sdist + wheel"
         }
       ],
       "elsewhere": [],
       "file": ".github/workflows/publish.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "environment": {
+            "name": "pypi"
+          },
+          "name": "publish",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Publish to PyPI",
@@ -4644,38 +5868,112 @@
       "checksCount": 0,
       "commands": [
         {
+          "dir": "",
           "job": "build",
-          "step": "2",
-          "text": "uv python install 3.12"
+          "programs": [
+            "uv"
+          ],
+          "step": "2"
         },
         {
+          "dir": "",
           "job": "build",
-          "step": "3",
-          "text": "uv venv"
+          "programs": [
+            "uv"
+          ],
+          "step": "3"
         },
         {
+          "dir": "",
           "job": "build",
-          "step": "Install dependencies + PyInstaller",
-          "text": "uv pip install . \"pyinstaller>=6.9.0\""
+          "programs": [
+            "uv"
+          ],
+          "step": "Install dependencies + PyInstaller"
         },
         {
+          "dir": "",
           "job": "build",
-          "step": "Build binary",
-          "text": "REF_NAME=\"$REF_NAME_RAW\"\nVERSION=${REF_NAME#v}\n# F-a4d8291c: PyInstaller's --add-data separator is OS-specific (`;`\n# on Windows, `:` elsewhere) -- this step runs under bash on every\n# matrix leg via `shell: bash`, but PyInstaller itself is a native\n# Windows Python process on windows-latest and parses the\n# SRC<sep>DEST spec using the target OS's separator, not the\n# invoking shell's.\nif [ \"${{ runner.os }}\" = \"Windows\" ]; then\n  DATA_SEP=\";\"\nelse\n  DATA_SEP=\":\"\nfi\n# --no-sync: build from the base env created by `uv pip install .`\n# above; do NOT re-resolve the project (which would drag in optional\n# extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and\n# bloat the binary). The binary ships the base game only; voice is\n# pip-install-only via `escape-the-valley[voice]`.\n#\n# F-a4d8291c: --add-data bundles the two non-Python files the game\n# needs at runtime that PyInstaller cannot discover on its own:\n# tui.tcss (TrailApp.CSS_PATH) and data/event_skeletons.json (~200\n# of the game's ~260 events -- event_loader.load_json_events()\n# silently returns [] if this is missing, so an unbundled JSON\n# ships a binary that starts cleanly and plays a quarter-game).\nuv run --no-sync pyinstaller --onefile --name \"${{ env.TOOL_NAME }}\" --console \\\n  --collect-submodules rich \\\n  --collect-submodules textual \\\n  --collect-data textual \\\n  --add-data \"src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley\" \\\n  --add-data \"src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data\" \\\n  \"${{ env.ENTRYPOINT }}\"\nOUTNAME=\"${{ env.TOOL_NAME }}-${VERSION}-${{ matrix.target }}${{ matrix.ext }}\"\nmv \"dist/${{ env.TOOL_NAME }}${{ matrix.ext }}\" \"dist/${OUTNAME}\"\necho \"ASSET_NAME=${OUTNAME}\" >> \"$GITHUB_ENV\"\n"
+          "programs": [
+            "echo",
+            "mv",
+            "uv"
+          ],
+          "step": "Build binary"
         },
         {
+          "dir": "",
           "job": "build",
-          "step": "Smoke test binary",
-          "text": "uv run --no-sync python scripts/smoke_test_binary.py \"dist/$ASSET_NAME\""
+          "programs": [
+            "uv"
+          ],
+          "step": "Smoke test binary"
         },
         {
+          "dir": "",
           "job": "release",
-          "step": "Generate checksums",
-          "text": "REF_NAME=\"$REF_NAME_RAW\"\nVERSION=${REF_NAME#v}\ncd artifacts\nsha256sum * > \"checksums-${VERSION}.txt\"\ncat \"checksums-${VERSION}.txt\"\n"
+          "programs": [
+            "cat",
+            "cd",
+            "sha256sum"
+          ],
+          "step": "Generate checksums"
         }
       ],
       "elsewhere": [],
       "file": ".github/workflows/release-binaries.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            },
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            },
+            {
+              "labels": [
+                "windows-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "os": "win32"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "release",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Release Binaries",
@@ -4727,6 +6025,16 @@
         "releases": true
       },
       "stages": [],
+      "tests": [
+        {
+          "job": "build",
+          "ran": [
+            "scripts/smoke_test_binary.py"
+          ],
+          "runner": null,
+          "step": "Smoke test binary"
+        }
+      ],
       "triggers": [
         {
           "event": "release",
@@ -4747,6 +6055,17 @@
           ]
         }
       ],
+      "unresolvedChecks": [
+        {
+          "job": "build",
+          "manifest": "pyproject.toml",
+          "requires": ">=3.11",
+          "rule": "D1-python",
+          "step": "Install dependencies + PyInstaller",
+          "tool": "uv pip",
+          "why": "no setup-python step before it"
+        }
+      ],
       "uses": [
         "actions/checkout",
         "actions/download-artifact",
@@ -4757,46 +6076,224 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 0,
+      "checksCount": 2,
       "commands": [
         {
-          "job": "release",
-          "step": "Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth",
-          "text": "# Node 22 ships npm 10.9, which signs Sigstore provenance but cannot\n# negotiate the OIDC auth path for trusted publishing (the PUT returns\n# a misleading 404 \"not in this registry\"). An in-place\n# `npm install -g npm@latest` races on the bundled npm's arborist\n# rebuild and breaks irrecoverably; a sandbox install + PATH shadow\n# avoids the race. See memory: npm-115-required-for-oidc.\nSANDBOX=\"$HOME/.npm-cli-sandbox\"\nmkdir -p \"$SANDBOX\"\npushd \"$SANDBOX\" >/dev/null\necho '{\"name\":\"npm-cli-sandbox\",\"version\":\"0.0.0\",\"private\":true}' > package.json\nnpm install --no-save --no-audit --no-fund --silent npm@latest\npopd >/dev/null\necho \"$SANDBOX/node_modules/.bin\" >> \"$GITHUB_PATH\"\n\"$SANDBOX/node_modules/.bin/npm\" --version\n"
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "npx"
+          ],
+          "step": "Atlas check"
         },
         {
-          "job": "release",
-          "step": "Verify tag matches package.json version",
-          "text": "PKG_VERSION=$(node -p \"require('./package.json').version\")\nTAG_VERSION=\"${GITHUB_REF_NAME#v}\"\necho \"Tag: ${GITHUB_REF_NAME} -> ${TAG_VERSION} | package.json: ${PKG_VERSION}\"\nif [ \"${PKG_VERSION}\" != \"${TAG_VERSION}\" ]; then\n  echo \"::error::Tag ${TAG_VERSION} does not match package.json version ${PKG_VERSION}\"\n  exit 1\nfi\n"
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "pip"
+          ],
+          "step": "Install dependencies"
         },
         {
-          "job": "release",
-          "step": "Verify tag matches pyproject.toml version",
-          "text": "PY_VERSION=$(python3 -c \"import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])\")\nTAG_VERSION=\"${GITHUB_REF_NAME#v}\"\necho \"pyproject.toml: ${PY_VERSION}\"\nif [ \"${PY_VERSION}\" != \"${TAG_VERSION}\" ]; then\n  echo \"::error::Tag ${TAG_VERSION} does not match pyproject.toml version ${PY_VERSION}\"\n  exit 1\nfi\n"
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "ruff"
+          ],
+          "step": "Lint"
         },
         {
-          "job": "release",
-          "step": "Install dependencies",
-          "text": "npm install --no-audit --no-fund"
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "pip",
+            "pip-audit"
+          ],
+          "step": "Dependency audit"
         },
         {
-          "job": "release",
-          "step": "npm pack dry-run (verify tarball shape)",
-          "text": "npm pack --dry-run"
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "pytest"
+          ],
+          "step": "Test"
         },
         {
+          "dir": "",
           "job": "release",
-          "step": "Create GitHub Release (idempotent)",
-          "text": "# Extract the `## [<version>] - ...` section from CHANGELOG.md as notes;\n# fall back to the tag name if the section is missing.\nVERSION=\"${GITHUB_REF_NAME#v}\"\nNOTES_FILE=\"$(mktemp)\"\n# Match the heading literally with index() — a dynamic regex with\n# escaped brackets (\\[ \\]) is treated as a character class by some awk\n# variants, which silently yields empty notes.\nawk -v hdr=\"## [${VERSION}]\" '\n  index($0, hdr) == 1 {capture=1; next}\n  capture && /^## / {exit}\n  capture {print}\n' CHANGELOG.md > \"${NOTES_FILE}\"\n\nif [ ! -s \"${NOTES_FILE}\" ]; then\n  echo \"Escape the Valley ${GITHUB_REF_NAME}\" > \"${NOTES_FILE}\"\n  echo \"\" >> \"${NOTES_FILE}\"\n  echo \"See CHANGELOG.md for details.\" >> \"${NOTES_FILE}\"\nfi\n\n# Idempotent: skip creation if the release already exists (re-pushed\n# tag / workflow_dispatch re-run). Publishing the release lets the\n# downstream workflow_run chain (publish.yml + release-binaries.yml) run.\nif gh release view \"${GITHUB_REF_NAME}\" >/dev/null 2>&1; then\n  echo \"Release ${GITHUB_REF_NAME} already exists; skipping create.\"\nelse\n  gh release create \"${GITHUB_REF_NAME}\" \\\n    --title \"Escape the Valley ${GITHUB_REF_NAME}\" \\\n    --notes-file \"${NOTES_FILE}\" \\\n    --verify-tag\nfi\n"
+          "programs": [
+            "echo",
+            "mkdir",
+            "npm",
+            "popd",
+            "pushd"
+          ],
+          "step": "Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth"
         },
         {
+          "dir": "",
           "job": "release",
-          "step": "Publish to npm with provenance (OIDC trusted publisher)",
-          "text": "npm publish --provenance --access public"
+          "programs": [
+            "echo",
+            "node"
+          ],
+          "step": "Verify tag matches package.json version"
+        },
+        {
+          "dir": "",
+          "job": "release",
+          "programs": [
+            "echo",
+            "python3"
+          ],
+          "step": "Verify tag matches pyproject.toml version"
+        },
+        {
+          "dir": "",
+          "job": "release",
+          "programs": [
+            "npm"
+          ],
+          "step": "Install dependencies"
+        },
+        {
+          "dir": "",
+          "job": "release",
+          "programs": [
+            "npm"
+          ],
+          "step": "npm pack dry-run (verify tarball shape)"
+        },
+        {
+          "dir": "",
+          "job": "release",
+          "programs": [
+            "1",
+            "awk",
+            "echo",
+            "gh",
+            "mktemp"
+          ],
+          "step": "Create GitHub Release (idempotent)"
+        },
+        {
+          "dir": "",
+          "job": "release",
+          "programs": [
+            "npm"
+          ],
+          "step": "Publish to npm with provenance (OIDC trusted publisher)"
         }
       ],
       "elsewhere": [],
       "file": ".github/workflows/release.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "gate/test",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                },
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                },
+                {
+                  "from": "3.13",
+                  "range": ">=3.13.0 <3.14.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "${{ matrix.python-version }}"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Set up Node for Atlas",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "gate/codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "release",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Setup Node",
+              "uses": "actions/setup-node",
+              "version": "22"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                }
+              ],
+              "step": "Setup Python for pyproject version check",
+              "uses": "actions/setup-python",
+              "version": "3.11"
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [
         {
@@ -4819,10 +6316,43 @@
         "id-token:write"
       ],
       "pushes": false,
-      "reach": [],
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 27
+        },
+        {
+          "boundary": "tests",
+          "depth": 0,
+          "files": 26
+        },
+        {
+          "boundary": "agents",
+          "depth": 1,
+          "enters": {
+            "file": "agents/skilled.py",
+            "from": "tests/test_four_tier_live.py"
+          },
+          "files": 1
+        }
+      ],
       "readers": [],
-      "runs": [],
-      "runsCount": 0,
+      "runs": [
+        {
+          "directory": true,
+          "job": "gate/test",
+          "path": "src/",
+          "runKind": "checks"
+        },
+        {
+          "directory": true,
+          "job": "gate/test",
+          "path": "tests/",
+          "runKind": "checks"
+        }
+      ],
+      "runsCount": 2,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -4846,6 +6376,19 @@
         "releases": true
       },
       "stages": [],
+      "tests": [
+        {
+          "config": "pyproject.toml",
+          "files": 0,
+          "job": "gate/test",
+          "junit": true,
+          "runner": "pytest",
+          "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
+        }
+      ],
       "triggers": [
         {
           "event": "push",
@@ -4859,8 +6402,11 @@
       ],
       "uses": [
         "actions/checkout",
+        "actions/download-artifact",
         "actions/setup-node",
-        "actions/setup-python"
+        "actions/setup-python",
+        "actions/upload-artifact",
+        "codecov/codecov-action"
       ],
       "usesWorkflowToken": true
     },
@@ -5020,15 +6566,17 @@
       "to": "src"
     }
   ],
+  "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "fa2660c9bab9c9d2828b88caa5677f10197511e8",
-    "tracked": 154
+    "commit": "ab1e22794ae9e6fd85b0165de5ee7f6e124968a5",
+    "tracked": 155
   },
   "landings": [
     {
       "readers": [
         {
-          "by": ".github/workflows/release.yml"
+          "by": ".github/workflows/release.yml",
+          "confidence": "config"
         }
       ],
       "target": "CHANGELOG.md",
@@ -5048,7 +6596,8 @@
     {
       "readers": [
         {
-          "by": ".github/workflows/release.yml"
+          "by": ".github/workflows/release.yml",
+          "confidence": "config"
         },
         {
           "by": "bin/escape-the-valley.js",
@@ -5062,7 +6611,8 @@
     {
       "readers": [
         {
-          "by": ".github/workflows/release.yml"
+          "by": ".github/workflows/release.yml",
+          "confidence": "config"
         }
       ],
       "target": "pyproject.toml",
@@ -5124,7 +6674,8 @@
       "writers": [
         {
           "by": "scripts/yaml_to_json.py",
-          "confidence": "ast"
+          "confidence": "ast",
+          "untrackedInputs": true
         }
       ]
     },
@@ -5155,5 +6706,31 @@
   "submodules": [],
   "symlinks": [],
   "testFiles": 26,
+  "testsNotRun": [
+    "tests/test_adapter.py",
+    "tests/test_backpack.py",
+    "tests/test_backpack_ledger.py",
+    "tests/test_backpack_models.py",
+    "tests/test_backpack_save.py",
+    "tests/test_cli_stats.py",
+    "tests/test_death_causes.py",
+    "tests/test_event_loader.py",
+    "tests/test_events.py",
+    "tests/test_four_tier_live.py",
+    "tests/test_gm.py",
+    "tests/test_ledger.py",
+    "tests/test_ledger_proof.py",
+    "tests/test_memory.py",
+    "tests/test_memory_emitters.py",
+    "tests/test_models.py",
+    "tests/test_narration.py",
+    "tests/test_npx_launcher.py",
+    "tests/test_physics.py",
+    "tests/test_save.py",
+    "tests/test_step_engine.py",
+    "tests/test_tui_smoke.py",
+    "tests/test_voice.py",
+    "tests/test_worldgen.py"
+  ],
   "unassigned": []
 }
