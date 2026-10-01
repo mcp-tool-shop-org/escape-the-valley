@@ -1,21 +1,19 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-09-30 from commit ab1e227 by Atlas 1.24.0.
+Mapped at 2026-10-01 from commit 6e49565 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (61 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-09-25 (fa2660c)
+## What changed since 2026-09-30 (ab1e227)
 
-- CI's pull request trigger now also names `codecov.yml`.
-- CI's push trigger now also names `codecov.yml`.
-- Release now also checks src/ and tests/.
-- 1 file added and 1 changed content, across 2 parts.
+- CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `pyproject.toml`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**` and `tests/**`.
+- 1 file changed content, across 1 part.
 
 ## What comes in
 
-1. **CI.** On a pull request touching 9 paths; on a push touching 9 paths; on a `workflow_call` event; or by hand. Checks src/ and tests/.
+1. **CI.** On a pull request; on a push touching 9 paths; on a `workflow_call` event; or by hand. Checks src/ and tests/.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Checks src/ and tests/.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
