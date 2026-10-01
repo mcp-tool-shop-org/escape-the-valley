@@ -60,45 +60,29 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
+      "added": 0,
       "changed": 1,
       "moved": 0,
-      "parts": 2,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's pull request trigger now also names `codecov.yml`.",
+        "sentence": "CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `pyproject.toml`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**` and `tests/**`.",
         "subjects": [
           ".github/workflows/ci.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI's push trigger now also names `codecov.yml`.",
-        "subjects": [
-          ".github/workflows/ci.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also checks src/ and tests/.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "src/",
-          "tests/"
         ]
       },
       {
         "kind": "counts",
-        "sentence": "1 file added and 1 changed content, across 2 parts.",
+        "sentence": "1 file changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "fa2660c9bab9c9d2828b88caa5677f10197511e8",
-      "generatedAt": "2026-09-25T02:21:33.371Z"
+      "commit": "ab1e22794ae9e6fd85b0165de5ee7f6e124968a5",
+      "generatedAt": "2026-09-30T20:09:31.145Z"
     },
     "unchanged": false
   },
@@ -185,7 +169,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ab1e22794ae9e6fd85b0165de5ee7f6e124968a5",
+  "commit": "6e49565cdd05c895b860359023c8f8435497655e",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (61 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -226,7 +210,7 @@
       ],
       "stages": [],
       "triggers": [
-        "on a pull request touching 9 paths",
+        "on a pull request",
         "on a push touching 9 paths",
         "on a `workflow_call` event",
         "or by hand"
@@ -478,7 +462,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-09-30T20:09:31.145Z",
+  "generatedAt": "2026-10-01T02:12:55.529Z",
   "limits": [
     "1 write uses a path built at run time and is not named here.",
     "2 writes and 13 reads go to a path their caller passes, not to this repository.",
