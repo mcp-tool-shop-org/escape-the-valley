@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "escape-the-valley-s4-hello"
+version = "0.1.0"
+description = "Spike S4: maturin bindings=bin dry run for Escape the Valley 2.0"
+readme = "Cargo.toml"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.maturin]
+bindings = "bin"
+manifest-path = "Cargo.toml"
+strip = true

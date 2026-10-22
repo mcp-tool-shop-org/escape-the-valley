@@ -1,0 +1,13 @@
+[package]
+name = "s4-hello"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "s4-hello"
+path = "src/main.rs"
+
+[dependencies]
+ratatui = { version = "0.30", default-features = false }

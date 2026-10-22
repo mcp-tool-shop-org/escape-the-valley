@@ -1,15 +1,26 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-01 from commit 6e49565 by Atlas 1.24.0.
+Mapped at 2026-10-22 from commit 6b50d57 by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (61 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
+10 parts, mostly Python (62 files), Rust (4), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).
 
-## What changed since 2026-09-30 (ab1e227)
+## What changed since 2026-10-22 (053fdcf)
 
-- CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `pyproject.toml`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**` and `tests/**`.
-- 1 file changed content, across 1 part.
+- Rust Spike Release (S4) (.github/workflows/rust-spike-release.yml) is a new door. It starts on a pull request to rust-2.0; or by hand. It checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
+- s2-xrpl (rust-spikes/s2-xrpl/Cargo.toml) is a new command. It runs rust-spikes/s2-xrpl/src/main.rs.
+- s3-voice (rust-spikes/s3-voice/Cargo.toml) is a new command. It runs rust-spikes/s3-voice/src/main.rs.
+- And 1 more change to a door.
+- rust-spikes/s1-rng/vectors.json is now written by rust-spikes/s1-rng/gen_vectors.py.
+- rust-spikes/s1-rng/ is now read by rust-spikes/Cargo.toml.
+- rust-spikes/s1-rng/vectors.json is now read by rust-spikes/s1-rng/src/lib.rs.
+- And 6 more new writers and readers of places.
+- rust-spikes/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.
+- rust-spikes/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.
+- rust-spikes/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.
+- And 12 more new files that belong to no part.
+- 16 files added, across 1 part.
 
 ## What comes in
 
@@ -18,9 +29,13 @@ Mapped at 2026-10-01 from commit 6e49565 by Atlas 1.24.0.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
-6. **escape-the-valley** (a command people run). Runs bin/escape-the-valley.js.
-7. **trail** (a command people run, from package.json). Runs bin/escape-the-valley.js.
-8. **trail** (a command people run, from pyproject.toml). Runs src/escape_the_valley/cli.py.
+6. **Rust Spike Release (S4).** On a pull request to rust-2.0; or by hand. Checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
+7. **escape-the-valley** (a command people run). Runs bin/escape-the-valley.js.
+8. **trail** (a command people run, from package.json). Runs bin/escape-the-valley.js.
+9. **trail** (a command people run, from pyproject.toml). Runs src/escape_the_valley/cli.py.
+10. **s2-xrpl** (a command built from rust-spikes/s2-xrpl, which nothing ships). Runs rust-spikes/s2-xrpl/src/main.rs.
+11. **s3-voice** (a command built from rust-spikes/s3-voice, which nothing ships). Runs rust-spikes/s3-voice/src/main.rs.
+12. **s4-hello** (a command people run). Runs rust-spikes/s4-hello/src/main.rs.
 
 ## What happens through CI
 
@@ -42,11 +57,19 @@ CI writes nothing this map can see.
 
 **Publish to PyPI** checks src/escape_the_valley/ and publishes to PyPI.
 
+**Rust Spike Release (S4)** checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
+
 **escape-the-valley** (a command people run) runs bin/escape-the-valley.js.
 
 **trail** (a command people run, from package.json) runs bin/escape-the-valley.js.
 
 **trail** (a command people run, from pyproject.toml) runs src/escape_the_valley/cli.py.
+
+**s2-xrpl** (a command built from rust-spikes/s2-xrpl, which nothing ships) runs rust-spikes/s2-xrpl/src/main.rs.
+
+**s3-voice** (a command built from rust-spikes/s3-voice, which nothing ships) runs rust-spikes/s3-voice/src/main.rs.
+
+**s4-hello** (a command people run) runs rust-spikes/s4-hello/src/main.rs.
 
 ## What breaks what
 
@@ -83,7 +106,7 @@ No two parts export a helper that looks alike.
 
 ## Generated, never hand-edited
 
-Every tracked place code writes here is edited by people too; see Hand-authored.
+- **rust-spikes/s1-rng/vectors.json** is written by rust-spikes/s1-rng/gen_vectors.py.
 
 ## Hand-authored
 
@@ -102,6 +125,7 @@ Read those in order to follow one run of trail end to end. This path follows tra
 - 1 write uses a path built at run time and is not named here.
 - 2 writes and 13 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
+- 15 files belong to no part: rust-spikes/Cargo.lock, rust-spikes/Cargo.toml, rust-spikes/deny.toml and 12 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.

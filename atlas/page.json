@@ -60,8 +60,8 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 1,
+      "added": 16,
+      "changed": 0,
       "moved": 0,
       "parts": 1,
       "removed": 0
@@ -69,20 +69,98 @@
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `pyproject.toml`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**` and `tests/**`.",
+        "sentence": "Rust Spike Release (S4) (.github/workflows/rust-spike-release.yml) is a new door. It starts on a pull request to rust-2.0; or by hand. It checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.",
         "subjects": [
-          ".github/workflows/ci.yml"
+          ".github/workflows/rust-spike-release.yml",
+          "rust-spikes/s4-hello/Cargo.toml",
+          "rust-spikes/s4-hello/src/main.rs"
         ]
       },
       {
+        "kind": "door",
+        "sentence": "s2-xrpl (rust-spikes/s2-xrpl/Cargo.toml) is a new command. It runs rust-spikes/s2-xrpl/src/main.rs.",
+        "subjects": [
+          "rust-spikes/s2-xrpl/Cargo.toml",
+          "rust-spikes/s2-xrpl/src/main.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "s3-voice (rust-spikes/s3-voice/Cargo.toml) is a new command. It runs rust-spikes/s3-voice/src/main.rs.",
+        "subjects": [
+          "rust-spikes/s3-voice/Cargo.toml",
+          "rust-spikes/s3-voice/src/main.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "And 1 more change to a door.",
+        "subjects": []
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/vectors.json is now written by rust-spikes/s1-rng/gen_vectors.py.",
+        "subjects": [
+          "rust-spikes/s1-rng/vectors.json",
+          "rust-spikes/s1-rng/gen_vectors.py"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/ is now read by rust-spikes/Cargo.toml.",
+        "subjects": [
+          "rust-spikes/s1-rng/",
+          "rust-spikes/Cargo.toml"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/vectors.json is now read by rust-spikes/s1-rng/src/lib.rs.",
+        "subjects": [
+          "rust-spikes/s1-rng/vectors.json",
+          "rust-spikes/s1-rng/src/lib.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "And 6 more new writers and readers of places.",
+        "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/Cargo.lock"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/Cargo.toml"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/deny.toml"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 12 more new files that belong to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "1 file changed content, across 1 part.",
+        "sentence": "16 files added, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ab1e22794ae9e6fd85b0165de5ee7f6e124968a5",
-      "generatedAt": "2026-09-30T20:09:31.145Z"
+      "commit": "053fdcf2c9713cdf217f311cac24d42bbdcff377",
+      "generatedAt": "2026-10-22T20:31:46.662Z"
     },
     "unchanged": false
   },
@@ -169,9 +247,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "6e49565cdd05c895b860359023c8f8435497655e",
+  "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (61 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
+  "derived": "10 parts, mostly Python (62 files), Rust (4), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -362,6 +440,29 @@
       ]
     },
     {
+      "checks": [
+        "rust-spikes/s4-hello/Cargo.toml",
+        "rust-spikes/s4-hello/src/main.rs"
+      ],
+      "checksCount": 2,
+      "checksMore": 0,
+      "file": ".github/workflows/rust-spike-release.yml",
+      "id": ".github/workflows/rust-spike-release.yml",
+      "landings": [],
+      "name": "Rust Spike Release (S4)",
+      "pushes": false,
+      "reach": [],
+      "runs": [],
+      "runsCount": 0,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [
+        "on a pull request to rust-2.0",
+        "or by hand"
+      ]
+    },
+    {
       "checks": [],
       "checksCount": 0,
       "checksMore": 0,
@@ -438,6 +539,70 @@
       "sends": [],
       "stages": [],
       "triggers": []
+    },
+    {
+      "builtFrom": "rust-spikes/s2-xrpl",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust-spikes/s2-xrpl/Cargo.toml",
+      "id": "rust-spikes/s2-xrpl/Cargo.toml#s2-xrpl",
+      "kind": "command",
+      "landings": [],
+      "name": "s2-xrpl",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust-spikes/s2-xrpl/src/main.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
+    },
+    {
+      "builtFrom": "rust-spikes/s3-voice",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust-spikes/s3-voice/Cargo.toml",
+      "id": "rust-spikes/s3-voice/Cargo.toml#s3-voice",
+      "kind": "command",
+      "landings": [],
+      "name": "s3-voice",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust-spikes/s3-voice/src/main.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
+    },
+    {
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust-spikes/s4-hello/Cargo.toml",
+      "id": "rust-spikes/s4-hello/Cargo.toml#s4-hello",
+      "kind": "command",
+      "landings": [],
+      "name": "s4-hello",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust-spikes/s4-hello/src/main.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": []
     }
   ],
   "duplicates": [],
@@ -461,12 +626,20 @@
     }
   ],
   "engine": "1.24.0",
-  "generated": [],
-  "generatedAt": "2026-10-01T02:12:55.529Z",
+  "generated": [
+    {
+      "place": "rust-spikes/s1-rng/vectors.json",
+      "writers": [
+        "rust-spikes/s1-rng/gen_vectors.py"
+      ]
+    }
+  ],
+  "generatedAt": "2026-10-22T20:33:01.845Z",
   "limits": [
     "1 write uses a path built at run time and is not named here.",
     "2 writes and 13 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
+    "15 files belong to no part: rust-spikes/Cargo.lock, rust-spikes/Cargo.toml, rust-spikes/deny.toml and 12 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -518,5 +691,5 @@
     }
   ],
   "untestedNote": [],
-  "written": 1
+  "written": 2
 }
