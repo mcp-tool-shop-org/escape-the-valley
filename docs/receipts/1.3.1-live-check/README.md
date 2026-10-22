@@ -28,7 +28,9 @@ the next head, **`0d112bc`**, which adds the licence notices (#28), as the Edito
 old behaviour. **Item 7 PASS** on `0d112bc` (#28): the locally built binary passes the smoke test, `self-check`,
 a Testnet enable, and `licenses` in both frozen and pip modes. The notices content check waits for the final head.
 The identity scan is `RESULT CLEAN` on the `.exe` but cannot see inside it; unpacked, it finds 28 third-party hits,
-reported to the Publisher. Off the brief I found three player-facing defects that 1.3.0 has too (D1–D3). None
+reported to the Publisher. **Item 8 PASS** on `c6c30b5`: a Linux build in WSL passes the new
+`--verify-toc` step (exit 0, 22 distributions; a negative control exits 1) and the smoke test. Off the brief I
+found three player-facing defects that 1.3.0 has too (D1–D3). None
 comes from 1.3.1.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
@@ -197,6 +199,36 @@ has only the 3.12 it installs. That build passed the same smoke test, `self-chec
 `7902699b-a31a371d`, wallet `rGZjmEC9j3t5UhrenYZUbnrnyVcgHZCvDu`). I rebuilt on 3.12 to match the workflow. The
 notices file was identical across the two environments.
 
+## Item 8: a Linux build with the TOC check, on `c6c30b5` — PASS (`8-linux-binary/`)
+
+The Editor asked for this because two new steps in `release-binaries.yml` had never run. One copies the notices for
+each OS; the other is `--verify-toc`. Both fire only on a release or a dispatched tag (review F3). This ran on
+**`c6c30b5`** (fixup 2), in WSL: Ubuntu 26.04, glibc 2.43, uv 0.11.18, with uv's concurrency capped at 12 of 24
+cores.
+
+`harness/linux_build.sh` ran the linux-x64 leg's build job step by step: `uv python install 3.12`, the venv, the
+install, the notices, the PyInstaller line with `DATA_SEP=:`, the rename and the per-OS notices copy, then
+`--verify-toc` and the smoke test. The one change: `uv venv -p 3.12`, where the workflow has a bare `uv venv`
+(this machine has other managed Pythons, as on Windows).
+
+| Step | Result |
+|---|---|
+| Build | Python 3.12.13, PyInstaller 6.22.3. `escape-the-valley-1.3.1-linux-x64` is an ELF x86-64, 20,932,824 bytes, sha256 `c592db32…` (`dist-sha256.txt`) |
+| Per-OS notices copy | `dist/THIRD_PARTY_NOTICES-linux-x64.txt`, 138,905 bytes, the same as the generated file |
+| **`--verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt`** | **exit 0**: `Verified 22 bundled site-packages distributions`: annotated-doc, anyio, base58, certifi, ecpy, h11, httpcore, httpx, idna, linkify-it-py, markdown-it-py, mdurl, platformdirs, pycryptodome, pygments, rich, shellingham, textual, typer, typing-extensions, websockets, xrpl-py |
+| Negative control: the same check with `Name: rich` deleted from a copy of the notices | **exit 1**: `TOC VERIFICATION FAILED: … missing from …: rich` (`09-verify-toc-negative-rich.log`) |
+| `scripts/smoke_test_binary.py` on the Linux binary | **PASS**, exit 0: `--help`; 260 events; `tui.tcss` loads; xrpl extra present; licences present |
+
+**What it doesn't cover:** macOS (darwin-arm64) didn't run, so its leg stays unexercised until release. The notices
+content and the unpacked-binary scan wait for the fixup 3 head (the Editor's F1/F2).
+
+**Off the brief: the notices list three distributions the binary doesn't carry.** The notices have 27 `Name:`
+entries (`notices-names.txt`): Python, PyInstaller, and 25 distributions. Three of those are installed in the build
+environment but aren't in the bundle: `Deprecated`, `mdit-py-plugins` and `wrapt` have 0 entries in `PYZ-00.toc`
+and 0 under `site-packages` in `Analysis-00.toc`. For comparison, rich, xrpl and certifi have 100, 274 and 2
+(`10-toc-modules.txt`). The generator lists what is installed, and the check fails only on a bundled distribution
+with no entry, so listing too many does no harm.
+
 ## Off the brief (all three are on 1.3.0 too; none from 1.3.1)
 
 - **D1 (minor, UX): in the TUI, `e` on the open ledger nudge starts a Testnet enable instead of Abandon Cargo**
@@ -241,7 +273,10 @@ notices file was identical across the two environments.
     command with `.cmd`, `.out` and `.exit`, apart from the licences text;
   - `licenses-hashes.txt`;
   - `build-py313/`, the first build's results.
+- `8-linux-binary/`: each step's `.log` and `.exit`, the negative control, `notices-names.txt`,
+  `10-toc-modules.txt`, and the binary's hash, `file` type and versions. The notices text isn't committed.
 - `code.txt`, `hashes.txt`.
 - `harness/`: `cli_drive`, `tui_drive`, `tui_key_probe` (D1), `seed_search` (how seed 10 was found),
   `etv_ledger_probe`, `redact_tree`, `unpack_pyinstaller` and `hit_context` (item 7). Each is a `.py.txt`, which
-  keeps them out of the repo's lint.
+  keeps them out of the repo's lint. The item 8 shell scripts are `linux_build.sh`, `verify_toc_negative.sh` and
+  `toc_has.sh`.
