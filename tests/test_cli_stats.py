@@ -1004,22 +1004,232 @@ class TestV131CliFixes:
         assert "What do you do?" in proc.stdout
 
 
+class _FakeMeta:
+    def __init__(self, data: dict, multi: dict | None = None):
+        self._data = data
+        self._multi = multi or {}
+
+    def get(self, key: str, default=None):
+        return self._data.get(key, default)
+
+    def get_all(self, key: str, default=None):
+        return self._multi.get(key, default)
+
+
+class _FakeDist:
+    def __init__(
+        self,
+        name: str,
+        version: str = "1.0.0",
+        license_expr: str = "MIT",
+        requires_dist: list[str] | None = None,
+        project_urls: list[str] | None = None,
+        homepage: str | None = None,
+        files: list | None = None,
+        top_level: str = "",
+    ):
+        data = {
+            "Name": name,
+            "Version": version,
+            "License-Expression": license_expr,
+        }
+        if homepage is not None:
+            data["Home-page"] = homepage
+        multi = {}
+        if requires_dist is not None:
+            multi["Requires-Dist"] = requires_dist
+        if project_urls is not None:
+            multi["Project-URL"] = project_urls
+        self.metadata = _FakeMeta(data, multi)
+        self.files = files or []
+        self._top_level = top_level
+
+    def read_text(self, filename: str) -> str | None:
+        if filename == "top_level.txt":
+            return self._top_level
+        return None
+
+
 class TestThirdPartyNotices:
     """Issue #28: third-party license notices generator and CLI commands."""
 
-    def test_gen_third_party_notices_includes_game_and_rich(self, tmp_path):
-        """Generator produces a file containing the game's license and rich's name + license."""
+    def test_gen_third_party_notices_includes_game_cpython_and_rich(self, tmp_path):
+        """Generator includes game license, CPython PSF + third-party runtime, and rich."""
+        import sys
+
         from escape_the_valley.notices import write_third_party_notices
 
         out_path = write_third_party_notices(tmp_path / "THIRD_PARTY_NOTICES.txt")
         text = out_path.read_text(encoding="utf-8")
+        py_ver = sys.version.split()[0]
 
         assert "Escape the Valley" in text
         assert "MIT License" in text
         assert "Copyright (c) 2026 mcp-tool-shop" in text
+        assert "Name: Python (CPython Runtime and Standard Library)" in text
+        assert f"Version: {py_ver}" in text
+        assert "PYTHON SOFTWARE FOUNDATION LICENSE" in text
+        for c_lib in (
+            "OpenSSL",
+            "libffi",
+            "zlib",
+            "Expat",
+            "bzip2",
+            "XZ Utils / liblzma",
+            "SQLite",
+            "mpdecimal",
+        ):
+            assert c_lib in text
+        # CPython section appears right after the game's MIT license (before the Summary).
+        game_idx = text.index("Copyright (c) 2026 mcp-tool-shop")
+        cpython_idx = text.index("Name: Python (CPython Runtime and Standard Library)")
+        summary_idx = text.index("Summary of Included Third-Party Distributions")
+        assert game_idx < cpython_idx < summary_idx
         assert "Name: rich" in text
         assert "Will McGugan" in text
+        assert "https://pypi.org/project/certifi/" in text
+        assert "https://github.com/certifi/python-certifi" in text
         assert "site-packages" not in text
+
+    def test_mpl_source_line_generated_for_fake_distribution(self):
+        """MPL/LGPL/GPL distributions receive a Source: line with PyPI + upstream repo URL."""
+        from escape_the_valley.notices import generate_third_party_notices
+
+        fake_mpl = _FakeDist(
+            name="fake-mpl-pkg",
+            version="2.4.0",
+            license_expr="MPL-2.0",
+            project_urls=["Source, https://github.com/example/fake-mpl-pkg"],
+        )
+        fake_mit = _FakeDist(
+            name="fake-mit-pkg",
+            version="1.0.0",
+            license_expr="MIT",
+            project_urls=["Source, https://github.com/example/fake-mit-pkg"],
+        )
+        text = generate_third_party_notices(distributions=[fake_mpl, fake_mit])
+        assert (
+            "Source: fake-mpl-pkg==2.4.0 — "
+            "https://pypi.org/project/fake-mpl-pkg/2.4.0/#files | "
+            "Upstream: https://github.com/example/fake-mpl-pkg"
+        ) in text
+        assert "Source: fake-mit-pkg" not in text
+
+    def test_types_stub_packages_excluded_and_packaging_not_excluded(self):
+        """Stub-only `types-*` dists are excluded; `packaging` is not in EXCLUDED_BUILD_TOOLS."""
+        from escape_the_valley.notices import (
+            EXCLUDED_BUILD_TOOLS,
+            generate_third_party_notices,
+        )
+
+        assert "packaging" not in EXCLUDED_BUILD_TOOLS
+
+        fake_root = _FakeDist(
+            name="escape-the-valley",
+            version="1.3.1",
+            license_expr="MIT",
+            requires_dist=[
+                "Deprecated>=1.2.14",
+                "types-Deprecated>=1.2.14",
+                "types-requests",
+            ],
+        )
+        fake_dep = _FakeDist(name="Deprecated", version="1.3.1", license_expr="MIT")
+        fake_stub1 = _FakeDist(
+            name="types-Deprecated", version="1.3.1", license_expr="Apache-2.0"
+        )
+        fake_stub2 = _FakeDist(
+            name="types-requests", version="2.31.0", license_expr="Apache-2.0"
+        )
+        text = generate_third_party_notices(
+            distributions=[fake_root, fake_dep, fake_stub1, fake_stub2]
+        )
+        assert "Name: Deprecated" in text
+        assert "types-Deprecated" not in text
+        assert "types-requests" not in text
+
+    def test_frozen_meipass_bundled_file_found(self, tmp_path, monkeypatch):
+        """With sys.frozen=True and sys._MEIPASS set, bundled notices under _MEIPASS resolve."""
+        from escape_the_valley.notices import (
+            get_third_party_notices_text,
+            resolve_bundled_notices_path,
+        )
+
+        pkg_dir = tmp_path / "escape_the_valley"
+        pkg_dir.mkdir(parents=True)
+        bundled = pkg_dir / "THIRD_PARTY_NOTICES.txt"
+        marker = "FROZEN_MEIPASS_SENTINEL_131\nName: rich\n"
+        bundled.write_text(marker, encoding="utf-8")
+
+        monkeypatch.setattr("escape_the_valley.notices.sys.frozen", True, raising=False)
+        monkeypatch.setattr(
+            "escape_the_valley.notices.sys._MEIPASS", str(tmp_path), raising=False
+        )
+
+        resolved = resolve_bundled_notices_path()
+        assert resolved == bundled
+        assert get_third_party_notices_text() == marker
+
+        res = runner.invoke(app, ["licenses"])
+        assert res.exit_code == 0
+        assert res.output == marker
+
+    def test_frozen_meipass_missing_file_raises_filenotfound(self, tmp_path, monkeypatch):
+        """With sys.frozen=True and empty _MEIPASS, missing file raises FileNotFoundError."""
+        import pytest
+
+        from escape_the_valley.notices import (
+            get_third_party_notices_text,
+            resolve_bundled_notices_path,
+        )
+
+        monkeypatch.setattr("escape_the_valley.notices.sys.frozen", True, raising=False)
+        monkeypatch.setattr(
+            "escape_the_valley.notices.sys._MEIPASS", str(tmp_path), raising=False
+        )
+
+        assert resolve_bundled_notices_path() is None
+        with pytest.raises(FileNotFoundError, match="Bundled THIRD_PARTY_NOTICES.txt"):
+            get_third_party_notices_text()
+
+    def test_verify_toc_against_notices_pass_and_fail(self, tmp_path):
+        """TOC check passes when all site-packages in .toc are listed and fails when missing."""
+        import pytest
+
+        from escape_the_valley.notices import verify_toc_against_notices
+
+        build_dir = tmp_path / "build" / "escape-the-valley"
+        build_dir.mkdir(parents=True)
+        toc_file = build_dir / "PYZ-00.toc"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', '/v/site-packages/rich/console.py', 'PYMODULE'),\n"
+            "  ('Crypto.Cipher', '/v/site-packages/Crypto/Cipher/__init__.py', 'PYMODULE'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+
+        dists = [
+            _FakeDist(name="rich", top_level="rich\n"),
+            _FakeDist(name="pycryptodome", top_level="Crypto\n"),
+        ]
+
+        notices_ok = tmp_path / "THIRD_PARTY_NOTICES.txt"
+        notices_ok.write_text(
+            "Name: rich\nVersion: 15.0.0\n\nName: pycryptodome\nVersion: 3.23.0\n",
+            encoding="utf-8",
+        )
+        verified = verify_toc_against_notices(
+            build_dir, notices_ok, distributions=dists
+        )
+        assert verified == ["pycryptodome", "rich"]
+
+        notices_missing = tmp_path / "THIRD_PARTY_NOTICES_INCOMPLETE.txt"
+        notices_missing.write_text("Name: rich\nVersion: 15.0.0\n", encoding="utf-8")
+        with pytest.raises(RuntimeError, match="pycryptodome"):
+            verify_toc_against_notices(
+                build_dir, notices_missing, distributions=dists
+            )
 
     def test_licenses_command_prints_bundled_file(self, tmp_path, monkeypatch):
         """`trail licenses` and `trail --licenses` print the bundled file when present."""

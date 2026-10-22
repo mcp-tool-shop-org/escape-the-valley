@@ -116,7 +116,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "scripts",
-      "qualifyingSourceCommits": 5,
+      "qualifyingSourceCommits": 6,
       "rebaseline": null
     },
     {
@@ -148,12 +148,12 @@
           "scripts"
         ]
       },
-      "cohesion": 0.062272,
+      "cohesion": 0.062201,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "src",
-      "qualifyingSourceCommits": 68,
+      "qualifyingSourceCommits": 69,
       "rebaseline": null
     },
     {
@@ -166,12 +166,12 @@
         "importsAndCoChanges": [],
         "importsOnly": []
       },
-      "cohesion": 0.047277,
+      "cohesion": 0.047222,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 64,
+      "qualifyingSourceCommits": 65,
       "rebaseline": null
     }
   ],
@@ -199,8 +199,8 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 10,
-        "lines": 269,
+        "commits": 11,
+        "lines": 282,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -209,13 +209,13 @@
         "path": ".github/workflows/release.yml"
       },
       {
-        "commits": 3,
-        "lines": 5,
+        "commits": 4,
+        "lines": 7,
         "path": ".gitignore"
       },
       {
-        "commits": 23,
-        "lines": 398,
+        "commits": 24,
+        "lines": 402,
         "path": "CHANGELOG.md"
       },
       {
@@ -244,8 +244,8 @@
         "path": "README.ja.md"
       },
       {
-        "commits": 16,
-        "lines": 130,
+        "commits": 17,
+        "lines": 133,
         "path": "README.md"
       },
       {
@@ -274,8 +274,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 5,
-        "lines": 256,
+        "commits": 6,
+        "lines": 283,
         "path": "atlas/README.md"
       },
       {
@@ -284,18 +284,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 5,
-        "lines": 963,
+        "commits": 6,
+        "lines": 1047,
         "path": "atlas/page.json"
       },
       {
-        "commits": 5,
-        "lines": 1525,
+        "commits": 6,
+        "lines": 1752,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 5,
-        "lines": 8795,
+        "commits": 6,
+        "lines": 9364,
         "path": "atlas/structure.json"
       },
       {
@@ -330,6 +330,11 @@
       },
       {
         "commits": 1,
+        "lines": 26,
+        "path": "scripts/gen_third_party_notices.py"
+      },
+      {
+        "commits": 1,
         "lines": 81,
         "path": "scripts/ledger_proof.py"
       },
@@ -339,8 +344,8 @@
         "path": "scripts/sim_gm_panel.py"
       },
       {
-        "commits": 5,
-        "lines": 449,
+        "commits": 6,
+        "lines": 473,
         "path": "scripts/smoke_test_binary.py"
       },
       {
@@ -694,8 +699,8 @@
         "path": "src/escape_the_valley/backpack_ui.py"
       },
       {
-        "commits": 13,
-        "lines": 676,
+        "commits": 14,
+        "lines": 696,
         "path": "src/escape_the_valley/cli.py"
       },
       {
@@ -752,6 +757,11 @@
         "commits": 4,
         "lines": 68,
         "path": "src/escape_the_valley/narration.py"
+      },
+      {
+        "commits": 1,
+        "lines": 397,
+        "path": "src/escape_the_valley/notices.py"
       },
       {
         "commits": 8,
@@ -824,8 +834,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 10,
-        "lines": 1397,
+        "commits": 11,
+        "lines": 1453,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -924,17 +934,17 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-22T21:29:39.470Z",
+  "generatedAt": "2026-10-22T21:58:13.577Z",
   "generatedFrom": {
-    "commit": "9773b08e26d2b26b282e7e9567cff4fdaf0506b4"
+    "commit": "0d112bcfb8b39010010b3aa8ca4e14194e13dcfe"
   },
   "pairs": [
     {
       "a": "README.md",
       "b": "SHIP_GATE.md",
-      "either": 11,
+      "either": 12,
       "shared": 6,
-      "strength": 0.545455
+      "strength": 0.5
     },
     {
       "a": "SHIP_GATE.md",
@@ -995,9 +1005,9 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 8,
-      "shared": 7,
-      "strength": 0.875
+      "either": 9,
+      "shared": 8,
+      "strength": 0.888889
     },
     {
       "a": "src/escape_the_valley/engine.py",
@@ -1101,16 +1111,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-22T15:37:44-04:00",
+    "headDate": "2026-10-22T17:30:01-04:00",
     "inScopeFiles": 162,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 102,
+    "qualifyingCommits": 103,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-25T19:37:44.000Z",
+    "since": "2026-04-25T21:30:01.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
