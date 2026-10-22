@@ -184,6 +184,14 @@ So I unpacked it. `harness/unpack_pyinstaller.py.txt`, using PyInstaller's own r
 None is this rig's: a direct search of the unpacked tree for the rig's username, paths and noreply id finds
 nothing. None is on the allowlist either, so they go to the Publisher.
 
+**The gate now unpacks it itself.** After this finding the Director ruled that the gate always unpacks packaged
+programs and reports every hit, and that a release with third-party hits needs his written exception. The
+Publisher then taught `identity-scan.py` to unpack PyInstaller bundles. Run directly on this `.exe` under the
+rig's Python 3.10, it gives `RESULT HIT 28` (`13-identity-scan-binary-v2.txt`), labelled `<exe>!carchive/…` and
+`<exe>!pyz/…`. That's the same 28 hits as my unpacker, by class, member and offset (a `diff` of the two lists is
+empty), with no `unreadable-pyinstaller` and no hit on the raw `.exe` bytes. The allowlist holds inside the
+bundle too: shellingham's allowlisted address is in the bundled notices and gives no hit.
+
 **A first build on Python 3.13** (`build-py313/`). A bare `uv venv` picked a managed 3.13 here, while CI's runner
 has only the 3.12 it installs. That build passed the same smoke test, `self-check` and enable (run
 `7902699b-a31a371d`, wallet `rGZjmEC9j3t5UhrenYZUbnrnyVcgHZCvDu`). I rebuilt on 3.12 to match the workflow. The
