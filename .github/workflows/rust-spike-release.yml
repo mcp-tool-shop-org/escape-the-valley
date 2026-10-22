@@ -10,9 +10,6 @@ name: Rust Spike Release (S4)
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - "rust-2.0"
 
 env:
   VERSION: "0.1.0"
