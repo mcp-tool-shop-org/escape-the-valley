@@ -184,8 +184,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 13,
-        "lines": 260,
+        "commits": 15,
+        "lines": 290,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -194,8 +194,8 @@
         "path": ".github/workflows/pages.yml"
       },
       {
-        "commits": 3,
-        "lines": 61,
+        "commits": 4,
+        "lines": 63,
         "path": ".github/workflows/publish.yml"
       },
       {
@@ -209,8 +209,13 @@
         "path": ".github/workflows/release.yml"
       },
       {
-        "commits": 3,
-        "lines": 5,
+        "commits": 1,
+        "lines": 228,
+        "path": ".github/workflows/rust-spike-release.yml"
+      },
+      {
+        "commits": 4,
+        "lines": 9,
         "path": ".gitignore"
       },
       {
@@ -274,8 +279,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 3,
-        "lines": 232,
+        "commits": 6,
+        "lines": 263,
         "path": "atlas/README.md"
       },
       {
@@ -284,18 +289,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 3,
-        "lines": 895,
+        "commits": 6,
+        "lines": 986,
         "path": "atlas/page.json"
       },
       {
-        "commits": 3,
-        "lines": 1465,
+        "commits": 6,
+        "lines": 1563,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 3,
-        "lines": 8761,
+        "commits": 6,
+        "lines": 8803,
         "path": "atlas/structure.json"
       },
       {
@@ -330,6 +335,81 @@
       },
       {
         "commits": 1,
+        "lines": 4308,
+        "path": "rust-spikes/Cargo.lock"
+      },
+      {
+        "commits": 1,
+        "lines": 11,
+        "path": "rust-spikes/Cargo.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 18,
+        "path": "rust-spikes/deny.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 3,
+        "path": "rust-spikes/rust-toolchain.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 13,
+        "path": "rust-spikes/s1-rng/Cargo.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 238,
+        "path": "rust-spikes/s1-rng/gen_vectors.py"
+      },
+      {
+        "commits": 1,
+        "lines": 551,
+        "path": "rust-spikes/s1-rng/src/lib.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 15442,
+        "path": "rust-spikes/s1-rng/vectors.json"
+      },
+      {
+        "commits": 1,
+        "lines": 26,
+        "path": "rust-spikes/s2-xrpl/Cargo.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 617,
+        "path": "rust-spikes/s2-xrpl/src/main.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 14,
+        "path": "rust-spikes/s3-voice/Cargo.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 1086,
+        "path": "rust-spikes/s3-voice/src/main.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 14,
+        "path": "rust-spikes/s4-hello/Cargo.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 16,
+        "path": "rust-spikes/s4-hello/pyproject.toml"
+      },
+      {
+        "commits": 1,
+        "lines": 77,
+        "path": "rust-spikes/s4-hello/src/main.rs"
+      },
+      {
+        "commits": 1,
         "lines": 81,
         "path": "scripts/ledger_proof.py"
       },
@@ -354,8 +434,8 @@
         "path": "site/astro.config.mjs"
       },
       {
-        "commits": 1,
-        "lines": 6045,
+        "commits": 3,
+        "lines": 6057,
         "path": "site/package-lock.json"
       },
       {
@@ -924,9 +1004,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-01T02:12:55.529Z",
+  "generatedAt": "2026-10-22T20:33:01.845Z",
   "generatedFrom": {
-    "commit": "6e49565cdd05c895b860359023c8f8435497655e"
+    "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9"
   },
   "pairs": [
     {
@@ -1057,7 +1137,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 40,
+    "appliedChangesetLimit": 44,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -1066,16 +1146,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-09-30T13:45:00-07:00",
-    "inScopeFiles": 160,
+    "headDate": "2026-10-22T16:32:12-04:00",
+    "inScopeFiles": 176,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 98,
+    "qualifyingCommits": 102,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-03T20:45:00.000Z",
+    "since": "2026-04-25T20:32:12.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

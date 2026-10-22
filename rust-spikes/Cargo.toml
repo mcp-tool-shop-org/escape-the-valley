@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "s1-rng",
+    "s2-xrpl",
+    "s3-voice",
+    "s4-hello",
+]
+
+[profile.release]
+strip = "symbols"

@@ -33,3 +33,7 @@ node_modules/
 site/dist/
 .polyglot-cache.json
 .swarm/
+target/
+*.wav
+*.onnx
+*.bin

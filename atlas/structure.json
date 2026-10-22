@@ -17,7 +17,7 @@
           "path": ".github/workflows/pages.yml"
         },
         {
-          "hash": "e5fd1574654445dc303bde8306bdae26ca647aad67ba822788e46d669a798783",
+          "hash": "629c49c5c673e32b39251f1256fecd43b49963fe245da9814638393cdd7fe30c",
           "path": ".github/workflows/publish.yml"
         },
         {
@@ -27,6 +27,10 @@
         {
           "hash": "1aa70af7fcd2e501e0f5279b376a7296a9392a3253b068bf6710ebad4474db22",
           "path": ".github/workflows/release.yml"
+        },
+        {
+          "hash": "a260db8d7a084fc175121473c21e32531da4dbc9a0875aa1fcb92598ce5ce1e9",
+          "path": ".github/workflows/rust-spike-release.yml"
         }
       ],
       "globs": [
@@ -159,7 +163,7 @@
           "path": ".gitattributes"
         },
         {
-          "hash": "88621e8f39777e4d26c789f9222e45d9e5cf9b289e659112671b3e517ee5aa00",
+          "hash": "68f8b46d3db9b52f3ad68fe399891e9a505d05b802aa3146418303726574e1f7",
           "path": ".gitignore"
         },
         {
@@ -424,7 +428,7 @@
           "path": "site/astro.config.mjs"
         },
         {
-          "hash": "af5d4f54dca60686724d306eb58759fb25b6f5ba4d66559ab84a968112a184e5",
+          "hash": "0607a19c4f60b635244a906c7ad2424359b50e20c4a83bc140f202abce4a941e",
           "path": "site/package-lock.json"
         },
         {
@@ -6400,6 +6404,280 @@
       "usesWorkflowToken": true
     },
     {
+      "checksCount": 2,
+      "commands": [
+        {
+          "dir": "",
+          "job": "build-ubuntu",
+          "programs": [
+            "rustup"
+          ],
+          "step": "Install Rust 1.98.1 and targets"
+        },
+        {
+          "dir": "",
+          "job": "build-ubuntu",
+          "programs": [
+            "python3",
+            "sudo"
+          ],
+          "step": "Install mingw-w64 and maturin + zig"
+        },
+        {
+          "dir": "rust-spikes",
+          "job": "build-ubuntu",
+          "programs": [
+            "cargo",
+            "cp",
+            "ls",
+            "maturin",
+            "mkdir"
+          ],
+          "step": "Build linux-x64 and win-x64 binaries + wheels"
+        },
+        {
+          "dir": "",
+          "job": "build-macos",
+          "programs": [
+            "rustup"
+          ],
+          "step": "Install Rust 1.98.1 and targets"
+        },
+        {
+          "dir": "",
+          "job": "build-macos",
+          "programs": [
+            "python3"
+          ],
+          "step": "Install maturin"
+        },
+        {
+          "dir": "rust-spikes",
+          "job": "build-macos",
+          "programs": [
+            "cargo",
+            "cp",
+            "ls",
+            "maturin",
+            "mkdir"
+          ],
+          "step": "Build darwin-arm64 and darwin-x64 binaries + wheels"
+        },
+        {
+          "dir": "",
+          "job": "checksums",
+          "programs": [
+            "cat",
+            "cd",
+            "sha256sum"
+          ],
+          "step": "Generate GNU sha256sum checksums"
+        },
+        {
+          "dir": "",
+          "job": "smoke-linux",
+          "programs": [
+            "chmod"
+          ],
+          "step": "Smoke test linux-x64 binary"
+        },
+        {
+          "dir": "",
+          "job": "smoke-windows",
+          "programs": [],
+          "step": "Smoke test cross-built win-x64 binary on Windows"
+        },
+        {
+          "dir": "",
+          "job": "smoke-macos",
+          "programs": [
+            "arch",
+            "chmod"
+          ],
+          "step": "Smoke test darwin-arm64 and darwin-x64 binaries on macOS"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/rust-spike-release.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build-ubuntu",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "build-macos",
+          "runsOn": [
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "checksums",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-linux",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-windows",
+          "runsOn": [
+            {
+              "labels": [
+                "windows-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "os": "win32"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-macos",
+          "runsOn": [
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            }
+          ]
+        }
+      ],
+      "landings": [],
+      "mentions": [],
+      "name": "Rust Spike Release (S4)",
+      "permissions": [
+        "contents:read"
+      ],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "job": "build-macos",
+          "path": "rust-spikes/s4-hello/Cargo.toml",
+          "runKind": "checks"
+        },
+        {
+          "job": "build-ubuntu",
+          "path": "rust-spikes/s4-hello/Cargo.toml",
+          "runKind": "checks"
+        },
+        {
+          "job": "build-macos",
+          "matched": true,
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "checks",
+          "via": "cargo build"
+        },
+        {
+          "job": "build-ubuntu",
+          "matched": true,
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "checks",
+          "via": "cargo build"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "tests": [
+        {
+          "job": "smoke-linux",
+          "runner": null,
+          "step": "Smoke test linux-x64 binary"
+        },
+        {
+          "job": "smoke-windows",
+          "runner": null,
+          "step": "Smoke test cross-built win-x64 binary on Windows"
+        },
+        {
+          "job": "smoke-macos",
+          "runner": null,
+          "step": "Smoke test darwin-arm64 and darwin-x64 binaries on macOS"
+        }
+      ],
+      "triggers": [
+        {
+          "branches": [
+            "rust-2.0"
+          ],
+          "event": "pull_request"
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/download-artifact",
+        "actions/upload-artifact"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
       "checksCount": 0,
       "commands": [],
       "elsewhere": [],
@@ -6524,6 +6802,116 @@
       "triggers": [],
       "uses": [],
       "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s2-xrpl/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s2-xrpl",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s2-xrpl/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s3-voice/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s3-voice",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s3-voice/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s4-hello/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s4-hello",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
     }
   ],
   "edges": [
@@ -6557,8 +6945,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "6e49565cdd05c895b860359023c8f8435497655e",
-    "tracked": 155
+    "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9",
+    "tracked": 171
   },
   "landings": [
     {
@@ -6605,6 +6993,99 @@
         }
       ],
       "target": "pyproject.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s1-rng",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s1-rng/src/lib.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust-spikes/s1-rng/vectors.json",
+      "writers": [
+        {
+          "by": "rust-spikes/s1-rng/gen_vectors.py",
+          "confidence": "ast"
+        }
+      ]
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s2-xrpl",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s2-xrpl/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s2-xrpl/src/main.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s3-voice",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s4-hello/pyproject.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello/Cargo.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s4-hello/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello/src/main.rs",
       "writers": []
     },
     {
@@ -6721,5 +7202,155 @@
     "tests/test_voice.py",
     "tests/test_worldgen.py"
   ],
-  "unassigned": []
+  "unassigned": [
+    {
+      "hash": "df166f4abeb38a0a665123266acebe87a55746db8bcc1aae35cdabc00db7ee38",
+      "path": "rust-spikes/Cargo.lock"
+    },
+    {
+      "hash": "5f5b9b1d7a486d20a1701a240754f6ccc595de8fc4e70b64331816d143b95a36",
+      "path": "rust-spikes/Cargo.toml"
+    },
+    {
+      "hash": "a589c4537d421121d2df15c930d2176ae48b5e5910ee042f9d8ed5af414af662",
+      "path": "rust-spikes/deny.toml"
+    },
+    {
+      "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
+      "path": "rust-spikes/rust-toolchain.toml"
+    },
+    {
+      "hash": "577df8e2e9dbc538c849b352d87fc7195f4b92053d01b4ee0f47463fb5d72702",
+      "path": "rust-spikes/s1-rng/Cargo.toml"
+    },
+    {
+      "exports": [
+        "f64_bits",
+        "generate_save_restore_vector",
+        "generate_seed_vectors",
+        "main",
+        "serialize_state",
+        "weighted_choice"
+      ],
+      "hash": "632500301e63a32e3117f4aa708430685a9bce538ba095edb8dad3f338f65f21",
+      "path": "rust-spikes/s1-rng/gen_vectors.py"
+    },
+    {
+      "failurePaths": [
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 266
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 269
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 273
+        }
+      ],
+      "hash": "0a2e0b0eec797fb8e95add10a184e0eb988632a7a0d2bdf6f4c8fce1d2c41d47",
+      "path": "rust-spikes/s1-rng/src/lib.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "953c8e5ea8ac454deeb36af9680619d38f0d5407241226906fc5c98c321ec914",
+      "path": "rust-spikes/s1-rng/vectors.json"
+    },
+    {
+      "hash": "0ca7cec42c69af3e2c41ab984e9ddc5bf6b0bcb9d6b2817cbf35032b5243c6de",
+      "path": "rust-spikes/s2-xrpl/Cargo.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "exports": [
+        "assert_testnet_endpoint",
+        "hex_encode_upper",
+        "validate_exact_integer_balance"
+      ],
+      "failurePaths": [
+        {
+          "in": "assert_testnet_endpoint",
+          "kind": "err",
+          "line": 48
+        },
+        {
+          "in": "validate_exact_integer_balance",
+          "kind": "err",
+          "line": 62
+        }
+      ],
+      "hash": "6b2aed38d30aaa11ed2cd44f74e9aebcc0eadd7cdaecbc62759246af425071df",
+      "path": "rust-spikes/s2-xrpl/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    },
+    {
+      "hash": "e68d3c9e2e1212a0fd7e8353f2ec821461e4b13d35bb189f1a568bb589fd3c64",
+      "path": "rust-spikes/s3-voice/Cargo.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "failurePaths": [
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 749
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 753
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 760
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 773
+        }
+      ],
+      "hash": "db37a655cefb82f47259af9aff9b8f3c3e32a71c7bbb4492d85452590ea12743",
+      "path": "rust-spikes/s3-voice/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    },
+    {
+      "hash": "59e7b71093b82d1f1501dfe5530840d738b08860946d84dc155575254aa2b701",
+      "path": "rust-spikes/s4-hello/Cargo.toml"
+    },
+    {
+      "hash": "e4b3de6d5379db05646d4e52ce7b71cf4b1107e0079eb28f3426a669185c5c90",
+      "path": "rust-spikes/s4-hello/pyproject.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "failurePaths": [
+        {
+          "in": "run_self_test",
+          "kind": "err",
+          "line": 36
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 53
+        }
+      ],
+      "hash": "6da636b82920e7a1520e1d6f5bf20e3ef1062a5d2691e14fe9aa2b16d0ee958c",
+      "path": "rust-spikes/s4-hello/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    }
+  ]
 }
