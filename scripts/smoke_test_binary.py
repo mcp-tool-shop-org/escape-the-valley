@@ -167,6 +167,30 @@ def main() -> int:
         )
     print("[smoke] xrpl extra present OK")
 
+    # 5. Are third-party license notices bundled and readable via `licenses`?
+    #    (issue #28) Asserts the game's own license and at least xrpl-py, rich,
+    #    and textual are present in the output.
+    print("[smoke] running: licenses")
+    result = _run(binary, "licenses")
+    if result.returncode != 0:
+        return _fail(f"`licenses` exited {result.returncode}", result)
+    required_markers = (
+        "MIT License",
+        "Copyright (c) 2026 mcp-tool-shop",
+        "xrpl-py",
+        "rich",
+        "textual",
+    )
+    missing_markers = [m for m in required_markers if m not in result.stdout]
+    if missing_markers:
+        return _fail(
+            f"`licenses` output missing expected markers: {missing_markers} "
+            "(check THIRD_PARTY_NOTICES.txt generation and --add-data in "
+            "release-binaries.yml)",
+            result,
+        )
+    print("[smoke] third-party licenses present OK")
+
     print("[smoke] PASS")
     return 0
 

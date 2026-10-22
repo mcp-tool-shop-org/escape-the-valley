@@ -140,6 +140,7 @@ Bundled in the `npx` / GitHub Release binary; for `pip` installs, run `pip insta
 | `trail journal` | Show recent journal entries |
 | `trail self-check` | Check game environment health |
 | `trail version` | Show version |
+| `trail licenses` | Show license and third-party notices (or `trail --licenses`) |
 | `trail ledger status` | Show backpack status |
 | `trail ledger enable` | Enable XRPL backpack |
 | `trail ledger disable` | Disable XRPL backpack |
@@ -187,6 +188,6 @@ No telemetry. No accounts. GM narration is on by default (HTTP to local Ollama);
 
 ## License
 
-MIT
+MIT — run `trail licenses` (or `trail --licenses`) to view the game's license and third-party dependency notices (also attached to each GitHub Release as `THIRD_PARTY_NOTICES.txt`).
 
 Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

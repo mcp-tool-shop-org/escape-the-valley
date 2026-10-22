@@ -1002,3 +1002,59 @@ class TestV131CliFixes:
         assert proc.returncode == 0, f"stderr:\n{proc.stderr}\nstdout:\n{proc.stdout}"
         assert "UnicodeEncodeError" not in proc.stderr
         assert "What do you do?" in proc.stdout
+
+
+class TestThirdPartyNotices:
+    """Issue #28: third-party license notices generator and CLI commands."""
+
+    def test_gen_third_party_notices_includes_game_and_rich(self, tmp_path):
+        """Generator produces a file containing the game's license and rich's name + license."""
+        from escape_the_valley.notices import write_third_party_notices
+
+        out_path = write_third_party_notices(tmp_path / "THIRD_PARTY_NOTICES.txt")
+        text = out_path.read_text(encoding="utf-8")
+
+        assert "Escape the Valley" in text
+        assert "MIT License" in text
+        assert "Copyright (c) 2026 mcp-tool-shop" in text
+        assert "Name: rich" in text
+        assert "Will McGugan" in text
+        assert "site-packages" not in text
+
+    def test_licenses_command_prints_bundled_file(self, tmp_path, monkeypatch):
+        """`trail licenses` and `trail --licenses` print the bundled file when present."""
+        bundled = tmp_path / "THIRD_PARTY_NOTICES.txt"
+        marker = "BUNDLED_NOTICES_SENTINEL_131\nName: rich\n"
+        bundled.write_text(marker, encoding="utf-8")
+
+        monkeypatch.setattr(
+            "escape_the_valley.notices.resolve_bundled_notices_path",
+            lambda: bundled,
+        )
+
+        res_cmd = runner.invoke(app, ["licenses"])
+        assert res_cmd.exit_code == 0
+        assert res_cmd.output == marker
+
+        res_flag = runner.invoke(app, ["--licenses"])
+        assert res_flag.exit_code == 0
+        assert res_flag.output == marker
+
+    def test_licenses_command_generates_runtime_fallback(self, monkeypatch):
+        """From a pip install (no bundled file), `trail licenses` generates notices at runtime."""
+        monkeypatch.setattr(
+            "escape_the_valley.notices.resolve_bundled_notices_path",
+            lambda: None,
+        )
+        monkeypatch.setattr(
+            "escape_the_valley.notices.sys.frozen",
+            False,
+            raising=False,
+        )
+
+        res = runner.invoke(app, ["licenses"])
+        assert res.exit_code == 0
+        assert "Escape the Valley" in res.output
+        assert "MIT License" in res.output
+        assert "Name: rich" in res.output
+        assert "Will McGugan" in res.output

@@ -6,6 +6,10 @@ All notable changes to Escape the Valley are documented here.
 
 ## [1.3.1] - 2026-10-22
 
+### Added
+
+- **Third-party license notices (`THIRD_PARTY_NOTICES.txt` & `trail licenses`, #28).** Standalone PyInstaller binaries now bundle full third-party license and notice texts alongside the game's MIT license (also attached to the GitHub Release as `THIRD_PARTY_NOTICES.txt`), readable via `trail licenses` or `trail --licenses` (generated at runtime from installed package metadata on `pip` installs).
+
 ### Fixed
 
 - **CLI `trail new` / `trail continue` memory parity (H-1) & canonical cause of death (M-1).** Interactive CLI runs now emit memory cards (crises, health/death, wagon breakdowns, events, arrivals, escape valves, GM proposals) and record canonical `cause_of_death`, so `trail stats`, the Trail Ledger, and GM context briefs work identically across CLI and TUI runs.

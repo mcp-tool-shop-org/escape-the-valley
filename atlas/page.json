@@ -60,29 +60,38 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 1,
+      "added": 2,
+      "changed": 26,
       "moved": 0,
-      "parts": 1,
+      "parts": 7,
       "removed": 0
     },
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `pyproject.toml`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**` and `tests/**`.",
+        "sentence": "Release Binaries now also runs scripts/gen_third_party_notices.py.",
         "subjects": [
-          ".github/workflows/ci.yml"
+          ".github/workflows/release-binaries.yml",
+          "scripts/gen_third_party_notices.py"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "LICENSE is now read by src/escape_the_valley/notices.py.",
+        "subjects": [
+          "LICENSE",
+          "src/escape_the_valley/notices.py"
         ]
       },
       {
         "kind": "counts",
-        "sentence": "1 file changed content, across 1 part.",
+        "sentence": "2 files added and 26 changed content, across 7 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ab1e22794ae9e6fd85b0165de5ee7f6e124968a5",
-      "generatedAt": "2026-09-30T20:09:31.145Z"
+      "commit": "6e49565cdd05c895b860359023c8f8435497655e",
+      "generatedAt": "2026-10-01T02:12:55.529Z"
     },
     "unchanged": false
   },
@@ -105,22 +114,7 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 7,
-      "partLabels": [
-        "src",
-        "tests"
-      ],
-      "parts": [
-        "src",
-        "tests"
-      ],
-      "relation": "b-imports-a",
-      "shared": 6
-    },
-    {
-      "a": "src/escape_the_valley/ui.py",
-      "b": "tests/test_adapter.py",
-      "either": 9,
+      "either": 8,
       "partLabels": [
         "src",
         "tests"
@@ -135,7 +129,7 @@
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "tests/test_step_engine.py",
-      "either": 17,
+      "either": 18,
       "partLabels": [
         "src",
         "tests"
@@ -145,12 +139,12 @@
         "tests"
       ],
       "relation": "b-imports-a",
-      "shared": 13
+      "shared": 14
     },
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "src/escape_the_valley/step_engine.py",
-      "either": 16,
+      "either": 17,
       "partLabels": [
         "src",
         "src"
@@ -160,7 +154,22 @@
         "src"
       ],
       "relation": "inside",
-      "shared": 12
+      "shared": 13
+    },
+    {
+      "a": "src/escape_the_valley/ui.py",
+      "b": "tests/test_adapter.py",
+      "either": 10,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 7
     }
   ],
   "changesTogetherNote": [
@@ -169,9 +178,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "6e49565cdd05c895b860359023c8f8435497655e",
+  "commit": "9773b08e26d2b26b282e7e9567cff4fdaf0506b4",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (61 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
+  "derived": "10 parts, mostly Python (63 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
     {
       "checks": [
@@ -189,7 +198,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -232,7 +241,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -275,18 +284,19 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 1
+          "files": 2
         },
         {
           "boundary": "src",
           "depth": 0,
-          "files": 26
+          "files": 27
         }
       ],
       "runs": [
+        "scripts/gen_third_party_notices.py",
         "scripts/smoke_test_binary.py"
       ],
-      "runsCount": 1,
+      "runsCount": 2,
       "runsMore": 0,
       "sends": [
         "creates a GitHub release",
@@ -345,7 +355,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         }
       ],
       "runs": [],
@@ -427,7 +437,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 25
+          "files": 26
         }
       ],
       "runs": [
@@ -462,10 +472,10 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-01T02:12:55.529Z",
+  "generatedAt": "2026-10-22T21:29:39.470Z",
   "limits": [
-    "1 write uses a path built at run time and is not named here.",
-    "2 writes and 13 reads go to a path their caller passes, not to this repository.",
+    "1 write and 2 reads use paths built at run time and are not named here.",
+    "3 writes and 13 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],

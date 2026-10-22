@@ -68,7 +68,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "bin",
-      "qualifyingSourceCommits": 2,
+      "qualifyingSourceCommits": 3,
       "rebaseline": null
     },
     {
@@ -116,7 +116,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "scripts",
-      "qualifyingSourceCommits": 4,
+      "qualifyingSourceCommits": 5,
       "rebaseline": null
     },
     {
@@ -148,12 +148,12 @@
           "scripts"
         ]
       },
-      "cohesion": 0.100798,
+      "cohesion": 0.062272,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "src",
-      "qualifyingSourceCommits": 67,
+      "qualifyingSourceCommits": 68,
       "rebaseline": null
     },
     {
@@ -166,12 +166,12 @@
         "importsAndCoChanges": [],
         "importsOnly": []
       },
-      "cohesion": 0.048747,
+      "cohesion": 0.047277,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 63,
+      "qualifyingSourceCommits": 64,
       "rebaseline": null
     }
   ],
@@ -184,8 +184,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 13,
-        "lines": 260,
+        "commits": 16,
+        "lines": 292,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -194,13 +194,13 @@
         "path": ".github/workflows/pages.yml"
       },
       {
-        "commits": 3,
-        "lines": 61,
+        "commits": 4,
+        "lines": 63,
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 9,
-        "lines": 254,
+        "commits": 10,
+        "lines": 269,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -214,8 +214,8 @@
         "path": ".gitignore"
       },
       {
-        "commits": 22,
-        "lines": 386,
+        "commits": 23,
+        "lines": 398,
         "path": "CHANGELOG.md"
       },
       {
@@ -244,8 +244,8 @@
         "path": "README.ja.md"
       },
       {
-        "commits": 15,
-        "lines": 120,
+        "commits": 16,
+        "lines": 130,
         "path": "README.md"
       },
       {
@@ -269,13 +269,13 @@
         "path": "SECURITY.md"
       },
       {
-        "commits": 11,
-        "lines": 134,
+        "commits": 12,
+        "lines": 140,
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 3,
-        "lines": 232,
+        "commits": 5,
+        "lines": 256,
         "path": "atlas/README.md"
       },
       {
@@ -284,23 +284,23 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 3,
-        "lines": 895,
+        "commits": 5,
+        "lines": 963,
         "path": "atlas/page.json"
       },
       {
-        "commits": 3,
-        "lines": 1465,
+        "commits": 5,
+        "lines": 1525,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 3,
-        "lines": 8761,
+        "commits": 5,
+        "lines": 8795,
         "path": "atlas/structure.json"
       },
       {
-        "commits": 4,
-        "lines": 34,
+        "commits": 5,
+        "lines": 46,
         "path": "bin/escape-the-valley.js"
       },
       {
@@ -319,13 +319,13 @@
         "path": "docs/survival-guide.md"
       },
       {
-        "commits": 7,
-        "lines": 56,
+        "commits": 8,
+        "lines": 60,
         "path": "package.json"
       },
       {
-        "commits": 11,
-        "lines": 53,
+        "commits": 12,
+        "lines": 55,
         "path": "pyproject.toml"
       },
       {
@@ -339,8 +339,8 @@
         "path": "scripts/sim_gm_panel.py"
       },
       {
-        "commits": 4,
-        "lines": 429,
+        "commits": 5,
+        "lines": 449,
         "path": "scripts/smoke_test_binary.py"
       },
       {
@@ -354,8 +354,8 @@
         "path": "site/astro.config.mjs"
       },
       {
-        "commits": 1,
-        "lines": 6045,
+        "commits": 3,
+        "lines": 6057,
         "path": "site/package-lock.json"
       },
       {
@@ -609,13 +609,13 @@
         "path": "site/src/content/docs/handbook/beginners.md"
       },
       {
-        "commits": 4,
-        "lines": 7,
+        "commits": 5,
+        "lines": 9,
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 3,
-        "lines": 24,
+        "commits": 4,
+        "lines": 26,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -644,8 +644,8 @@
         "path": "site/src/content/docs/handbook/troubleshooting.md"
       },
       {
-        "commits": 5,
-        "lines": 52,
+        "commits": 6,
+        "lines": 54,
         "path": "site/src/content/docs/handbook/xrpl-ledger.md"
       },
       {
@@ -664,8 +664,8 @@
         "path": "site/src/styles/starlight-custom.css"
       },
       {
-        "commits": 7,
-        "lines": 14,
+        "commits": 8,
+        "lines": 16,
         "path": "src/escape_the_valley/__init__.py"
       },
       {
@@ -694,8 +694,8 @@
         "path": "src/escape_the_valley/backpack_ui.py"
       },
       {
-        "commits": 12,
-        "lines": 672,
+        "commits": 13,
+        "lines": 676,
         "path": "src/escape_the_valley/cli.py"
       },
       {
@@ -704,8 +704,8 @@
         "path": "src/escape_the_valley/data/event_skeletons.json"
       },
       {
-        "commits": 25,
-        "lines": 2321,
+        "commits": 26,
+        "lines": 2460,
         "path": "src/escape_the_valley/engine.py"
       },
       {
@@ -744,8 +744,8 @@
         "path": "src/escape_the_valley/memory_emitters.py"
       },
       {
-        "commits": 8,
-        "lines": 118,
+        "commits": 9,
+        "lines": 122,
         "path": "src/escape_the_valley/models.py"
       },
       {
@@ -769,8 +769,8 @@
         "path": "src/escape_the_valley/save.py"
       },
       {
-        "commits": 26,
-        "lines": 2375,
+        "commits": 27,
+        "lines": 2401,
         "path": "src/escape_the_valley/step_engine.py"
       },
       {
@@ -784,8 +784,8 @@
         "path": "src/escape_the_valley/tui_app.py"
       },
       {
-        "commits": 15,
-        "lines": 546,
+        "commits": 16,
+        "lines": 560,
         "path": "src/escape_the_valley/ui.py"
       },
       {
@@ -824,8 +824,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 9,
-        "lines": 1296,
+        "commits": 10,
+        "lines": 1397,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -844,8 +844,8 @@
         "path": "tests/test_events.py"
       },
       {
-        "commits": 3,
-        "lines": 122,
+        "commits": 4,
+        "lines": 127,
         "path": "tests/test_four_tier_live.py"
       },
       {
@@ -894,13 +894,13 @@
         "path": "tests/test_physics.py"
       },
       {
-        "commits": 10,
-        "lines": 1216,
+        "commits": 11,
+        "lines": 1267,
         "path": "tests/test_save.py"
       },
       {
-        "commits": 29,
-        "lines": 7690,
+        "commits": 30,
+        "lines": 7888,
         "path": "tests/test_step_engine.py"
       },
       {
@@ -914,8 +914,8 @@
         "path": "tests/test_voice.py"
       },
       {
-        "commits": 2,
-        "lines": 18,
+        "commits": 3,
+        "lines": 51,
         "path": "tests/test_worldgen.py"
       }
     ]
@@ -924,17 +924,52 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-01T02:12:55.529Z",
+  "generatedAt": "2026-10-22T21:29:39.470Z",
   "generatedFrom": {
-    "commit": "6e49565cdd05c895b860359023c8f8435497655e"
+    "commit": "9773b08e26d2b26b282e7e9567cff4fdaf0506b4"
   },
   "pairs": [
     {
       "a": "README.md",
       "b": "SHIP_GATE.md",
-      "either": 10,
-      "shared": 5,
+      "either": 11,
+      "shared": 6,
+      "strength": 0.545455
+    },
+    {
+      "a": "SHIP_GATE.md",
+      "b": "package.json",
+      "either": 8,
+      "shared": 4,
       "strength": 0.5
+    },
+    {
+      "a": "SHIP_GATE.md",
+      "b": "src/escape_the_valley/__init__.py",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "package.json",
+      "b": "pyproject.toml",
+      "either": 7,
+      "shared": 5,
+      "strength": 0.714286
+    },
+    {
+      "a": "package.json",
+      "b": "src/escape_the_valley/__init__.py",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "pyproject.toml",
+      "b": "src/escape_the_valley/__init__.py",
+      "either": 7,
+      "shared": 5,
+      "strength": 0.714286
     },
     {
       "a": "src/escape_the_valley/adapter.py",
@@ -960,23 +995,23 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 7,
-      "shared": 6,
-      "strength": 0.857143
+      "either": 8,
+      "shared": 7,
+      "strength": 0.875
     },
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "src/escape_the_valley/step_engine.py",
-      "either": 16,
-      "shared": 12,
-      "strength": 0.75
+      "either": 17,
+      "shared": 13,
+      "strength": 0.764706
     },
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "tests/test_step_engine.py",
-      "either": 17,
-      "shared": 13,
-      "strength": 0.764706
+      "either": 18,
+      "shared": 14,
+      "strength": 0.777778
     },
     {
       "a": "src/escape_the_valley/event_loader.py",
@@ -1007,25 +1042,25 @@
       "strength": 1
     },
     {
+      "a": "src/escape_the_valley/models.py",
+      "b": "tests/test_save.py",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
       "a": "src/escape_the_valley/save.py",
       "b": "tests/test_save.py",
-      "either": 5,
+      "either": 6,
       "shared": 5,
-      "strength": 1
+      "strength": 0.833333
     },
     {
       "a": "src/escape_the_valley/step_engine.py",
       "b": "tests/test_step_engine.py",
-      "either": 17,
-      "shared": 15,
-      "strength": 0.882353
-    },
-    {
-      "a": "src/escape_the_valley/tui_app.py",
-      "b": "src/escape_the_valley/ui.py",
-      "either": 14,
-      "shared": 7,
-      "strength": 0.5
+      "either": 18,
+      "shared": 16,
+      "strength": 0.888889
     },
     {
       "a": "src/escape_the_valley/tui_app.py",
@@ -1044,9 +1079,9 @@
     {
       "a": "src/escape_the_valley/ui.py",
       "b": "tests/test_adapter.py",
-      "either": 9,
+      "either": 10,
       "shared": 7,
-      "strength": 0.777778
+      "strength": 0.7
     },
     {
       "a": "tests/test_adapter.py",
@@ -1057,7 +1092,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 40,
+    "appliedChangesetLimit": 40.5,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -1066,16 +1101,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-09-30T13:45:00-07:00",
-    "inScopeFiles": 160,
+    "headDate": "2026-10-22T15:37:44-04:00",
+    "inScopeFiles": 162,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 98,
+    "qualifyingCommits": 102,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-03T20:45:00.000Z",
+    "since": "2026-04-25T19:37:44.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

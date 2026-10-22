@@ -33,6 +33,14 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _licenses_callback(value: bool) -> None:
+    if value:
+        from .notices import get_third_party_notices_text
+
+        typer.echo(get_third_party_notices_text(), nl=False)
+        raise typer.Exit()
+
+
 # Classic-address shape: leading 'r', base58 alphabet, 25-35 chars total.
 # Used as a fallback when xrpl-py is not installed (cli-tui-002).
 _CLASSIC_ADDR_RE = re.compile(
@@ -135,6 +143,10 @@ def main_callback(
     _version: bool = typer.Option(
         False, "--version", "-V", callback=_version_callback, is_eager=True,
         help="Show version and exit.",
+    ),
+    _licenses: bool = typer.Option(
+        False, "--licenses", callback=_licenses_callback, is_eager=True,
+        help="Show third-party license notices and exit.",
     ),
 ) -> None:
     """Escape the Valley: Ledger Trail — Oregon Trail-style survival game."""
@@ -536,6 +548,14 @@ def version() -> None:
     # Human-friendly title, but the parseable token comes from the shared
     # helper so all three version surfaces agree (cli-tui-006).
     console.print(f"Escape the Valley: Ledger Trail ({_version_string()})")
+
+
+@app.command()
+def licenses() -> None:
+    """Show license and third-party notices."""
+    from .notices import get_third_party_notices_text
+
+    typer.echo(get_third_party_notices_text(), nl=False)
 
 
 def _gm_diagnostics(model: str) -> dict:

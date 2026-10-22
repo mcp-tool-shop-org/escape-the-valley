@@ -33,3 +33,5 @@ node_modules/
 site/dist/
 .polyglot-cache.json
 .swarm/
+/THIRD_PARTY_NOTICES.txt
+/*.spec
