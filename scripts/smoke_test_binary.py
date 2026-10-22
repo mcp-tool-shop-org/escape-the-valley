@@ -168,8 +168,8 @@ def main() -> int:
     print("[smoke] xrpl extra present OK")
 
     # 5. Are third-party license notices bundled and readable via `licenses`?
-    #    (issue #28) Asserts the game's own license and at least xrpl-py, rich,
-    #    and textual are present in the output.
+    #    (issue #28) Asserts the game's own license, CPython's PSF license,
+    #    and at least xrpl-py, rich, and textual are present in the output.
     print("[smoke] running: licenses")
     result = _run(binary, "licenses")
     if result.returncode != 0:
@@ -177,6 +177,7 @@ def main() -> int:
     required_markers = (
         "MIT License",
         "Copyright (c) 2026 mcp-tool-shop",
+        "PYTHON SOFTWARE FOUNDATION LICENSE",
         "xrpl-py",
         "rich",
         "textual",

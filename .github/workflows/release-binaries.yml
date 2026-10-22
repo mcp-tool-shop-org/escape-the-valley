@@ -1,6 +1,7 @@
 # Build platform binaries for npm distribution via @mcptoolshop/npm-launcher.
 # Asset naming convention (locked):
 #   escape-the-valley-<version>-<os>-<arch>[.exe]
+#   THIRD_PARTY_NOTICES-<os>-<arch>.txt
 #   checksums-<version>.txt
 #
 # linux-x64 + win-x64 + darwin-arm64. macOS parity restored at the director's
@@ -124,7 +125,12 @@ jobs:
             "${{ env.ENTRYPOINT }}"
           OUTNAME="${{ env.TOOL_NAME }}-${VERSION}-${{ matrix.target }}${{ matrix.ext }}"
           mv "dist/${{ env.TOOL_NAME }}${{ matrix.ext }}" "dist/${OUTNAME}"
+          cp "THIRD_PARTY_NOTICES.txt" "dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt"
           echo "ASSET_NAME=${OUTNAME}" >> "$GITHUB_ENV"
+
+      - name: Verify third-party notices against PyInstaller TOC
+        shell: bash
+        run: uv run --no-sync python scripts/gen_third_party_notices.py --verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
 
       - name: Smoke test binary
         # F-a6fa29e0: the build succeeding is not the same as the binary
@@ -154,14 +160,9 @@ jobs:
         if: always()
         with:
           name: binary-${{ matrix.target }}
-          path: dist/${{ env.ASSET_NAME }}
-          if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always() && matrix.target == 'linux-x64'
-        with:
-          name: binary-notices
-          path: THIRD_PARTY_NOTICES.txt
+          path: |
+            dist/${{ env.ASSET_NAME }}
+            dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt
           if-no-files-found: ignore
 
   release:
