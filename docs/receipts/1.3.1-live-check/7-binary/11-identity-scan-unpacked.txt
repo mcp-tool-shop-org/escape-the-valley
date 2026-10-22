@@ -1,0 +1,31 @@
++ python identity-scan.py unpacked/   (the binary's CArchive and PYZ, decompressed by harness/unpack_pyinstaller.py)
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/base_library.zip/io.pyc:@0x847
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/base_library.zip/ntpath.pyc:@0x1976
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/libcrypto-3-x64.dll:@0x63bac0
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/libffi-8.dll:@0x53b0
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/libssl-3-x64.dll:@0x146ba0
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/pyexpat.pyd:@0x24c50
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/python312.dll:@0x332f80
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/python312.dll:@0x4508b7
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/select.pyd:@0x2810
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/unicodedata.pyd:@0x10f990
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/winsound.pyd:@0x2684
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_asyncio.pyd:@0x9b58
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_bz2.pyd:@0xec28
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_ctypes.pyd:@0x140b8
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_decimal.pyd:@0x31350
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_hashlib.pyd:@0x86b8
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_lzma.pyd:@0x20238
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_multiprocessing.pyd:@0x30e8
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_overlapped.pyd:@0x6b38
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_queue.pyd:@0x2ab8
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_socket.pyd:@0xd098
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_ssl.pyd:@0x18c00
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_uuid.pyd:@0x1a84
+HIT home-path <scratch>/item7-0d112bc-20261022T2134Z/unpacked/carchive/_wmi.pyd:@0x38c4
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/pyz/PYZ.pyz/bz2.pyc-body:@0x1b9
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/pyz/PYZ.pyz/httpx/_urls.pyc-body:@0x320a
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/pyz/PYZ.pyz/pygments/lexers/gdscript.pyc-body:@0x111
+HIT gmail <scratch>/item7-0d112bc-20261022T2134Z/unpacked/pyz/PYZ.pyz/rich/_spinners.pyc-body:@0x448
+RESULT HIT 28
+exit 1

@@ -19,4 +19,8 @@ Testnet faucet. Nothing else was sent from them.
   4a44dc15-92a1f6e9  player rpN8DGBgt2ydaJ11L3ugPkiWF5DAVs2PCg  issuer rKZecfVWA7dxSsnUo4faBL6iA8ENgPbS29
   4a44dc15-5c8484e1  player rDoZ9Nuq3JsSDQp3r1peVRLw5cDQ4Le5xU  issuer rKAqSv44mCnoXqsutWkeh6S9EWvR4xqsuX
   4a44dc15-d2fc882a  player rnPwZyqRivNBK1u8VTv8WvaTrWXErFPkEs  issuer rsgkHe1u8bmPDJrezu3GQZ77mHqN94W7WK
-Faucet grants in all: 10 (2 each for runs A and B, 6 for the three probes).
+Item 7, enable from the frozen binary on 0d112bc (a player and an issuer wallet each, from the faucet):
+  3.12 build  7902699b-68895840  player rweCbG8xuxLFQGdp9XYFK9SuwybzfZLsj2
+  3.13 build  7902699b-a31a371d  player rGZjmEC9j3t5UhrenYZUbnrnyVcgHZCvDu  (first build, see 7-binary/build-py313/)
+
+Faucet grants in all: 14 (2 each for runs A and B, 6 for the three probes, 2 for each item 7 enable).

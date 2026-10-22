@@ -1,0 +1,15 @@
+"""Print the bytes around each identity-scan HIT (reads zip members too), so each hit can be
+named without opening the files. Usage: python -I hit_context.py <scan-output> > contexts.txt"""
+import pathlib, re, sys, zipfile
+for line in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"HIT (\S+) (.+):@(0x[0-9a-f]+)", line.strip())
+    if not m:
+        continue
+    label, path, off = m.group(1), m.group(2), int(m.group(3), 16)
+    if ".zip/" in path:
+        z, member = path.split(".zip/", 1)
+        data = zipfile.ZipFile(z + ".zip").read(member)
+    else:
+        data = pathlib.Path(path).read_bytes()
+    s = re.sub(rb"[^\x20-\x7e]", b".", data[max(0, off - 50):off + 60]).decode()
+    print(f"{label:9} {path.split('/unpacked/', 1)[1]}\n          {s}")

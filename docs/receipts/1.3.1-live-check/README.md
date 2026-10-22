@@ -1,8 +1,8 @@
 # 1.3.1 live check on `9773b08`
 
 This is the live check the Editor asked for on **`9773b08`** (PR #25, `release/1.3.1` → `main`). That commit
-carries the player-facing fixes from the 1.3.0 audit. Items 1–6 are below. Item 7 (the local binary build) is
-**held**: the Editor asked me to wait for the next head on PR #25, which adds the licence notices (#28).
+carries the player-facing fixes from the 1.3.0 audit. Items 1–6 ran on it. Item 7, the local binary build, ran on
+the next head, **`0d112bc`**, which adds the licence notices (#28), as the Editor asked.
 
 - **Code:** `9773b08` (`trail 1.3.1`) in a Python 3.12 venv with the `[xrpl]` extra. Each item also ran on
   `053fdcf2` (`trail 1.3.0`), the commit before it, so the before and after sit side by side in the `base-1.3.0/`
@@ -24,9 +24,12 @@ carries the player-facing fixes from the 1.3.0 audit. Items 1–6 are below. Ite
 
 ## Verdict
 
-**PASS on items 1–6.** Every fix in the brief shows in play, and on 1.3.0 the same play shows the old behaviour.
-Item 7 is held. Off the brief I found three player-facing defects that 1.3.0 has too (D1–D3). None comes from
-1.3.1.
+**PASS on items 1–6** on `9773b08`. Every fix in the brief shows in play, and on 1.3.0 the same play shows the
+old behaviour. **Item 7 PASS** on `0d112bc` (#28): the locally built binary passes the smoke test, `self-check`,
+a Testnet enable, and `licenses` in both frozen and pip modes. The notices content check waits for the final head.
+The identity scan is `RESULT CLEAN` on the `.exe` but cannot see inside it; unpacked, it finds 28 third-party hits,
+reported to the Publisher. Off the brief I found three player-facing defects that 1.3.0 has too (D1–D3). None
+comes from 1.3.1.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
 
@@ -130,11 +133,61 @@ The CLI driver's own runs show the same thing. With no `PYTHONIOENCODING`, a Win
 1.3.1 played through, and 1.3.0 crashed before the first prompt
 (`1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.out`).
 
-## Item 7: the binary (M-6) — HELD
+## Item 7: the binary (M-6, #28) on `0d112bc` — PASS, notices content pending (`7-binary/`)
 
-Held at the Editor's request until PR #25's next head (the #28 licence notices, a `licenses` command and a
-release-workflow change). A short re-check will cover the local PyInstaller build, `self-check`
-("xrpl extra present"), an enable from the frozen binary, and the `licenses` command together.
+This ran on **`0d112bc`**, the #28 fixup on top of `9773b08`, in a clean checkout at that commit. It used the
+Windows leg of `release-binaries.yml`, step by step:
+1. `uv python install 3.12`, then `uv venv -p 3.12`, then `uv pip install ".[xrpl]" "pyinstaller>=6.9.0"`.
+2. `python scripts/gen_third_party_notices.py THIRD_PARTY_NOTICES.txt`.
+3. The workflow's `pyinstaller --onefile …` line with `DATA_SEP=;`, including the new
+   `--add-data "THIRD_PARTY_NOTICES.txt;escape_the_valley"`.
+
+The logs are `01-install-notices.log` and `02-pyinstaller.log`. The binary, `escape-the-valley-1.3.1-win-x64.exe`,
+is **17,719,073 bytes**, sha256 `f796a08abd9367217a58f366fc78f4a750621a90e29ba6a76c9ed5c228751e30`. PyInstaller is
+6.22.3 and Python 3.12.13.
+
+| Check | Result |
+|---|---|
+| `scripts/smoke_test_binary.py` (5 checks) | **PASS**, exit 0: `--help`; 260 events (floor 200); `tui.tcss` loads; xrpl extra present; third-party licences present |
+| `--version` | `trail 1.3.1` |
+| `self-check` | exit 0: **`xrpl extra present`**, `Event library: 260 events`, `TUI stylesheet found: tui.tcss` |
+| Backpack enable from the binary | `new --seed 7 --gm-off` (run `7902699b-68895840`), then `ledger enable`: **exit 0**, wallet `rweCbG8xuxLFQGdp9XYFK9SuwybzfZLsj2`. `ledger wallet`: trust lines Yes, balances AMO 20, FOD 50, MED 5, PRT 4, WTR 50 |
+| `licenses` and `--licenses` (binary) | exit 0, 134,519 bytes each, **byte-identical to the bundled `THIRD_PARTY_NOTICES.txt`** (sha256 `850fac2e…`) |
+| `licenses` and `--licenses` (pip install) | A normal, non-editable `uv pip install "<0d112bc>[xrpl]"`. No bundled file (`resolve_bundled_notices_path()` is `None`). Both exit 0 and **generate the text at run time**: 100,748 bytes, identical to each other, with every marker the smoke test checks |
+
+- **The licences text is not committed.** `licenses-hashes.txt` has its hashes and sizes. The Editor asked for the
+  content check to wait for the final head, because R&D's conditional pass adds CPython's licence and a certifi
+  source line.
+- **Why the binary's notices are larger than pip's:** the binary's list includes PyInstaller, whose bootloader
+  ships inside the binary. The pip install doesn't have it.
+
+**The identity scan on the binary:** `identity-scan.py` on the `.exe` gives **`RESULT CLEAN`**, exit 0
+(`09-identity-scan-binary.txt`). Verbatim:
+
+```
+RESULT CLEAN
+```
+
+That result doesn't cover the bundled files. PyInstaller stores them, and the PYZ of Python modules,
+zlib-compressed inside the `.exe`, and the scanner reads an `.exe` only as raw bytes. The positive control:
+`Copyright (c) 2026 mcp-tool-shop`, which `licenses` prints, appears 0 times in the raw `.exe`.
+
+So I unpacked it. `harness/unpack_pyinstaller.py.txt`, using PyInstaller's own readers, wrote 176 archive files and
+1,520 modules, and the control string is there. The scan of that tree gives **`RESULT HIT 28`**
+(`11-identity-scan-unpacked.txt`). `12-hit-sources.md` names each one:
+- **22 home-path hits:**
+  - 21 are the CPython, OpenSSL and libffi builder's own temp paths under its `Administrator` account, which come
+    with uv's managed CPython;
+  - 1 is a CPython docstring example.
+- **6 gmail hits:** CPython, rich and pygments author lines, plus an httpx docstring example address.
+
+None is this rig's: a direct search of the unpacked tree for the rig's username, paths and noreply id finds
+nothing. None is on the allowlist either, so they go to the Publisher.
+
+**A first build on Python 3.13** (`build-py313/`). A bare `uv venv` picked a managed 3.13 here, while CI's runner
+has only the 3.12 it installs. That build passed the same smoke test, `self-check` and enable (run
+`7902699b-a31a371d`, wallet `rGZjmEC9j3t5UhrenYZUbnrnyVcgHZCvDu`). I rebuilt on 3.12 to match the workflow. The
+notices file was identical across the two environments.
 
 ## Off the brief (all three are on 1.3.0 too; none from 1.3.1)
 
@@ -174,6 +227,13 @@ release-workflow change). A short re-check will cover the local PyInstaller buil
   wallet, and the `secrets.json` entries with values withheld).
 - `5-backpack/`: `runA/`, `runB/` and `account_tx.txt`.
 - `6-cp1252/`: the pipe test, plus `base-1.3.0/`.
+- `7-binary/`:
+  - the build logs, the binary's sha256, the smoke test, and both scans with `12-hit-sources.md`;
+  - `frozen/` (`--version`, `self-check`, the enable, and `licenses`) and `pip/` (the install and `licenses`), each
+    command with `.cmd`, `.out` and `.exit`, apart from the licences text;
+  - `licenses-hashes.txt`;
+  - `build-py313/`, the first build's results.
 - `code.txt`, `hashes.txt`.
 - `harness/`: `cli_drive`, `tui_drive`, `tui_key_probe` (D1), `seed_search` (how seed 10 was found),
-  `etv_ledger_probe` and `redact_tree`. Each is a `.py.txt`, which keeps them out of the repo's lint.
+  `etv_ledger_probe`, `redact_tree`, `unpack_pyinstaller` and `hit_context` (item 7). Each is a `.py.txt`, which
+  keeps them out of the repo's lint.
