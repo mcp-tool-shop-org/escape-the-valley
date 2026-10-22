@@ -66,7 +66,7 @@ jobs:
       - run: uv venv
 
       - name: Install dependencies + PyInstaller
-        run: uv pip install . "pyinstaller>=6.9.0"
+        run: uv pip install ".[xrpl]" "pyinstaller>=6.9.0"
 
       - name: Build binary
         shell: bash
@@ -94,11 +94,12 @@ jobs:
           else
             DATA_SEP=":"
           fi
-          # --no-sync: build from the base env created by `uv pip install .`
-          # above; do NOT re-resolve the project (which would drag in optional
-          # extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and
-          # bloat the binary). The binary ships the base game only; voice is
-          # pip-install-only via `escape-the-valley[voice]`.
+          # --no-sync: build from the env created by `uv pip install ".[xrpl]"`
+          # above; do NOT re-resolve the project (which would drag in heavy
+          # optional extras like [voice] -> voice-soundboard[kokoro] ->
+          # onnxruntime and bloat the binary). The binary ships the base game
+          # plus [xrpl] so the Ledger Backpack works in standalone/npx builds;
+          # voice remains pip-install-only via `escape-the-valley[voice]`.
           #
           # F-a4d8291c: --add-data bundles the two non-Python files the game
           # needs at runtime that PyInstaller cannot discover on its own:
@@ -109,7 +110,9 @@ jobs:
           uv run --no-sync pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
             --collect-submodules rich \
             --collect-submodules textual \
+            --collect-submodules xrpl \
             --collect-data textual \
+            --collect-data xrpl \
             --add-data "src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley" \
             --add-data "src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data" \
             "${{ env.ENTRYPOINT }}"

@@ -14,7 +14,7 @@ from .engine import GameEngine
 from .gm import GMConfig
 from .models import GMProfile
 from .save import has_save, load_game
-from .ui import show_journal, show_status, show_title_screen
+from .ui import _ensure_utf8_stdio, show_journal, show_status, show_title_screen
 from .worldgen import create_new_run
 
 
@@ -100,6 +100,7 @@ app = typer.Typer(
     help="Escape the Valley: Ledger Trail — Oregon Trail-style survival game",
     no_args_is_help=True,
 )
+_ensure_utf8_stdio()
 console = Console()
 
 
@@ -137,6 +138,7 @@ def main_callback(
     ),
 ) -> None:
     """Escape the Valley: Ledger Trail — Oregon Trail-style survival game."""
+    _ensure_utf8_stdio()
 
 
 @app.command()

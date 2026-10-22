@@ -901,3 +901,104 @@ class TestLedgerProofCommand:
         result = runner.invoke(app, ["ledger", "proof"])
         assert result.exit_code == 1
         assert "No saved game" in result.output
+
+
+class TestV131CliFixes:
+    """v1.3.1 player-facing CLI fixes: H-1, M-1, and Issue #19."""
+
+    def test_cli_run_stats_shows_nonzero_memory_cards(self, tmp_path, monkeypatch):
+        """H-1: trail stats after a CLI GameEngine run shows non-zero memory cards."""
+        import escape_the_valley.engine as engine_mod
+        from escape_the_valley.engine import GameEngine
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.save import load_game, save_game
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_game_over", lambda *a, **k: None)
+        monkeypatch.setattr(
+            engine_mod, "show_event_scene", lambda title, narr, choices: choices[0]["id"]
+        )
+        monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_route_choice", lambda conns: conns[0][0])
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 0  # triggers Starvation crisis card on first travel
+        eng = GameEngine(state, GMConfig(enabled=False))
+        eng._do_travel()
+        save_game(eng.state, tmp_path)
+
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert len(loaded.memory_cards) > 0
+
+        result = runner.invoke(app, ["stats"])
+        assert result.exit_code == 0
+        assert "Memories:  0 cards" not in result.output
+        assert f"Memories:  {len(loaded.memory_cards)} cards" in result.output
+
+        json_res = runner.invoke(app, ["stats", "--json"])
+        assert json_res.exit_code == 0
+        payload = json.loads(json_res.output)
+        assert payload["memory_cards"] == len(loaded.memory_cards)
+        assert payload["memory_cards"] > 0
+
+    def test_cli_run_trail_ledger_shows_death_days(self, monkeypatch):
+        """H-1 & M-1: Trail Ledger shows death days and canonical cause of death for CLI runs."""
+        import escape_the_valley.engine as engine_mod
+        from escape_the_valley.engine import GameEngine
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.ledger import build_trail_ledger
+
+        monkeypatch.setattr(engine_mod, "show_message", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_status", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_game_over", lambda *a, **k: None)
+        monkeypatch.setattr(
+            engine_mod, "show_event_scene", lambda title, narr, choices: choices[0]["id"]
+        )
+        monkeypatch.setattr(engine_mod, "show_outcome", lambda *a, **k: None)
+        monkeypatch.setattr(engine_mod, "show_route_choice", lambda conns: conns[0][0])
+
+        state = create_new_run(seed=42)
+        state.supplies.food = 0
+        state.supplies.water = 0
+        for m in state.party.members:
+            m.health = 5
+
+        eng = GameEngine(state, GMConfig(enabled=False))
+        eng._do_travel()
+        eng._check_game_over()
+
+        assert state.game_over is True
+        assert state.cause_of_death in {"Starvation", "Dehydration"}
+        ledger_lines = build_trail_ledger(state)
+        ledger_text = "\n".join(ledger_lines)
+        for m in state.party.members:
+            cause_lower = (m.death_cause or "unknown").lower()
+            assert f"  {m.name} -- died of {cause_lower}, day {state.day}" in ledger_text
+
+    def test_cli_new_piped_cp1252_reaches_camp_prompt(self, tmp_path):
+        """Issue #19: trail new piped under cp1252 reaches camp prompt without crash."""
+        import os
+        import subprocess
+        import sys
+
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "cp1252"
+        env.pop("PYTHONUTF8", None)
+
+        proc = subprocess.run(
+            [sys.executable, "-m", "escape_the_valley", "new", "--seed", "42", "--gm-off"],
+            input="Q\n",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(tmp_path),
+            env=env,
+            timeout=30,
+        )
+        assert proc.returncode == 0, f"stderr:\n{proc.stderr}\nstdout:\n{proc.stdout}"
+        assert "UnicodeEncodeError" not in proc.stderr
+        assert "What do you do?" in proc.stdout

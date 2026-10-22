@@ -62,6 +62,8 @@ def _run(binary: str, *args: str, env: dict | None = None) -> subprocess.Complet
         [binary, *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=TIMEOUT_SECONDS,
         env=env,
     )
@@ -146,6 +148,24 @@ def main() -> int:
             result,
         )
     print("[smoke] tui.tcss loads OK")
+
+    # 4. Can the frozen binary import xrpl (_HAS_XRPL is True)? (M-6)
+    #    Uses `self-check` with an unroutable local OLLAMA_HOST so the probe
+    #    runs completely offline in milliseconds.
+    print("[smoke] running self-check for xrpl extra")
+    env = dict(os.environ)
+    env["OLLAMA_HOST"] = "http://127.0.0.1:1"
+    result = _run(binary, "self-check", env=env)
+    if result.returncode != 0:
+        return _fail(f"`self-check` exited {result.returncode}", result)
+    if "xrpl extra present" not in result.stdout:
+        return _fail(
+            "`self-check` did not report `xrpl extra present` (_HAS_XRPL is "
+            "False in the frozen binary -- check `.[xrpl]` and "
+            "`--collect-submodules xrpl` in release-binaries.yml)",
+            result,
+        )
+    print("[smoke] xrpl extra present OK")
 
     print("[smoke] PASS")
     return 0

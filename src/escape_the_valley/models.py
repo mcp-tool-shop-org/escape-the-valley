@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+import secrets
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -353,7 +354,8 @@ class RunState:
 
     @staticmethod
     def generate_run_id(seed: int) -> str:
-        return hashlib.sha256(str(seed).encode()).hexdigest()[:8]
+        prefix = hashlib.sha256(str(seed).encode()).hexdigest()[:8]
+        return f"{prefix}-{secrets.token_hex(4)}"
 
 
 class SeededRNG:

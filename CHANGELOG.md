@@ -4,6 +4,18 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-22
+
+### Fixed
+
+- **CLI `trail new` / `trail continue` memory parity (H-1) & canonical cause of death (M-1).** Interactive CLI runs now emit memory cards (crises, health/death, wagon breakdowns, events, arrivals, escape valves, GM proposals) and record canonical `cause_of_death`, so `trail stats`, the Trail Ledger, and GM context briefs work identically across CLI and TUI runs.
+- **TUI Abandon Cargo toast & memory card (H-2).** `[V] Abandon Cargo` in the TUI now displays the actual dropped supply counts instead of `(dropped: nothing)`.
+- **Fork route prompt timer tick (H-3).** Choosing a route at a fork no longer consumes a turn of wagon maintenance or escape-valve cooldown before the travel day begins.
+- **Salted `run_id` per run (M-5).** Two runs with the same seed now receive distinct `run_id` values (`<seed-prefix>-<random-hex>`) so XRPL backpack telemetry (`etv.v1` memos) cannot collide across replayed seeds.
+- **GitHub Release / `npx` binary bundles `[xrpl]` (M-6).** Standalone PyInstaller binaries now include `xrpl-py` so `trail ledger enable` works out of the box.
+- **Windows piped `cp1252` stdio crash (#19).** Reconfigure `stdout`/`stderr` to UTF-8 (`errors="replace"`) before Rich Console initialization so box-drawing panels do not raise `UnicodeEncodeError` when output is redirected on Windows.
+- **`npx` launcher `--version` / `-V` pass-through.** Upgraded to `@mcptoolshop/npm-launcher` `^1.2.0` and removed the wrapper intercept so `--version` and `--help` reach the underlying binary.
+
 ## [1.3.0] - 2026-08-26
 
 ### Added

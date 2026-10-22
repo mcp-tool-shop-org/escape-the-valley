@@ -52,16 +52,45 @@ class TestWeather:
 
 class TestCreateNewRun:
     def test_deterministic(self):
-        """Same seed creates identical runs."""
+        """Same seed creates identical gameplay state with distinct salted run_ids (M-5)."""
         run1 = create_new_run(seed=42, gm_profile=GMProfile.FIRESIDE)
         run2 = create_new_run(seed=42, gm_profile=GMProfile.FIRESIDE)
 
-        assert run1.run_id == run2.run_id
+        assert run1.run_id != run2.run_id
+        assert run1.run_id.split("-")[0] == run2.run_id.split("-")[0]
         assert run1.seed == run2.seed
         assert len(run1.party.members) == len(run2.party.members)
         for m1, m2 in zip(run1.party.members, run2.party.members, strict=False):
             assert m1.name == m2.name
             assert m1.traits == m2.traits
+
+    def test_same_seed_produces_identical_event_stream(self):
+        """M-5: salting run_id does not touch gameplay RNG; same seed -> same event stream."""
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+        from escape_the_valley.step_engine import StepEngine
+
+        def _drive(seed: int) -> tuple[str, list[str], list[tuple[int, str, str]], dict[str, int]]:
+            state = create_new_run(seed=seed)
+            eng = StepEngine(state, GMConfig(enabled=False), autosave=False)
+            for _ in range(25):
+                if eng.phase == GamePhase.GAME_OVER:
+                    break
+                if eng.phase in (GamePhase.EVENT, GamePhase.ROUTE):
+                    eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+                else:
+                    eng.step(PlayerIntent(IntentAction.TRAVEL))
+            events = [e.event_id for e in state.journal]
+            cards = [(c.day_created, c.id, c.kind) for c in state.memory_cards]
+            return state.run_id, events, cards, state.supplies.to_dict()
+
+        run_id_1, events_1, cards_1, supplies_1 = _drive(42)
+        run_id_2, events_2, cards_2, supplies_2 = _drive(42)
+        assert run_id_1 != run_id_2
+        assert events_1 == events_2
+        assert len(events_1) > 0
+        assert cards_1 == cards_2
+        assert supplies_1 == supplies_2
 
     def test_different_seeds_differ(self):
         run1 = create_new_run(seed=42)

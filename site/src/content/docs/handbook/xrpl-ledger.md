@@ -91,7 +91,7 @@ Every finished run leaves a keepsake. The end-of-run screen surfaces an **XRPL p
 
 ## Requirements
 
-- `pip install -e ".[xrpl]"` for the `xrpl-py` dependency
+- Bundled in the `npx` / GitHub Release binary; for `pip` installs, run `pip install "escape-the-valley[xrpl]"` (or `pip install -e ".[xrpl]"`) for the `xrpl-py` dependency
 - XRPL Testnet only — no real value, no mainnet support
 - Internet connection for settlement transactions
 
