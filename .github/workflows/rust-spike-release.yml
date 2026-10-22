@@ -50,14 +50,17 @@ jobs:
       - name: Build linux-x64 and win-x64 binaries + wheels
         working-directory: rust-spikes
         run: |
+          export RUSTFLAGS="--remap-path-prefix=${GITHUB_WORKSPACE}=. --remap-path-prefix=${HOME}=."
           mkdir -p dist/bin-linux-x64 dist/bin-win-x64 dist/wheel-linux-x64 dist/wheel-win-x64
 
           # 1. linux-x64 binary (via cargo-zigbuild / zig target or standard gnu)
           cargo build --release -p s4-hello --target x86_64-unknown-linux-gnu
+          strip --strip-all target/x86_64-unknown-linux-gnu/release/s4-hello
           cp target/x86_64-unknown-linux-gnu/release/s4-hello "dist/bin-linux-x64/s4-hello-${VERSION}-linux-x64"
 
           # 2. win-x64 binary cross-compiled from Ubuntu via mingw-w64
           cargo build --release -p s4-hello --target x86_64-pc-windows-gnu
+          x86_64-w64-mingw32-strip --strip-all target/x86_64-pc-windows-gnu/release/s4-hello.exe
           cp target/x86_64-pc-windows-gnu/release/s4-hello.exe "dist/bin-win-x64/s4-hello-${VERSION}-win-x64.exe"
 
           # 3. linux-x64 manylinux2014 wheel via maturin + zig
@@ -69,6 +72,46 @@ jobs:
           maturin build --release --manifest-path s4-hello/Cargo.toml \
             --target x86_64-pc-windows-gnu \
             --out dist/wheel-win-x64
+
+          # 5. Strip inner binaries & workspace paths from wheel SBOMs
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, subprocess, tempfile, zipfile
+
+          home = os.path.expanduser("~")
+          ws = os.environ.get("GITHUB_WORKSPACE", home)
+          for whl in pathlib.Path("dist").rglob("*.whl"):
+              with tempfile.TemporaryDirectory() as td:
+                  td_path = pathlib.Path(td)
+                  with zipfile.ZipFile(whl, "r") as zf:
+                      zf.extractall(td_path)
+                  for f in td_path.rglob("*"):
+                      if f.is_file():
+                          if f.name == "s4-hello":
+                              subprocess.run(["strip", "--strip-all", str(f)], check=True)
+                          elif f.name == "s4-hello.exe":
+                              subprocess.run(["x86_64-w64-mingw32-strip", "--strip-all", str(f)], check=True)
+                          elif f.suffix == ".json":
+                              txt = f.read_text(encoding="utf-8")
+                              txt = txt.replace(ws, ".").replace(home, ".")
+                              f.write_text(txt, encoding="utf-8")
+                  for rec in td_path.rglob("RECORD"):
+                      lines = []
+                      for line in rec.read_text(encoding="utf-8").splitlines():
+                          parts = line.split(",")
+                          if parts[0] and not parts[0].endswith("/RECORD"):
+                              fp = td_path / parts[0]
+                              if fp.exists():
+                                  data = fp.read_bytes()
+                                  digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+                                  parts[1] = f"sha256={digest}"
+                                  parts[2] = str(len(data))
+                          lines.append(",".join(parts))
+                      rec.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                  with zipfile.ZipFile(whl, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                      for f in sorted(td_path.rglob("*")):
+                          if f.is_file():
+                              zf.write(f, f.relative_to(td_path))
+          PY
 
           ls -lh dist/bin-linux-x64 dist/bin-win-x64 dist/wheel-linux-x64 dist/wheel-win-x64
 
@@ -118,12 +161,15 @@ jobs:
       - name: Build darwin-arm64 and darwin-x64 binaries + wheels
         working-directory: rust-spikes
         run: |
+          export RUSTFLAGS="--remap-path-prefix=${GITHUB_WORKSPACE}=. --remap-path-prefix=${HOME}=."
           mkdir -p dist/bin-darwin-arm64 dist/bin-darwin-x64 dist/wheel-darwin-arm64 dist/wheel-darwin-x64
 
           cargo build --release -p s4-hello --target aarch64-apple-darwin
+          strip -x target/aarch64-apple-darwin/release/s4-hello
           cp target/aarch64-apple-darwin/release/s4-hello "dist/bin-darwin-arm64/s4-hello-${VERSION}-darwin-arm64"
 
           cargo build --release -p s4-hello --target x86_64-apple-darwin
+          strip -x target/x86_64-apple-darwin/release/s4-hello
           cp target/x86_64-apple-darwin/release/s4-hello "dist/bin-darwin-x64/s4-hello-${VERSION}-darwin-x64"
 
           maturin build --release --manifest-path s4-hello/Cargo.toml \
@@ -133,6 +179,43 @@ jobs:
           maturin build --release --manifest-path s4-hello/Cargo.toml \
             --target x86_64-apple-darwin \
             --out dist/wheel-darwin-x64
+
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, subprocess, tempfile, zipfile
+
+          home = os.path.expanduser("~")
+          ws = os.environ.get("GITHUB_WORKSPACE", home)
+          for whl in pathlib.Path("dist").rglob("*.whl"):
+              with tempfile.TemporaryDirectory() as td:
+                  td_path = pathlib.Path(td)
+                  with zipfile.ZipFile(whl, "r") as zf:
+                      zf.extractall(td_path)
+                  for f in td_path.rglob("*"):
+                      if f.is_file():
+                          if f.name == "s4-hello":
+                              subprocess.run(["strip", "-x", str(f)], check=True)
+                          elif f.suffix == ".json":
+                              txt = f.read_text(encoding="utf-8")
+                              txt = txt.replace(ws, ".").replace(home, ".")
+                              f.write_text(txt, encoding="utf-8")
+                  for rec in td_path.rglob("RECORD"):
+                      lines = []
+                      for line in rec.read_text(encoding="utf-8").splitlines():
+                          parts = line.split(",")
+                          if parts[0] and not parts[0].endswith("/RECORD"):
+                              fp = td_path / parts[0]
+                              if fp.exists():
+                                  data = fp.read_bytes()
+                                  digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+                                  parts[1] = f"sha256={digest}"
+                                  parts[2] = str(len(data))
+                          lines.append(",".join(parts))
+                      rec.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                  with zipfile.ZipFile(whl, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                      for f in sorted(td_path.rglob("*")):
+                          if f.is_file():
+                              zf.write(f, f.relative_to(td_path))
+          PY
 
           ls -lh dist/bin-darwin-arm64 dist/bin-darwin-x64 dist/wheel-darwin-arm64 dist/wheel-darwin-x64
 

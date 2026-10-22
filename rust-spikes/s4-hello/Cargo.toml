@@ -10,5 +10,4 @@ name = "s4-hello"
 path = "src/main.rs"
 
 [dependencies]
-ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
-crossterm = "0.29"
+ratatui = { version = "0.30", default-features = false }
