@@ -1,0 +1,28 @@
+"""Headless StepEngine search: for each seed, travel (event A, route A) until
+can_abandon_cargo() opens or the run ends. Prints the seed and step count.
+Run with cwd set to a throwaway folder (the engine autosaves to ./.trail/)."""
+import sys
+from escape_the_valley.gm import GMConfig
+from escape_the_valley.intent import IntentAction, PlayerIntent
+from escape_the_valley.models import GMProfile
+from escape_the_valley.physics import can_abandon_cargo
+from escape_the_valley.step_engine import StepEngine
+from escape_the_valley.worldgen import create_new_run
+
+for seed in range(int(sys.argv[1]), int(sys.argv[2])):
+    st = create_new_run(seed=seed, gm_profile=GMProfile.FIRESIDE, weirdness_level=2)
+    e = StepEngine(st, GMConfig(enabled=False))
+    keys = []
+    for i in range(300):
+        ph = e.phase.name
+        if ph == "GAME_OVER":
+            break
+        if ph == "CAMP" and can_abandon_cargo(st):
+            print(f"seed {seed}: abandon open after {len(keys)} steps, day {st.day}, wagon {st.wagon.condition}, "
+                  f"droppable { {k: st.supplies.get(k) for k in ('salt','cloth','rope','boots')} }")
+            print("  keys:", "".join(keys))
+            break
+        if ph in ("EVENT", "ROUTE"):
+            e.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A")); keys.append("1")
+        else:
+            e.step(PlayerIntent(IntentAction.TRAVEL)); keys.append("t")

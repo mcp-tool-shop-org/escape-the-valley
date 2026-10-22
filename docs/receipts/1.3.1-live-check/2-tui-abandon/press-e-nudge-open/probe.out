@@ -1,0 +1,3 @@
+textual 8.2.8
+flags: {'show_nudge': True}
+key 'e': on_key saw ['e']; focused=None; wagon 22->22; last_action=TRAVEL; action_choose calls []; after: show_nudge=False show_enable_flow=True backpack.enabled=False

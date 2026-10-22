@@ -1,0 +1,50 @@
+"""Does a plain 'e' keypress reach LedgerTrailApp.on_key? Class-level spy, seed 10,
+replays travel (t / 1) until Abandon Cargo opens, then presses each key in argv[1:]
+and reports what on_key saw and whether the escape valve ran.
+Run it with HTTPS_PROXY/HTTP_PROXY set to a dead port so an enable cannot reach the faucet."""
+import asyncio, pathlib, sys
+import textual
+from escape_the_valley import tui_app
+from escape_the_valley.gm import GMConfig
+from escape_the_valley.models import GMProfile
+from escape_the_valley.physics import can_abandon_cargo
+from escape_the_valley.step_engine import StepEngine
+from escape_the_valley.worldgen import create_new_run
+
+seen = []
+orig = tui_app.LedgerTrailApp.on_key
+def spy(self, event):
+    seen.append(event.key)
+    return orig(self, event)
+tui_app.LedgerTrailApp.on_key = spy
+
+st = create_new_run(seed=10, gm_profile=GMProfile("fireside"), weirdness_level=2)
+eng = StepEngine(st, GMConfig(enabled=False))
+app = tui_app.LedgerTrailApp(engine=eng)
+
+async def main():
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        while not (eng.phase.value == "camp" and can_abandon_cargo(st)):
+            await pilot.press("1" if eng.phase.value in ("event", "route") else "t")
+            await app.workers.wait_for_complete(); await pilot.pause()
+        for k in sys.argv[1:]:
+            seen.clear()
+            flags = {f: getattr(app, f) for f in ("show_end","show_ledger","show_nudge","show_enable_flow",
+                     "show_wallet_info","show_learn_more","show_help","show_send_parcel",
+                     "show_parcel_notify","show_ledger_proof","_in_flight","_voice_enabled")}
+            print("flags:", {k: v for k, v in flags.items() if v})
+            calls = []
+            oc = app.action_choose
+            app.action_choose = lambda cid: (calls.append(cid), oc(cid))
+            w0 = st.wagon.condition
+            await pilot.press(k)
+            await app.workers.wait_for_complete(); await pilot.pause(); await pilot.pause()
+            print(f"key {k!r}: on_key saw {seen}; focused={app.focused}; wagon {w0}->{st.wagon.condition}; "
+                  f"last_action={st.last_action}; action_choose calls {calls}; "
+                  f"after: show_nudge={app.show_nudge} show_enable_flow={app.show_enable_flow} "
+                  f"backpack.enabled={st.backpack.enabled}")
+            (pathlib.Path(".") / f"after-{k}.svg").write_text(app.export_screenshot(), encoding="utf-8")
+        await pilot.press("q")
+print("textual", textual.__version__)
+asyncio.run(main())
