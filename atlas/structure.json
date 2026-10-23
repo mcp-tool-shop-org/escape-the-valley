@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "dc28b88bb8b7ded2c0d78bd0c6e527a36e59d93ab327fabbf9b1564fc2d1e38b",
+          "hash": "a6d7bf4cc21c860980dc6a8ec1f6025ac596d477d6ace51c80938b3b12bc9a1c",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -29,7 +29,7 @@
           "path": ".github/workflows/release.yml"
         },
         {
-          "hash": "a260db8d7a084fc175121473c21e32531da4dbc9a0875aa1fcb92598ce5ce1e9",
+          "hash": "6111ca747ef3b7364d6c8c3abb49c87971e442c5988c172fa9d68f08623d5249",
           "path": ".github/workflows/rust-spike-release.yml"
         }
       ],
@@ -5387,7 +5387,7 @@
   ],
   "doors": [
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -5429,6 +5429,51 @@
             "pytest"
           ],
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "curl",
+            "echo",
+            "rm",
+            "rustup",
+            "sha256sum",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
         }
       ],
       "elsewhere": [],
@@ -5497,6 +5542,22 @@
               }
             }
           ]
+        },
+        {
+          "basis": "declared",
+          "name": "rust",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
         }
       ],
       "landings": [],
@@ -5531,6 +5592,49 @@
       "readers": [],
       "runs": [
         {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/lib.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "directory": true,
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/tests/",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "test",
           "path": "src/",
@@ -5543,7 +5647,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 8,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -5564,6 +5668,13 @@
           "junit": true,
           "runner": "pytest",
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "files": 5,
+          "job": "rust",
+          "runner": "cargo test",
+          "step": "Test"
         }
       ],
       "triggers": [
@@ -5577,6 +5688,7 @@
             "atlas/**",
             "codecov.yml",
             "pyproject.toml",
+            "rust/**",
             "site/astro.config.mjs",
             "site/package-lock.json",
             "site/package.json",
@@ -6069,7 +6181,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -6111,6 +6223,51 @@
             "pytest"
           ],
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "curl",
+            "echo",
+            "rm",
+            "rustup",
+            "sha256sum",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
         },
         {
           "dir": "",
@@ -6248,6 +6405,22 @@
         },
         {
           "basis": "declared",
+          "name": "gate/rust",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
           "name": "release",
           "runsOn": [
             {
@@ -6333,6 +6506,49 @@
       "readers": [],
       "runs": [
         {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/lib.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "directory": true,
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/tests/",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "gate/test",
           "path": "src/",
@@ -6345,7 +6561,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 8,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -6376,6 +6592,16 @@
           "job": "gate/test",
           "junit": true,
           "runner": "pytest",
+          "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "dir": "rust",
+          "files": 5,
+          "job": "gate/rust",
+          "runner": "cargo test",
           "step": "Test",
           "through": [
             ".github/workflows/ci.yml"
@@ -6431,7 +6657,10 @@
             "cp",
             "ls",
             "maturin",
-            "mkdir"
+            "mkdir",
+            "python3",
+            "strip",
+            "x86_64-w64-mingw32-strip"
           ],
           "step": "Build linux-x64 and win-x64 binaries + wheels"
         },
@@ -6459,7 +6688,9 @@
             "cp",
             "ls",
             "maturin",
-            "mkdir"
+            "mkdir",
+            "python3",
+            "strip"
           ],
           "step": "Build darwin-arm64 and darwin-x64 binaries + wheels"
         },
@@ -6514,6 +6745,19 @@
                 "os": "linux"
               }
             }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
           ]
         },
         {
@@ -6528,6 +6772,19 @@
                 "cpu": "arm64",
                 "os": "darwin"
               }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
             }
           ]
         },
@@ -6661,18 +6918,13 @@
       ],
       "triggers": [
         {
-          "branches": [
-            "rust-2.0"
-          ],
-          "event": "pull_request"
-        },
-        {
           "event": "workflow_dispatch"
         }
       ],
       "uses": [
         "actions/checkout",
         "actions/download-artifact",
+        "actions/setup-python",
         "actions/upload-artifact"
       ],
       "usesWorkflowToken": false
@@ -6945,8 +7197,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9",
-    "tracked": 171
+    "commit": "fd8b7bbf47baa217f7cf1dcc6cbc6d9c19c38a5b",
+    "tracked": 186
   },
   "landings": [
     {
@@ -7091,6 +7343,79 @@
     {
       "readers": [
         {
+          "by": "rust/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust/etv-core",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/rng_s1_vectors.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/saves_20.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/worldgen_200.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "site/astro.config.mjs",
           "call": "content-collection",
           "confidence": "ast"
@@ -7135,6 +7460,11 @@
     {
       "readers": [
         {
+          "by": "rust/etv-core/src/worldgen.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        },
+        {
           "by": "src/escape_the_valley/event_loader.py",
           "call": "read_text",
           "confidence": "ast"
@@ -7175,7 +7505,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 26,
+  "testFiles": 27,
   "testsNotRun": [
     "tests/test_adapter.py",
     "tests/test_backpack.py",
@@ -7204,15 +7534,15 @@
   ],
   "unassigned": [
     {
-      "hash": "df166f4abeb38a0a665123266acebe87a55746db8bcc1aae35cdabc00db7ee38",
+      "hash": "b190c788aebdc4f4cc1be6f65210ff16db8a300634a53c1d52c5945c29867023",
       "path": "rust-spikes/Cargo.lock"
     },
     {
-      "hash": "5f5b9b1d7a486d20a1701a240754f6ccc595de8fc4e70b64331816d143b95a36",
+      "hash": "9be285d21c2251967079e4b3224711c1463fd245736e20ac7b21f51a22658ad2",
       "path": "rust-spikes/Cargo.toml"
     },
     {
-      "hash": "a589c4537d421121d2df15c930d2176ae48b5e5910ee042f9d8ed5af414af662",
+      "hash": "614cb01f6ebf3c177ec42f5abdd82bba8640549a0ca837e3cd07c75676dbe248",
       "path": "rust-spikes/deny.toml"
     },
     {
@@ -7232,7 +7562,7 @@
         "serialize_state",
         "weighted_choice"
       ],
-      "hash": "632500301e63a32e3117f4aa708430685a9bce538ba095edb8dad3f338f65f21",
+      "hash": "38bf034a7281854f6c6634a7dea14eecbf756664098858597751322ce07e510a",
       "path": "rust-spikes/s1-rng/gen_vectors.py"
     },
     {
@@ -7258,7 +7588,7 @@
       "testsInside": true
     },
     {
-      "hash": "953c8e5ea8ac454deeb36af9680619d38f0d5407241226906fc5c98c321ec914",
+      "hash": "c73e383215f56c5065370d136430b9697572d3b52d3c4e745ec1fbe1be295f2e",
       "path": "rust-spikes/s1-rng/vectors.json"
     },
     {
@@ -7325,7 +7655,7 @@
       "testsInside": true
     },
     {
-      "hash": "59e7b71093b82d1f1501dfe5530840d738b08860946d84dc155575254aa2b701",
+      "hash": "d3426689d18e777312ff04a10ea1caa0a6b4f45eadb1300aef3db9a5fa271cea",
       "path": "rust-spikes/s4-hello/Cargo.toml"
     },
     {
@@ -7351,6 +7681,246 @@
       "path": "rust-spikes/s4-hello/src/main.rs",
       "sequences": [],
       "testsInside": true
+    },
+    {
+      "hash": "4f8eba448e9afa06e43a6ec6fe74c33ae6450c8a8e515a85581ba454120e7172",
+      "path": "rust/Cargo.lock"
+    },
+    {
+      "hash": "cbee77d854941041228ce61e5877c02429100cdd7915836d566e3c3b17d7d6b1",
+      "path": "rust/Cargo.toml"
+    },
+    {
+      "hash": "392fda967992e4c8b2004196d4ca55afadab096607e32ebec376388defc6cd27",
+      "path": "rust/deny.toml"
+    },
+    {
+      "hash": "8cb10221f1532af4284e11cf2bff95b77f93a66aa155d8f8be225ce523cc4726",
+      "path": "rust/etv-core/Cargo.toml"
+    },
+    {
+      "hash": "0e69a67192e531223765e159b20ec8ae0737d827868ddc31bc079aa88a6403d3",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/lib.rs"
+    },
+    {
+      "exports": [
+        "default_supplies_map",
+        "doctrine_modifiers",
+        "is_valid_resource_key",
+        "parse_minted_txid"
+      ],
+      "hash": "f22b9733311711474cb7108c8deb3396e2e47ecc97066cedba733be877b1fced",
+      "importsFiles": [
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs"
+      ],
+      "path": "rust/etv-core/src/model.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "coerce_rng_state",
+        "deserialize_lenient_rng_state",
+        "hex_encode"
+      ],
+      "failurePaths": [
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 339
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 342
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 346
+        }
+      ],
+      "hash": "5e457e1485d789ac13765b0bcb2bd9fcc736fea91d4f5dd797daea47da372ae3",
+      "path": "rust/etv-core/src/rng.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "atomic_write_text",
+        "backup_corrupt_save",
+        "has_save",
+        "load_game",
+        "load_game_result",
+        "load_supplies",
+        "read_secrets_sidecar",
+        "save_game",
+        "state_to_value",
+        "value_to_state",
+        "write_secrets_sidecar"
+      ],
+      "failurePaths": [
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 107
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 115
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 134
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 137
+        },
+        {
+          "in": "apply_owner_only_permissions",
+          "kind": "match-err",
+          "line": 233
+        },
+        {
+          "in": "parse_seed",
+          "kind": "err",
+          "line": 540
+        },
+        {
+          "in": "parse_seed",
+          "kind": "err",
+          "line": 565
+        },
+        {
+          "in": "value_to_state",
+          "kind": "err",
+          "line": 582
+        },
+        {
+          "in": "load_backpack",
+          "kind": "err",
+          "line": 940
+        }
+      ],
+      "hash": "a2700c6375deb4446e1949ca19bdb6ae10b8f6ae555d7fd81a0a82c233b461c2",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/save.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "convert_event",
+        "convert_profile",
+        "create_new_run",
+        "create_new_run_with_rng",
+        "generate_map",
+        "generate_party",
+        "generate_weather",
+        "load_json_events",
+        "load_json_events_from_str",
+        "pick_twists",
+        "place_caches"
+      ],
+      "hash": "43d1b9d14f3656849a99e8293d7f775ae9c8a06be9c99d400e59a9af7f682852",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs"
+      ],
+      "path": "rust/etv-core/src/worldgen.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "7c5375140ee06b61f5dcfc6f54db30d5db7eb4ef05f3d11ea06efff8e15bdac7",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/oracle_parity.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "build_worldgen_seeds",
+        "canonical_run_state_json",
+        "drive_steps",
+        "f64_bits",
+        "generate_s1_save_restore_vector",
+        "generate_s1_seed_vector",
+        "generate_worldgen_vectors",
+        "get_oracle_metadata",
+        "main",
+        "make_20_real_saves",
+        "make_migration_vectors",
+        "next_100_draws_from_save",
+        "rng_state_sha256_hex",
+        "serialize_rng_state",
+        "weighted_choice"
+      ],
+      "failurePaths": [
+        {
+          "in": "next_100_draws_from_save",
+          "kind": "except",
+          "line": 440
+        }
+      ],
+      "hash": "3613f3fdf643e9d8a1eb90c3ea9ccd7c9bc3aab86aa328b1399d57a8a2e776ba",
+      "importOrder": [
+        "src/escape_the_valley/__init__.py",
+        "src/escape_the_valley/backpack_models.py",
+        "src/escape_the_valley/event_loader.py",
+        "src/escape_the_valley/gm.py",
+        "src/escape_the_valley/intent.py",
+        "src/escape_the_valley/models.py",
+        "src/escape_the_valley/save.py",
+        "src/escape_the_valley/step_engine.py",
+        "src/escape_the_valley/worldgen.py",
+        "src/escape_the_valley/memory_emitters.py"
+      ],
+      "importsFiles": [
+        "src/escape_the_valley/__init__.py",
+        "src/escape_the_valley/backpack_models.py",
+        "src/escape_the_valley/event_loader.py",
+        "src/escape_the_valley/gm.py",
+        "src/escape_the_valley/intent.py",
+        "src/escape_the_valley/memory_emitters.py",
+        "src/escape_the_valley/models.py",
+        "src/escape_the_valley/save.py",
+        "src/escape_the_valley/step_engine.py",
+        "src/escape_the_valley/worldgen.py"
+      ],
+      "path": "rust/oracle/generate_vectors.py"
+    },
+    {
+      "hash": "771b8d5d516ee17d0c9d825c25395ed794f911f4aafa9515a03b2a9b8206b160",
+      "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
+    },
+    {
+      "hash": "670caba9b3ae5bbfdd815994e048aa02a7b58ab2b7eedb4a941cd65d17e2efcf",
+      "path": "rust/oracle/vectors/saves_20.json.gz"
+    },
+    {
+      "hash": "bf0d4e794db438f297d723870bc22a34bf2ddac2827134af050cd6165d3d3017",
+      "path": "rust/oracle/vectors/worldgen_200.json.gz"
+    },
+    {
+      "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
+      "path": "rust/rust-toolchain.toml"
     }
   ]
 }
