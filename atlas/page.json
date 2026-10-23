@@ -69,21 +69,21 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 11,
+      "changed": 4,
       "moved": 0,
-      "parts": 4,
+      "parts": 2,
       "removed": 0
     },
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-23; 11 files changed content.",
+        "sentence": "Nothing structural changed since 2026-10-23; 4 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "119458a7d6298392cacdef115d90461b11f068e5",
-      "generatedAt": "2026-10-23T10:58:13.385Z"
+      "commit": "28704e6800493a3cd41a2d44ec352573c9b1fa63",
+      "generatedAt": "2026-10-23T13:13:50.166Z"
     },
     "unchanged": true
   },
@@ -106,7 +106,7 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 9,
+      "either": 10,
       "partLabels": [
         "src",
         "tests"
@@ -170,7 +170,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 9,
-  "commit": "28704e6800493a3cd41a2d44ec352573c9b1fa63",
+  "commit": "6abd5d43df1c558090d0526ca8bd8e8fe402e500",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (63 files), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -490,7 +490,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T13:13:50.166Z",
+  "generatedAt": "2026-10-23T14:07:38.291Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

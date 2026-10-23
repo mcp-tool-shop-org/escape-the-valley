@@ -2457,7 +2457,7 @@
           "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
         },
         {
-          "hash": "12055c9de52c9c97509f805eae443de3d5f5dbeab5b587b168fdfdffbf1eec1e",
+          "hash": "4843008080333eb5d67d3515aa3eb1ecd63f5c2b8421cb22fa3030aec705c0ec",
           "path": "site/public/index.html"
         },
         {
@@ -2511,7 +2511,7 @@
         },
         {
           "constantOnly": true,
-          "hash": "61a55a3b1669192a76f60e667b4cf10d4cf0eef9a303f7cd0ce95f26ef65893b",
+          "hash": "5cdfd065aa9515ae29b2fa398c01cdb5efdd5874a2e5b75c60235dd499eaed0a",
           "path": "site/src/site-config.ts"
         },
         {
@@ -7396,7 +7396,7 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "d066f8b96c1dcc63d9efed18514a2bd090a0b061404f112431abddb9107c5417",
+          "hash": "e27b8226ca0f06d35e44a93ab44203e61772fd8d0c89ef485a876b99c5ab6758",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
@@ -7422,7 +7422,8 @@
             "src/escape_the_valley/worldgen.py"
           ],
           "names": [
-            "scripts/gen_third_party_notices.py"
+            "scripts/gen_third_party_notices.py",
+            "site/src/site-config.ts"
           ],
           "path": "tests/test_cli_stats.py",
           "spawns": [
@@ -7464,7 +7465,7 @@
           "testFramework": "pytest"
         },
         {
-          "hash": "4011659752b53f1c41b513640b8ae0d91a2540ebfcb7ff5c96567877744d6f7f",
+          "hash": "6473f15ad056d77a95a3d40dca2ba3baf4e5585fbb2b1f8562a29f981f181db3",
           "importOrder": [
             "src/escape_the_valley/event_loader.py",
             "src/escape_the_valley/events.py",
@@ -9197,7 +9198,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "28704e6800493a3cd41a2d44ec352573c9b1fa63",
+    "commit": "6abd5d43df1c558090d0526ca8bd8e8fe402e500",
     "tracked": 628
   },
   "landings": [

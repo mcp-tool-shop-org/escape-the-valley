@@ -132,7 +132,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "site",
-      "qualifyingSourceCommits": 6,
+      "qualifyingSourceCommits": 7,
       "rebaseline": null
     },
     {
@@ -148,7 +148,7 @@
           "scripts"
         ]
       },
-      "cohesion": 0.061921,
+      "cohesion": 0.062736,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
@@ -166,12 +166,12 @@
         "importsAndCoChanges": [],
         "importsOnly": []
       },
-      "cohesion": 0.047007,
+      "cohesion": 0.047635,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 65,
+      "qualifyingSourceCommits": 66,
       "rebaseline": null
     }
   ],
@@ -279,8 +279,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 7,
-        "lines": 326,
+        "commits": 8,
+        "lines": 341,
         "path": "atlas/README.md"
       },
       {
@@ -289,18 +289,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 7,
-        "lines": 1249,
+        "commits": 8,
+        "lines": 1325,
         "path": "atlas/page.json"
       },
       {
-        "commits": 7,
-        "lines": 4661,
+        "commits": 8,
+        "lines": 4756,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 7,
-        "lines": 12764,
+        "commits": 8,
+        "lines": 13062,
         "path": "atlas/structure.json"
       },
       {
@@ -2759,8 +2759,8 @@
         "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
       },
       {
-        "commits": 2,
-        "lines": 824,
+        "commits": 3,
+        "lines": 826,
         "path": "site/public/index.html"
       },
       {
@@ -2819,8 +2819,8 @@
         "path": "site/src/pages/index.astro"
       },
       {
-        "commits": 5,
-        "lines": 18,
+        "commits": 6,
+        "lines": 20,
         "path": "site/src/site-config.ts"
       },
       {
@@ -3189,8 +3189,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 12,
-        "lines": 2611,
+        "commits": 13,
+        "lines": 2642,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -3204,8 +3204,8 @@
         "path": "tests/test_event_loader.py"
       },
       {
-        "commits": 11,
-        "lines": 1749,
+        "commits": 12,
+        "lines": 1759,
         "path": "tests/test_events.py"
       },
       {
@@ -3289,11 +3289,53 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-23T13:13:50.166Z",
+  "generatedAt": "2026-10-23T14:07:38.291Z",
   "generatedFrom": {
-    "commit": "28704e6800493a3cd41a2d44ec352573c9b1fa63"
+    "commit": "6abd5d43df1c558090d0526ca8bd8e8fe402e500"
   },
   "pairs": [
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/page.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/statistics.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
     {
       "a": "package.json",
       "b": "pyproject.toml",
@@ -3339,9 +3381,9 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 9,
+      "either": 10,
       "shared": 8,
-      "strength": 0.888889
+      "strength": 0.8
     },
     {
       "a": "src/escape_the_valley/engine.py",
@@ -3367,9 +3409,9 @@
     {
       "a": "src/escape_the_valley/events.py",
       "b": "tests/test_events.py",
-      "either": 7,
+      "either": 8,
       "shared": 4,
-      "strength": 0.571429
+      "strength": 0.5
     },
     {
       "a": "src/escape_the_valley/gm.py",
@@ -3445,16 +3487,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-23T09:13:31-04:00",
+    "headDate": "2026-10-23T10:07:16-04:00",
     "inScopeFiles": 633,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 107,
+    "qualifyingCommits": 109,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-26T13:13:31.000Z",
+    "since": "2026-04-26T14:07:16.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
