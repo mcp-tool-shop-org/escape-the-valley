@@ -51,8 +51,12 @@ jobs:
   gate:
     name: Verify (lint + test) before publishing
     uses: ./.github/workflows/ci.yml
+    # ci.yml's codecov job asks for id-token: write (Codecov OIDC upload). A
+    # called workflow cannot exceed the caller's grant, so without it GitHub
+    # refuses to start this workflow at all (startup_failure on v1.3.1).
     permissions:
       contents: read
+      id-token: write
 
   release:
     name: Publish npm (OIDC) + GitHub Release
