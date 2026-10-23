@@ -1,21 +1,31 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 1347332 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit 5b985fa by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (62 files), Rust (4), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).
+10 parts, mostly Python (63 files), Rust (10), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).
 
-## What changed since 2026-10-22 (6b50d57)
+## What changed since 2026-10-23 (1347332)
 
-- CI's push trigger now also names `rust/**`.
-- Rust Spike Release (S4) no longer starts on a pull request to rust-2.0.
-- 8 files changed content, across 1 part.
+- CI now also runs rust/etv-core/tests/.
+- CI now also checks rust/etv-core/src/lib.rs.
+- Release now also runs rust/etv-core/tests/.
+- And 1 more change to a door.
+- rust/etv-core/ is now read by rust/Cargo.toml.
+- rust/oracle/vectors/ is now read by rust/oracle/generate_vectors.py.
+- rust/oracle/vectors/rng_s1_vectors.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
+- And 3 more new writers and readers of places.
+- rust/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.
+- rust/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.
+- rust/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.
+- And 12 more new files that belong to no part.
+- 15 files added.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Checks src/ and tests/.
-2. **Release.** When a tag matching `v*` is pushed; or by hand. Checks src/ and tests/.
+1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs rust/etv-core/tests/; checks src/, tests/ and rust/etv-core/src/lib.rs.
+2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs rust/etv-core/tests/; checks src/, tests/ and rust/etv-core/src/lib.rs.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
@@ -29,7 +39,7 @@ Mapped at 2026-10-23 from commit 1347332 by Atlas 1.24.0.
 
 ## What happens through CI
 
-1. The workflow checks src/ in src and tests/ in tests.
+1. The workflow runs rust/etv-core/tests/; it checks src/ in src, tests/ in tests and rust/etv-core/src/lib.rs.
 2. That reaches agents (1 file).
 3. It uploads coverage to Codecov.
 
@@ -39,7 +49,7 @@ CI writes nothing this map can see.
 
 ## The other doors
 
-**Release** checks src/ and tests/, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
+**Release** runs rust/etv-core/tests/, checks src/, tests/ and rust/etv-core/src/lib.rs, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
 
 **Release Binaries** runs scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
 
@@ -67,6 +77,7 @@ CI writes nothing this map can see.
 - **agents** is imported by 1 part (scripts), and by 1 more only from tests; it sits on the path of 2 doors.
 - **bin** is imported by no other part and sits on the path of 2 doors.
 - **tests** is imported by no other part and sits on the path of 2 doors.
+- **src/escape_the_valley/data/event_skeletons.json** is written by scripts and read by rust/etv-core/src/worldgen.rs and src; a hand edit reaches every reader.
 
 ## What tends to change together
 
@@ -108,14 +119,14 @@ People write .github/, assets/, docs/, the repository root and site/; 1 write wi
 
 src/escape_the_valley/cli.py → src/escape_the_valley/save.py → src/escape_the_valley/models.py → src/escape_the_valley/worldgen.py → src/escape_the_valley/gm.py → src/escape_the_valley/voice.py → src/escape_the_valley/step_engine.py
 
-Read those in order to follow one run of trail end to end. This path follows trail (a command people run, from pyproject.toml) from its entry, since CI only checks code.
+Read those in order to follow one run of trail end to end. This path follows trail (a command people run, from pyproject.toml) from its entry, since CI runs only tests and checks.
 
 ## What this map cannot see
 
 - 1 write uses a path built at run time and is not named here.
 - 2 writes and 13 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 15 files belong to no part: rust-spikes/Cargo.lock, rust-spikes/Cargo.toml, rust-spikes/deny.toml and 12 more.
+- 30 files belong to no part: rust-spikes/Cargo.lock, rust-spikes/Cargo.toml, rust-spikes/deny.toml and 27 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.
