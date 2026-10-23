@@ -154,6 +154,7 @@ fn check_01_s1_rng_vectors_and_pool_label() {
 
     let mut total_checks = 0usize;
     let mut saw_pool_n1000_k20 = false;
+    assert_eq!(vf.seed_vectors.len(), 6);
 
     for sv in &vf.seed_vectors {
         let seed: i128 = sv.seed.parse().expect("valid i128 seed");
@@ -162,6 +163,7 @@ fn check_01_s1_rng_vectors_and_pool_label() {
         assert_eq!(rng.getstate(), sv.initial_state);
         total_checks += 1;
 
+        assert_eq!(sv.random_draws.len(), 20);
         for rd in &sv.random_draws {
             let got_bits = rng.random().to_bits();
             let exp_bits: u64 = rd.bits.parse().unwrap();
@@ -169,6 +171,7 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             total_checks += 1;
         }
 
+        assert_eq!(sv.getrandbits_draws.len(), 60);
         for gd in &sv.getrandbits_draws {
             let got = rng.getrandbits(gd.k);
             let exp: u128 = gd.value.parse().unwrap();
@@ -176,9 +179,11 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             total_checks += 1;
         }
 
+        assert_eq!(sv.randint_draws.len(), 15);
         for rd in &sv.randint_draws {
             let a: i128 = rd.a.parse().unwrap();
             let b: i128 = rd.b.parse().unwrap();
+            assert_eq!(rd.values.len(), 16);
             for exp_str in &rd.values {
                 let got = rng.randint(a, b);
                 let exp: i128 = exp_str.parse().unwrap();
@@ -187,8 +192,10 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             }
         }
 
+        assert_eq!(sv.choice_draws.len(), 5);
         for cd in &sv.choice_draws {
             let seq: Vec<String> = (0..cd.len).map(|i| format!("item_{i}")).collect();
+            assert_eq!(cd.picks.len(), 10);
             for exp in &cd.picks {
                 let got = rng.choice(&seq);
                 assert_eq!(got, exp);
@@ -196,15 +203,18 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             }
         }
 
+        assert_eq!(sv.shuffle_draws.len(), 6);
         for sd in &sv.shuffle_draws {
             let mut seq: Vec<usize> = (0..sd.len).collect();
             let prev_counter = rng.counter;
             rng.shuffle(&mut seq);
             assert_eq!(rng.counter, prev_counter + (sd.len as u64));
+            assert_eq!(sd.result.len(), sd.len);
             assert_eq!(seq, sd.result);
             total_checks += 1;
         }
 
+        assert_eq!(sv.sample_draws.len(), 12);
         for sm in &sv.sample_draws {
             assert_ne!(
                 sm.name, "set_n1000_k20",
@@ -217,11 +227,16 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             let prev_counter = rng.counter;
             let got = rng.sample(&pop, sm.k);
             assert_eq!(rng.counter, prev_counter + (sm.k as u64));
+            assert_eq!(sm.result.len(), sm.k);
             assert_eq!(got, sm.result, "mismatch on {}", sm.name);
             total_checks += 1;
         }
 
+        assert_eq!(sv.weighted_draws.len(), 3);
         for wd in &sv.weighted_draws {
+            assert!(!wd.items.is_empty());
+            assert_eq!(wd.items.len(), wd.weights.len());
+            assert_eq!(wd.picks.len(), 15);
             for exp in &wd.picks {
                 let got = rng.weighted_choice(&wd.items, &wd.weights);
                 assert_eq!(got, exp, "mismatch on {}", wd.name);
@@ -246,29 +261,35 @@ fn check_01_s1_rng_vectors_and_pool_label() {
     assert_eq!(restored.getstate(), srv.saved_rng_state);
     total_checks += 1;
 
+    assert_eq!(srv.post_random_bits.len(), 10);
     for exp_bits_str in &srv.post_random_bits {
         let exp_bits: u64 = exp_bits_str.parse().unwrap();
         assert_eq!(restored.random().to_bits(), exp_bits);
         total_checks += 1;
     }
+    assert_eq!(srv.post_randint.len(), 10);
     for exp_val_str in &srv.post_randint {
         let exp_val: i128 = exp_val_str.parse().unwrap();
         assert_eq!(restored.randint(-50, 500), exp_val);
         total_checks += 1;
     }
+    assert_eq!(srv.post_shuffle.len(), 10);
     let mut shuf: Vec<usize> = (0..10).collect();
     restored.shuffle(&mut shuf);
     assert_eq!(shuf, srv.post_shuffle);
     total_checks += 1;
 
+    assert_eq!(srv.post_sample_pool.len(), 4);
     let pop15: Vec<usize> = (0..15).collect();
     assert_eq!(restored.sample(&pop15, 4), srv.post_sample_pool);
     total_checks += 1;
 
+    assert_eq!(srv.post_sample_set.len(), 5);
     let pop100: Vec<usize> = (0..100).collect();
     assert_eq!(restored.sample(&pop100, 5), srv.post_sample_set);
     total_checks += 1;
 
+    assert_eq!(srv.post_weighted.len(), 10);
     let items = vec![
         "food".to_string(),
         "water".to_string(),
@@ -384,6 +405,8 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
                 got_weather.push(generate_weather(&mut rng, biome, day).as_str().to_string());
             }
         }
+        assert_eq!(wv.weather_picks.len(), 10);
+        assert_eq!(got_weather.len(), 10);
         assert_eq!(
             got_weather, wv.weather_picks,
             "weather_picks mismatch on seed {seed}"
@@ -400,9 +423,18 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
     }
 
     // Verify compiled-in event_skeletons.json loader matches all 200 Python events
+    verify_worldgen_json_events(&wf);
+
+    // Also check graceful degradation on corrupt/bad event JSON
+    assert!(load_json_events_from_str("{not json").is_empty());
+    assert!(load_json_events_from_str("{\"not\": \"a list\"}").is_empty());
+}
+
+fn verify_worldgen_json_events(wf: &WorldgenFile) {
     let rust_events = load_json_events();
     assert_eq!(rust_events.len(), 200);
     assert_eq!(wf.json_events_count, 200);
+    assert_eq!(wf.json_events.len(), 200);
     for (re, oe) in rust_events.iter().zip(wf.json_events.iter()) {
         assert_eq!(re.event_id, oe.event_id);
         assert_eq!(re.title, oe.title);
@@ -447,10 +479,15 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
             assert_eq!(ro.special_flags, oo.special_flags);
         }
     }
+}
 
-    // Also check graceful degradation on corrupt/bad event JSON
-    assert!(load_json_events_from_str("{not json").is_empty());
-    assert!(load_json_events_from_str("{\"not\": \"a list\"}").is_empty());
+#[test]
+#[should_panic(expected = "assertion `left == right` failed")]
+fn check_02_negative_truncated_json_events_must_fail() {
+    let raw = include_bytes!("../../oracle/vectors/worldgen_200.json.gz");
+    let mut wf: WorldgenFile = read_gzip_json(raw);
+    wf.json_events.truncate(5);
+    verify_worldgen_json_events(&wf);
 }
 
 // ── 3, 4, 5. Save Round Trip (20 saves), Migration (v1/v2 -> v3), RNG Restore ──
@@ -688,12 +725,14 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         );
 
         // Also verify RNG restore on the migrated save
+        assert_eq!(mv.next_100_draws.len(), 100);
         let mut rng = CpythonRng::from_seed_and_counter(
             state.seed,
             state.rng_counter,
             state.rng_state.as_ref(),
         );
         let draws = run_100_draws(&mut rng);
+        assert_eq!(draws.len(), 100);
         assert_eq!(
             draws, mv.next_100_draws,
             "RNG draws mismatch on migrated {}",
@@ -758,12 +797,14 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
         let state = value_to_state(&val).expect("parse save");
 
         // 1. With full rng_state: next 100 draws match Python
+        assert_eq!(sv.next_100_draws_with_state.len(), 100);
         let mut rng_full = CpythonRng::from_seed_and_counter(
             state.seed,
             state.rng_counter,
             state.rng_state.as_ref(),
         );
         let draws_full = run_100_draws(&mut rng_full);
+        assert_eq!(draws_full.len(), 100);
         assert_eq!(
             draws_full, sv.next_100_draws_with_state,
             "100 draws (with rng_state) mismatch on {}",
@@ -771,9 +812,11 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
         );
 
         // 2. With no rng_state (None): counter-replay gives the exact same next 100 draws as Python
+        assert_eq!(sv.next_100_draws_counter_only.len(), 100);
         let mut rng_counter =
             CpythonRng::from_seed_and_counter(state.seed, state.rng_counter, None);
         let draws_counter = run_100_draws(&mut rng_counter);
+        assert_eq!(draws_counter.len(), 100);
         assert_eq!(
             draws_counter, sv.next_100_draws_counter_only,
             "100 draws (counter-only) mismatch on {}",
