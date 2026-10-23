@@ -599,6 +599,42 @@ class TestSecretsSidecar:
             assert canary_wallet_seed not in text_sink
             assert canary_issuer_seed not in text_sink
 
+    def test_non_object_secrets_sidecar_quarantined_on_write(self, tmp_path):
+        """Preservation test: #31.7's other corrupt case. A secrets.json that
+        parses but whose top level is not a JSON object (here a list) is left
+        untouched on read and quarantined on write, and the new secrets.json
+        holds only the current run's entry."""
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir(parents=True, exist_ok=True)
+        sidecar = save_dir / "secrets.json"
+        non_object_payload = '["not", "a", "dict"]'
+        sidecar.write_text(non_object_payload, encoding="utf-8")
+
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+        state.backpack.wallet_secret = "sCurrentRunWalletSecret333333"
+        state.backpack.issuer_secret = "sCurrentRunIssuerSecret444444"
+
+        # Read leaves the file as it is:
+        from escape_the_valley.save import _read_secrets_sidecar
+
+        assert _read_secrets_sidecar(save_dir, state.run_id) == {}
+        assert sidecar.read_text(encoding="utf-8") == non_object_payload
+        assert not list(save_dir.glob("secrets.json.corrupt-*"))
+
+        # Write quarantines it and starts fresh:
+        save_game(state, tmp_path)
+        quarantined = sorted(save_dir.glob("secrets.json.corrupt-*"))
+        assert len(quarantined) == 1
+        assert quarantined[0].read_text(encoding="utf-8") == non_object_payload
+        new_store = json.loads(sidecar.read_text(encoding="utf-8"))
+        assert new_store == {
+            state.run_id: {
+                "wallet_secret": "sCurrentRunWalletSecret333333",
+                "issuer_secret": "sCurrentRunIssuerSecret444444",
+            }
+        }
+
 
 
 class TestSaveVersion:

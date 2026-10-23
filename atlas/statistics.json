@@ -68,7 +68,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "bin",
-      "qualifyingSourceCommits": 3,
+      "qualifyingSourceCommits": 2,
       "rebaseline": null
     },
     {
@@ -116,7 +116,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "scripts",
-      "qualifyingSourceCommits": 5,
+      "qualifyingSourceCommits": 4,
       "rebaseline": null
     },
     {
@@ -132,7 +132,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "site",
-      "qualifyingSourceCommits": 7,
+      "qualifyingSourceCommits": 6,
       "rebaseline": null
     },
     {
@@ -148,12 +148,12 @@
           "scripts"
         ]
       },
-      "cohesion": 0.062736,
+      "cohesion": 0.102171,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "src",
-      "qualifyingSourceCommits": 69,
+      "qualifyingSourceCommits": 67,
       "rebaseline": null
     },
     {
@@ -166,12 +166,12 @@
         "importsAndCoChanges": [],
         "importsOnly": []
       },
-      "cohesion": 0.047635,
+      "cohesion": 0.04945,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 66,
+      "qualifyingSourceCommits": 64,
       "rebaseline": null
     }
   ],
@@ -214,53 +214,53 @@
         "path": ".gitignore"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 91,
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 26,
-        "lines": 423,
+        "commits": 25,
+        "lines": 421,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 7,
-        "lines": 658,
+        "commits": 8,
+        "lines": 768,
         "path": "README.es.md"
       },
       {
-        "commits": 7,
-        "lines": 692,
+        "commits": 8,
+        "lines": 796,
         "path": "README.fr.md"
       },
       {
-        "commits": 7,
-        "lines": 646,
+        "commits": 8,
+        "lines": 738,
         "path": "README.hi.md"
       },
       {
-        "commits": 7,
-        "lines": 644,
+        "commits": 8,
+        "lines": 738,
         "path": "README.it.md"
       },
       {
-        "commits": 7,
-        "lines": 758,
+        "commits": 8,
+        "lines": 874,
         "path": "README.ja.md"
       },
       {
-        "commits": 19,
-        "lines": 145,
+        "commits": 18,
+        "lines": 141,
         "path": "README.md"
       },
       {
-        "commits": 7,
-        "lines": 868,
+        "commits": 8,
+        "lines": 982,
         "path": "README.pt-BR.md"
       },
       {
-        "commits": 7,
-        "lines": 542,
+        "commits": 8,
+        "lines": 640,
         "path": "README.zh.md"
       },
       {
@@ -279,8 +279,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 8,
-        "lines": 341,
+        "commits": 7,
+        "lines": 319,
         "path": "atlas/README.md"
       },
       {
@@ -289,18 +289,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 8,
-        "lines": 1325,
+        "commits": 7,
+        "lines": 1219,
         "path": "atlas/page.json"
       },
       {
-        "commits": 8,
-        "lines": 4756,
+        "commits": 7,
+        "lines": 4648,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 8,
-        "lines": 13062,
+        "commits": 7,
+        "lines": 12771,
         "path": "atlas/structure.json"
       },
       {
@@ -2759,8 +2759,8 @@
         "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
       },
       {
-        "commits": 3,
-        "lines": 826,
+        "commits": 4,
+        "lines": 828,
         "path": "site/public/index.html"
       },
       {
@@ -2769,8 +2769,8 @@
         "path": "site/scripts/unbundle-landing.py"
       },
       {
-        "commits": 9,
-        "lines": 70,
+        "commits": 8,
+        "lines": 68,
         "path": "site/src/content/docs/handbook/beginners.md"
       },
       {
@@ -2779,8 +2779,8 @@
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 6,
-        "lines": 32,
+        "commits": 5,
+        "lines": 30,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -2794,8 +2794,8 @@
         "path": "site/src/content/docs/handbook/index.md"
       },
       {
-        "commits": 5,
-        "lines": 43,
+        "commits": 4,
+        "lines": 41,
         "path": "site/src/content/docs/handbook/mechanics.md"
       },
       {
@@ -3054,7 +3054,7 @@
         "path": "src/escape_the_valley/backpack_ui.py"
       },
       {
-        "commits": 15,
+        "commits": 14,
         "lines": 727,
         "path": "src/escape_the_valley/cli.py"
       },
@@ -3189,8 +3189,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 13,
-        "lines": 2642,
+        "commits": 11,
+        "lines": 2636,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -3204,8 +3204,8 @@
         "path": "tests/test_event_loader.py"
       },
       {
-        "commits": 12,
-        "lines": 1759,
+        "commits": 10,
+        "lines": 1749,
         "path": "tests/test_events.py"
       },
       {
@@ -3259,8 +3259,8 @@
         "path": "tests/test_physics.py"
       },
       {
-        "commits": 12,
-        "lines": 1348,
+        "commits": 13,
+        "lines": 1384,
         "path": "tests/test_save.py"
       },
       {
@@ -3289,73 +3289,213 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-23T14:07:38.291Z",
+  "generatedAt": "2026-10-23T14:40:40.623Z",
   "generatedFrom": {
-    "commit": "6abd5d43df1c558090d0526ca8bd8e8fe402e500"
+    "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd"
   },
   "pairs": [
     {
-      "a": "atlas/README.md",
-      "b": "atlas/page.json",
+      "a": "README.es.md",
+      "b": "README.fr.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "atlas/README.md",
-      "b": "atlas/statistics.json",
+      "a": "README.es.md",
+      "b": "README.hi.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "atlas/README.md",
-      "b": "atlas/structure.json",
+      "a": "README.es.md",
+      "b": "README.it.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "atlas/page.json",
-      "b": "atlas/statistics.json",
+      "a": "README.es.md",
+      "b": "README.ja.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "atlas/page.json",
-      "b": "atlas/structure.json",
+      "a": "README.es.md",
+      "b": "README.pt-BR.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "atlas/statistics.json",
-      "b": "atlas/structure.json",
+      "a": "README.es.md",
+      "b": "README.zh.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "package.json",
-      "b": "pyproject.toml",
-      "either": 7,
-      "shared": 5,
-      "strength": 0.714286
+      "a": "README.es.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
     },
     {
-      "a": "package.json",
-      "b": "src/escape_the_valley/__init__.py",
+      "a": "README.fr.md",
+      "b": "README.hi.md",
       "either": 5,
       "shared": 5,
       "strength": 1
     },
     {
-      "a": "pyproject.toml",
-      "b": "src/escape_the_valley/__init__.py",
-      "either": 7,
+      "a": "README.fr.md",
+      "b": "README.it.md",
+      "either": 5,
       "shared": 5,
-      "strength": 0.714286
+      "strength": 1
+    },
+    {
+      "a": "README.fr.md",
+      "b": "README.ja.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.fr.md",
+      "b": "README.pt-BR.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.fr.md",
+      "b": "README.zh.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.fr.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "README.hi.md",
+      "b": "README.it.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.hi.md",
+      "b": "README.ja.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.hi.md",
+      "b": "README.pt-BR.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.hi.md",
+      "b": "README.zh.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.hi.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "README.it.md",
+      "b": "README.ja.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.it.md",
+      "b": "README.pt-BR.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.it.md",
+      "b": "README.zh.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.it.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "README.ja.md",
+      "b": "README.pt-BR.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.ja.md",
+      "b": "README.zh.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.ja.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "README.md",
+      "b": "SHIP_GATE.md",
+      "either": 11,
+      "shared": 6,
+      "strength": 0.545455
+    },
+    {
+      "a": "README.pt-BR.md",
+      "b": "README.zh.md",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "README.pt-BR.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
+    },
+    {
+      "a": "README.zh.md",
+      "b": "SHIP_GATE.md",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
     },
     {
       "a": "src/escape_the_valley/adapter.py",
@@ -3381,23 +3521,23 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 10,
-      "shared": 8,
-      "strength": 0.8
+      "either": 7,
+      "shared": 6,
+      "strength": 0.857143
     },
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "src/escape_the_valley/step_engine.py",
-      "either": 17,
-      "shared": 13,
-      "strength": 0.764706
+      "either": 16,
+      "shared": 12,
+      "strength": 0.75
     },
     {
       "a": "src/escape_the_valley/engine.py",
       "b": "tests/test_step_engine.py",
-      "either": 18,
+      "either": 17,
       "shared": 13,
-      "strength": 0.722222
+      "strength": 0.764706
     },
     {
       "a": "src/escape_the_valley/event_loader.py",
@@ -3405,13 +3545,6 @@
       "either": 6,
       "shared": 5,
       "strength": 0.833333
-    },
-    {
-      "a": "src/escape_the_valley/events.py",
-      "b": "tests/test_events.py",
-      "either": 8,
-      "shared": 4,
-      "strength": 0.5
     },
     {
       "a": "src/escape_the_valley/gm.py",
@@ -3438,15 +3571,22 @@
       "a": "src/escape_the_valley/save.py",
       "b": "tests/test_save.py",
       "either": 6,
-      "shared": 6,
-      "strength": 1
+      "shared": 5,
+      "strength": 0.833333
     },
     {
       "a": "src/escape_the_valley/step_engine.py",
       "b": "tests/test_step_engine.py",
-      "either": 18,
+      "either": 17,
       "shared": 15,
-      "strength": 0.833333
+      "strength": 0.882353
+    },
+    {
+      "a": "src/escape_the_valley/tui_app.py",
+      "b": "src/escape_the_valley/ui.py",
+      "either": 14,
+      "shared": 7,
+      "strength": 0.5
     },
     {
       "a": "src/escape_the_valley/tui_app.py",
@@ -3465,9 +3605,9 @@
     {
       "a": "src/escape_the_valley/ui.py",
       "b": "tests/test_adapter.py",
-      "either": 10,
+      "either": 9,
       "shared": 7,
-      "strength": 0.7
+      "strength": 0.777778
     },
     {
       "a": "tests/test_adapter.py",
@@ -3487,16 +3627,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-23T10:07:16-04:00",
+    "headDate": "2026-10-23T10:40:33-04:00",
     "inScopeFiles": 633,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 109,
+    "qualifyingCommits": 107,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-26T14:07:16.000Z",
+    "since": "2026-04-26T14:40:33.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
