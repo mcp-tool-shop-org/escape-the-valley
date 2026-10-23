@@ -1,17 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit ef9a702 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit ffd90d1 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (ad611e5)
+## What changed since 2026-10-23 (ef9a702)
 
-- rust/oracle/vectors/turns_long_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
-- src/escape_the_valley/ is now also read by rust/oracle/generate_vectors.py.
-- rust/oracle/vectors/turns_long_seeds.json.gz is new and belongs to no part, so atlas check fails on it against the previous map.
-- 1 file added and 11 changed content.
+Nothing structural changed since 2026-10-23; 2 files changed content.
 
 ## What comes in
 

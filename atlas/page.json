@@ -71,48 +71,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 11,
+      "added": 0,
+      "changed": 2,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "rust/oracle/vectors/turns_long_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.",
-        "subjects": [
-          "rust/oracle/vectors/turns_long_seeds.json.gz",
-          "rust/etv-core/tests/oracle_parity.rs",
-          "rust/oracle/generate_vectors.py"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "src/escape_the_valley/ is now also read by rust/oracle/generate_vectors.py.",
-        "subjects": [
-          "src/escape_the_valley/",
-          "rust/oracle/generate_vectors.py"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/oracle/vectors/turns_long_seeds.json.gz is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/oracle/vectors/turns_long_seeds.json.gz"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "1 file added and 11 changed content.",
+        "sentence": "Nothing structural changed since 2026-10-23; 2 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ad611e5c580cddc83e7b66a3df42f0f9ac88c799",
-      "generatedAt": "2026-10-23T09:43:51.955Z"
+      "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
+      "generatedAt": "2026-10-23T12:47:40.454Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -197,7 +173,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
+  "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -513,7 +489,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T12:47:40.454Z",
+  "generatedAt": "2026-10-23T12:55:57.965Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

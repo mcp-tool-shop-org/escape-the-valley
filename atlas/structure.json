@@ -9146,7 +9146,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
+    "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f",
     "tracked": 650
   },
   "landings": [
@@ -9611,7 +9611,7 @@
         "taboo_kept",
         "template_choice_letters"
       ],
-      "hash": "46c1ef1c3f8c7ce953b2cc480979e199adaf897b2d8402c7a998e8699f1a6652",
+      "hash": "d11a0c792c1ad0502c0009c114b5b82d0c9fd1c6afbdd54e562117e9d128425e",
       "importsFiles": [
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -9754,7 +9754,7 @@
         "rest_day",
         "update_morale"
       ],
-      "hash": "3291f75627d3270ce28b3ba754ee2cdaafddde4b8b5aadf085a040cc0ca168e7",
+      "hash": "10c7674b001fa95396d2e36e46b2ae185ea28d8e2d17f5b7b1020148f227d4d2",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
