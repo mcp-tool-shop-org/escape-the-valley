@@ -49,7 +49,7 @@ This retries the failed settlements against the Testnet. Run it again when the n
 
 - **Check `trail self-check`** -- it reports whether a save was found and whether it loaded.
 - **Look for a backup:** in your save directory you'll find `run.json.corrupt-<timestamp>`. That is the file the engine quarantined. If you have tooling to repair JSON, the most recent backup is your best recovery candidate; otherwise it's a record of what was lost.
-- **Start fresh** if no backup is recoverable: `trail tui --seed <number>` begins a new run. The same seed plus the same choices reproduces the same world, so a re-run from a known seed is deterministic.
+- **Start fresh** if no backup is recoverable: `trail tui --seed <number>` begins a new run. Within one version, the same seed and the same choices play the same run. Reloading a save at a fork can change the run until #41 is fixed.
 
 ## Still stuck?
 

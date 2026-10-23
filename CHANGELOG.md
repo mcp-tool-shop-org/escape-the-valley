@@ -8,7 +8,7 @@ All notable changes to Escape the Valley are documented here.
 
 ### Changed
 
-- **Per-`event_id` cooldown (`N=4`) and seed reproducibility note (#21).** `select_event` now tracks the last 4 fired `event_id`s alongside the existing tag-family cooldown so a specific skeleton cannot repeat on consecutive or near-consecutive event steps. Because the post-draw guard re-draws when a candidate in the 4-event cooldown window is hit, **1.3.1 → 1.3.2 moves event draws after a repeat would have happened** (for example, on `--seed 42 --gm-off` with repeated Travel choosing `A`, Events 1–19 through Travel 36 / Day 13 match 1.3.1 identically and Event 20 at Travel 37 / Day 13 draws `f5_114` instead of repeating `f3_028`). Seed reproducibility is guaranteed within the same version.
+- **Per-`event_id` cooldown (`N=4`) and seed reproducibility note (#21).** `select_event` now tracks the last 4 fired `event_id`s alongside the existing tag-family cooldown so a specific skeleton cannot repeat on consecutive or near-consecutive event steps. Because the post-draw guard re-draws when a candidate in the 4-event cooldown window is hit, **1.3.1 → 1.3.2 moves event draws after a repeat would have happened**, and **a run saved in 1.3.1 continues differently after upgrading to 1.3.2** because event draws move (for example, on `--seed 42 --gm-off` with repeated Travel choosing `A`, Events 1–19 through Travel 36 / Day 13 match 1.3.1 identically and Event 20 at Travel 37 / Day 13 draws `f5_114` instead of repeating `f3_028`). Within one version, the same seed and the same choices play the same run. Reloading a save at a fork can change the run until #41 is fixed.
 
 ### Fixed
 

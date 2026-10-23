@@ -2171,3 +2171,48 @@ class TestThirdPartyNotices:
         assert "direct_url.json" in msg
         assert "_sysconfigdata__linux_x86_64-linux-gnu" in msg
         assert "/home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin" in msg
+
+    def test_seed_help_and_changelog_132_reproducibility_wording(self):
+        """PR #40 fix-up 1 (#21, #41): `trail new --help` (`--seed` help) and the
+        1.3.2 CHANGELOG section carry the qualified reproducibility wording, and
+        the 1.3.2 CHANGELOG section states plainly that a run saved in 1.3.1
+        continues differently after upgrading to 1.3.2."""
+        import re
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[1]
+
+        # 1. `--seed` help text on `trail new`:
+        res = runner.invoke(app, ["new", "--help"], env={"COLUMNS": "200"})
+        assert res.exit_code == 0
+        normalized_help = re.sub(r"\s+", " ", res.output)
+        assert (
+            "RNG seed; the same seed and choices give the same run in this version"
+            in normalized_help
+        )
+        assert "RNG seed for reproducible runs" not in normalized_help
+
+        # 2. 1.3.2 CHANGELOG section (extracted the same way release.yml does):
+        changelog = (repo_root / "CHANGELOG.md").read_text(encoding="utf-8")
+        m = re.search(
+            r"^## \[1\.3\.2\][^\n]*\n(.*?)(?=^## \[|\Z)",
+            changelog,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        assert m is not None, "Missing ## [1.3.2] section in CHANGELOG.md"
+        section_132 = m.group(1)
+
+        assert (
+            "a run saved in 1.3.1 continues differently after upgrading to 1.3.2"
+            in section_132
+        )
+        assert (
+            "Within one version, the same seed and the same choices play the same run. "
+            "Reloading a save at a fork can change the run until #41 is fixed."
+            in section_132
+        )
+        assert (
+            "Seed reproducibility is guaranteed within the same version"
+            not in section_132
+        )
+

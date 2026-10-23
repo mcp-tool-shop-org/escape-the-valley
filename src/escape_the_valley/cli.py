@@ -169,7 +169,12 @@ def main_callback(
 
 @app.command()
 def new(
-    seed: int | None = typer.Option(None, "--seed", "-s", help="RNG seed for reproducible runs"),
+    seed: int | None = typer.Option(
+        None,
+        "--seed",
+        "-s",
+        help="RNG seed; the same seed and choices give the same run in this version",
+    ),
     profile: str = typer.Option(
         "fireside",
         "--gm-profile",

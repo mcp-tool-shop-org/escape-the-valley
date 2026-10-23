@@ -935,6 +935,95 @@ class TestIssue20And21Fixes:
         assert observed[:19] == self.SEED_42_EVENTS_1_3_1[:19]
         assert observed == self.SEED_42_EVENTS_1_3_2
 
+    def test_save_and_reload_mid_cooldown_suppresses_same_repeat(
+        self, tmp_path, monkeypatch
+    ):
+        """PR #40 fix-up 1 (#21): saving and reloading mid-cooldown (after
+        Travel 35 on seed 42, while f3_028 from Travel 32 is inside the N=4
+        cooldown window) rebuilds the cooldown history from state.journal and
+        suppresses the f3_028 repeat at Travel 37 identically to an
+        uninterrupted run."""
+        import escape_the_valley.step_engine as step_engine_mod
+        from escape_the_valley.events import _recent_event_id_history
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+        from escape_the_valley.save import load_game, save_game
+        from escape_the_valley.step_engine import StepEngine
+
+        monkeypatch.setattr(
+            step_engine_mod,
+            "save_game",
+            lambda st, base_dir=None: save_game(st, tmp_path),
+        )
+
+        state = create_new_run(seed=42)
+        eng = StepEngine(state, GMConfig(enabled=False))
+        travel_step = 0
+        observed: list[tuple[int, int, str, int]] = []
+
+        while eng.phase != GamePhase.GAME_OVER:
+            if eng.phase == GamePhase.CAMP:
+                if travel_step == 35:
+                    break
+                travel_step += 1
+                eng.step(PlayerIntent(IntentAction.TRAVEL))
+            elif eng.phase == GamePhase.EVENT:
+                assert eng._pending_event is not None
+                observed.append(
+                    (
+                        travel_step,
+                        eng.state.day,
+                        eng._pending_event.event_id,
+                        eng.rng.counter,
+                    )
+                )
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            elif eng.phase == GamePhase.ROUTE:
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        assert eng.phase == GamePhase.CAMP
+        assert eng.state.distance_remaining > 0
+        assert _recent_event_id_history(eng.state) == [
+            "f4_045",
+            "f3_028",
+            "storm_sudden",
+            "f3_032",
+        ]
+
+        # Reload from disk into a brand-new StepEngine mid-cooldown:
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert getattr(loaded, "_recent_event_ids", None) is None
+        assert _recent_event_id_history(loaded) == [
+            "f4_045",
+            "f3_028",
+            "storm_sudden",
+            "f3_032",
+        ]
+
+        eng2 = StepEngine(loaded, GMConfig(enabled=False))
+        while eng2.phase != GamePhase.GAME_OVER:
+            if eng2.phase == GamePhase.CAMP:
+                travel_step += 1
+                eng2.step(PlayerIntent(IntentAction.TRAVEL))
+            elif eng2.phase == GamePhase.EVENT:
+                assert eng2._pending_event is not None
+                observed.append(
+                    (
+                        travel_step,
+                        eng2.state.day,
+                        eng2._pending_event.event_id,
+                        eng2.rng.counter,
+                    )
+                )
+                eng2.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            elif eng2.phase == GamePhase.ROUTE:
+                eng2.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        assert observed[19] == (37, 13, "f5_114", 457)
+        assert observed == self.SEED_42_EVENTS_1_3_2
+
+
     def test_show_event_strips_trailing_periods_from_choice_hints(self, monkeypatch):
         """#21: trailing periods on risk_hint and cost_hint are stripped before
         joining so '(... .; ...)' and '... .)' never appear."""

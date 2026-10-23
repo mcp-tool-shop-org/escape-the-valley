@@ -51,7 +51,7 @@ The full-screen TUI is the recommended way to play:
 trail tui --seed 42
 ```
 
-The `--seed` flag makes the run reproducible within the same version — same seed, same world, same events (given the same choices).
+With `--seed`, within one version, the same seed and the same choices play the same run.
 
 ### Other launch options
 
