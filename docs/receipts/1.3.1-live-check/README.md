@@ -1,4 +1,4 @@
-# 1.3.1 live check on `9773b08`, then `0d112bc`, `c6c30b5`, `7481d88` and `24926be`
+# 1.3.1 live check on `9773b08`, then `0d112bc`, `c6c30b5`, `7481d88`, `24926be` and the released npm package
 
 This is the live check the Editor asked for on **`9773b08`** (PR #25, `release/1.3.1` → `main`). That commit
 carries the player-facing fixes from the 1.3.0 audit. Items 1–6 ran on it. Item 7, the local binary build, ran on
@@ -54,6 +54,17 @@ exception.
   `_sysconfigdata`) and fails the `7481d88` binary from item 9.
 
 N1 is unchanged: the notices file is byte-identical to item 9's.
+
+**Item 11: the released npm package, `@mcptoolshop/escape-the-valley@1.3.1`, passes on Linux. On Windows it passes
+everything but the licences match (N2).**
+- **Both platforms:** from fresh caches, `--version` prints `trail 1.3.1`; the help reads
+  `Usage: escape-the-valley …`; and the downloaded binaries match `checksums-1.3.1.txt`.
+- **Linux:** `licenses` is byte-identical to the release's `THIRD_PARTY_NOTICES-linux-x64.txt`, and
+  `--verify-bundle` passes the release asset.
+- **N2, Windows:** `licenses` isn't byte-identical to `THIRD_PARTY_NOTICES-win-x64.txt`. The release file has 291
+  lines ending `\r\r\n`, from licence texts kept with their CRLF endings. The binary reads those back as extra blank
+  lines.
+- **pip:** `pip install escape-the-valley==1.3.1` on Python 3.13 runs `trail licenses` with exit 0.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
 
@@ -406,6 +417,61 @@ with third-party hits still needs his written exception naming them.
 - The workflow's `sudo mkdir` / `chown` path didn't run here, because the folder already existed.
 - The binary isn't committed.
 
+## Item 11: the released npm package, `@mcptoolshop/escape-the-valley@1.3.1` — Linux PASS, Windows PASS except the licences match (N2) (`11-npm-release/`)
+
+1.3.1 is released: tag `v1.3.1` on `47b01a3`, npm, PyPI and the GitHub release assets. This is the npm check the
+Editor asked for, the same as xrpl-camp's.
+- **The command:** `npx --yes @mcptoolshop/escape-the-valley@1.3.1`, from an empty working folder with a new
+  `npm_config_cache` and `npm_config_prefix` and a new launcher cache (`LOCALAPPDATA` on Windows, `XDG_CACHE_HOME`
+  on Linux). So the first call downloads the binary from the v1.3.1 release and checks it against
+  `checksums-1.3.1.txt`.
+- **Node:** 22.22.3 on both platforms: native on Windows; in WSL, the official Node in `~/opt`.
+- **Scripts:** `harness/npm_release_check_etv.sh` and `harness/_run_npm131_linux.sh`.
+
+| Check | Windows | Linux |
+|---|---|---|
+| `--version` | exit 0, `trail 1.3.1` | exit 0, `trail 1.3.1` |
+| `--help` | exit 0, `Usage: escape-the-valley [OPTIONS] COMMAND [ARGS]...` | the same |
+| The cached binary | `escape-the-valley-1.3.1-win-x64.exe`, sha256 `d72cd44b…`, **equal to `checksums-1.3.1.txt`** | `escape-the-valley-1.3.1-linux-x64`, sha256 `4c2499f3…`, **equal to `checksums-1.3.1.txt`** |
+| **argv[0] control:** the cached binary run directly | `Usage: escape-the-valley-1.3.1-win-x64.exe …` | `Usage: escape-the-valley-1.3.1-linux-x64 …` |
+| `licenses` and `--licenses` | exit 0, identical to each other (254,441 bytes), **not byte-identical** to `THIRD_PARTY_NOTICES-win-x64.txt` (254,150 bytes, sha256 `b25c6be4…`) | exit 0, **byte-identical** to `THIRD_PARTY_NOTICES-linux-x64.txt` (240,186 bytes, sha256 `34390db4…`) |
+| `--verify-bundle` (from the `v1.3.1` tag) on the release asset, and on the launcher's copy | — | **exit 0** on both: `[bundle-check] Verified 114 archive entries in …: no direct_url.json or _sysconfigdata home paths present` |
+
+The direct runs show the file name, so the `escape-the-valley` in every launcher run comes from the launcher setting
+argv[0]. The release's Linux notices are the same file as item 9's and item 10's local builds (`34390db4…`). So N1
+is still there in the released Linux notices: the header reads `SHA256: 367e5141…`.
+
+**N2 (minor): on Windows, `licenses` doesn't reproduce the release notices byte for byte.**
+- **The file:** the copy bundled in the `.exe` is the release's `THIRD_PARTY_NOTICES-win-x64.txt`, the same
+  sha256. Its lines end `\r\n`, except 291 that end `
+` (`win/08-crcrlf-blocks.txt`). They are in five blocks
+  whose source files are CRLF and are copied without normalising the line endings:
+  - the game LICENSE: 20 lines;
+  - CPython's `LICENSE.txt`: 138;
+  - pycryptodome's `AUTHORS.rst`: 50;
+  - pycryptodome's `LICENSE.rst`: 60;
+  - websockets' `LICENSE`: 23.
+
+  On the Windows build, writing that text in text mode turns each `\r\n` into `
+`.
+- **What `licenses` prints:** it reads the bundled file with universal newlines, so each `
+` becomes two line
+  breaks and those lines gain a blank line after them. It then prints with `\r\n`. The output is exactly that
+  reading of the file (a Python `newline=None` read, re-joined with `\r\n`, equals `03-licenses.out`). It has
+  5,305 lines; the release file has 5,014.
+- **Why it's minor:** the text is all there, only with extra blank lines, and the release file itself carries the
+  stray `\r`s.
+- **Linux is unaffected:** it writes and reads `\n` only, so its output is byte-identical.
+
+**pip install on a Python that isn't 3.12.13** (`pip-py313/`). `uv pip install escape-the-valley==1.3.1` came from
+PyPI into Python 3.13.13 on Windows. `trail licenses` exits 0 with 71,252 bytes and nothing on stderr, and it prints
+the note that the CPython and python-build-standalone texts apply to the release binaries only.
+
+**What it doesn't cover:**
+- macOS (darwin-arm64) didn't run.
+- No game was played through the npm channel.
+- The binaries and the release notices aren't committed. Their hashes are, and so is Windows' `licenses` output.
+
 ## Off the brief (all three are on 1.3.0 too; none from 1.3.1)
 
 - **D1 (minor, UX): in the TUI, `e` on the open ledger nudge starts a Testnet enable instead of Abandon Cargo**
@@ -462,9 +528,16 @@ with third-party hits still needs his written exception naming them.
   - `linux-build/`: each step's `.log` and `.exit` (01–12), the two negative controls (13, 14) and their hashes,
     `00-uv-python-dir-before.txt`, and the binary's hash, `file` type and versions;
   - `identity-scan-linux-binary.txt` and `sysconfigdata-prefix.txt`.
+- `11-npm-release/`:
+  - `win/` and `linux/`: each `npx` call as `.cmd`, `.err` and `.exit`, with the `--version`, `--help` and
+    direct-binary output;
+  - the cache listing and sha256, and `06-licenses-vs-release.txt` (hashes, sizes, `cmp`);
+  - `win/03-licenses.out` and `win/08-crcrlf-blocks.txt` (N2);
+  - `linux/`: the tag head, the asset's sha256, and the two `--verify-bundle` runs (09, 10);
+  - `checksums-1.3.1.txt`, and `pip-py313/`.
 - `code.txt`, `hashes.txt`.
 - `harness/`: `cli_drive`, `tui_drive`, `tui_key_probe` (D1), `seed_search` (how seed 10 was found),
   `etv_ledger_probe`, `redact_tree`, `unpack_pyinstaller` and `hit_context` (item 7). Each is a `.py.txt`, which
   keeps them out of the repo's lint. The item 8 shell scripts are `linux_build.sh`, `verify_toc_negative.sh` and
   `toc_has.sh`. Item 9 adds `linux_build_final.sh` and `_run_final.sh`, plus `notices_check`, `bundled_dists` and
-  `hit_context_scan` as `.py.txt`. Item 10 adds `linux_build_g1.sh` and `_run_g1.sh`.
+  `hit_context_scan` as `.py.txt`. Item 10 adds `linux_build_g1.sh` and `_run_g1.sh`; item 11, `npm_release_check_etv.sh` and `_run_npm131_linux.sh`.

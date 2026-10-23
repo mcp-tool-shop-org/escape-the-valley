@@ -1,0 +1,8 @@
+34390db4910c38ee17ac6552cece99663eafdc8a8facada2d12ca45296f25212  03-licenses.out
+240186
+34390db4910c38ee17ac6552cece99663eafdc8a8facada2d12ca45296f25212  04-licenses-flag.out
+240186
+34390db4910c38ee17ac6552cece99663eafdc8a8facada2d12ca45296f25212  THIRD_PARTY_NOTICES-linux-x64.txt
+240186
+cmp licenses vs release notices: identical
+cmp --licenses vs release notices: identical

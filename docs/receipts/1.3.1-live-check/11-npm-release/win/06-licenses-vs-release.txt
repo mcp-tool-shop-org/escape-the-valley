@@ -1,0 +1,8 @@
+6ebba7a2cb8499a3902ed851cf34540fd72426ff1c2bcce44b121b30f77b9395 *03-licenses.out
+254441
+6ebba7a2cb8499a3902ed851cf34540fd72426ff1c2bcce44b121b30f77b9395 *04-licenses-flag.out
+254441
+b25c6be42518e08af696436b8bf922d83eb7bea10c55c6c44f4ffb3a6105048b *THIRD_PARTY_NOTICES-win-x64.txt
+254150
+<scratch>/npm-131-release-20261023T0459Z/win/03-licenses.out <scratch>/npm-131-release-20261023T0459Z/win/THIRD_PARTY_NOTICES-win-x64.txt differ: char 416, line 7
+<scratch>/npm-131-release-20261023T0459Z/win/04-licenses-flag.out <scratch>/npm-131-release-20261023T0459Z/win/THIRD_PARTY_NOTICES-win-x64.txt differ: char 416, line 7
