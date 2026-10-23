@@ -116,7 +116,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "scripts",
-      "qualifyingSourceCommits": 6,
+      "qualifyingSourceCommits": 8,
       "rebaseline": null
     },
     {
@@ -148,12 +148,12 @@
           "scripts"
         ]
       },
-      "cohesion": 0.062201,
+      "cohesion": 0.06303,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "src",
-      "qualifyingSourceCommits": 69,
+      "qualifyingSourceCommits": 71,
       "rebaseline": null
     },
     {
@@ -166,12 +166,12 @@
         "importsAndCoChanges": [],
         "importsOnly": []
       },
-      "cohesion": 0.047222,
+      "cohesion": 0.047862,
       "cohesionDropped": false,
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 65,
+      "qualifyingSourceCommits": 67,
       "rebaseline": null
     }
   ],
@@ -179,8 +179,8 @@
     "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
     "files": [
       {
-        "commits": 1,
-        "lines": 11,
+        "commits": 2,
+        "lines": 13,
         "path": ".gitattributes"
       },
       {
@@ -199,8 +199,8 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 11,
-        "lines": 282,
+        "commits": 13,
+        "lines": 316,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -274,8 +274,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 6,
-        "lines": 283,
+        "commits": 7,
+        "lines": 297,
         "path": "atlas/README.md"
       },
       {
@@ -284,18 +284,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 6,
-        "lines": 1047,
+        "commits": 7,
+        "lines": 1091,
         "path": "atlas/page.json"
       },
       {
-        "commits": 6,
-        "lines": 1752,
+        "commits": 7,
+        "lines": 1836,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 6,
-        "lines": 9364,
+        "commits": 7,
+        "lines": 10773,
         "path": "atlas/structure.json"
       },
       {
@@ -329,8 +329,8 @@
         "path": "pyproject.toml"
       },
       {
-        "commits": 1,
-        "lines": 26,
+        "commits": 3,
+        "lines": 80,
         "path": "scripts/gen_third_party_notices.py"
       },
       {
@@ -344,8 +344,8 @@
         "path": "scripts/sim_gm_panel.py"
       },
       {
-        "commits": 6,
-        "lines": 473,
+        "commits": 7,
+        "lines": 478,
         "path": "scripts/smoke_test_binary.py"
       },
       {
@@ -679,6 +679,186 @@
         "path": "src/escape_the_valley/__main__.py"
       },
       {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/LICENSE"
+      },
+      {
+        "commits": 1,
+        "lines": 567,
+        "path": "src/escape_the_valley/_licenses/SOURCES.json"
+      },
+      {
+        "commits": 1,
+        "lines": 37,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.bzip2.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 771,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.cpython.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.expat.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libffi.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 13,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.liblzma.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 27,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libuuid.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 24,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 177,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-3.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 23,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.sqlite.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.zlib.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 1105,
+        "path": "src/escape_the_valley/_licenses/cpython/Doc-license.rst"
+      },
+      {
+        "commits": 1,
+        "lines": 808,
+        "path": "src/escape_the_valley/_licenses/cpython/LICENSE.incorporated-software.rst"
+      },
+      {
+        "commits": 1,
+        "lines": 37,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.bzip2.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 771,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.cpython.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.expat.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libffi.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 13,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.liblzma.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 27,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libuuid.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 24,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 177,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 23,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.sqlite.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.zlib.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 37,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.bzip2.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 771,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.cpython.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.expat.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 29,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libedit.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libffi.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 13,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.liblzma.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 27,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libuuid.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 24,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 29,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 177,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 23,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.sqlite.txt"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.zlib.txt"
+      },
+      {
         "commits": 13,
         "lines": 364,
         "path": "src/escape_the_valley/adapter.py"
@@ -759,8 +939,8 @@
         "path": "src/escape_the_valley/narration.py"
       },
       {
-        "commits": 1,
-        "lines": 397,
+        "commits": 3,
+        "lines": 1532,
         "path": "src/escape_the_valley/notices.py"
       },
       {
@@ -834,8 +1014,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 11,
-        "lines": 1453,
+        "commits": 13,
+        "lines": 1871,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -934,11 +1114,18 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-22T21:58:13.577Z",
+  "generatedAt": "2026-10-23T01:08:38.322Z",
   "generatedFrom": {
-    "commit": "0d112bcfb8b39010010b3aa8ca4e14194e13dcfe"
+    "commit": "6af24104463f9639e0546308f79c9c562dfd8fa6"
   },
   "pairs": [
+    {
+      "a": ".github/workflows/release-binaries.yml",
+      "b": "scripts/smoke_test_binary.py",
+      "either": 10,
+      "shared": 5,
+      "strength": 0.5
+    },
     {
       "a": "README.md",
       "b": "SHIP_GATE.md",
@@ -959,6 +1146,48 @@
       "either": 8,
       "shared": 4,
       "strength": 0.5
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/page.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/statistics.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
     },
     {
       "a": "package.json",
@@ -1005,9 +1234,9 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 9,
+      "either": 11,
       "shared": 8,
-      "strength": 0.888889
+      "strength": 0.727273
     },
     {
       "a": "src/escape_the_valley/engine.py",
@@ -1102,7 +1331,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 40.5,
+    "appliedChangesetLimit": 49.5,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -1111,16 +1340,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-22T17:30:01-04:00",
-    "inScopeFiles": 162,
+    "headDate": "2026-10-22T21:08:07-04:00",
+    "inScopeFiles": 198,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 103,
+    "qualifyingCommits": 105,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-25T21:30:01.000Z",
+    "since": "2026-04-26T01:08:07.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
@@ -1136,7 +1365,7 @@
     ],
     "sourceFileReach": 20,
     "sourceFileRise": 25,
-    "sourceFilesReachingStrongFloor": 8,
+    "sourceFilesReachingStrongFloor": 9,
     "strength": 0.5,
     "windowDays": 180
   },
