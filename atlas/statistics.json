@@ -132,7 +132,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "site",
-      "qualifyingSourceCommits": 6,
+      "qualifyingSourceCommits": 5,
       "rebaseline": null
     },
     {
@@ -179,13 +179,13 @@
     "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
     "files": [
       {
-        "commits": 3,
-        "lines": 15,
+        "commits": 2,
+        "lines": 13,
         "path": ".gitattributes"
       },
       {
-        "commits": 18,
-        "lines": 335,
+        "commits": 17,
+        "lines": 333,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -199,68 +199,68 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 11,
-        "lines": 440,
+        "commits": 10,
+        "lines": 347,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
-        "commits": 8,
-        "lines": 325,
+        "commits": 7,
+        "lines": 321,
         "path": ".github/workflows/release.yml"
       },
       {
-        "commits": 1,
-        "lines": 319,
+        "commits": 2,
+        "lines": 638,
         "path": ".github/workflows/rust-spike-release.yml"
       },
       {
-        "commits": 6,
-        "lines": 13,
+        "commits": 5,
+        "lines": 11,
         "path": ".gitignore"
       },
       {
-        "commits": 25,
-        "lines": 422,
+        "commits": 23,
+        "lines": 403,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 8,
-        "lines": 767,
+        "commits": 7,
+        "lines": 658,
         "path": "README.es.md"
       },
       {
-        "commits": 8,
-        "lines": 803,
+        "commits": 7,
+        "lines": 692,
         "path": "README.fr.md"
       },
       {
-        "commits": 8,
-        "lines": 749,
+        "commits": 7,
+        "lines": 646,
         "path": "README.hi.md"
       },
       {
-        "commits": 8,
-        "lines": 731,
+        "commits": 7,
+        "lines": 644,
         "path": "README.it.md"
       },
       {
-        "commits": 8,
-        "lines": 871,
+        "commits": 7,
+        "lines": 758,
         "path": "README.ja.md"
       },
       {
-        "commits": 18,
-        "lines": 148,
+        "commits": 16,
+        "lines": 133,
         "path": "README.md"
       },
       {
-        "commits": 8,
-        "lines": 973,
+        "commits": 7,
+        "lines": 868,
         "path": "README.pt-BR.md"
       },
       {
-        "commits": 8,
-        "lines": 639,
+        "commits": 7,
+        "lines": 542,
         "path": "README.zh.md"
       },
       {
@@ -274,13 +274,13 @@
         "path": "SECURITY.md"
       },
       {
-        "commits": 14,
-        "lines": 148,
+        "commits": 12,
+        "lines": 140,
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 9,
-        "lines": 428,
+        "commits": 11,
+        "lines": 456,
         "path": "atlas/README.md"
       },
       {
@@ -289,23 +289,23 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 9,
-        "lines": 1703,
+        "commits": 11,
+        "lines": 1768,
         "path": "atlas/page.json"
       },
       {
-        "commits": 9,
-        "lines": 6155,
+        "commits": 11,
+        "lines": 6686,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 9,
-        "lines": 17063,
+        "commits": 11,
+        "lines": 14150,
         "path": "atlas/structure.json"
       },
       {
-        "commits": 6,
-        "lines": 58,
+        "commits": 5,
+        "lines": 46,
         "path": "bin/escape-the-valley.js"
       },
       {
@@ -319,2158 +319,2158 @@
         "path": "docs/landing-design-brief.md"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.cmd"
       },
       {
-        "commits": 2,
-        "lines": 3644,
+        "commits": 1,
+        "lines": 1822,
         "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.exit"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.exit"
       },
       {
-        "commits": 2,
-        "lines": 38,
+        "commits": 1,
+        "lines": 19,
         "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.exit"
       },
       {
-        "commits": 2,
-        "lines": 48,
+        "commits": 1,
+        "lines": 24,
         "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.cmd"
       },
       {
-        "commits": 2,
-        "lines": 318,
+        "commits": 1,
+        "lines": 159,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.out"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.cmd"
       },
       {
-        "commits": 2,
-        "lines": 3644,
+        "commits": 1,
+        "lines": 1822,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.exit"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.exit"
       },
       {
-        "commits": 2,
-        "lines": 38,
+        "commits": 1,
+        "lines": 19,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.exit"
       },
       {
-        "commits": 2,
-        "lines": 38,
+        "commits": 1,
+        "lines": 19,
         "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.out"
       },
       {
-        "commits": 2,
-        "lines": 20,
+        "commits": 1,
+        "lines": 10,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/identity-scan-linux-binary.txt"
       },
       {
-        "commits": 2,
-        "lines": 20,
+        "commits": 1,
+        "lines": 10,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/00-uv-python-dir-before.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 76,
+        "commits": 1,
+        "lines": 38,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.exit"
       },
       {
-        "commits": 2,
-        "lines": 254,
+        "commits": 1,
+        "lines": 127,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.exit"
       },
       {
-        "commits": 2,
-        "lines": 248,
+        "commits": 1,
+        "lines": 124,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.exit"
       },
       {
-        "commits": 2,
-        "lines": 24,
+        "commits": 1,
+        "lines": 12,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.log"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/dist-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/file.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/head.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/neg-controls-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/uv-version.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/versions.txt"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/sysconfigdata-prefix.txt"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/checksums-1.3.1.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.cmd"
       },
       {
-        "commits": 2,
-        "lines": 18,
+        "commits": 1,
+        "lines": 9,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.exit"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cache-files.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cached-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/06-licenses-vs-release.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.exit"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-release-asset-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-tag-head.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.log"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/node-version.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/python-version.txt"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.cmd"
       },
       {
-        "commits": 2,
-        "lines": 18,
+        "commits": 1,
+        "lines": 9,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.exit"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 10610,
+        "commits": 1,
+        "lines": 5305,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cache-files.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cached-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/06-licenses-vs-release.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.exit"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.out"
       },
       {
-        "commits": 2,
-        "lines": 14,
+        "commits": 1,
+        "lines": 7,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/08-crcrlf-blocks.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/node-version.txt"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/abandon-card.json"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/after-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/before-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.cmd"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 128,
+        "commits": 1,
+        "lines": 64,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/abandon-card.json"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.cmd"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 130,
+        "commits": 1,
+        "lines": 65,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/abandon-card.json"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/after-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/before-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.cmd"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 128,
+        "commits": 1,
+        "lines": 64,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 444,
+        "commits": 1,
+        "lines": 222,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/after-e.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.cmd"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.exit"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.out"
       },
       {
-        "commits": 2,
-        "lines": 16,
+        "commits": 1,
+        "lines": 8,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/abandon-card.json"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.cmd"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 130,
+        "commits": 1,
+        "lines": 65,
         "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-024-r.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-025-p.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-027-1.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.svg"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-024-r.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-025-p.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-027-1.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.svg"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.narration.txt"
       },
       {
-        "commits": 2,
-        "lines": 442,
+        "commits": 1,
+        "lines": 221,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.svg"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 56,
+        "commits": 1,
+        "lines": 28,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.out"
       },
       {
-        "commits": 2,
-        "lines": 56,
+        "commits": 1,
+        "lines": 28,
         "path": "docs/receipts/1.3.1-live-check/3-tui-fork/steps.jsonl"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.cmd"
       },
       {
-        "commits": 2,
-        "lines": 100,
+        "commits": 1,
+        "lines": 50,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.out"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/03-after-A.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.cmd"
       },
       {
-        "commits": 2,
-        "lines": 104,
+        "commits": 1,
+        "lines": 52,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.out"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/4-same-seed/06-after-B.txt"
       },
       {
-        "commits": 2,
-        "lines": 72,
+        "commits": 1,
+        "lines": 36,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/account_tx.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2838,
+        "commits": 1,
+        "lines": 1419,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.exit"
       },
       {
-        "commits": 2,
-        "lines": 50,
+        "commits": 1,
+        "lines": 25,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2840,
+        "commits": 1,
+        "lines": 1420,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.exit"
       },
       {
-        "commits": 2,
-        "lines": 24,
+        "commits": 1,
+        "lines": 12,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.exit"
       },
       {
-        "commits": 2,
-        "lines": 50,
+        "commits": 1,
+        "lines": 25,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.exit"
       },
       {
-        "commits": 2,
-        "lines": 96,
+        "commits": 1,
+        "lines": 48,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.cmd"
       },
       {
-        "commits": 2,
-        "lines": 290,
+        "commits": 1,
+        "lines": 145,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.exit"
       },
       {
-        "commits": 2,
-        "lines": 64,
+        "commits": 1,
+        "lines": 32,
         "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.out"
       },
       {
-        "commits": 2,
-        "lines": 108,
+        "commits": 1,
+        "lines": 54,
         "path": "docs/receipts/1.3.1-live-check/7-binary/01-install-notices.log"
       },
       {
-        "commits": 2,
-        "lines": 270,
+        "commits": 1,
+        "lines": 135,
         "path": "docs/receipts/1.3.1-live-check/7-binary/02-pyinstaller.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/03-binary-sha256.txt"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.out"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/7-binary/09-identity-scan-binary.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/10-unpack.txt"
       },
       {
-        "commits": 2,
-        "lines": 62,
+        "commits": 1,
+        "lines": 31,
         "path": "docs/receipts/1.3.1-live-check/7-binary/11-identity-scan-unpacked.txt"
       },
       {
-        "commits": 2,
-        "lines": 36,
+        "commits": 1,
+        "lines": 18,
         "path": "docs/receipts/1.3.1-live-check/7-binary/12-hit-sources.md"
       },
       {
-        "commits": 2,
-        "lines": 62,
+        "commits": 1,
+        "lines": 31,
         "path": "docs/receipts/1.3.1-live-check/7-binary/13-identity-scan-binary-v2.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-head.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/03-binary-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.out"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/09-identity-scan-binary.txt"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/11-identity-scan-unpacked.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.exit"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.cmd"
       },
       {
-        "commits": 2,
-        "lines": 100,
+        "commits": 1,
+        "lines": 50,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.cmd"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/python.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.exit"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.cmd"
       },
       {
-        "commits": 2,
-        "lines": 100,
+        "commits": 1,
+        "lines": 50,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "docs/receipts/1.3.1-live-check/7-binary/licenses-hashes.txt"
       },
       {
-        "commits": 2,
-        "lines": 78,
+        "commits": 1,
+        "lines": 39,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/01-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/02-bundled-path.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.out"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.cmd"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 80,
+        "commits": 1,
+        "lines": 40,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.exit"
       },
       {
-        "commits": 2,
-        "lines": 254,
+        "commits": 1,
+        "lines": 127,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.exit"
       },
       {
-        "commits": 2,
-        "lines": 24,
+        "commits": 1,
+        "lines": 12,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.log"
       },
       {
-        "commits": 2,
-        "lines": 10,
+        "commits": 1,
+        "lines": 5,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/09-verify-toc-negative-rich.log"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/10-toc-modules.txt"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/dist-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/file.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/head.txt"
       },
       {
-        "commits": 2,
-        "lines": 54,
+        "commits": 1,
+        "lines": 27,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/notices-names.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/8-linux-binary/versions.txt"
       },
       {
-        "commits": 2,
-        "lines": 52,
+        "commits": 1,
+        "lines": 26,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/bundled-dists.txt"
       },
       {
-        "commits": 2,
-        "lines": 46,
+        "commits": 1,
+        "lines": 23,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-hit-sources.md"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-linux-binary.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.exit"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.exit"
       },
       {
-        "commits": 2,
-        "lines": 76,
+        "commits": 1,
+        "lines": 38,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.exit"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 1,
+        "lines": 11,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.exit"
       },
       {
-        "commits": 2,
-        "lines": 254,
+        "commits": 1,
+        "lines": 127,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.exit"
       },
       {
-        "commits": 2,
-        "lines": 248,
+        "commits": 1,
+        "lines": 124,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.exit"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.exit"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.log"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.exit"
       },
       {
-        "commits": 2,
-        "lines": 24,
+        "commits": 1,
+        "lines": 12,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.log"
       },
       {
-        "commits": 2,
-        "lines": 9638,
+        "commits": 1,
+        "lines": 4819,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/THIRD_PARTY_NOTICES-linux-x64.txt"
       },
       {
-        "commits": 2,
-        "lines": 8,
+        "commits": 1,
+        "lines": 4,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/dist-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/file.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/head.txt"
       },
       {
-        "commits": 2,
-        "lines": 10104,
+        "commits": 1,
+        "lines": 5052,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/notices-before-prune.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/uv-version.txt"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/versions.txt"
       },
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 1,
+        "lines": 6,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check-negative.txt"
       },
       {
-        "commits": 2,
-        "lines": 140,
+        "commits": 1,
+        "lines": 70,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check.txt"
       },
       {
-        "commits": 2,
-        "lines": 6,
+        "commits": 1,
+        "lines": 3,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-three-copies-sha256.txt"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/python-version.txt"
       },
       {
-        "commits": 2,
+        "commits": 1,
         "lines": 0,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.err"
       },
       {
-        "commits": 2,
-        "lines": 2,
+        "commits": 1,
+        "lines": 1,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.exit"
       },
       {
-        "commits": 2,
-        "lines": 2932,
+        "commits": 1,
+        "lines": 1466,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.out"
       },
       {
-        "commits": 2,
-        "lines": 4,
+        "commits": 1,
+        "lines": 2,
         "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/sysconfigdata-home-paths.txt"
       },
       {
-        "commits": 3,
-        "lines": 1090,
+        "commits": 1,
+        "lines": 543,
         "path": "docs/receipts/1.3.1-live-check/README.md"
       },
       {
-        "commits": 2,
-        "lines": 30,
+        "commits": 1,
+        "lines": 15,
         "path": "docs/receipts/1.3.1-live-check/code.txt"
       },
       {
-        "commits": 2,
-        "lines": 10,
+        "commits": 1,
+        "lines": 5,
         "path": "docs/receipts/1.3.1-live-check/harness/_run_final.sh"
       },
       {
-        "commits": 2,
-        "lines": 24,
+        "commits": 1,
+        "lines": 12,
         "path": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh"
       },
       {
-        "commits": 2,
-        "lines": 64,
+        "commits": 1,
+        "lines": 32,
         "path": "docs/receipts/1.3.1-live-check/harness/bundled_dists.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 222,
+        "commits": 1,
+        "lines": 111,
         "path": "docs/receipts/1.3.1-live-check/harness/cli_drive.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 60,
+        "commits": 1,
+        "lines": 30,
         "path": "docs/receipts/1.3.1-live-check/harness/etv_ledger_probe.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 30,
+        "commits": 1,
+        "lines": 15,
         "path": "docs/receipts/1.3.1-live-check/harness/hit_context.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 40,
+        "commits": 1,
+        "lines": 20,
         "path": "docs/receipts/1.3.1-live-check/harness/hit_context_scan.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 98,
+        "commits": 1,
+        "lines": 49,
         "path": "docs/receipts/1.3.1-live-check/harness/linux_build.sh"
       },
       {
-        "commits": 2,
-        "lines": 102,
+        "commits": 1,
+        "lines": 51,
         "path": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
       },
       {
-        "commits": 2,
-        "lines": 104,
+        "commits": 1,
+        "lines": 52,
         "path": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
       },
       {
-        "commits": 2,
-        "lines": 216,
+        "commits": 1,
+        "lines": 108,
         "path": "docs/receipts/1.3.1-live-check/harness/notices_check.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 82,
+        "commits": 1,
+        "lines": 41,
         "path": "docs/receipts/1.3.1-live-check/harness/npm_release_check_etv.sh"
       },
       {
-        "commits": 2,
-        "lines": 72,
+        "commits": 1,
+        "lines": 36,
         "path": "docs/receipts/1.3.1-live-check/harness/redact_tree.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 56,
+        "commits": 1,
+        "lines": 28,
         "path": "docs/receipts/1.3.1-live-check/harness/seed_search.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 14,
+        "commits": 1,
+        "lines": 7,
         "path": "docs/receipts/1.3.1-live-check/harness/toc_has.sh"
       },
       {
-        "commits": 2,
-        "lines": 236,
+        "commits": 1,
+        "lines": 118,
         "path": "docs/receipts/1.3.1-live-check/harness/tui_drive.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 100,
+        "commits": 1,
+        "lines": 50,
         "path": "docs/receipts/1.3.1-live-check/harness/tui_key_probe.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 78,
+        "commits": 1,
+        "lines": 39,
         "path": "docs/receipts/1.3.1-live-check/harness/unpack_pyinstaller.py.txt"
       },
       {
-        "commits": 2,
-        "lines": 30,
+        "commits": 1,
+        "lines": 15,
         "path": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh"
       },
       {
-        "commits": 2,
-        "lines": 52,
+        "commits": 1,
+        "lines": 26,
         "path": "docs/receipts/1.3.1-live-check/hashes.txt"
       },
       {
@@ -2479,88 +2479,88 @@
         "path": "docs/survival-guide.md"
       },
       {
-        "commits": 9,
-        "lines": 64,
+        "commits": 8,
+        "lines": 60,
         "path": "package.json"
       },
       {
-        "commits": 13,
-        "lines": 57,
+        "commits": 12,
+        "lines": 55,
         "path": "pyproject.toml"
       },
       {
-        "commits": 1,
-        "lines": 4061,
+        "commits": 2,
+        "lines": 8122,
         "path": "rust-spikes/Cargo.lock"
       },
       {
-        "commits": 1,
-        "lines": 14,
+        "commits": 2,
+        "lines": 28,
         "path": "rust-spikes/Cargo.toml"
       },
       {
-        "commits": 2,
-        "lines": 20,
+        "commits": 3,
+        "lines": 36,
         "path": "rust-spikes/deny.toml"
       },
       {
-        "commits": 1,
-        "lines": 3,
+        "commits": 2,
+        "lines": 6,
         "path": "rust-spikes/rust-toolchain.toml"
       },
       {
-        "commits": 1,
-        "lines": 13,
+        "commits": 2,
+        "lines": 26,
         "path": "rust-spikes/s1-rng/Cargo.toml"
       },
       {
-        "commits": 2,
-        "lines": 240,
+        "commits": 3,
+        "lines": 478,
         "path": "rust-spikes/s1-rng/gen_vectors.py"
       },
       {
-        "commits": 1,
-        "lines": 551,
+        "commits": 2,
+        "lines": 1102,
         "path": "rust-spikes/s1-rng/src/lib.rs"
       },
       {
-        "commits": 2,
-        "lines": 15454,
+        "commits": 3,
+        "lines": 30896,
         "path": "rust-spikes/s1-rng/vectors.json"
       },
       {
-        "commits": 1,
-        "lines": 26,
+        "commits": 2,
+        "lines": 52,
         "path": "rust-spikes/s2-xrpl/Cargo.toml"
       },
       {
-        "commits": 1,
-        "lines": 617,
+        "commits": 2,
+        "lines": 1234,
         "path": "rust-spikes/s2-xrpl/src/main.rs"
       },
       {
-        "commits": 1,
-        "lines": 14,
+        "commits": 2,
+        "lines": 28,
         "path": "rust-spikes/s3-voice/Cargo.toml"
       },
       {
-        "commits": 1,
-        "lines": 1086,
+        "commits": 2,
+        "lines": 2172,
         "path": "rust-spikes/s3-voice/src/main.rs"
       },
       {
-        "commits": 1,
-        "lines": 13,
+        "commits": 2,
+        "lines": 26,
         "path": "rust-spikes/s4-hello/Cargo.toml"
       },
       {
-        "commits": 1,
-        "lines": 16,
+        "commits": 2,
+        "lines": 32,
         "path": "rust-spikes/s4-hello/pyproject.toml"
       },
       {
-        "commits": 1,
-        "lines": 77,
+        "commits": 2,
+        "lines": 154,
         "path": "rust-spikes/s4-hello/src/main.rs"
       },
       {
@@ -2569,8 +2569,8 @@
         "path": "rust/Cargo.lock"
       },
       {
-        "commits": 1,
-        "lines": 11,
+        "commits": 2,
+        "lines": 14,
         "path": "rust/Cargo.toml"
       },
       {
@@ -2584,14 +2584,39 @@
         "path": "rust/etv-core/Cargo.toml"
       },
       {
-        "commits": 1,
-        "lines": 12,
-        "path": "rust/etv-core/src/lib.rs"
+        "commits": 3,
+        "lines": 1389,
+        "path": "rust/etv-core/src/engine.rs"
       },
       {
         "commits": 1,
-        "lines": 1214,
+        "lines": 698,
+        "path": "rust/etv-core/src/events.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 5202,
+        "path": "rust/etv-core/src/events_builtin.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 25,
+        "path": "rust/etv-core/src/lib.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 1003,
+        "path": "rust/etv-core/src/memory.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 1217,
         "path": "rust/etv-core/src/model.rs"
+      },
+      {
+        "commits": 3,
+        "lines": 827,
+        "path": "rust/etv-core/src/physics.rs"
       },
       {
         "commits": 1,
@@ -2599,37 +2624,52 @@
         "path": "rust/etv-core/src/rng.rs"
       },
       {
-        "commits": 1,
-        "lines": 1240,
+        "commits": 4,
+        "lines": 1672,
         "path": "rust/etv-core/src/save.rs"
       },
       {
-        "commits": 1,
-        "lines": 852,
+        "commits": 2,
+        "lines": 1006,
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
-        "commits": 1,
-        "lines": 1010,
+        "commits": 4,
+        "lines": 2410,
         "path": "rust/etv-core/tests/oracle_parity.rs"
       },
       {
-        "commits": 1,
-        "lines": 779,
+        "commits": 4,
+        "lines": 2231,
         "path": "rust/oracle/generate_vectors.py"
       },
       {
-        "commits": 1,
+        "commits": 2,
+        "lines": 0,
+        "path": "rust/oracle/vectors/resume_120_seeds.json.gz"
+      },
+      {
+        "commits": 3,
         "lines": 0,
         "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
       },
       {
-        "commits": 1,
+        "commits": 3,
         "lines": 0,
         "path": "rust/oracle/vectors/saves_20.json.gz"
       },
       {
+        "commits": 2,
+        "lines": 0,
+        "path": "rust/oracle/vectors/turns_1000_seeds.json.gz"
+      },
+      {
         "commits": 1,
+        "lines": 0,
+        "path": "rust/oracle/vectors/turns_long_seeds.json.gz"
+      },
+      {
+        "commits": 3,
         "lines": 0,
         "path": "rust/oracle/vectors/worldgen_200.json.gz"
       },
@@ -2639,8 +2679,8 @@
         "path": "rust/rust-toolchain.toml"
       },
       {
-        "commits": 2,
-        "lines": 216,
+        "commits": 1,
+        "lines": 108,
         "path": "scripts/gen_third_party_notices.py"
       },
       {
@@ -2654,8 +2694,8 @@
         "path": "scripts/sim_gm_panel.py"
       },
       {
-        "commits": 6,
-        "lines": 519,
+        "commits": 5,
+        "lines": 474,
         "path": "scripts/smoke_test_binary.py"
       },
       {
@@ -2909,8 +2949,8 @@
         "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
       },
       {
-        "commits": 3,
-        "lines": 830,
+        "commits": 2,
+        "lines": 824,
         "path": "site/public/index.html"
       },
       {
@@ -2924,13 +2964,13 @@
         "path": "site/src/content/docs/handbook/beginners.md"
       },
       {
-        "commits": 7,
-        "lines": 13,
+        "commits": 5,
+        "lines": 10,
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 5,
-        "lines": 28,
+        "commits": 4,
+        "lines": 26,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -2959,8 +2999,8 @@
         "path": "site/src/content/docs/handbook/troubleshooting.md"
       },
       {
-        "commits": 7,
-        "lines": 56,
+        "commits": 6,
+        "lines": 54,
         "path": "site/src/content/docs/handbook/xrpl-ledger.md"
       },
       {
@@ -2969,8 +3009,8 @@
         "path": "site/src/pages/index.astro"
       },
       {
-        "commits": 6,
-        "lines": 22,
+        "commits": 5,
+        "lines": 18,
         "path": "site/src/site-config.ts"
       },
       {
@@ -2979,8 +3019,8 @@
         "path": "site/src/styles/starlight-custom.css"
       },
       {
-        "commits": 9,
-        "lines": 18,
+        "commits": 8,
+        "lines": 16,
         "path": "src/escape_the_valley/__init__.py"
       },
       {
@@ -2989,198 +3029,198 @@
         "path": "src/escape_the_valley/__main__.py"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/LICENSE"
       },
       {
-        "commits": 2,
-        "lines": 1428,
+        "commits": 1,
+        "lines": 714,
         "path": "src/escape_the_valley/_licenses/SOURCES.json"
       },
       {
-        "commits": 2,
-        "lines": 74,
+        "commits": 1,
+        "lines": 37,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.bzip2.txt"
       },
       {
-        "commits": 2,
-        "lines": 1542,
+        "commits": 1,
+        "lines": 771,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.cpython.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.expat.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libffi.txt"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.liblzma.txt"
       },
       {
-        "commits": 2,
-        "lines": 54,
+        "commits": 1,
+        "lines": 27,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libuuid.txt"
       },
       {
-        "commits": 2,
-        "lines": 48,
+        "commits": 1,
+        "lines": 24,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
       },
       {
-        "commits": 2,
-        "lines": 248,
+        "commits": 1,
+        "lines": 124,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-1.1.txt"
       },
       {
-        "commits": 2,
-        "lines": 354,
+        "commits": 1,
+        "lines": 177,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-3.txt"
       },
       {
-        "commits": 2,
-        "lines": 46,
+        "commits": 1,
+        "lines": 23,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.sqlite.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.zlib.txt"
       },
       {
-        "commits": 2,
-        "lines": 2210,
+        "commits": 1,
+        "lines": 1105,
         "path": "src/escape_the_valley/_licenses/cpython/Doc-license.rst"
       },
       {
-        "commits": 2,
-        "lines": 1616,
+        "commits": 1,
+        "lines": 808,
         "path": "src/escape_the_valley/_licenses/cpython/LICENSE.incorporated-software.rst"
       },
       {
-        "commits": 2,
-        "lines": 74,
+        "commits": 1,
+        "lines": 37,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.bzip2.txt"
       },
       {
-        "commits": 2,
-        "lines": 1542,
+        "commits": 1,
+        "lines": 771,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.cpython.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.expat.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libffi.txt"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.liblzma.txt"
       },
       {
-        "commits": 2,
-        "lines": 54,
+        "commits": 1,
+        "lines": 27,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libuuid.txt"
       },
       {
-        "commits": 2,
-        "lines": 48,
+        "commits": 1,
+        "lines": 24,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
       },
       {
-        "commits": 2,
-        "lines": 248,
+        "commits": 1,
+        "lines": 124,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt"
       },
       {
-        "commits": 2,
-        "lines": 354,
+        "commits": 1,
+        "lines": 177,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
       },
       {
-        "commits": 2,
-        "lines": 46,
+        "commits": 1,
+        "lines": 23,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.sqlite.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.zlib.txt"
       },
       {
-        "commits": 2,
-        "lines": 74,
+        "commits": 1,
+        "lines": 37,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.bzip2.txt"
       },
       {
-        "commits": 2,
-        "lines": 1542,
+        "commits": 1,
+        "lines": 771,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.cpython.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.expat.txt"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libedit.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libffi.txt"
       },
       {
-        "commits": 2,
-        "lines": 26,
+        "commits": 1,
+        "lines": 13,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.liblzma.txt"
       },
       {
-        "commits": 2,
-        "lines": 54,
+        "commits": 1,
+        "lines": 27,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libuuid.txt"
       },
       {
-        "commits": 2,
-        "lines": 48,
+        "commits": 1,
+        "lines": 24,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt"
       },
       {
-        "commits": 2,
-        "lines": 58,
+        "commits": 1,
+        "lines": 29,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
       },
       {
-        "commits": 2,
-        "lines": 248,
+        "commits": 1,
+        "lines": 124,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt"
       },
       {
-        "commits": 2,
-        "lines": 354,
+        "commits": 1,
+        "lines": 177,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt"
       },
       {
-        "commits": 2,
-        "lines": 46,
+        "commits": 1,
+        "lines": 23,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.sqlite.txt"
       },
       {
-        "commits": 2,
-        "lines": 42,
+        "commits": 1,
+        "lines": 21,
         "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.zlib.txt"
       },
       {
@@ -3204,8 +3244,8 @@
         "path": "src/escape_the_valley/backpack_ui.py"
       },
       {
-        "commits": 14,
-        "lines": 720,
+        "commits": 13,
+        "lines": 696,
         "path": "src/escape_the_valley/cli.py"
       },
       {
@@ -3214,8 +3254,8 @@
         "path": "src/escape_the_valley/data/event_skeletons.json"
       },
       {
-        "commits": 27,
-        "lines": 2599,
+        "commits": 26,
+        "lines": 2460,
         "path": "src/escape_the_valley/engine.py"
       },
       {
@@ -3254,8 +3294,8 @@
         "path": "src/escape_the_valley/memory_emitters.py"
       },
       {
-        "commits": 10,
-        "lines": 126,
+        "commits": 9,
+        "lines": 122,
         "path": "src/escape_the_valley/models.py"
       },
       {
@@ -3264,8 +3304,8 @@
         "path": "src/escape_the_valley/narration.py"
       },
       {
-        "commits": 2,
-        "lines": 2704,
+        "commits": 1,
+        "lines": 1352,
         "path": "src/escape_the_valley/notices.py"
       },
       {
@@ -3284,8 +3324,8 @@
         "path": "src/escape_the_valley/save.py"
       },
       {
-        "commits": 28,
-        "lines": 2427,
+        "commits": 27,
+        "lines": 2401,
         "path": "src/escape_the_valley/step_engine.py"
       },
       {
@@ -3299,8 +3339,8 @@
         "path": "src/escape_the_valley/tui_app.py"
       },
       {
-        "commits": 17,
-        "lines": 574,
+        "commits": 16,
+        "lines": 560,
         "path": "src/escape_the_valley/ui.py"
       },
       {
@@ -3339,8 +3379,8 @@
         "path": "tests/test_backpack_save.py"
       },
       {
-        "commits": 11,
-        "lines": 3040,
+        "commits": 10,
+        "lines": 2168,
         "path": "tests/test_cli_stats.py"
       },
       {
@@ -3359,8 +3399,8 @@
         "path": "tests/test_events.py"
       },
       {
-        "commits": 5,
-        "lines": 132,
+        "commits": 4,
+        "lines": 127,
         "path": "tests/test_four_tier_live.py"
       },
       {
@@ -3394,8 +3434,8 @@
         "path": "tests/test_models.py"
       },
       {
-        "commits": 6,
-        "lines": 61,
+        "commits": 5,
+        "lines": 59,
         "path": "tests/test_narration.py"
       },
       {
@@ -3409,13 +3449,13 @@
         "path": "tests/test_physics.py"
       },
       {
-        "commits": 12,
-        "lines": 1318,
+        "commits": 11,
+        "lines": 1267,
         "path": "tests/test_save.py"
       },
       {
-        "commits": 31,
-        "lines": 8086,
+        "commits": 30,
+        "lines": 7888,
         "path": "tests/test_step_engine.py"
       },
       {
@@ -3429,8 +3469,8 @@
         "path": "tests/test_voice.py"
       },
       {
-        "commits": 4,
-        "lines": 84,
+        "commits": 3,
+        "lines": 51,
         "path": "tests/test_worldgen.py"
       }
     ]
@@ -3439,58 +3479,58 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-23T08:17:04.995Z",
+  "generatedAt": "2026-10-23T13:57:10.827Z",
   "generatedFrom": {
-    "commit": "da680ff86deca189ce226d1bee47d715c9cb942f"
+    "commit": "07377374b78a407c60b5ca18b69209de23a9804a"
   },
   "pairs": [
     {
       "a": "README.md",
       "b": "SHIP_GATE.md",
-      "either": 11,
-      "shared": 6,
-      "strength": 0.545455
+      "either": 10,
+      "shared": 5,
+      "strength": 0.5
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 5,
-      "shared": 5,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
@@ -3623,16 +3663,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-23T04:16:57-04:00",
-    "inScopeFiles": 663,
+    "headDate": "2026-10-23T09:57:02-04:00",
+    "inScopeFiles": 655,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 106,
+    "qualifyingCommits": 110,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-26T08:16:57.000Z",
+    "since": "2026-04-26T13:57:02.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

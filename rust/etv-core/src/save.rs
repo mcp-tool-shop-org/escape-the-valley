@@ -254,84 +254,99 @@ fn apply_owner_only_permissions(path: &Path) -> std::io::Result<()> {
     }
 }
 
+fn parse_secrets_store(txt: &str) -> Result<serde_json::Map<String, Value>, String> {
+    let val: Value = serde_json::from_str(txt)
+        .map_err(|e| format!("invalid JSON at line {} column {}", e.line(), e.column()))?;
+    let obj = val
+        .as_object()
+        .ok_or_else(|| "top-level JSON value must be an object".to_string())?;
+    Ok(obj.clone())
+}
+
+fn quarantine_corrupt_secrets(secrets_path: &Path, reason: &str) -> Option<PathBuf> {
+    let quarantined = backup_corrupt_save(secrets_path);
+    if let Some(ref qpath) = quarantined {
+        let _ = apply_owner_only_permissions(qpath);
+        eprintln!(
+            "warning: quarantined corrupt {} ({reason}) to {}",
+            secrets_path.display(),
+            qpath.display()
+        );
+    }
+    quarantined
+}
+
 /// Persist wallet/issuer seeds to `.trail/secrets.json`, keyed by `run_id`, atomically.
-/// Preserves other runs' entries (`save.py::_write_secrets_sidecar`).
+/// Preserves other runs' entries (`save.py::_write_secrets_sidecar` in Python 1.3.2 `119458a`).
+/// If an existing `secrets.json` is unreadable or its top-level JSON value is not an object,
+/// quarantines it as `secrets.json.corrupt-<timestamp>` (with `0o600` / owner-only ACL) before starting fresh.
 pub fn write_secrets_sidecar(save_dir: &Path, state: &RunState) -> std::io::Result<()> {
     let secrets_path = save_dir.join(SECRETS_FILE);
-    let mut store: BTreeMap<String, RunSecrets> = if secrets_path.exists() {
-        fs::read_to_string(&secrets_path)
-            .ok()
-            .and_then(|txt| serde_json::from_str::<Value>(&txt).ok())
-            .and_then(|val| val.as_object().cloned())
-            .map(|obj| {
-                let mut map = BTreeMap::new();
-                for (k, v) in obj {
-                    if let Some(entry_obj) = v.as_object() {
-                        let ws = entry_obj
-                            .get("wallet_secret")
-                            .and_then(|s| s.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let is = entry_obj
-                            .get("issuer_secret")
-                            .and_then(|s| s.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        map.insert(
-                            k,
-                            RunSecrets {
-                                wallet_secret: ws,
-                                issuer_secret: is,
-                            },
-                        );
-                    }
+    let mut store: serde_json::Map<String, Value> = if secrets_path.exists() {
+        match fs::read_to_string(&secrets_path) {
+            Ok(txt) => match parse_secrets_store(&txt) {
+                Ok(map) => map,
+                Err(reason) => {
+                    quarantine_corrupt_secrets(&secrets_path, &reason);
+                    serde_json::Map::new()
                 }
-                map
-            })
-            .unwrap_or_default()
+            },
+            Err(_) => {
+                quarantine_corrupt_secrets(&secrets_path, "unreadable UTF-8");
+                serde_json::Map::new()
+            }
+        }
     } else {
-        BTreeMap::new()
+        serde_json::Map::new()
     };
 
     let bp = &state.backpack;
     if !bp.wallet_secret.is_empty() || !bp.issuer_secret.is_empty() {
         store.insert(
             state.run_id.clone(),
-            RunSecrets {
-                wallet_secret: bp.wallet_secret.clone(),
-                issuer_secret: bp.issuer_secret.clone(),
-            },
+            json!({
+                "wallet_secret": bp.wallet_secret,
+                "issuer_secret": bp.issuer_secret,
+            }),
         );
     } else {
         store.remove(&state.run_id);
     }
 
-    let payload = serde_json::to_string_pretty(&store)
+    let payload = serde_json::to_string_pretty(&Value::Object(store))
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
     atomic_write_text(&secrets_path, &payload, true)
 }
 
-/// Read wallet/issuer seeds for `run_id` from `.trail/secrets.json`.
+/// Read wallet/issuer seeds for `run_id` from `.trail/secrets.json` (`save.py::_read_secrets_sidecar`).
+/// Returns `None` if the sidecar or entry is absent, unreadable, not a JSON object, or an empty
+/// JSON object `{}` (matching Python's `if secrets:` in `save.py:279-282` so an empty entry
+/// leaves any inline legacy `backpack` secrets intact), leaving `secrets.json` untouched on disk
+/// (quarantine happens on write only).
 pub fn read_secrets_sidecar(save_dir: &Path, run_id: &str) -> Option<RunSecrets> {
     let secrets_path = save_dir.join(SECRETS_FILE);
     if !secrets_path.exists() {
         return None;
     }
     let raw = fs::read_to_string(&secrets_path).ok()?;
-    let val: Value = serde_json::from_str(&raw).ok()?;
-    let obj = val.as_object()?;
-    let entry = obj.get(run_id)?.as_object()?;
+    let store = parse_secrets_store(&raw).ok()?;
+    let entry_obj = store.get(run_id)?.as_object()?;
+    if entry_obj.is_empty() {
+        return None;
+    }
+    let wallet_secret = entry_obj
+        .get("wallet_secret")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let issuer_secret = entry_obj
+        .get("issuer_secret")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     Some(RunSecrets {
-        wallet_secret: entry
-            .get("wallet_secret")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        issuer_secret: entry
-            .get("issuer_secret")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        wallet_secret,
+        issuer_secret,
     })
 }
 
@@ -1180,9 +1195,7 @@ mod tests {
         assert!(!save_path.exists());
     }
 
-    // Fails on b888cb8 for two reasons:
-    // 1. Bare JSON integer seed > u64::MAX (within i128) failed serde_json::from_str::<Value> without arbitrary_precision.
-    // 2. Seeds outside i128 (> i128::MAX or < i128::MIN) were quarantined as "corrupt" instead of returning "seed_out_of_range".
+    // preservation: bare JSON integer seed > u64::MAX within i128 and seed_out_of_range outside i128 (Phase 1a)
     #[test]
     fn test_seed_above_u64_max_and_seed_overflow_outside_i128() {
         let base_state = create_new_run(42);
@@ -1236,5 +1249,184 @@ mod tests {
             .insert("seed".to_string(), json!(above_i128_max));
         let err_str = value_to_state(&val_str_ov).unwrap_err();
         assert!(err_str.starts_with("seed_out_of_range:"));
+    }
+
+    // Fails on b86fbe4 because on b86fbe4 `read_secrets_sidecar` quarantined `secrets.json` on read
+    // and `write_secrets_sidecar` quarantined the whole file when a sibling run entry was a non-object,
+    // instead of matching Python 1.3.2 (`119458a`, `save.py:138-181`): quarantine on write only when
+    // unreadable or top-level JSON is not a dict; on read, return None without touching `secrets.json`;
+    // preserve malformed sibling entries in a valid top-level object on write.
+    #[test]
+    fn test_corrupt_secrets_json_quarantined_before_starting_fresh() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let save_dir = tmp.path().join(SAVE_DIR);
+        fs::create_dir_all(&save_dir).unwrap();
+        let secrets_path = save_dir.join(SECRETS_FILE);
+
+        // 1. Corrupt JSON in secrets.json: on READ (`read_secrets_sidecar`), returns None and leaves
+        // `secrets.json` untouched on disk (no quarantine on read).
+        let corrupt_payload =
+            "{\"run-old\": {\"wallet_secret\": \"sEdVSecretLeakCheck123\", broken";
+        fs::write(&secrets_path, corrupt_payload).unwrap();
+
+        // Verify parse_secrets_store reports line/column and never leaks raw secret text
+        let parse_err = parse_secrets_store(corrupt_payload).unwrap_err();
+        assert!(
+            parse_err.contains("line") && parse_err.contains("column"),
+            "error should report line and column: {parse_err}"
+        );
+        assert!(
+            !parse_err.contains("sEdVSecretLeakCheck123"),
+            "error must never leak raw secret text: {parse_err}"
+        );
+
+        assert!(read_secrets_sidecar(&save_dir, "run-old").is_none());
+        assert!(
+            secrets_path.exists(),
+            "read_secrets_sidecar must not quarantine or remove corrupt secrets.json on read"
+        );
+
+        // 2. On WRITE (`write_secrets_sidecar`), corrupt JSON is quarantined to `secrets.json.corrupt-<timestamp>`
+        let mut state = create_new_run(42);
+        state.run_id = "run-fresh".to_string();
+        state.backpack.wallet_secret = "sEdVFreshWallet999".to_string();
+        state.backpack.issuer_secret = "sEdVFreshIssuer999".to_string();
+
+        write_secrets_sidecar(&save_dir, &state).unwrap();
+
+        let corrupt_backups: Vec<PathBuf> = fs::read_dir(&save_dir)
+            .unwrap()
+            .filter_map(|e| e.ok().map(|de| de.path()))
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with("secrets.json.corrupt-"))
+            })
+            .collect();
+        assert_eq!(
+            corrupt_backups.len(),
+            1,
+            "corrupt secrets.json must be quarantined on write as secrets.json.corrupt-<timestamp>"
+        );
+        assert_eq!(
+            fs::read_to_string(&corrupt_backups[0]).unwrap(),
+            corrupt_payload
+        );
+
+        let loaded = read_secrets_sidecar(&save_dir, "run-fresh")
+            .expect("fresh secrets.json must contain run-fresh");
+        assert_eq!(loaded.wallet_secret, "sEdVFreshWallet999");
+        assert_eq!(loaded.issuer_secret, "sEdVFreshIssuer999");
+
+        // 3. Top-level non-object JSON (`["not", "a", "dict"]`) is untouched on read and quarantined on write
+        let non_dict_payload = "[\"not\", \"a\", \"dict\"]";
+        fs::write(&secrets_path, non_dict_payload).unwrap();
+        assert!(read_secrets_sidecar(&save_dir, "run-fresh").is_none());
+        assert!(
+            secrets_path.exists(),
+            "non-dict secrets.json must not be quarantined on read"
+        );
+        write_secrets_sidecar(&save_dir, &state).unwrap();
+        let all_backups: Vec<PathBuf> = fs::read_dir(&save_dir)
+            .unwrap()
+            .filter_map(|e| e.ok().map(|de| de.path()))
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with("secrets.json.corrupt-"))
+            })
+            .collect();
+        assert_eq!(
+            all_backups.len(),
+            2,
+            "top-level non-object secrets.json must be quarantined on write"
+        );
+
+        // 4. Valid top-level JSON object with a malformed sibling entry (`"run-bad": "not-an-object"`)
+        // returns None for `"run-bad"` on read, does NOT quarantine on read or write, and preserves `"run-bad"`
+        // when writing `"run-fresh"` (matching Python 1.3.2 `isinstance(loaded, dict)`).
+        fs::write(
+            &secrets_path,
+            "{\"run-bad\": \"not-an-object\", \"run-non-str\": {\"wallet_secret\": 123}}",
+        )
+        .unwrap();
+        assert!(read_secrets_sidecar(&save_dir, "run-bad").is_none());
+        let non_str_sec = read_secrets_sidecar(&save_dir, "run-non-str")
+            .expect("dict entry with non-string field returns empty string defaults");
+        assert_eq!(non_str_sec.wallet_secret, "");
+        assert_eq!(non_str_sec.issuer_secret, "");
+        assert!(secrets_path.exists());
+
+        write_secrets_sidecar(&save_dir, &state).unwrap();
+        let backups_after_sibling: Vec<PathBuf> = fs::read_dir(&save_dir)
+            .unwrap()
+            .filter_map(|e| e.ok().map(|de| de.path()))
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with("secrets.json.corrupt-"))
+            })
+            .collect();
+        assert_eq!(
+            backups_after_sibling.len(),
+            2,
+            "valid top-level dict with malformed sibling entry must not be quarantined on write"
+        );
+        let rewritten_val: Value =
+            serde_json::from_str(&fs::read_to_string(&secrets_path).unwrap()).unwrap();
+        assert_eq!(rewritten_val["run-bad"], json!("not-an-object"));
+        assert_eq!(
+            rewritten_val["run-fresh"]["wallet_secret"],
+            json!("sEdVFreshWallet999")
+        );
+
+        // 5. Empty entry `{}` keeps inline secret from legacy run.json (`save.py:279-282`: `if secrets:`),
+        // while a non-empty entry holding only one of the two keys sets the missing one to `""`.
+        let mut legacy_state = create_new_run(42);
+        legacy_state.run_id = "run-empty-entry".to_string();
+        save_game(&legacy_state, tmp.path()).unwrap();
+
+        let save_path = save_dir.join(SAVE_FILE);
+        let mut run_json_val: Value =
+            serde_json::from_str(&fs::read_to_string(&save_path).unwrap()).unwrap();
+        run_json_val["backpack"]["wallet_secret"] = json!("sEdVInlineLegacyWallet");
+        run_json_val["backpack"]["issuer_secret"] = json!("sEdVInlineLegacyIssuer");
+        fs::write(
+            &save_path,
+            serde_json::to_string_pretty(&run_json_val).unwrap(),
+        )
+        .unwrap();
+
+        fs::write(&secrets_path, "{\"run-empty-entry\": {}}").unwrap();
+        let loaded_empty_entry = load_game(tmp.path()).expect("load legacy run with empty entry");
+        assert_eq!(
+            loaded_empty_entry.backpack.wallet_secret, "sEdVInlineLegacyWallet",
+            "inline wallet_secret must be kept when secrets.json entry is {{}}"
+        );
+        assert_eq!(
+            loaded_empty_entry.backpack.issuer_secret, "sEdVInlineLegacyIssuer",
+            "inline issuer_secret must be kept when secrets.json entry is {{}}"
+        );
+        assert!(
+            read_secrets_sidecar(&save_dir, "run-empty-entry").is_none(),
+            "empty entry object {{}} in secrets.json must return None like Python's `if secrets:`"
+        );
+
+        // Entry holding only one of the two keys still sets the missing one to `""`
+        fs::write(
+            &secrets_path,
+            "{\"run-empty-entry\": {\"wallet_secret\": \"sEdVSidecarOnlyWallet\"}}",
+        )
+        .unwrap();
+        let loaded_partial_entry =
+            load_game(tmp.path()).expect("load legacy run with partial entry");
+        assert_eq!(
+            loaded_partial_entry.backpack.wallet_secret,
+            "sEdVSidecarOnlyWallet"
+        );
+        assert_eq!(
+            loaded_partial_entry.backpack.issuer_secret, "",
+            "missing key in non-empty sidecar entry must set that secret to empty string"
+        );
     }
 }

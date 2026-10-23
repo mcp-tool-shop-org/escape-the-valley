@@ -453,9 +453,11 @@ pub enum FolkloreType {
     Uncanny,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EventOutcome {
     pub supplies_delta: BTreeMap<String, i32>,
+    #[serde(skip)]
+    pub supplies_delta_order: Vec<String>,
     pub health_delta: i32,
     pub wagon_delta: i32,
     pub animals_health_delta: i32,
@@ -463,6 +465,40 @@ pub struct EventOutcome {
     pub time_cost: i32,
     pub distance_delta: i32,
     pub special_flags: Vec<String>,
+}
+
+impl PartialEq for EventOutcome {
+    fn eq(&self, other: &Self) -> bool {
+        self.supplies_delta == other.supplies_delta
+            && self.health_delta == other.health_delta
+            && self.wagon_delta == other.wagon_delta
+            && self.animals_health_delta == other.animals_health_delta
+            && self.morale_delta == other.morale_delta
+            && self.time_cost == other.time_cost
+            && self.distance_delta == other.distance_delta
+            && self.special_flags == other.special_flags
+    }
+}
+
+impl Eq for EventOutcome {}
+
+impl EventOutcome {
+    /// Iterate `supplies_delta` in Python dict insertion order when available,
+    /// falling back to `BTreeMap` order for any additional keys.
+    pub fn ordered_supplies_delta(&self) -> Vec<(&str, i32)> {
+        let mut out = Vec::with_capacity(self.supplies_delta.len());
+        for k in &self.supplies_delta_order {
+            if let Some(&v) = self.supplies_delta.get(k) {
+                out.push((k.as_str(), v));
+            }
+        }
+        for (k, &v) in &self.supplies_delta {
+            if !self.supplies_delta_order.contains(k) {
+                out.push((k.as_str(), v));
+            }
+        }
+        out
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -611,8 +647,11 @@ pub fn convert_profile(
         Vec::new()
     };
 
+    let supplies_delta_order: Vec<String> = supplies.keys().cloned().collect();
+
     EventOutcome {
         supplies_delta: supplies,
+        supplies_delta_order,
         health_delta: health,
         wagon_delta: wagon,
         animals_health_delta: animals_health,
@@ -778,15 +817,126 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
     })
 }
 
+struct OrderedKeyList(Vec<String>);
+
+impl<'de> Deserialize<'de> for OrderedKeyList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct KeyVisitor;
+        impl<'de> serde::de::Visitor<'de> for KeyVisitor {
+            type Value = OrderedKeyList;
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a JSON value")
+            }
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut keys = Vec::new();
+                while let Some((k, _)) = map.next_entry::<String, serde::de::IgnoredAny>()? {
+                    let res_key = resolve_resource_alias(&k);
+                    if is_valid_resource_key(res_key) && !keys.iter().any(|x| x == res_key) {
+                        keys.push(res_key.to_string());
+                    }
+                }
+                Ok(OrderedKeyList(keys))
+            }
+            fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_none<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+                Ok(OrderedKeyList(Vec::new()))
+            }
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                Ok(OrderedKeyList(Vec::new()))
+            }
+        }
+        deserializer.deserialize_any(KeyVisitor)
+    }
+}
+
+fn extract_profile_key_orders(json_str: &str) -> BTreeMap<(String, String), Vec<String>> {
+    #[derive(Deserialize)]
+    struct RawChoiceOrder {
+        #[serde(default)]
+        engine_effect_profile: Option<OrderedKeyList>,
+    }
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum LenientChoice {
+        Obj(RawChoiceOrder),
+        Other(serde::de::IgnoredAny),
+    }
+    #[derive(Deserialize)]
+    struct TypedEvent {
+        id: String,
+        #[serde(default)]
+        choices: Vec<LenientChoice>,
+    }
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum LenientEvent {
+        Typed(TypedEvent),
+        Any(serde::de::IgnoredAny),
+    }
+
+    let mut out = BTreeMap::new();
+    if let Ok(items) = serde_json::from_str::<Vec<LenientEvent>>(json_str) {
+        for item in items {
+            if let LenientEvent::Typed(ev) = item {
+                if ev.id.is_empty() {
+                    continue;
+                }
+                for (i, ch) in ev.choices.into_iter().take(MAX_CHOICES).enumerate() {
+                    if let LenientChoice::Obj(c) = ch {
+                        if let Some(OrderedKeyList(keys)) = c.engine_effect_profile {
+                            let cid = char::from(b'A' + (i as u8)).to_string();
+                            out.insert((ev.id.clone(), cid), keys);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
 /// Parse event skeletons from a JSON string (`event_loader.py::load_json_events`).
 /// Malformed top-level JSON returns an empty `Vec`, and individual malformed entries are skipped.
 pub fn load_json_events_from_str(json_str: &str) -> Vec<EventSkeleton> {
     let Ok(Value::Array(raw_list)) = serde_json::from_str::<Value>(json_str) else {
         return Vec::new();
     };
+    let key_orders = extract_profile_key_orders(json_str);
     let mut events = Vec::with_capacity(raw_list.len());
     for raw in &raw_list {
-        if let Ok(ev) = convert_event(raw) {
+        if let Ok(mut ev) = convert_event(raw) {
+            for (cid, outcome) in &mut ev.outcome_templates {
+                if let Some(order) = key_orders.get(&(ev.event_id.clone(), cid.clone())) {
+                    outcome.supplies_delta_order = order.clone();
+                }
+            }
             events.push(ev);
         }
     }

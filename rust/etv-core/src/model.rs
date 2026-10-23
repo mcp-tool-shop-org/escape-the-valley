@@ -1168,8 +1168,7 @@ impl RunState {
 mod tests {
     use super::*;
 
-    // Fails on b888cb8 because BackpackState::minted_snapshot_of did not exist and
-    // hydrate_minted_from_permit_shim returned () instead of the snapshot BTreeMap.
+    // preservation: BackpackState::minted_snapshot_of lazy hydration and partial shim rejection (Phase 1a)
     #[test]
     fn test_minted_snapshot_of_lazy_hydration_and_partial_rejection() {
         let mut bp = BackpackState::default();
