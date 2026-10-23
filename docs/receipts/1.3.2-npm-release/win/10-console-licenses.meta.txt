@@ -1,0 +1,4 @@
+command: npx.cmd --yes @mcptoolshop/escape-the-valley@1.3.2 licenses
+console buffer: 800 cols x 32000 rows (set before the command ran)
+rows between the markers: 5014
+end marker: @@CONSOLE-END@@

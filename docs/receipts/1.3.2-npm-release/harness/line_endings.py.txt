@@ -1,0 +1,51 @@
+"""Count line endings and blank lines in output files, and compare console rows with the expected text.
+
+Usage: python -I line_endings.py <expected-notices> <file>... [--rows <console-rows-file>...]
+For each file: bytes, sha256, CR, LF, CRLF, CR CR LF, lone CR, and the blank-line count two ways:
+split on LF only (what the bytes say) and with universal newlines (what Python's text mode, or a viewer, shows).
+For console rows: the row count, blank rows, and whether the rows equal the expected text's lines
+(the expected text with CRs removed, tabs expanded and trailing spaces trimmed).
+"""
+import hashlib
+import pathlib
+import sys
+
+args = sys.argv[1:]
+expected = pathlib.Path(args.pop(0))
+rows_files = args[args.index("--rows") + 1:] if "--rows" in args else []
+files = args[:args.index("--rows")] if "--rows" in args else args
+CR, LF = b"\r", b"\n"
+
+
+def stats(p):
+    b = p.read_bytes()
+    lf_lines = b.split(LF)
+    if lf_lines and lf_lines[-1] == b"":
+        lf_lines = lf_lines[:-1]
+    uni = b.decode("utf-8", "replace").splitlines()
+    print(f"== {p.name}: {len(b)} bytes, sha256 {hashlib.sha256(b).hexdigest()}")
+    print(f"   CR {b.count(CR)} | LF {b.count(LF)} | CRLF {b.count(CR + LF)} | CR CR LF {b.count(CR + CR + LF)}"
+          f" | lone CR {b.count(CR) - b.count(CR + LF)}")
+    print(f"   lines split on LF: {len(lf_lines)}, blank {sum(1 for x in lf_lines if x == b'')}"
+          f" | universal newlines: {len(uni)}, blank {sum(1 for x in uni if x == '')}")
+    return b
+
+
+exp = stats(expected)
+for f in files:
+    b = stats(pathlib.Path(f))
+    print(f"   byte-identical to {expected.name}: {b == exp}")
+# The console expands tabs to 8-column stops and has no CR to show, so the expected lines do the same.
+exp_lines = [x.expandtabs(8).rstrip(" ") for x in exp.decode("utf-8").replace("\r", "").split("\n")]
+if exp_lines and exp_lines[-1] == "":
+    exp_lines = exp_lines[:-1]
+for r in rows_files:
+    got = pathlib.Path(r).read_text(encoding="utf-8").split("\n")
+    if got and got[-1] == "":
+        got = got[:-1]
+    print(f"== console rows {pathlib.Path(r).name}: {len(got)} rows, blank {sum(1 for x in got if x == '')}"
+          f" | expected (LF text): {len(exp_lines)} lines, blank {sum(1 for x in exp_lines if x == '')}")
+    print(f"   rows equal the expected lines: {got == exp_lines}")
+    if got != exp_lines:
+        i = next((i for i, (a, e) in enumerate(zip(got, exp_lines)) if a != e), min(len(got), len(exp_lines)))
+        print(f"   first difference at row {i + 1}: console {got[i:i + 1]!r} vs expected {exp_lines[i:i + 1]!r}")
