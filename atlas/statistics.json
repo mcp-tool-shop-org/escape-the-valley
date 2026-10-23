@@ -279,8 +279,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 10,
-        "lines": 447,
+        "commits": 11,
+        "lines": 456,
         "path": "atlas/README.md"
       },
       {
@@ -289,18 +289,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 10,
-        "lines": 1728,
+        "commits": 11,
+        "lines": 1768,
         "path": "atlas/page.json"
       },
       {
-        "commits": 10,
-        "lines": 6628,
+        "commits": 11,
+        "lines": 6686,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 10,
-        "lines": 14144,
+        "commits": 11,
+        "lines": 14150,
         "path": "atlas/structure.json"
       },
       {
@@ -2624,8 +2624,8 @@
         "path": "rust/etv-core/src/rng.rs"
       },
       {
-        "commits": 3,
-        "lines": 1614,
+        "commits": 4,
+        "lines": 1672,
         "path": "rust/etv-core/src/save.rs"
       },
       {
@@ -2634,13 +2634,13 @@
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
-        "commits": 3,
-        "lines": 2408,
+        "commits": 4,
+        "lines": 2410,
         "path": "rust/etv-core/tests/oracle_parity.rs"
       },
       {
-        "commits": 3,
-        "lines": 2186,
+        "commits": 4,
+        "lines": 2231,
         "path": "rust/oracle/generate_vectors.py"
       },
       {
@@ -3479,9 +3479,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-23T12:55:57.965Z",
+  "generatedAt": "2026-10-23T13:57:10.827Z",
   "generatedFrom": {
-    "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f"
+    "commit": "07377374b78a407c60b5ca18b69209de23a9804a"
   },
   "pairs": [
     {
@@ -3494,43 +3494,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 7,
-      "shared": 7,
+      "either": 8,
+      "shared": 8,
       "strength": 1
     },
     {
@@ -3663,16 +3663,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-23T08:55:50-04:00",
+    "headDate": "2026-10-23T09:57:02-04:00",
     "inScopeFiles": 655,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 108,
+    "qualifyingCommits": 110,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-26T12:55:50.000Z",
+    "since": "2026-04-26T13:57:02.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

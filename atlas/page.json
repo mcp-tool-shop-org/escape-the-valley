@@ -72,7 +72,7 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 2,
+      "changed": 3,
       "moved": 0,
       "parts": 0,
       "removed": 0
@@ -80,13 +80,13 @@
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-23; 2 files changed content.",
+        "sentence": "Nothing structural changed since 2026-10-23; 3 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
-      "generatedAt": "2026-10-23T12:47:40.454Z"
+      "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f",
+      "generatedAt": "2026-10-23T12:55:57.965Z"
     },
     "unchanged": true
   },
@@ -173,7 +173,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f",
+  "commit": "07377374b78a407c60b5ca18b69209de23a9804a",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -489,7 +489,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T12:55:57.965Z",
+  "generatedAt": "2026-10-23T13:57:10.827Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

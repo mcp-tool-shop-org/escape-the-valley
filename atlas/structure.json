@@ -9146,7 +9146,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "ffd90d1d2e6be45009a83f5023fba17196324b0f",
+    "commit": "07377374b78a407c60b5ca18b69209de23a9804a",
     "tracked": 650
   },
   "landings": [
@@ -9843,25 +9843,25 @@
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 550
+          "line": 555
         },
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 575
+          "line": 580
         },
         {
           "in": "value_to_state",
           "kind": "err",
-          "line": 592
+          "line": 597
         },
         {
           "in": "load_backpack",
           "kind": "err",
-          "line": 950
+          "line": 955
         }
       ],
-      "hash": "eb2eaf38e6c2739087cd3be7fa76d5847e14c356cf07e3a1206c7f198b3dd67a",
+      "hash": "ee93da41911a781aee8ff516db067eba40165b5fc062ded5c252db463ee64256",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
@@ -9893,7 +9893,7 @@
       "testsInside": true
     },
     {
-      "hash": "16510bbfe2d7e40f0ff508bb9e580dd20eb624ad2ffcdf3bbecaeff62ffb232d",
+      "hash": "429220478b4d400105314f5bae6bf9a4f3568a6892cfc0a6636cebdfa592ef73",
       "importsFiles": [
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
@@ -9938,10 +9938,10 @@
         {
           "in": "next_100_draws_from_save",
           "kind": "except",
-          "line": 546
+          "line": 547
         }
       ],
-      "hash": "908376e69747f3c776b90a504ebd0b9b74d270b909b7269b03ea00165d026567",
+      "hash": "da72bf43fc74914da55c031c7375ebeb345e8e2279828c9f6375cf5c2b6c7c34",
       "importOrder": [
         "src/escape_the_valley/__init__.py",
         "src/escape_the_valley/backpack_models.py",

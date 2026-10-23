@@ -1,14 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit ffd90d1 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit 0737737 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (ef9a702)
+## What changed since 2026-10-23 (ffd90d1)
 
-Nothing structural changed since 2026-10-23; 2 files changed content.
+Nothing structural changed since 2026-10-23; 3 files changed content.
 
 ## What comes in
 
