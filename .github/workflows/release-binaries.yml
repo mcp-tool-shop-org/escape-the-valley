@@ -64,6 +64,27 @@ jobs:
         with:
           version: "0.11.18"
 
+      - name: Set neutral UV_PYTHON_INSTALL_DIR outside user homes (G1)
+        shell: bash
+        run: |
+          # G1: astral-sh/setup-uv sets UV_PYTHON_INSTALL_DIR under runner.temp
+          # (/home/<x>/... on Linux and /Users/<x>/... on macOS), and local uv
+          # defaults to ~/.local/share/uv/python or %APPDATA%\uv\python. uv
+          # writes that install prefix into CPython's _sysconfigdata__*.py,
+          # which PyInstaller bundles into the PYZ archive. Use /opt/uv-python
+          # on Linux/macOS and C:\uv-python on Windows so no home path enters
+          # _sysconfigdata.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            mkdir -p /c/uv-python
+            echo "UV_PYTHON_INSTALL_DIR=C:\\uv-python" >> "$GITHUB_ENV"
+          else
+            if [ ! -w /opt/uv-python ]; then
+              sudo mkdir -p /opt/uv-python
+              sudo chown "$(id -u):$(id -g)" /opt/uv-python
+            fi
+            echo "UV_PYTHON_INSTALL_DIR=/opt/uv-python" >> "$GITHUB_ENV"
+          fi
+
       - run: uv python install 3.12.13
 
       - run: uv venv --python 3.12.13

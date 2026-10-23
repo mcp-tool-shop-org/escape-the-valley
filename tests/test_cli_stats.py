@@ -1602,3 +1602,174 @@ class TestThirdPartyNotices:
         ]
         with pytest.raises(RuntimeError, match="direct_url.json"):
             verify_bundle_no_direct_url(fake_bin, archive_entries=leaked_entries)
+
+    def test_verify_bundle_sysconfigdata_home_paths_pass_and_fail(
+        self, tmp_path, monkeypatch
+    ):
+        """G1: --verify-bundle reads PYZ _sysconfigdata* and rejects home paths in any case."""
+        import marshal
+        import sys
+        import types
+
+        import pytest
+
+        from escape_the_valley.notices import verify_bundle_no_direct_url
+
+        fake_bin = tmp_path / "escape-the-valley-1.3.1-linux-x64"
+        fake_bin.write_bytes(b"fake")
+
+        def _make_sysconfig_pyc_body(prefix: str) -> bytes:
+            src = (
+                "# system configuration generated and used by the sysconfig module\n"
+                "build_time_vars = {\n"
+                "    'ABIFLAGS': '',\n"
+                f"    'BINDIR': {f'{prefix}/bin'!r},\n"
+                f"    'BINLIBDEST': {f'{prefix}/lib/python3.12'!r},\n"
+                "    'CONFIG_ARGS': \"'--prefix=/install' '--with-openssl=/tools/deps'\",\n"
+                f"    'DESTDIRS': {f'{prefix} {prefix}/lib {prefix}/lib/python3.12'!r},\n"
+                f"    'INCLUDEDIR': {f'{prefix}/include'!r},\n"
+                f"    'LIBDIR': {f'{prefix}/lib'!r},\n"
+                f"    'exec_prefix': {prefix!r},\n"
+                f"    'prefix': {prefix!r},\n"
+                "}\n"
+            )
+            code = compile(src, "_sysconfigdata__linux_x86_64-linux-gnu.py", "exec")
+            return marshal.dumps(code)
+
+        class _FakePyzReader:
+            def __init__(self, modules: dict[str, bytes]):
+                self.toc = {k: (1, 0, len(v)) for k, v in modules.items()}
+                self._modules = modules
+
+            def extract(self, name: str, raw: bool = False) -> bytes | None:
+                assert raw is True
+                return self._modules.get(name)
+
+        def _install_fake_carchive(
+            carchive_entries: dict[str, tuple],
+            pyz_modules: dict[str, bytes],
+        ) -> None:
+            class _FakeCArchiveReader:
+                def __init__(self, path: str):
+                    self.path = path
+                    self.toc = carchive_entries
+
+                def open_embedded_archive(self, name: str) -> _FakePyzReader:
+                    assert name == "PYZ.pyz"
+                    return _FakePyzReader(pyz_modules)
+
+                def extract(self, name: str) -> bytes | None:
+                    return None
+
+            fake_readers = types.ModuleType("PyInstaller.archive.readers")
+            fake_readers.CArchiveReader = _FakeCArchiveReader  # type: ignore[attr-defined]
+            fake_archive = types.ModuleType("PyInstaller.archive")
+            fake_archive.readers = fake_readers  # type: ignore[attr-defined]
+            fake_pyi = types.ModuleType("PyInstaller")
+            fake_pyi.archive = fake_archive  # type: ignore[attr-defined]
+            monkeypatch.setitem(sys.modules, "PyInstaller", fake_pyi)
+            monkeypatch.setitem(sys.modules, "PyInstaller.archive", fake_archive)
+            monkeypatch.setitem(
+                sys.modules, "PyInstaller.archive.readers", fake_readers
+            )
+
+        base_toc = {
+            "PYZ.pyz": (0, 100, 100, 0, "z"),
+            "escape_the_valley/THIRD_PARTY_NOTICES.txt": (100, 50, 50, 1, "x"),
+            "escape_the_valley-1.3.1.dist-info/METADATA": (150, 50, 50, 1, "x"),
+        }
+
+        # 1. Clean neutral prefixes pass via PYZ reader (/opt/uv-python, C:\uv-python):
+        clean_pyz = {
+            "_sysconfigdata__linux_x86_64-linux-gnu": _make_sysconfig_pyc_body(
+                "/opt/uv-python/cpython-3.12.13-linux-x86_64-gnu"
+            ),
+            "_sysconfigdata__darwin_darwin": _make_sysconfig_pyc_body(
+                "/opt/uv-python/cpython-3.12.13-macos-aarch64-none"
+            ),
+            "_sysconfigdata__win_x64": _make_sysconfig_pyc_body(
+                "C:\\uv-python\\cpython-3.12.13-windows-x86_64-none"
+            ),
+            "rich.console": marshal.dumps(compile("x = 1\n", "console.py", "exec")),
+        }
+        _install_fake_carchive(base_toc, clean_pyz)
+        assert verify_bundle_no_direct_url(fake_bin) == sorted(base_toc.keys())
+
+        # 2. Linux home path (/home/<x>/ and uppercase /HOME/<x>/) fails:
+        for linux_prefix in (
+            "/home/runner/work/_temp/uv-python-dir/cpython-3.12.13-linux-x86_64-gnu",
+            "/HOME/Runner/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu",
+        ):
+            _install_fake_carchive(
+                base_toc,
+                {
+                    "_sysconfigdata__linux_x86_64-linux-gnu": _make_sysconfig_pyc_body(
+                        linux_prefix
+                    )
+                },
+            )
+            with pytest.raises(
+                RuntimeError,
+                match=r"_sysconfigdata.*_sysconfigdata__linux_x86_64-linux-gnu",
+            ):
+                verify_bundle_no_direct_url(fake_bin)
+
+        # 3. macOS home path (/Users/<x>/ and lowercase /users/<x>/) fails:
+        mac_upper = "/".join(
+            ("", "Users", "runner", "work", "_temp", "uv-python-dir", "cpython-3.12.13")
+        )
+        mac_lower = "/".join(
+            ("", "users", "runner", ".local", "share", "uv", "python", "cpython-3.12.13")
+        )
+        for mac_prefix in (mac_upper, mac_lower):
+            _install_fake_carchive(
+                base_toc,
+                {
+                    "_sysconfigdata__darwin_darwin": _make_sysconfig_pyc_body(
+                        mac_prefix
+                    )
+                },
+            )
+            with pytest.raises(
+                RuntimeError,
+                match=r"_sysconfigdata.*_sysconfigdata__darwin_darwin",
+            ):
+                verify_bundle_no_direct_url(fake_bin)
+
+        # 4. Windows home path (C:\Users\<x>\ and lowercase c:\users\<x>\) fails:
+        win_upper = "\\".join(
+            ("C:", "Users", "runneradmin", "AppData", "Roaming", "uv", "python", "cpython-3.12.13")
+        )
+        win_lower = "\\".join(
+            ("c:", "users", "runneradmin", "appdata", "roaming", "uv", "python", "cpython-3.12.13")
+        )
+        for win_prefix in (win_upper, win_lower):
+            _install_fake_carchive(
+                base_toc,
+                {"_sysconfigdata__win32": _make_sysconfig_pyc_body(win_prefix)},
+            )
+            with pytest.raises(
+                RuntimeError,
+                match=r"_sysconfigdata.*_sysconfigdata__win32",
+            ):
+                verify_bundle_no_direct_url(fake_bin)
+
+        # 5. Bundle carrying BOTH direct_url.json AND _sysconfigdata home path reports both:
+        both_toc = {
+            **base_toc,
+            "xrpl_camp-1.5.0.dist-info/direct_url.json": (200, 50, 50, 1, "x"),
+        }
+        _install_fake_carchive(
+            both_toc,
+            {
+                "_sysconfigdata__linux_x86_64-linux-gnu": _make_sysconfig_pyc_body(
+                    "/home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu"
+                )
+            },
+        )
+        with pytest.raises(RuntimeError) as exc_info:
+            verify_bundle_no_direct_url(fake_bin)
+        msg = str(exc_info.value)
+        assert "direct_url.json" in msg
+        assert "_sysconfigdata__linux_x86_64-linux-gnu" in msg
+        assert "/home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin" in msg

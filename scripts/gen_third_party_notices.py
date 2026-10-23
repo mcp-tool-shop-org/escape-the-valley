@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(
             f"[bundle-check] Verified {len(entries)} archive entries in "
-            f"{binary_path}: no direct_url.json present"
+            f"{binary_path}: no direct_url.json or _sysconfigdata home paths present"
         )
         return 0
 

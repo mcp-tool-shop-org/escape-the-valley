@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata as md
 import json
+import marshal
 import platform
 import re
 import sys
@@ -1123,17 +1124,97 @@ def verify_toc_against_notices(
     return bundled_list
 
 
+_SYSCONFIGDATA_HOME_PATH_RE: re.Pattern[str] = re.compile(
+    r"(?:[A-Za-z]:[/\\]+users[/\\]+[^/\\\s'\":;,\x00-\x1f\x7f-\x9f]+[/\\]+"
+    r"|[/\\]+(?:home|users)[/\\]+[^/\\\s'\":;,\x00-\x1f\x7f-\x9f]+[/\\]+)"
+    r"[^\s'\"\x00-\x1f\x7f-\x9f]*",
+    re.IGNORECASE,
+)
+
+
+def _is_sysconfigdata_name(name: str) -> bool:
+    """Return True if an archive or PYZ module name is a `_sysconfigdata*` module."""
+    leaf = name.replace("\\", "/").rsplit("/", 1)[-1]
+    if leaf.lower().startswith("_sysconfigdata"):
+        return True
+    mod_leaf = leaf.rsplit(".", 1)[-1]
+    return mod_leaf.lower().startswith("_sysconfigdata")
+
+
+def _extract_code_strings(obj: Any, out: list[str]) -> None:
+    """Recursively append string constants from a code object or constant container."""
+    if isinstance(obj, str):
+        out.append(obj)
+        return
+    if isinstance(obj, (tuple, list, set, frozenset)):
+        for item in obj:
+            _extract_code_strings(item, out)
+        return
+    if hasattr(obj, "co_consts"):
+        co_filename = getattr(obj, "co_filename", None)
+        if isinstance(co_filename, str):
+            out.append(co_filename)
+        for const in getattr(obj, "co_consts", ()):
+            _extract_code_strings(const, out)
+
+
+def _find_sysconfigdata_home_paths(payload: bytes | str | Any) -> list[str]:
+    """Return distinct home-path strings found in a `_sysconfigdata*` payload."""
+    code_texts: list[str] = []
+    raw_texts: list[str] = []
+    if isinstance(payload, str):
+        raw_texts.append(payload)
+    elif isinstance(payload, (bytes, bytearray, memoryview)):
+        raw = bytes(payload)
+        for start in (0, 16, 12, 8):
+            if start >= len(raw):
+                continue
+            try:
+                code_obj = marshal.loads(raw[start:])
+            except Exception:
+                continue
+            if hasattr(code_obj, "co_consts"):
+                _extract_code_strings(code_obj, code_texts)
+                break
+        raw_texts.append(raw.decode("utf-8", errors="replace"))
+        raw_texts.append(raw.decode("latin-1"))
+    elif hasattr(payload, "co_consts"):
+        _extract_code_strings(payload, code_texts)
+
+    def _scan(texts: list[str]) -> list[str]:
+        hits: list[str] = []
+        seen: set[str] = set()
+        for text in texts:
+            for match in _SYSCONFIGDATA_HOME_PATH_RE.finditer(text):
+                val = match.group(0)
+                if val not in seen:
+                    seen.add(val)
+                    hits.append(val)
+        return hits
+
+    if code_texts:
+        code_hits = _scan(code_texts)
+        if code_hits:
+            return code_hits
+    return _scan(raw_texts)
+
+
 def verify_bundle_no_direct_url(
     binary_path: str | Path,
     *,
     archive_entries: list[str] | tuple[str, ...] | set[str] | None = None,
+    sysconfigdata_modules: dict[str, bytes | str] | None = None,
 ) -> list[str]:
-    """Verify a PyInstaller bundle contains no `direct_url.json` PEP 610 build record.
+    """Verify a PyInstaller bundle contains no `direct_url.json` or `_sysconfigdata*` home paths.
 
     Lists the archive via `PyInstaller.archive.readers.CArchiveReader` (unless
-    `archive_entries` is injected for testing) and raises `RuntimeError` if any
-    entry ends in `direct_url.json`.
+    `archive_entries` is injected for testing), inspects every bundled
+    `_sysconfigdata*` module in the embedded PYZ archive(s) and CArchive (unless
+    `sysconfigdata_modules` is injected for testing), and raises `RuntimeError`
+    if any entry ends in `direct_url.json` or any `_sysconfigdata*` module
+    contains a home path (`/home/<x>/`, `/Users/<x>/`, `C:\\Users\\<x>\\`, any case).
     """
+    collected_sysconfig: dict[str, bytes | str | Any] = {}
     if archive_entries is None:
         import importlib
 
@@ -1142,20 +1223,73 @@ def verify_bundle_no_direct_url(
         )
         reader = readers_mod.CArchiveReader(str(Path(binary_path)))
         entries = sorted(str(k) for k in reader.toc.keys())
+        if sysconfigdata_modules is None:
+            for name, entry in sorted(
+                reader.toc.items(), key=lambda kv: str(kv[0])
+            ):
+                name_str = str(name)
+                typecode = (
+                    entry[-1]
+                    if isinstance(entry, (tuple, list)) and entry
+                    else None
+                )
+                if typecode in ("z", "Z", b"z", b"Z") or name_str.lower().endswith(
+                    ".pyz"
+                ):
+                    pyz = reader.open_embedded_archive(name_str)
+                    pyz_keys = (
+                        sorted(str(k) for k in pyz.toc.keys())
+                        if isinstance(pyz.toc, dict)
+                        else sorted(str(item[0]) for item in pyz.toc)
+                    )
+                    for mod in pyz_keys:
+                        if not _is_sysconfigdata_name(mod):
+                            continue
+                        try:
+                            raw = pyz.extract(mod, raw=True)
+                        except TypeError:
+                            raw = pyz.extract(mod)
+                        if raw is not None:
+                            collected_sysconfig[f"{name_str}!{mod}"] = raw
+                elif _is_sysconfigdata_name(name_str):
+                    raw = reader.extract(name_str)
+                    if raw is not None:
+                        collected_sysconfig[name_str] = raw
     else:
         entries = sorted(str(k) for k in archive_entries)
 
-    bad = [
+    if sysconfigdata_modules is not None:
+        collected_sysconfig.update(sysconfigdata_modules)
+
+    bad_direct_url = [
         e
         for e in entries
         if e.replace("\\", "/").lower() == "direct_url.json"
         or e.replace("\\", "/").lower().endswith("/direct_url.json")
     ]
-    if bad:
-        raise RuntimeError(
+
+    bad_sysconfig: list[tuple[str, list[str]]] = []
+    for mod_name, payload in sorted(collected_sysconfig.items()):
+        home_paths = _find_sysconfigdata_home_paths(payload)
+        if home_paths:
+            bad_sysconfig.append((mod_name, home_paths))
+
+    errors: list[str] = []
+    if bad_direct_url:
+        errors.append(
             f"Bundled PEP 610 direct_url.json build record found in {binary_path}: "
-            f"{', '.join(bad)}"
+            f"{', '.join(bad_direct_url)}"
         )
+    if bad_sysconfig:
+        details = "; ".join(
+            f"{mod_name} ({len(paths)} distinct; first: {paths[0]})"
+            for mod_name, paths in bad_sysconfig
+        )
+        errors.append(
+            f"Bundled _sysconfigdata home path(s) found in {binary_path}: {details}"
+        )
+    if errors:
+        raise RuntimeError("; ".join(errors))
     return entries
 
 
