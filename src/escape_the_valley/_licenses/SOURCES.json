@@ -29,6 +29,27 @@
       "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
       "install_license_archive_path": "python/install/lib/python3.12/LICENSE.txt",
       "install_license_sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
       "files": [
         {
           "filename": "LICENSE.cpython.txt",
@@ -158,6 +179,20 @@
           ]
         },
         {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (PYTHON.json license_paths entry alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
           "filename": "LICENSE.openssl-3.txt",
           "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt",
           "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
@@ -207,7 +242,7 @@
           "archive_paths": [
             "python/licenses/LICENSE.bdb.txt"
           ],
-          "reason": "Separate lib-dynload shared object (_dbm.cpython-312-x86_64-linux-gnu.so) not imported or bundled in PyInstaller TOC."
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; _dbm.cpython-312-x86_64-linux-gnu.so is not bundled."
         },
         {
           "extension": "_tkinter",
@@ -215,9 +250,10 @@
             "python/licenses/LICENSE.libX11.txt",
             "python/licenses/LICENSE.libXau.txt",
             "python/licenses/LICENSE.libxcb.txt",
-            "python/licenses/LICENSE.tcl.txt"
+            "python/licenses/LICENSE.tcl.txt",
+            "python/licenses/LICENSE.tix.txt"
           ],
-          "reason": "Excluded via PyInstaller --exclude-module tkinter; _tkinter.cpython-312-x86_64-linux-gnu.so is not bundled."
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.cpython-312-x86_64-linux-gnu.so is not bundled."
         }
       ]
     },
@@ -229,6 +265,27 @@
       "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
       "install_license_archive_path": "python/install/lib/python3.12/LICENSE.txt",
       "install_license_sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
       "files": [
         {
           "filename": "LICENSE.cpython.txt",
@@ -330,6 +387,20 @@
           ]
         },
         {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (PYTHON.json license_paths entry alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
           "filename": "LICENSE.openssl-3.txt",
           "vendored_path": "aarch64-apple-darwin/LICENSE.openssl-3.txt",
           "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
@@ -378,6 +449,9 @@
           "extensions": [
             "readline"
           ],
+          "archive_paths": [
+            "python/licenses/LICENSE.libedit.txt"
+          ],
           "reason": "python-build-standalone links macOS system libedit from libSystem (links: {'name': 'edit', 'system': true}); not redistributed in the bundle."
         },
         {
@@ -387,16 +461,30 @@
             "_curses_panel",
             "readline"
           ],
+          "archive_paths": [
+            "python/licenses/LICENSE.ncurses.txt"
+          ],
           "reason": "python-build-standalone links macOS system ncurses/panel from libSystem (links: {'name': 'ncurses', 'system': true}); not redistributed in the bundle."
         }
       ],
       "excluded_unbundled_extensions": [
         {
+          "extension": "_dbm",
+          "archive_paths": [
+            "python/licenses/LICENSE.bdb.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; Berkeley DB (_dbm) is not built or bundled in the aarch64-apple-darwin distribution."
+        },
+        {
           "extension": "_tkinter",
           "archive_paths": [
-            "python/licenses/LICENSE.tcl.txt"
+            "python/licenses/LICENSE.libX11.txt",
+            "python/licenses/LICENSE.libXau.txt",
+            "python/licenses/LICENSE.libxcb.txt",
+            "python/licenses/LICENSE.tcl.txt",
+            "python/licenses/LICENSE.tix.txt"
           ],
-          "reason": "Excluded via PyInstaller --exclude-module tkinter; _tkinter.cpython-312-darwin.so is not bundled."
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.cpython-312-darwin.so is not bundled (and X11/Tix are not linked on macOS)."
         }
       ]
     },
@@ -408,6 +496,27 @@
       "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
       "install_license_archive_path": "python/install/LICENSE.txt",
       "install_license_sha256": "886a0ead2d89030ee62dbff52b04e47ab91998341295bb9c56fb952b4e081c7a",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
       "files": [
         {
           "filename": "LICENSE.cpython.txt",
@@ -509,6 +618,20 @@
           ]
         },
         {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (archive license file alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
           "filename": "LICENSE.openssl-3.txt",
           "vendored_path": "x86_64-pc-windows-msvc/LICENSE.openssl-3.txt",
           "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
@@ -554,12 +677,36 @@
       "system_libraries": [],
       "excluded_unbundled_extensions": [
         {
+          "extension": "_dbm",
+          "archive_paths": [
+            "python/licenses/LICENSE.bdb.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; Berkeley DB (_dbm) is not built on Windows."
+        },
+        {
+          "extension": "readline",
+          "archive_paths": [
+            "python/licenses/LICENSE.libedit.txt"
+          ],
+          "reason": "Unix-only extension not built on Windows; libedit is not linked or bundled."
+        },
+        {
+          "extension": "_curses",
+          "archive_paths": [
+            "python/licenses/LICENSE.ncurses.txt"
+          ],
+          "reason": "Unix-only extension (_curses / _curses_panel) not built on Windows; ncurses is not linked or bundled."
+        },
+        {
           "extension": "_tkinter",
           "archive_paths": [
+            "python/licenses/LICENSE.libX11.txt",
+            "python/licenses/LICENSE.libXau.txt",
+            "python/licenses/LICENSE.libxcb.txt",
             "python/licenses/LICENSE.tcl.txt",
             "python/licenses/LICENSE.tix.txt"
           ],
-          "reason": "Excluded via PyInstaller --exclude-module tkinter; _tkinter.pyd, tcl86t.dll, and tk86t.dll are not bundled."
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.pyd, tcl86t.dll, and tk86t.dll are not bundled (and X11 is not linked on Windows)."
         }
       ]
     }

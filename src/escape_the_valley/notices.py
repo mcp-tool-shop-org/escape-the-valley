@@ -158,6 +158,8 @@ def _read_interpreter_pbs_build_tag() -> str | None:
 def _verify_vendored_licenses_match(
     sources: dict[str, Any],
     target: str | None = None,
+    *,
+    require_pbs_tag: bool = True,
 ) -> str:
     """Verify running CPython version, pbs build tag, and target match `_licenses/`.
 
@@ -182,11 +184,17 @@ def _verify_vendored_licenses_match(
 
     expected_pbs_tag = str(sources.get("pbs_build_tag") or "").strip()
     running_pbs_tag = _read_interpreter_pbs_build_tag()
-    if running_pbs_tag is not None and expected_pbs_tag and running_pbs_tag != expected_pbs_tag:
-        raise RuntimeError(
-            f"Running interpreter python-build-standalone build tag {running_pbs_tag!r} "
-            f"does not match vendored _licenses/ build tag {expected_pbs_tag!r}"
-        )
+    if expected_pbs_tag:
+        if running_pbs_tag is None and require_pbs_tag:
+            raise RuntimeError(
+                f"Running interpreter does not expose a python-build-standalone "
+                f"build tag (expected {expected_pbs_tag!r})"
+            )
+        if running_pbs_tag is not None and running_pbs_tag != expected_pbs_tag:
+            raise RuntimeError(
+                f"Running interpreter python-build-standalone build tag {running_pbs_tag!r} "
+                f"does not match vendored _licenses/ build tag {expected_pbs_tag!r}"
+            )
 
     return resolved_target
 
@@ -236,6 +244,7 @@ def verify_vendored_licenses_integrity() -> dict[str, Any]:
         )
 
     for target_name, target_info in (sources.get("targets") or {}).items():
+        vendored_archive_paths: set[str] = set()
         for entry in target_info.get("files") or []:
             rel_path = entry["vendored_path"]
             fpath = _LICENSES_DIR / rel_path
@@ -248,6 +257,26 @@ def verify_vendored_licenses_integrity() -> dict[str, Any]:
                 raise RuntimeError(
                     f"SHA-256 mismatch for {fpath}: "
                     f"expected {entry['sha256']}, got {actual_sha}"
+                )
+            vendored_archive_paths.add(entry["archive_path"])
+
+        archive_all = set(target_info.get("archive_license_files") or [])
+        sys_paths = {
+            p
+            for s in (target_info.get("system_libraries") or [])
+            for p in (s.get("archive_paths") or [])
+        }
+        excl_paths = {
+            p
+            for ex in (target_info.get("excluded_unbundled_extensions") or [])
+            for p in (ex.get("archive_paths") or [])
+        }
+        if archive_all:
+            accounted = vendored_archive_paths | sys_paths | excl_paths
+            if accounted != archive_all:
+                raise RuntimeError(
+                    f"Unaccounted archive license files for {target_name}: "
+                    f"{sorted(archive_all ^ accounted)}"
                 )
 
     return sources
@@ -624,13 +653,28 @@ def generate_third_party_notices(
     *,
     target: str | None = None,
     include_only_dists: set[str] | None = None,
+    release: bool = True,
 ) -> str:
     """Generate the full THIRD_PARTY_NOTICES.txt content from installed metadata and vendored files.
 
+    When `release=True`, verifies the running interpreter against `_licenses/SOURCES.json`
+    and includes the verbatim CPython + python-build-standalone license texts.
+    When `release=False` (pip-install runtime fallback), prints the game's license,
+    the installed distributions, and a one-line note that CPython and
+    python-build-standalone license texts apply to the release binaries only,
+    without raising on non-pinned Python versions or platforms.
     Contains no local filesystem paths.
     """
     sources = _load_sources_manifest()
-    resolved_target = _verify_vendored_licenses_match(sources, target=target)
+    resolved_target: str | None = None
+    cpython_blocks: list[tuple[str, str, str, str]] = []
+    if release:
+        resolved_target = _verify_vendored_licenses_match(
+            sources,
+            target=target,
+            require_pbs_tag=(target is None),
+        )
+        cpython_blocks = _read_cpython_license_blocks(sources, resolved_target)
 
     raw_dists = (
         list(distributions)
@@ -645,18 +689,25 @@ def generate_third_party_notices(
             if norm_name not in dists_by_norm:
                 dists_by_norm[norm_name] = d
 
-    runtime_dists = _collect_runtime_distributions(dists_by_norm)
     if include_only_dists is not None:
-        allowed_norms = {_norm(x) for x in include_only_dists}
+        allowed_norms = {
+            _norm(x)
+            for x in include_only_dists
+            if _norm(x) not in {"escape-the-valley", "pyinstaller"}
+            and not _is_stub_only_dist(_norm(x))
+        }
         runtime_dists = [
-            d
-            for d in runtime_dists
-            if _norm(d.metadata.get("Name") or "") in allowed_norms
+            dists_by_norm[k]
+            for k in sorted(
+                (k for k in dists_by_norm if k in allowed_norms),
+                key=lambda k: (dists_by_norm[k].metadata.get("Name") or k).lower(),
+            )
         ]
+    else:
+        runtime_dists = _collect_runtime_distributions(dists_by_norm)
 
-    pyinstaller_dist = dists_by_norm.get("pyinstaller")
+    pyinstaller_dist = dists_by_norm.get("pyinstaller") if release else None
     py_ver = sys.version.split()[0]
-    cpython_blocks = _read_cpython_license_blocks(sources, resolved_target)
     game_src_url, game_sha, game_text = _read_game_license_block(
         sources, dists_by_norm
     )
@@ -671,29 +722,47 @@ def generate_third_party_notices(
         "",
         game_text,
         "",
-        sep,
-        "Name: Python (CPython Runtime and Standard Library)",
-        f"Version: {py_ver}",
-        f"Target: {resolved_target} (python-build-standalone {sources['pbs_build_tag']})",
-        "License: PSF-2.0 (Python Software Foundation License Version 2 + Incorporated Software)",
-        sep,
-        "",
     ]
 
-    for label, src_url, fsha, text in cpython_blocks:
-        lines.append(f"--- {label} ---")
-        lines.append(f"Source: {src_url}")
-        lines.append(f"SHA256: {fsha}")
-        lines.append(text)
-        lines.append("")
+    if release and resolved_target is not None:
+        pbs_tag = sources["pbs_build_tag"]
+        lines.extend([
+            sep,
+            "Name: Python (CPython Runtime and Standard Library)",
+            f"Version: {py_ver}",
+            f"Target: {resolved_target} (python-build-standalone {pbs_tag})",
+            (
+                "License: PSF-2.0 "
+                "(Python Software Foundation License Version 2 + Incorporated Software)"
+            ),
+            sep,
+            "",
+        ])
+        for label, src_url, fsha, text in cpython_blocks:
+            lines.append(f"--- {label} ---")
+            lines.append(f"Source: {src_url}")
+            lines.append(f"SHA256: {fsha}")
+            lines.append(text)
+            lines.append("")
+    else:
+        lines.extend([
+            (
+                "Note: CPython and python-build-standalone license texts "
+                "apply to the standalone release binaries only."
+            ),
+            "",
+        ])
 
     lines.extend([
         sep,
         "Summary of Included Third-Party Distributions",
         sep,
         "",
-        f"- Python (CPython Runtime and Standard Library) {py_ver} (PSF-2.0)",
     ])
+    if release:
+        lines.append(
+            f"- Python (CPython Runtime and Standard Library) {py_ver} (PSF-2.0)"
+        )
 
     for d in runtime_dists:
         name = d.metadata.get("Name") or "Unknown"
@@ -882,12 +951,100 @@ def collect_toc_bundled_distributions(
     return sorted(bundled_dists)
 
 
+def collect_toc_bundled_excluded_extensions(
+    build_dir: str | Path,
+    *,
+    target: str | None = None,
+    sources: dict[str, Any] | None = None,
+) -> list[str]:
+    """Return sorted `excluded_unbundled_extensions` names found in `build_dir`'s TOC."""
+    build_root = Path(build_dir)
+    toc_files = sorted(build_root.rglob("*.toc")) if build_root.is_dir() else []
+    if not toc_files:
+        raise FileNotFoundError(
+            f"No PyInstaller .toc files found under {build_root}"
+        )
+
+    manifest = sources if sources is not None else _load_sources_manifest()
+    resolved_target = target if target is not None else _detect_target_triple()
+    target_info = (manifest.get("targets") or {}).get(resolved_target) or {}
+    excluded_entries = target_info.get("excluded_unbundled_extensions") or []
+
+    ext_candidates: dict[str, set[str]] = {}
+    for item in excluded_entries:
+        ext = str(item.get("extension") or "").strip()
+        if not ext:
+            continue
+        cands = {ext}
+        if ext in {"_tkinter", "_dbm"}:
+            cands.add(ext.lstrip("_"))
+        if ext == "_curses":
+            cands.add("_curses_panel")
+        ext_candidates[ext] = cands
+
+    if not ext_candidates:
+        return []
+
+    found: set[str] = set()
+    toc_tuple_re = re.compile(
+        r"""\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*['"]([A-Z_]+)['"]\s*\)"""
+    )
+    quoted_re = re.compile(r"""['"]([^'"]+)['"]""")
+    for tf in toc_files:
+        try:
+            text = tf.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        # 1. Check 3-tuple TOC entries (dest_name, src_path, typecode):
+        for m in toc_tuple_re.finditer(text):
+            for part in (m.group(1), m.group(2)):
+                raw_tok = part.replace("\\\\", "/").replace("\\", "/")
+                base = raw_tok.rsplit("/", 1)[-1]
+                for ext, cands in ext_candidates.items():
+                    if ext in found:
+                        continue
+                    for cand in cands:
+                        if (
+                            base == cand
+                            or base.startswith(f"{cand}.")
+                            or raw_tok == cand
+                            or raw_tok.startswith(f"{cand}.")
+                            or raw_tok.startswith(f"{cand}/")
+                            or f"/{cand}/" in raw_tok
+                        ):
+                            found.add(ext)
+                            break
+        # 2. Also check any quoted filename/path with a '.' or '/' (ignoring
+        # bare module names in Analysis-00.toc's `excludes` list):
+        for m in quoted_re.finditer(text):
+            raw_tok = m.group(1).replace("\\\\", "/").replace("\\", "/")
+            if "." not in raw_tok and "/" not in raw_tok:
+                continue
+            base = raw_tok.rsplit("/", 1)[-1]
+            for ext, cands in ext_candidates.items():
+                if ext in found:
+                    continue
+                for cand in cands:
+                    if (
+                        base == cand
+                        or base.startswith(f"{cand}.")
+                        or raw_tok.startswith(f"{cand}.")
+                        or raw_tok.startswith(f"{cand}/")
+                        or f"/{cand}/" in raw_tok
+                    ):
+                        found.add(ext)
+                        break
+
+    return sorted(found)
+
+
 def prune_notices_to_toc(
     build_dir: str | Path,
     notices_path: str | Path = "THIRD_PARTY_NOTICES.txt",
     distributions: list[md.Distribution] | None = None,
     *,
     target: str | None = None,
+    release: bool = True,
 ) -> list[str]:
     """Regenerate `notices_path` pruned to the exact distributions present in `build_dir`'s TOC."""
     bundled = collect_toc_bundled_distributions(
@@ -897,6 +1054,7 @@ def prune_notices_to_toc(
         distributions=distributions,
         target=target,
         include_only_dists=set(bundled),
+        release=release,
     )
     Path(notices_path).write_text(content, encoding="utf-8")
     return bundled
@@ -906,12 +1064,25 @@ def verify_toc_against_notices(
     build_dir: str | Path,
     notices_path: str | Path = "THIRD_PARTY_NOTICES.txt",
     distributions: list[md.Distribution] | None = None,
+    *,
+    target: str | None = None,
 ) -> list[str]:
-    """Verify the site-packages distributions in PyInstaller's TOC match `notices_path` both ways.
+    """Verify PyInstaller's TOC against `notices_path` and `excluded_unbundled_extensions`.
 
-    Raises `RuntimeError` if any bundled third-party distribution is missing from
-    `notices_path` OR if `notices_path` lists any unbundled third-party distribution.
+    Raises `RuntimeError` if:
+    - any `excluded_unbundled_extensions` entry for the target appears in the TOC;
+    - any bundled third-party distribution is missing from `notices_path`; OR
+    - `notices_path` lists any unbundled third-party distribution.
     """
+    found_excluded = collect_toc_bundled_excluded_extensions(
+        build_dir, target=target
+    )
+    if found_excluded:
+        raise RuntimeError(
+            f"Excluded unbundled extension(s) found in PyInstaller TOC: "
+            f"{', '.join(found_excluded)}"
+        )
+
     bundled_list = collect_toc_bundled_distributions(
         build_dir, distributions=distributions
     )
@@ -952,12 +1123,49 @@ def verify_toc_against_notices(
     return bundled_list
 
 
+def verify_bundle_no_direct_url(
+    binary_path: str | Path,
+    *,
+    archive_entries: list[str] | tuple[str, ...] | set[str] | None = None,
+) -> list[str]:
+    """Verify a PyInstaller bundle contains no `direct_url.json` PEP 610 build record.
+
+    Lists the archive via `PyInstaller.archive.readers.CArchiveReader` (unless
+    `archive_entries` is injected for testing) and raises `RuntimeError` if any
+    entry ends in `direct_url.json`.
+    """
+    if archive_entries is None:
+        import importlib
+
+        readers_mod = importlib.import_module(
+            ".".join(("PyInstaller", "archive", "readers"))
+        )
+        reader = readers_mod.CArchiveReader(str(Path(binary_path)))
+        entries = sorted(str(k) for k in reader.toc.keys())
+    else:
+        entries = sorted(str(k) for k in archive_entries)
+
+    bad = [
+        e
+        for e in entries
+        if e.replace("\\", "/").lower() == "direct_url.json"
+        or e.replace("\\", "/").lower().endswith("/direct_url.json")
+    ]
+    if bad:
+        raise RuntimeError(
+            f"Bundled PEP 610 direct_url.json build record found in {binary_path}: "
+            f"{', '.join(bad)}"
+        )
+    return entries
+
+
 def write_third_party_notices(
     output_path: str | Path = "THIRD_PARTY_NOTICES.txt",
     *,
     target: str | None = None,
     toc_build_dir: str | Path | None = None,
     distributions: list[md.Distribution] | None = None,
+    release: bool = True,
 ) -> Path:
     """Generate and write THIRD_PARTY_NOTICES.txt to output_path."""
     path = Path(output_path)
@@ -967,11 +1175,13 @@ def write_third_party_notices(
             path,
             distributions=distributions,
             target=target,
+            release=release,
         )
         return path
     content = generate_third_party_notices(
         distributions=distributions,
         target=target,
+        release=release,
     )
     path.write_text(content, encoding="utf-8")
     return path
@@ -1005,4 +1215,4 @@ def get_third_party_notices_text() -> str:
         raise FileNotFoundError(
             "Bundled THIRD_PARTY_NOTICES.txt not found in frozen binary."
         )
-    return generate_third_party_notices()
+    return generate_third_party_notices(release=False)

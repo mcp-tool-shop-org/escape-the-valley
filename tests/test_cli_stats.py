@@ -1056,17 +1056,14 @@ class TestThirdPartyNotices:
     @staticmethod
     def _pin_matching_interpreter(monkeypatch):
         """Pin interpreter version/tag to SOURCES.json when running under CI matrix 3.11/3.13."""
-        import sys
-
-        if not sys.version.startswith("3.12.13"):
-            monkeypatch.setattr(
-                "escape_the_valley.notices.sys.version",
-                "3.12.13 (main, May 10 2026, 00:00:00)",
-            )
-            monkeypatch.setattr(
-                "escape_the_valley.notices._read_interpreter_pbs_build_tag",
-                lambda: "20260510",
-            )
+        monkeypatch.setattr(
+            "escape_the_valley.notices.sys.version",
+            "3.12.13 (main, May 10 2026, 00:00:00)",
+        )
+        monkeypatch.setattr(
+            "escape_the_valley.notices._read_interpreter_pbs_build_tag",
+            lambda: "20260510",
+        )
 
     def test_vendored_licenses_sha256_match_sources_json(self):
         """CI check: every vendored file under _licenses/ matches SOURCES.json SHA-256."""
@@ -1087,6 +1084,14 @@ class TestThirdPartyNotices:
             "aarch64-apple-darwin",
             "x86_64-pc-windows-msvc",
         }
+        for target_name, target_info in sources["targets"].items():
+            vendored_names = {
+                entry["filename"]
+                for entry in target_info["files"]
+            }
+            assert "LICENSE.openssl-1.1.txt" in vendored_names, target_name
+            assert "LICENSE.openssl-3.txt" in vendored_names, target_name
+            assert len(target_info["archive_license_files"]) == 19, target_name
         darwin_sys_libs = {
             item["name"]
             for item in sources["targets"]["aarch64-apple-darwin"]["system_libraries"]
@@ -1422,8 +1427,12 @@ class TestThirdPartyNotices:
         assert res_flag.output == marker
 
     def test_licenses_command_generates_runtime_fallback(self, monkeypatch):
-        """From a pip install (no bundled file), `trail licenses` generates notices at runtime."""
-        self._pin_matching_interpreter(monkeypatch)
+        """G1: pip install (no bundled file) runs `trail licenses` on unpatched interpreter."""
+        import subprocess
+        import sys
+
+        from escape_the_valley.notices import get_third_party_notices_text
+
         monkeypatch.setattr(
             "escape_the_valley.notices.resolve_bundled_notices_path",
             lambda: None,
@@ -1434,9 +1443,162 @@ class TestThirdPartyNotices:
             raising=False,
         )
 
-        res = runner.invoke(app, ["licenses"])
-        assert res.exit_code == 0
-        assert "Escape the Valley" in res.output
-        assert "MIT License" in res.output
-        assert "Name: rich" in res.output
-        assert "Will McGugan" in res.output
+        # 1. Real unpatched interpreter via CliRunner:
+        res_cmd = runner.invoke(app, ["licenses"])
+        assert res_cmd.exit_code == 0
+        assert "Escape the Valley" in res_cmd.output
+        assert "MIT License" in res_cmd.output
+        assert "Name: rich" in res_cmd.output
+        assert "Will McGugan" in res_cmd.output
+        assert (
+            "Note: CPython and python-build-standalone license texts "
+            "apply to the standalone release binaries only."
+        ) in res_cmd.output
+
+        res_flag = runner.invoke(app, ["--licenses"])
+        assert res_flag.exit_code == 0
+        assert "Escape the Valley" in res_flag.output
+        assert "Name: rich" in res_flag.output
+
+        # 2. Real unpatched interpreter via subprocess (`licenses` & `--licenses`):
+        for arg in ("licenses", "--licenses"):
+            proc = subprocess.run(
+                [sys.executable, "-m", "escape_the_valley", arg],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=30,
+            )
+            assert proc.returncode == 0, f"stderr:\n{proc.stderr}"
+            assert "Escape the Valley" in proc.stdout
+            assert "Name: rich" in proc.stdout
+
+        # 3. Even on Python 3.13 / unknown OS target, runtime pip fallback never raises:
+        monkeypatch.setattr(
+            "escape_the_valley.notices.sys.version",
+            "3.13.99 (main, Oct 23 2026, 00:00:00)",
+        )
+        monkeypatch.setattr(
+            "escape_the_valley.notices._detect_target_triple",
+            lambda: "riscv64-unknown-freebsd",
+        )
+        fallback_text = get_third_party_notices_text()
+        assert "Escape the Valley" in fallback_text
+        assert "Name: rich" in fallback_text
+        assert "apply to the standalone release binaries only" in fallback_text
+
+    def test_verify_toc_rejects_excluded_unbundled_extensions(
+        self, tmp_path, monkeypatch
+    ):
+        """G2: --verify-toc fails if excluded_unbundled_extensions entry is in the TOC."""
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        import pytest
+
+        from escape_the_valley.notices import (
+            generate_third_party_notices,
+            verify_toc_against_notices,
+        )
+
+        self._pin_matching_interpreter(monkeypatch)
+        build_dir = tmp_path / "build" / "escape-the-valley"
+        build_dir.mkdir(parents=True)
+        toc_file = build_dir / "Analysis-00.toc"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', '/v/site-packages/rich/console.py', 'PYMODULE'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+
+        dists = [_FakeDist(name="rich", top_level="rich\n")]
+        notices_path = tmp_path / "THIRD_PARTY_NOTICES.txt"
+        notices_path.write_text(
+            generate_third_party_notices(distributions=dists),
+            encoding="utf-8",
+        )
+
+        # Clean TOC passes:
+        assert verify_toc_against_notices(
+            build_dir, notices_path, distributions=dists
+        ) == ["rich"]
+
+        # TOC containing _tkinter.cpython-312-x86_64-linux-gnu.so fails:
+        tk_so = "_tkinter.cpython-312-x86_64-linux-gnu.so"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', '/v/site-packages/rich/console.py', 'PYMODULE'),\n"
+            f"  ('lib-dynload/{tk_so}', '/python/lib-dynload/{tk_so}', 'EXTENSION'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(RuntimeError, match="_tkinter"):
+            verify_toc_against_notices(build_dir, notices_path, distributions=dists)
+
+        # Also fails via scripts/gen_third_party_notices.py --verify-toc:
+        script_path = (
+            Path(__file__).resolve().parents[1]
+            / "scripts"
+            / "gen_third_party_notices.py"
+        )
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(script_path),
+                "--verify-toc",
+                str(build_dir),
+                str(notices_path),
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert proc.returncode != 0
+        assert "_tkinter" in (proc.stderr + proc.stdout)
+
+        # TOC containing _dbm also fails (tested against Linux target where _dbm is listed):
+        dbm_so = "_dbm.cpython-312-x86_64-linux-gnu.so"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', '/v/site-packages/rich/console.py', 'PYMODULE'),\n"
+            f"  ('lib-dynload/{dbm_so}', '/python/lib-dynload/{dbm_so}', 'EXTENSION'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(RuntimeError, match="_dbm"):
+            verify_toc_against_notices(
+                build_dir,
+                notices_path,
+                distributions=dists,
+                target="x86_64-unknown-linux-gnu",
+            )
+
+    def test_verify_bundle_no_direct_url_pass_and_fail(self, tmp_path):
+        """G3: --verify-bundle fails when *.dist-info/direct_url.json is present."""
+        import pytest
+
+        from escape_the_valley.notices import verify_bundle_no_direct_url
+
+        fake_bin = tmp_path / "escape-the-valley-1.3.1-linux-x64"
+        fake_bin.write_bytes(b"fake")
+
+        clean_entries = [
+            "escape_the_valley/THIRD_PARTY_NOTICES.txt",
+            "escape_the_valley-1.3.1.dist-info/METADATA",
+            "escape_the_valley-1.3.1.dist-info/WHEEL",
+            "rich-15.0.0.dist-info/METADATA",
+        ]
+        assert (
+            verify_bundle_no_direct_url(fake_bin, archive_entries=clean_entries)
+            == sorted(clean_entries)
+        )
+
+        leaked_entries = [
+            *clean_entries,
+            "escape_the_valley-1.3.1.dist-info/direct_url.json",
+        ]
+        with pytest.raises(RuntimeError, match="direct_url.json"):
+            verify_bundle_no_direct_url(fake_bin, archive_entries=leaked_entries)
