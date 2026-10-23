@@ -841,7 +841,11 @@ mod tests {
         assert!(ev.costs_uncanny_token);
         assert_eq!(ev.fallback_choices.len(), 4);
         assert_eq!(
-            ev.outcome_templates.get("A").unwrap().supplies_delta.get("lantern_oil"),
+            ev.outcome_templates
+                .get("A")
+                .unwrap()
+                .supplies_delta
+                .get("lantern_oil"),
             Some(&-1)
         );
     }

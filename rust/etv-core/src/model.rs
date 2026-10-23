@@ -1013,6 +1013,14 @@ fn default_callout_level() -> String {
     "verbose".to_string()
 }
 
+/// Authoritative in-memory game run state (`models.py::RunState`).
+///
+/// Note on deserialization: `save::load_game` / `save::load_game_result` always load
+/// `.trail/run.json` through `save::value_to_state`, which enforces required save keys,
+/// schema version bounds, supply catalog filtering/clamping, and seed overflow handling.
+/// The derived `Deserialize` implementation on `RunState` (with `#[serde(default)]` on
+/// fields) is provided only for in-memory struct deserialization and test convenience,
+/// not for untrusted save file loading.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunState {
     #[serde(default)]

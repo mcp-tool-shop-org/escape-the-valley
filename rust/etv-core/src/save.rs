@@ -210,17 +210,39 @@ fn apply_owner_only_permissions(path: &Path) -> std::io::Result<()> {
     #[cfg(windows)]
     {
         // Apply an owner-only DACL via icacls: grant current user full control and remove inheritance.
-        if let Ok(username) = std::env::var("USERNAME") {
-            if !username.is_empty() {
+        // Best-effort: log a warning to stderr on failure without failing the save.
+        match std::env::var("USERNAME") {
+            Ok(username) if !username.is_empty() => {
                 let grant_arg = format!("{username}:(F)");
-                let _ = std::process::Command::new("icacls")
+                match std::process::Command::new("icacls")
                     .arg(path)
                     .arg("/inheritance:r")
                     .arg("/grant:r")
                     .arg(&grant_arg)
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::null())
-                    .status();
+                    .status()
+                {
+                    Ok(status) if status.success() => {}
+                    Ok(status) => {
+                        eprintln!(
+                            "warning: icacls failed on {} with status {status}",
+                            path.display()
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "warning: failed to execute icacls on {}: {e}",
+                            path.display()
+                        );
+                    }
+                }
+            }
+            _ => {
+                eprintln!(
+                    "warning: USERNAME not set; skipping owner-only DACL on {}",
+                    path.display()
+                );
             }
         }
         Ok(())
@@ -1116,15 +1138,24 @@ mod tests {
             ("party", json!("not_an_object")),
             ("party", json!({"members": "not_a_list"})),
             ("party", json!({"members": ["not_an_obj"]})),
-            ("party", json!({"members": [{"name": "A", "health": 100, "condition": "bad_cond", "traits": []}]})),
+            (
+                "party",
+                json!({"members": [{"name": "A", "health": 100, "condition": "bad_cond", "traits": []}]}),
+            ),
             ("wagon", json!("not_an_object")),
             ("wagon", json!({"condition": "bad"})),
             ("seed", json!(true)),
             ("rng_counter", json!(-1)),
             ("twists", json!("not_a_list")),
             ("journal", json!([{"day": 1}])),
-            ("map_nodes", json!([{"node_id": "n1", "name": "N", "biome": "invalid_biome", "hazard": 1}])),
-            ("memory_cards", json!([{"id": "c1", "kind": "k", "title": "t", "text": "x", "salience": "bad"}])),
+            (
+                "map_nodes",
+                json!([{"node_id": "n1", "name": "N", "biome": "invalid_biome", "hazard": 1}]),
+            ),
+            (
+                "memory_cards",
+                json!([{"id": "c1", "kind": "k", "title": "t", "text": "x", "salience": "bad"}]),
+            ),
             ("backpack", json!("not_an_object")),
         ];
 
