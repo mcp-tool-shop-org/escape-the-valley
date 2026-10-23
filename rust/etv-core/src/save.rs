@@ -131,6 +131,9 @@ pub fn load_game_result(base_path: &Path) -> LoadResult {
 
     let mut state = match value_to_state(&data) {
         Ok(s) => s,
+        Err(ref e) if e.starts_with("seed_out_of_range:") => {
+            return LoadResult::failure("seed_out_of_range");
+        }
         Err(_) => {
             let _ = backup_corrupt_save(&save_path);
             return LoadResult::failure("corrupt");
@@ -521,14 +524,23 @@ fn parse_seed(v: &Value) -> Result<i128, String> {
         return Ok(u as i128);
     }
     if let Some(s) = v.as_str() {
-        return s
-            .parse::<i128>()
-            .map_err(|e| format!("invalid seed string: {e}"));
+        return s.parse::<i128>().map_err(|e| match e.kind() {
+            std::num::IntErrorKind::PosOverflow | std::num::IntErrorKind::NegOverflow => {
+                format!("seed_out_of_range: {e}")
+            }
+            _ => format!("invalid seed string: {e}"),
+        });
     }
-    // Handle arbitrary precision integer in serde_json if ever needed
-    v.to_string()
-        .parse::<i128>()
-        .map_err(|_| "invalid seed value".to_string())
+    if v.is_number() {
+        let raw = v.to_string();
+        return raw.parse::<i128>().map_err(|e| match e.kind() {
+            std::num::IntErrorKind::PosOverflow | std::num::IntErrorKind::NegOverflow => {
+                format!("seed_out_of_range: {e}")
+            }
+            _ => "invalid seed value".to_string(),
+        });
+    }
+    Err("invalid seed value".to_string())
 }
 
 /// Reconstruct `RunState` from a parsed JSON `Value` (`save.py::_dict_to_state`),

@@ -784,6 +784,51 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
     assert_eq!(incompat_res.reason, "incompatible");
     // Incompatible save is left in place, never quarantined as corrupt
     assert!(save_dir.join(SAVE_FILE).exists());
+
+    // Verify a save with a bare JSON integer seed > u64::MAX (within i128) loads and round-trips,
+    // and a save with a seed outside i128 (> i128::MAX) is rejected with "seed_out_of_range"
+    // rather than quarantined as "corrupt".
+    let tmp_big_seed = tempfile::tempdir().expect("tempdir big seed");
+    let big_seed: i128 = (u64::MAX as i128) + 42;
+    let run_big = create_new_run(big_seed);
+    let mut val_big = state_to_value(&run_big);
+    let mut raw_big = serde_json::to_string_pretty(&val_big).unwrap();
+    // Replace stringified seed with bare JSON integer (as Python save.py:294 writes)
+    raw_big = raw_big.replace(
+        &format!("\"seed\": \"{}\"", big_seed),
+        &format!("\"seed\": {}", big_seed),
+    );
+    let save_dir_big = tmp_big_seed.path().join(SAVE_DIR);
+    std::fs::create_dir_all(&save_dir_big).unwrap();
+    std::fs::write(save_dir_big.join(SAVE_FILE), &raw_big).unwrap();
+    let res_big = load_game_result(tmp_big_seed.path());
+    assert!(
+        res_big.ok,
+        "bare JSON seed > u64::MAX within i128 must load: {}",
+        res_big.reason
+    );
+    assert_eq!(res_big.state.unwrap().seed, big_seed);
+
+    // Seed outside i128 (> i128::MAX) rejected with "seed_out_of_range" and not quarantined
+    let tmp_overflow = tempfile::tempdir().expect("tempdir overflow seed");
+    let save_dir_ov = tmp_overflow.path().join(SAVE_DIR);
+    std::fs::create_dir_all(&save_dir_ov).unwrap();
+    val_big
+        .as_object_mut()
+        .unwrap()
+        .insert("seed".to_string(), json!(0));
+    let raw_ov = serde_json::to_string_pretty(&val_big).unwrap().replace(
+        "\"seed\": 0",
+        "\"seed\": 340282366920938463463374607431768211456",
+    );
+    std::fs::write(save_dir_ov.join(SAVE_FILE), &raw_ov).unwrap();
+    let res_ov = load_game_result(tmp_overflow.path());
+    assert!(!res_ov.ok);
+    assert_eq!(res_ov.reason, "seed_out_of_range");
+    assert!(
+        save_dir_ov.join(SAVE_FILE).exists(),
+        "seed_out_of_range save must not be quarantined as corrupt"
+    );
 }
 
 #[test]
