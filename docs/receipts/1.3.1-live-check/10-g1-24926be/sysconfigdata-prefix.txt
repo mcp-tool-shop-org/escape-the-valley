@@ -1,0 +1,3 @@
+24926be (G1 build, here): /home/ strings 0, /opt/uv-python/ strings 20; first: /opt/uv-python/cpython-3.12.13-linux-x86_64-gnu/bin
+7481d88 (before G1, here): /home/ strings 20, /opt/uv-python/ strings 0; first: <home>/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/bin
+xrpl-camp 1.5.0 release asset (CI): /home/ strings 20, /opt/uv-python/ strings 0; first: /home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin

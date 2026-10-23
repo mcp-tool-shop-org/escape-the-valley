@@ -1,0 +1,3 @@
++ uv python install 3.12.13
+warning: Failed to install executable for cpython-3.12.13-linux-x86_64-gnu
+  Caused by: Executable already exists at `<home>/.local/bin/python3.12` but is not managed by uv; use `--force` to replace it

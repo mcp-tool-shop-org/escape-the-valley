@@ -1,0 +1,11 @@
++ uv run --no-sync python -c 
+import pathlib, sysconfig
+purelib = pathlib.Path(sysconfig.get_path("purelib"))
+for p in purelib.glob("*.dist-info/direct_url.json"):
+    p.unlink()
+remaining = list(purelib.glob("*.dist-info/direct_url.json"))
+if remaining:
+    raise SystemExit(f"direct_url.json still present in venv: {remaining}")
+print("Removed direct_url.json from build venv.")
+
+Removed direct_url.json from build venv.

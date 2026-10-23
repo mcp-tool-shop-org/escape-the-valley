@@ -1,0 +1,2 @@
++ gen_third_party_notices.py --verify-bundle <home>/camp-150-asset/xrpl-camp-1.5.0-linux-x64
+BUNDLE VERIFICATION FAILED: Bundled PEP 610 direct_url.json build record found in <home>/camp-150-asset/xrpl-camp-1.5.0-linux-x64: xrpl_camp-1.5.0.dist-info/direct_url.json; Bundled _sysconfigdata home path(s) found in <home>/camp-150-asset/xrpl-camp-1.5.0-linux-x64: PYZ.pyz!_sysconfigdata__linux_x86_64-linux-gnu (12 distinct; first: /home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin)

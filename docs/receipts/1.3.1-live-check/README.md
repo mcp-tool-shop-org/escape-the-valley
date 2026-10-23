@@ -1,4 +1,4 @@
-# 1.3.1 live check on `9773b08`, then `0d112bc`, `c6c30b5` and `7481d88`
+# 1.3.1 live check on `9773b08`, then `0d112bc`, `c6c30b5`, `7481d88` and `24926be`
 
 This is the live check the Editor asked for on **`9773b08`** (PR #25, `release/1.3.1` → `main`). That commit
 carries the player-facing fixes from the 1.3.0 audit. Items 1–6 ran on it. Item 7, the local binary build, ran on
@@ -40,11 +40,20 @@ distributions are right. There are two findings:
   gate reports it.
 - **N1 (minor):** the game LICENSE header hash depends on line endings.
 
-**G1 is open.** The unpacked Linux check found the build machine's (on CI, the runner's) Python install prefix in
-`_sysconfigdata`, and the PASS above doesn't cover it. It is being fixed on `release/1.3.1` before release: the
-Publisher ruled to fix it, with no exception.
+**G1 was open at `7481d88`.** The unpacked Linux check found the build machine's (on CI, the runner's) Python
+install prefix in `_sysconfigdata`, and item 9's PASS doesn't cover it. The Publisher ruled to fix it, with no
+exception.
 
 `trail licenses` works from a pip install on Python 3.13.
+
+**Item 10: G1 is fixed at `24926be`.** A Linux build that follows the workflow, with its new
+`UV_PYTHON_INSTALL_DIR=/opt/uv-python` step, passes `--verify-toc`, `--verify-bundle` and the smoke test.
+- The bundled `_sysconfigdata` holds `/opt/uv-python/…` and no home path.
+- The unpacked identity scan is the 8 third-party hits alone: no `_sysconfigdata` hit and no build record.
+- The new bundle check fails the xrpl-camp 1.5.0 release asset (it names both `direct_url.json` and
+  `_sysconfigdata`) and fails the `7481d88` binary from item 9.
+
+N1 is unchanged: the notices file is byte-identical to item 9's.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
 
@@ -339,6 +348,64 @@ installed distributions. So the release-only pins don't break the pip fallback (
 **What it doesn't cover:** macOS (darwin-arm64) and the Windows leg of this commit didn't run. On macOS,
 `_sysconfigdata` would hold the macOS runner's home path, but that is untested. The binary itself isn't committed.
 
+## Item 10: the G1 fix, a Linux build on `24926be` — PASS, G1 closed (`10-g1-24926be/`)
+
+The Editor asked for this on **`24926be`**: `f4d5581` (the G1 fix) plus its atlas map, on top of the merged item 9
+receipts (`990c3af`). The fix has two parts:
+- a workflow step that sets `UV_PYTHON_INSTALL_DIR` to `/opt/uv-python` (Linux and macOS) or `C:\uv-python`
+  (Windows) before `uv python install`;
+- a `--verify-bundle` that also fails on a home path in the bundled `_sysconfigdata`.
+
+It ran in WSL in a fresh clone at `24926be`, CPU only, with uv's concurrency capped at 12 of 24 cores.
+`harness/linux_build_g1.sh` is item 9's script with one line added, `export UV_PYTHON_INSTALL_DIR=/opt/uv-python`,
+which matches the new step. The rest of `release-binaries.yml` is unchanged since `7481d88`.
+
+**About `/opt/uv-python` on this machine:** the folder already existed. It was writable by the build account and
+held a `cpython-3.12.13` install made the evening before, so the workflow's `sudo mkdir` branch didn't run
+(`00-uv-python-dir-before.txt`).
+- `uv python install 3.12.13` found the install there and used it; the venv log reads `Using CPython 3.12.13`.
+- Its own `_sysconfigdata` has 0 `/home/` strings.
+- The install log has one harmless warning. uv couldn't link `python3.12` into `~/.local/bin`, because a file not
+  managed by uv is already there. A runner has no such file.
+
+The binary is an ELF x86-64, **20,967,824 bytes**, sha256
+`36fb0530f9c1abcdbb761ac8faf100c91a651de8287207242f93f8c34d4a5dfc`. Python 3.12.13, PyInstaller 6.22.3. The notices
+file is byte-identical to item 9's (`34390db4…`, 240,186 bytes).
+
+| Check | Result |
+|---|---|
+| `--verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt` | **exit 0**: `[toc-check] Verified 22 bundled site-packages distributions and excluded extensions against THIRD_PARTY_NOTICES.txt` |
+| `--verify-bundle dist/escape-the-valley-1.3.1-linux-x64` | **exit 0**: `[bundle-check] Verified 114 archive entries in dist/escape-the-valley-1.3.1-linux-x64: no direct_url.json or _sysconfigdata home paths present` |
+| `scripts/smoke_test_binary.py` | **PASS**, exit 0: `--help`; 260 events (floor 200); `tui.tcss` loads; xrpl extra present; licences present |
+| The bundled `_sysconfigdata` (unpacked) | **0 `/home/` strings**, 20 under `/opt/uv-python/cpython-3.12.13-linux-x86_64-gnu`. The item 9 binary has 20 under `<home>/…`, and the camp 1.5.0 asset 20 under `/home/runner/…` (`sysconfigdata-prefix.txt`) |
+| `identity-scan.py` on the binary | `RESULT HIT 8`, exit 1: the 8 third-party hits from item 9, at the same offsets, with **no `_sysconfigdata` hit and no `build-record`** |
+| **Negative control:** `--verify-bundle` on the xrpl-camp v1.5.0 linux release asset (sha256 `12259e59…`) | **exit 1**, naming both: `BUNDLE VERIFICATION FAILED: Bundled PEP 610 direct_url.json build record found in …: xrpl_camp-1.5.0.dist-info/direct_url.json; Bundled _sysconfigdata home path(s) found in …: PYZ.pyz!_sysconfigdata__linux_x86_64-linux-gnu (12 distinct; first: /home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin)` |
+| **Negative control:** `--verify-bundle` on item 9's `7481d88` binary (sha256 `70df0d60…`) | **exit 1**: `Bundled _sysconfigdata home path(s) found in …: PYZ.pyz!_sysconfigdata__linux_x86_64-linux-gnu (12 distinct; first: <home>/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/bin)` |
+
+**The identity scan, verbatim** (`identity-scan-linux-binary.txt`; paths read `<scratch>`):
+
+```
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/io.pyc:@0x847
+HIT home-path <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/ntpath.pyc:@0x1976
+HIT home-path <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe73c8c
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe63b77
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/bz2.pyc-body:@0x1b9
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/httpx/_urls.pyc-body:@0x320a
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/pygments/lexers/gdscript.pyc-body:@0x111
+HIT gmail <scratch>/1.3.1-g1-24926be/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/rich/_spinners.pyc-body:@0x448
+RESULT HIT 8
+```
+
+These are the third-party hits that item 9's `identity-scan-hit-sources.md` names: CPython's `io` and `bz2` author
+lines and `splitroot()` docstring, plus the httpx, pygments and rich lines. Under the Director's ruling, a release
+with third-party hits still needs his written exception naming them.
+
+**What it doesn't cover:**
+- The macOS and Windows legs didn't run, so the `C:\uv-python` branch and the macOS `sudo mkdir` branch are
+  untested.
+- The workflow's `sudo mkdir` / `chown` path didn't run here, because the folder already existed.
+- The binary isn't committed.
+
 ## Off the brief (all three are on 1.3.0 too; none from 1.3.1)
 
 - **D1 (minor, UX): in the TUI, `e` on the open ledger nudge starts a Testnet enable instead of Abandon Cargo**
@@ -391,9 +458,13 @@ installed distributions. So the release-only pins don't break the pip fallback (
   - the identity scan and `identity-scan-hit-sources.md`, plus `sysconfigdata-home-paths.txt`;
   - `notices-check.txt` and its negative control, `bundled-dists.txt` and `notices-three-copies-sha256.txt`;
   - `pip-py313/`: `trail licenses` on Python 3.13.
+- `10-g1-24926be/`:
+  - `linux-build/`: each step's `.log` and `.exit` (01–12), the two negative controls (13, 14) and their hashes,
+    `00-uv-python-dir-before.txt`, and the binary's hash, `file` type and versions;
+  - `identity-scan-linux-binary.txt` and `sysconfigdata-prefix.txt`.
 - `code.txt`, `hashes.txt`.
 - `harness/`: `cli_drive`, `tui_drive`, `tui_key_probe` (D1), `seed_search` (how seed 10 was found),
   `etv_ledger_probe`, `redact_tree`, `unpack_pyinstaller` and `hit_context` (item 7). Each is a `.py.txt`, which
   keeps them out of the repo's lint. The item 8 shell scripts are `linux_build.sh`, `verify_toc_negative.sh` and
   `toc_has.sh`. Item 9 adds `linux_build_final.sh` and `_run_final.sh`, plus `notices_check`, `bundled_dists` and
-  `hit_context_scan` as `.py.txt`.
+  `hit_context_scan` as `.py.txt`. Item 10 adds `linux_build_g1.sh` and `_run_g1.sh`.
