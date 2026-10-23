@@ -53,6 +53,10 @@ export const config: SiteConfig = {
           title: 'Tested & Lint-Clean',
           desc: 'Comprehensive test suite covering physics, events, save/load, ledger, backpack, GM fallback, and death cause enrichment. Lint clean.',
         },
+        {
+          title: 'Notices You Can Read',
+          desc: 'Every release binary carries the full license texts for everything inside it, Python and its C libraries included, copied verbatim from pinned sources. Run trail licenses to read them.',
+        },
       ],
     },
     {

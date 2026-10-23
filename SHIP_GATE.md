@@ -5,7 +5,7 @@
 
 **Tags:** `[all]` every repo · `[npm]` `[pypi]` `[vsix]` `[desktop]` `[container]` published artifacts · `[mcp]` MCP servers · `[cli]` CLI tools
 
-**Release:** v1.3.1 — 2026-10-22. Player-facing 1.3.0 audit fixes: CLI memory/cause-of-death parity, Abandon Cargo toast/card, fork maintenance/cooldown tick, salted `run_id`, `[xrpl]` in standalone binaries, Windows piped UTF-8 stdio (#19), and `npx` launcher `--version` pass-through. Hatchling stays `<1.27`.
+**Release:** v1.3.1 — 2026-10-22. Player-facing 1.3.0 audit fixes: CLI memory/cause-of-death parity, Abandon Cargo toast/card, fork maintenance/cooldown tick, salted `run_id`, `[xrpl]` in standalone binaries, Windows piped UTF-8 stdio (#19), `npx` launcher `--version` pass-through, and third-party notices (`trail licenses`; verbatim CPython and python-build-standalone texts in the binaries, which carry no build record or home path). Re-measured for the release treatment on 2026-10-23: `shipcheck audit` 25 checked, 12 skipped, 0 unchecked. Hatchling stays `<1.27`.
 
 ---
 
