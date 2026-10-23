@@ -728,4 +728,92 @@ mod tests {
         assert_eq!(st.rationing_steps, 2);
         assert_eq!(st.party.morale, prev_morale - 10);
     }
+
+    // preservation: `check_spoilage` (`physics.rs:434-449`) and `desperate_repair` (`physics.rs:536-587`)
+    // active paths, guards, cloth usage, trait/tools bonuses, and failure injury.
+    #[test]
+    fn test_desperate_repair_and_check_spoilage() {
+        let mut st = create_new_run(42);
+        let mut rng = CpythonRng::from_seed(42);
+
+        // 1. check_spoilage guards: salt > 0 or day % 3 != 0 returns empty
+        st.day = 3;
+        st.supplies.set("salt", 2);
+        st.supplies.set("food", 20);
+        assert!(check_spoilage(&mut st, &mut rng).is_empty());
+        assert_eq!(st.last_spoilage_day, 0);
+
+        st.supplies.set("salt", 0);
+        st.day = 4;
+        assert!(check_spoilage(&mut st, &mut rng).is_empty());
+        assert_eq!(st.last_spoilage_day, 0);
+
+        // Active spoilage on day % 3 == 0 with salt == 0
+        st.day = 3;
+        let spoil_delta = check_spoilage(&mut st, &mut rng);
+        let food_loss = *spoil_delta.get("food").expect("food key in spoilage delta");
+        assert!(
+            (-4..=-2).contains(&food_loss),
+            "expected -4..=-2 spoilage loss, got {food_loss}"
+        );
+        assert_eq!(st.last_spoilage_day, 3);
+
+        // Calling check_spoilage again on the same day is a no-op (at most once per qualifying day)
+        assert!(check_spoilage(&mut st, &mut rng).is_empty());
+
+        // Food cap when food < randint(2, 4)
+        st.day = 6;
+        st.supplies.set("food", 1);
+        let capped_delta = check_spoilage(&mut st, &mut rng);
+        assert_eq!(capped_delta.get("food"), Some(&-1));
+        assert_eq!(st.last_spoilage_day, 6);
+
+        // 2. desperate_repair: eligibility, cloth consumption, success and failure branches
+        st.wagon.condition = 20;
+        st.supplies.set("parts", 1);
+        st.escape_valve_cooldown = 0;
+        assert!(!can_desperate_repair(&st));
+        st.supplies.set("parts", 0);
+        assert!(can_desperate_repair(&st));
+
+        st.supplies.set("cloth", 1);
+        st.supplies.set("tools", 1);
+        st.party.members[0].traits = vec![Trait::Mechanic];
+
+        let mut saw_success = false;
+        let mut saw_failure = false;
+        for seed in 0..30i128 {
+            let mut run_st = st.clone();
+            run_st.wagon.condition = 20;
+            run_st.supplies.set("cloth", if seed == 0 { 1 } else { 0 });
+            let mut trial_rng = CpythonRng::from_seed(seed);
+            let res = desperate_repair(&mut run_st, &mut trial_rng);
+            if seed == 0 {
+                assert!(res.cloth_used);
+                assert_eq!(run_st.supplies.get("cloth"), 0);
+            } else {
+                assert!(!res.cloth_used);
+            }
+            if res.success {
+                saw_success = true;
+                assert_eq!(res.wagon_delta, 15);
+                assert_eq!(run_st.wagon.condition, 35);
+                assert!(res.injured.is_empty());
+            } else {
+                saw_failure = true;
+                assert_eq!(res.wagon_delta, -10);
+                assert_eq!(run_st.wagon.condition, 10);
+                assert!(!res.injured.is_empty());
+                let injured_member = run_st
+                    .party
+                    .members
+                    .iter()
+                    .find(|m| m.name == res.injured)
+                    .expect("injured member exists");
+                assert_eq!(injured_member.condition, Condition::Injured);
+            }
+        }
+        assert!(saw_success, "must exercise desperate_repair success branch");
+        assert!(saw_failure, "must exercise desperate_repair failure branch");
+    }
 }

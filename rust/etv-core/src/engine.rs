@@ -1296,4 +1296,84 @@ mod tests {
         assert_eq!(eng_stall.state.cause_of_death, "Wagon failure");
         assert!(eng_stall.state.game_over);
     }
+
+    // preservation: `StepEngine::do_desperate_repair` (`engine.rs:533-565`) success, failure, and
+    // refusal branches and `StepEngine::do_travel` spoilage active path (`engine.rs:295-302`).
+    #[test]
+    fn test_do_desperate_repair_and_travel_spoilage_active_paths() {
+        // 1. Refusal when wagon >= 30 or parts > 0
+        let st_refuse = create_new_run(42);
+        let mut eng_refuse = StepEngine::new(st_refuse);
+        let msgs_refuse = eng_refuse.step(&PlayerIntent {
+            action: IntentAction::DesperateRepair,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_eq!(
+            msgs_refuse.lines,
+            vec!["Desperate repair requires a badly damaged wagon and no spare parts."]
+        );
+
+        // 2. Active success and failure branches of do_desperate_repair
+        let mut saw_ok = false;
+        let mut saw_fail = false;
+        for seed in 0..30i128 {
+            let mut st = create_new_run(seed);
+            st.wagon.condition = 20;
+            st.supplies.set("parts", 0);
+            st.escape_valve_cooldown = 0;
+            let mut eng = StepEngine::new(st);
+            let msgs = eng.step(&PlayerIntent {
+                action: IntentAction::DesperateRepair,
+                choice_id: String::new(),
+                pace: String::new(),
+            });
+            assert_eq!(eng.state.escape_valve_cooldown, 3);
+            assert_eq!(eng.diagnostics.get("escape_valves_used"), Some(&1));
+            let last_card = eng
+                .state
+                .memory_cards
+                .last()
+                .expect("escape valve card emitted");
+            assert_eq!(last_card.id, "eng_valve_desperate_repair_d1");
+            if msgs.lines[0].starts_with("Desperate repair succeeded! Wagon +15.") {
+                saw_ok = true;
+                assert_eq!(eng.state.wagon.condition, 35);
+                assert!(last_card.text.contains("Repair succeeded."));
+            } else if msgs.lines[0].starts_with("Desperate repair failed! Wagon -10.") {
+                saw_fail = true;
+                assert_eq!(eng.state.wagon.condition, 10);
+                assert!(msgs.lines[0].ends_with(" was injured in the attempt."));
+                assert!(last_card.text.contains("Repair failed."));
+            } else {
+                panic!("unexpected desperate_repair line: {:?}", msgs.lines);
+            }
+        }
+        assert!(saw_ok, "must hit do_desperate_repair success line");
+        assert!(saw_fail, "must hit do_desperate_repair failure line");
+
+        // 3. Active spoilage path inside do_travel when advancing to day 3 with salt == 0
+        let mut st_spoil = create_new_run(42);
+        st_spoil.day = 2;
+        st_spoil.time_of_day = TimeOfDay::Night;
+        st_spoil.supplies.set("salt", 0);
+        st_spoil.supplies.set("food", 30);
+        st_spoil.distance_remaining = 50;
+        let mut eng_spoil = StepEngine::new(st_spoil);
+        let msgs_spoil = eng_spoil.step(&PlayerIntent {
+            action: IntentAction::Travel,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_eq!(eng_spoil.state.day, 3);
+        assert_eq!(eng_spoil.state.last_spoilage_day, 3);
+        assert!(
+            msgs_spoil
+                .lines
+                .iter()
+                .any(|l| l.starts_with("Food spoiled! Lost ") && l.ends_with(" food (no salt).")),
+            "expected spoilage line in travel messages, got {:?}",
+            msgs_spoil.lines
+        );
+    }
 }
