@@ -21,7 +21,7 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "6a05ad90f337126dc26a0eb05c3cc7dfbbb56a0cdce1a457976e36cf83fc2706",
+          "hash": "ee11b5cf8bda91804d84ed20632b096df897b448b8c1dcd591296565ea913a43",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
@@ -155,7 +155,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "6c05b6ba208da5b5e2400f21a0ddd78b272c75ade974d215a47884c3681580c2",
+          "hash": "d64c73abd47a9095b8491e07526e4108390fac980886df32963ae29d9da81a37",
           "path": ".gitattributes"
         },
         {
@@ -251,7 +251,28 @@
           "exports": [
             "main"
           ],
-          "hash": "8878a39029c1462090421ce8d386930f86f4f08b0dec5ccd07cedf15bd600d3e",
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 50
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 72
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 92
+            },
+            {
+              "kind": "raise",
+              "line": 108
+            }
+          ],
+          "hash": "ad86f575c34e13ac5c78bc91f68013298c7b330c6bae17951ea70d27aa50168a",
           "importsFiles": [
             "src/escape_the_valley/notices.py"
           ],
@@ -260,15 +281,31 @@
             {
               "calls": [
                 {
-                  "branch": "len(sys.argv) >= 2 and sys.argv[1] == \"--verify-toc\"",
-                  "line": 33,
+                  "branch": "args and args[0] == \"--prune-toc\"",
+                  "line": 47,
+                  "name": "prune_notices_to_toc",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "branch": "args and args[0] == \"--verify-toc\"",
+                  "line": 71,
                   "name": "verify_toc_against_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
                   }
                 },
                 {
-                  "line": 44,
+                  "branch": "args and args[0] == \"--verify-bundle\"",
+                  "line": 91,
+                  "name": "verify_bundle_no_direct_url",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "line": 102,
                   "name": "write_third_party_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
@@ -286,6 +323,17 @@
           "exports": [
             "main"
           ],
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 59
+            },
+            {
+              "kind": "raise",
+              "line": 81
+            }
+          ],
           "hash": "efa6f91815911d474d1b2ccb520e8a27ad44f338179e4bac4b86b5b5e6b7dc55",
           "importsFiles": [
             "src/escape_the_valley/ledger_proof.py"
@@ -295,6 +343,22 @@
         {
           "exports": [
             "main"
+          ],
+          "failurePaths": [
+            {
+              "in": "_run_one",
+              "kind": "except",
+              "line": 255
+            },
+            {
+              "in": "_run_one",
+              "kind": "except",
+              "line": 296
+            },
+            {
+              "kind": "raise",
+              "line": 747
+            }
           ],
           "hash": "6e9baceeb60ffee22de7d5c1ef2733c733213591465a94d2e7a5b4f4bbf38ceb",
           "importsFiles": [
@@ -345,6 +409,17 @@
           "exports": [
             "main"
           ],
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 116
+            },
+            {
+              "kind": "raise",
+              "line": 200
+            }
+          ],
           "hash": "7fbc53211c4097d25d37930acb8d071bd56b67c7c08220866419c84d003276db",
           "path": "scripts/smoke_test_binary.py",
           "sequences": []
@@ -357,6 +432,33 @@
           "exports": [
             "main",
             "parse_yaml_events"
+          ],
+          "failurePaths": [
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 125
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 128
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 140
+            },
+            {
+              "in": "parse_yaml_events",
+              "kind": "except",
+              "line": 143
+            },
+            {
+              "in": "main",
+              "kind": "raise",
+              "line": 190
+            }
           ],
           "hash": "21c381596440055334be0dcdc2e6bd9365ea43202e3a84e62070b43685a30f0e",
           "path": "scripts/yaml_to_json.py"
@@ -679,7 +781,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 5,
+      "dynamicReads": 7,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -696,6 +798,23 @@
         {
           "entry": "_print_event_count_and_exit",
           "entryRule": 1,
+          "failurePaths": [
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "except",
+              "line": 118
+            },
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "raise",
+              "line": 120
+            },
+            {
+              "in": "_tui_check_and_exit",
+              "kind": "raise",
+              "line": 123
+            }
+          ],
           "hash": "6c96b8367d78595159314d7f2e9635c6203617afc50514126194dbfcae5ec82d",
           "importsFiles": [
             "src/escape_the_valley/cli.py",
@@ -746,6 +865,162 @@
           ]
         },
         {
+          "hash": "5ae6b3c8f446f0a7cb95176e4dadb91b68aaffb16b3be09f64f5de248b6a973a",
+          "path": "src/escape_the_valley/_licenses/LICENSE"
+        },
+        {
+          "hash": "fdababb2e2459a82dca2c6b96e19c413aa604cdb091d063a56578b3c873e7f34",
+          "path": "src/escape_the_valley/_licenses/SOURCES.json"
+        },
+        {
+          "hash": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.expat.txt"
+        },
+        {
+          "hash": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.zlib.txt"
+        },
+        {
+          "hash": "341832873fd316a37927e79385093fbbfd40a467428480835fe435a80cadf4e5",
+          "path": "src/escape_the_valley/_licenses/cpython/Doc-license.rst"
+        },
+        {
+          "hash": "d4f3b2147ce2d4b6a4671b208523669923778b9a3f609aab753c41d34540698a",
+          "path": "src/escape_the_valley/_licenses/cpython/LICENSE.incorporated-software.rst"
+        },
+        {
+          "hash": "bd5628cc76fb0ebf9c657d1dd4d1a240a1a7b216c31663e7bbf1131c0b70a910",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "8fe98bf9822926d854f56ffd8d97877d8b942617aa44eb7ea77fd99e22f2537e",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "8a9cfe4b5924f4b25881aa0c9f5e4561c5f31065d0c4a13cdcdbcf917edf39aa",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.expat.txt"
+        },
+        {
+          "hash": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "cbccaa3efe07a9a602751375085be572d4410a250b996716fbe8c5255c7ec6f2",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "f094277cd46e1f6e4d87916cc4b51e22f613d45eb81f48231c3cb7caf8fc8a6a",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "d8eb9aba7ef6b5ed06cb3ec19a7242316af2e5933c638eb67fb781c13884e01d",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.zlib.txt"
+        },
+        {
+          "hash": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.expat.txt"
+        },
+        {
+          "hash": "29cea33c32bbc9785142386377915612a2fa786482c46843383384aded2e09b1",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libedit.txt"
+        },
+        {
+          "hash": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.zlib.txt"
+        },
+        {
           "exports": [
             "build_ending_facts",
             "build_run_stats",
@@ -780,6 +1055,117 @@
           "path": "src/escape_the_valley/adapter.py"
         },
         {
+          "failurePaths": [
+            {
+              "kind": "except",
+              "line": 101
+            },
+            {
+              "in": "_balance_to_int",
+              "kind": "raise",
+              "line": 212
+            },
+            {
+              "in": "_decode_parcel_memo",
+              "kind": "except",
+              "line": 253
+            },
+            {
+              "in": "_decode_parcel_memo",
+              "kind": "except",
+              "line": 271
+            },
+            {
+              "in": "_worker",
+              "kind": "except",
+              "line": 329
+            },
+            {
+              "in": "_submit_and_wait_bounded",
+              "kind": "raise",
+              "line": 337
+            },
+            {
+              "in": "_submit_and_wait_bounded",
+              "kind": "raise",
+              "line": 342
+            },
+            {
+              "in": "__init__",
+              "kind": "raise",
+              "line": 389
+            },
+            {
+              "in": "_persist_state",
+              "kind": "except",
+              "line": 429
+            },
+            {
+              "in": "enable",
+              "kind": "except",
+              "line": 584
+            },
+            {
+              "in": "settle",
+              "kind": "except",
+              "line": 674
+            },
+            {
+              "in": "settle",
+              "kind": "except",
+              "line": 706
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 881
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 906
+            },
+            {
+              "in": "_retry_pending",
+              "kind": "except",
+              "line": 940
+            },
+            {
+              "in": "send_parcel",
+              "kind": "except",
+              "line": 1131
+            },
+            {
+              "in": "check_parcels",
+              "kind": "except",
+              "line": 1237
+            },
+            {
+              "in": "fetch_onchain_memos",
+              "kind": "except",
+              "line": 1347
+            },
+            {
+              "in": "fetch_onchain_memos",
+              "kind": "except",
+              "line": 1363
+            },
+            {
+              "in": "wallet_info",
+              "kind": "except",
+              "line": 1409
+            },
+            {
+              "in": "wallet_info",
+              "kind": "except",
+              "line": 1415
+            },
+            {
+              "in": "close",
+              "kind": "except",
+              "line": 1474
+            }
+          ],
           "hash": "5d4c858bf65cd92484f233fd46101af12ea29d41dfc615ae79f4a1ecddc2c0ec",
           "importOrder": [
             "src/escape_the_valley/backpack_models.py",
@@ -831,6 +1217,13 @@
             "minted_snapshot_of",
             "stamp_minted_snapshot"
           ],
+          "failurePaths": [
+            {
+              "in": "_parse_minted_txid",
+              "kind": "except",
+              "line": 194
+            }
+          ],
           "hash": "b299173f89dda4655fe322c07e29c0cbd91757efb34213efd2a488bbb5b2bd6e",
           "path": "src/escape_the_valley/backpack_models.py"
         },
@@ -869,6 +1262,263 @@
             "version",
             "wallet_share",
             "write_postcard_file"
+          ],
+          "failurePaths": [
+            {
+              "in": "_version_callback",
+              "kind": "raise",
+              "line": 33
+            },
+            {
+              "in": "_licenses_callback",
+              "kind": "raise",
+              "line": 41
+            },
+            {
+              "in": "new",
+              "kind": "except",
+              "line": 179
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 184
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 190
+            },
+            {
+              "in": "new",
+              "kind": "raise",
+              "line": 195
+            },
+            {
+              "in": "play",
+              "kind": "raise",
+              "line": 233
+            },
+            {
+              "in": "play",
+              "kind": "raise",
+              "line": 237
+            },
+            {
+              "in": "status",
+              "kind": "raise",
+              "line": 258
+            },
+            {
+              "in": "journal",
+              "kind": "raise",
+              "line": 271
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 340
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 367
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 381
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 407
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 426
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 479
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 485
+            },
+            {
+              "in": "tui",
+              "kind": "except",
+              "line": 492
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 497
+            },
+            {
+              "in": "tui",
+              "kind": "except",
+              "line": 526
+            },
+            {
+              "in": "tui",
+              "kind": "raise",
+              "line": 531
+            },
+            {
+              "in": "stats",
+              "kind": "raise",
+              "line": 600
+            },
+            {
+              "in": "postcard",
+              "kind": "raise",
+              "line": 697
+            },
+            {
+              "in": "ledger_status",
+              "kind": "raise",
+              "line": 721
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 742
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 746
+            },
+            {
+              "in": "ledger_enable",
+              "kind": "raise",
+              "line": 765
+            },
+            {
+              "in": "ledger_disable",
+              "kind": "raise",
+              "line": 774
+            },
+            {
+              "in": "ledger_disable",
+              "kind": "raise",
+              "line": 778
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 795
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 799
+            },
+            {
+              "in": "ledger_settle",
+              "kind": "raise",
+              "line": 828
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 837
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 841
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 846
+            },
+            {
+              "in": "ledger_reconcile",
+              "kind": "raise",
+              "line": 872
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 881
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 888
+            },
+            {
+              "in": "ledger_proof",
+              "kind": "raise",
+              "line": 890
+            },
+            {
+              "in": "ledger_wallet",
+              "kind": "raise",
+              "line": 899
+            },
+            {
+              "in": "ledger_wallet",
+              "kind": "raise",
+              "line": 909
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 940
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 944
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 958
+            },
+            {
+              "in": "parcel_send",
+              "kind": "raise",
+              "line": 979
+            },
+            {
+              "in": "parcel_list",
+              "kind": "raise",
+              "line": 988
+            },
+            {
+              "in": "parcel_accept",
+              "kind": "raise",
+              "line": 1018
+            },
+            {
+              "in": "parcel_accept",
+              "kind": "raise",
+              "line": 1028
+            },
+            {
+              "in": "parcel_sent",
+              "kind": "raise",
+              "line": 1047
+            },
+            {
+              "in": "wallet_share",
+              "kind": "raise",
+              "line": 1075
+            },
+            {
+              "in": "wallet_share",
+              "kind": "raise",
+              "line": 1080
+            }
           ],
           "hash": "81f6c25493a35e11e5617d63db936e82067f3d0887842f45c70b6ab852186e2d",
           "importsFiles": [
@@ -1982,6 +2632,33 @@
           "path": "src/escape_the_valley/data/event_skeletons.json"
         },
         {
+          "failurePaths": [
+            {
+              "in": "__init__",
+              "kind": "except",
+              "line": 100
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 553
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 560
+            },
+            {
+              "in": "_settle_checkpoint",
+              "kind": "except",
+              "line": 603
+            },
+            {
+              "in": "_check_parcels",
+              "kind": "except",
+              "line": 652
+            }
+          ],
           "hash": "935d8835e9c8c676725ff985f78af0a32bfd37e21653284417c267fa8e1cdab4",
           "importOrder": [
             "src/escape_the_valley/events.py",
@@ -2016,6 +2693,23 @@
         {
           "exports": [
             "load_json_events"
+          ],
+          "failurePaths": [
+            {
+              "in": "_convert_event",
+              "kind": "raise",
+              "line": 157
+            },
+            {
+              "in": "load_json_events",
+              "kind": "except",
+              "line": 267
+            },
+            {
+              "in": "load_json_events",
+              "kind": "except",
+              "line": 282
+            }
           ],
           "hash": "4b827c2c95004791b0947ca7bfc0298a4c6f82a4cf53be028cec3a3e62ec0ba0",
           "importsFiles": [
@@ -2118,6 +2812,88 @@
         {
           "exports": [
             "build_deterministic_epilogue"
+          ],
+          "failurePaths": [
+            {
+              "in": "_tag_names",
+              "kind": "except",
+              "line": 217
+            },
+            {
+              "in": "_http_error_body",
+              "kind": "except",
+              "line": 261
+            },
+            {
+              "in": "_http_error_body",
+              "kind": "except",
+              "line": 270
+            },
+            {
+              "in": "is_available",
+              "kind": "except",
+              "line": 359
+            },
+            {
+              "in": "is_available",
+              "kind": "except",
+              "line": 364
+            },
+            {
+              "in": "_request_epilogue",
+              "kind": "except",
+              "line": 636
+            },
+            {
+              "in": "_request_epilogue",
+              "kind": "except",
+              "line": 643
+            },
+            {
+              "in": "_post_text",
+              "kind": "except",
+              "line": 695
+            },
+            {
+              "in": "_request_scene",
+              "kind": "except",
+              "line": 785
+            },
+            {
+              "in": "_request_scene",
+              "kind": "except",
+              "line": 796
+            },
+            {
+              "in": "_request_outcome",
+              "kind": "except",
+              "line": 855
+            },
+            {
+              "in": "_request_outcome",
+              "kind": "except",
+              "line": 862
+            },
+            {
+              "in": "_parse_json",
+              "kind": "except",
+              "line": 941
+            },
+            {
+              "in": "_parse_json",
+              "kind": "except",
+              "line": 950
+            },
+            {
+              "in": "_decode_u",
+              "kind": "except",
+              "line": 1385
+            },
+            {
+              "in": "_safe_emit",
+              "kind": "except",
+              "line": 1411
+            }
           ],
           "hash": "33276502da9fc51343577c96b226a9dc2a82522d25003273bf7dccc207e28ebc",
           "importsFiles": [
@@ -2260,6 +3036,18 @@
             "report_to_dict",
             "report_to_markdown",
             "run_proof"
+          ],
+          "failurePaths": [
+            {
+              "in": "run_proof",
+              "kind": "raise",
+              "line": 676
+            },
+            {
+              "in": "run_proof",
+              "kind": "raise",
+              "line": 690
+            }
           ],
           "hash": "27a970b297de08aa17c8ea237c44ae5b3551c6feefd16d2cfd5a147bcc780688",
           "importsFiles": [
@@ -2714,6 +3502,18 @@
           "path": "src/escape_the_valley/memory_emitters.py"
         },
         {
+          "failurePaths": [
+            {
+              "in": "setstate",
+              "kind": "except",
+              "line": 428
+            },
+            {
+              "in": "setstate",
+              "kind": "raise",
+              "line": 429
+            }
+          ],
           "hash": "4bb6e90bf015d94f20c2390498dcb2d2dd51242e8ae5dbd9f4f344194805ca23",
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py"
@@ -2732,13 +3532,195 @@
         },
         {
           "exports": [
+            "collect_toc_bundled_distributions",
+            "collect_toc_bundled_excluded_extensions",
             "generate_third_party_notices",
             "get_third_party_notices_text",
+            "prune_notices_to_toc",
             "resolve_bundled_notices_path",
+            "verify_bundle_no_direct_url",
             "verify_toc_against_notices",
+            "verify_vendored_licenses_integrity",
             "write_third_party_notices"
           ],
-          "hash": "b8bd7f99704b460f691f338e3d92ae31116d2d7450b0db09c10c01b8b0a2efe1",
+          "failurePaths": [
+            {
+              "in": "_load_sources_manifest",
+              "kind": "raise",
+              "line": 110
+            },
+            {
+              "in": "_read_interpreter_pbs_build_tag",
+              "kind": "except",
+              "line": 149
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 172
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 180
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 189
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 194
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 209
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 212
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 222
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 229
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 234
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 242
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 252
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 257
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 277
+            },
+            {
+              "in": "_locate_cpython_license_file",
+              "kind": "except",
+              "line": 362
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 374
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 382
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 408
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 414
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 428
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 434
+            },
+            {
+              "in": "_extract_dist_license_files",
+              "kind": "except",
+              "line": 516
+            },
+            {
+              "in": "_read_game_license_block",
+              "kind": "raise",
+              "line": 646
+            },
+            {
+              "in": "_build_top_level_to_dist_map",
+              "kind": "except",
+              "line": 851
+            },
+            {
+              "in": "collect_toc_bundled_distributions",
+              "kind": "raise",
+              "line": 889
+            },
+            {
+              "in": "collect_toc_bundled_distributions",
+              "kind": "except",
+              "line": 919
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "raise",
+              "line": 964
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "except",
+              "line": 996
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1081
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1093
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1111
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1118
+            },
+            {
+              "in": "verify_bundle_no_direct_url",
+              "kind": "raise",
+              "line": 1155
+            },
+            {
+              "in": "get_third_party_notices_text",
+              "kind": "raise",
+              "line": 1215
+            }
+          ],
+          "hash": "67b605866bda5a4e7f2a03dc90b799bec1732bb86246be4e1d9161ce2665efc1",
           "importsFiles": [
             "src/escape_the_valley/__init__.py"
           ],
@@ -2786,6 +3768,73 @@
             "load_game",
             "load_game_result",
             "save_game"
+          ],
+          "failurePaths": [
+            {
+              "in": "_enum_to_str",
+              "kind": "raise",
+              "line": 74
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "except",
+              "line": 120
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "except",
+              "line": 124
+            },
+            {
+              "in": "_atomic_write_text",
+              "kind": "raise",
+              "line": 126
+            },
+            {
+              "in": "_write_secrets_sidecar",
+              "kind": "except",
+              "line": 145
+            },
+            {
+              "in": "_write_secrets_sidecar",
+              "kind": "except",
+              "line": 161
+            },
+            {
+              "in": "_read_secrets_sidecar",
+              "kind": "except",
+              "line": 175
+            },
+            {
+              "in": "_backup_corrupt_save",
+              "kind": "except",
+              "line": 209
+            },
+            {
+              "in": "load_game_result",
+              "kind": "except",
+              "line": 231
+            },
+            {
+              "in": "load_game_result",
+              "kind": "except",
+              "line": 255
+            },
+            {
+              "in": "_dict_to_state",
+              "kind": "raise",
+              "line": 406
+            },
+            {
+              "in": "_coerce_rng_state",
+              "kind": "except",
+              "line": 559
+            },
+            {
+              "in": "_load_supplies",
+              "kind": "except",
+              "line": 588
+            }
           ],
           "hash": "b7dbe3e8a652b72363d774d6efe754036fc29d14b506669853e80e458eac7fdf",
           "importsFiles": [
@@ -3509,6 +4558,38 @@
             "compute_ending",
             "compute_par_days"
           ],
+          "failurePaths": [
+            {
+              "in": "__init__",
+              "kind": "except",
+              "line": 185
+            },
+            {
+              "in": "_do_change_pace",
+              "kind": "except",
+              "line": 580
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 780
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 788
+            },
+            {
+              "in": "_settle_checkpoint",
+              "kind": "except",
+              "line": 1332
+            },
+            {
+              "in": "_check_parcels",
+              "kind": "except",
+              "line": 1386
+            }
+          ],
           "hash": "162f33ffc86ba518bdb38c051e1dc20ea15a1b95ee81b89c757b08867b4fba0a",
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
@@ -3547,6 +4628,88 @@
           "path": "src/escape_the_valley/tui.tcss"
         },
         {
+          "failurePaths": [
+            {
+              "in": "_reflow_hud",
+              "kind": "except",
+              "line": 814
+            },
+            {
+              "in": "_render_all",
+              "kind": "except",
+              "line": 940
+            },
+            {
+              "in": "action_change_pace",
+              "kind": "except",
+              "line": 1199
+            },
+            {
+              "in": "_on_narration_token",
+              "kind": "except",
+              "line": 1292
+            },
+            {
+              "in": "_compute_epilogue",
+              "kind": "except",
+              "line": 1366
+            },
+            {
+              "in": "action_copy_postcard",
+              "kind": "except",
+              "line": 1396
+            },
+            {
+              "in": "_has_worker_runtime",
+              "kind": "except",
+              "line": 1410
+            },
+            {
+              "in": "_worker_failed",
+              "kind": "except",
+              "line": 1458
+            },
+            {
+              "in": "_step_worker",
+              "kind": "except",
+              "line": 1503
+            },
+            {
+              "in": "_enable_worker",
+              "kind": "except",
+              "line": 1585
+            },
+            {
+              "in": "_settle_worker",
+              "kind": "except",
+              "line": 1671
+            },
+            {
+              "in": "_wallet_info_worker",
+              "kind": "except",
+              "line": 1723
+            },
+            {
+              "in": "_ledger_proof_worker",
+              "kind": "except",
+              "line": 1772
+            },
+            {
+              "in": "action_send_parcel",
+              "kind": "except",
+              "line": 1825
+            },
+            {
+              "in": "on_input_submitted",
+              "kind": "except",
+              "line": 1865
+            },
+            {
+              "in": "_send_parcel_worker",
+              "kind": "except",
+              "line": 1922
+            }
+          ],
           "hash": "ae33e156011f0c1fe4cf6eb599d29806a8110c7f82b330d5880eb32915ffcb86",
           "importOrder": [
             "src/escape_the_valley/resources.py",
@@ -3599,6 +4762,13 @@
             "show_status",
             "show_title_screen"
           ],
+          "failurePaths": [
+            {
+              "in": "_ensure_utf8_stdio",
+              "kind": "except",
+              "line": 26
+            }
+          ],
           "hash": "97067974fe3265445173d6fa29469c7ec40caab948aac92f2399a6431446e9b1",
           "importOrder": [
             "src/escape_the_valley/models.py",
@@ -3630,6 +4800,92 @@
           ]
         },
         {
+          "failurePaths": [
+            {
+              "kind": "except",
+              "line": 31
+            },
+            {
+              "in": "_wav_duration_seconds",
+              "kind": "except",
+              "line": 100
+            },
+            {
+              "in": "start",
+              "kind": "except",
+              "line": 257
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 278
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 282
+            },
+            {
+              "in": "enqueue",
+              "kind": "except",
+              "line": 286
+            },
+            {
+              "in": "interrupt",
+              "kind": "except",
+              "line": 295
+            },
+            {
+              "in": "interrupt",
+              "kind": "except",
+              "line": 301
+            },
+            {
+              "in": "stop",
+              "kind": "except",
+              "line": 310
+            },
+            {
+              "in": "_worker_loop",
+              "kind": "except",
+              "line": 347
+            },
+            {
+              "in": "_worker_loop",
+              "kind": "except",
+              "line": 381
+            },
+            {
+              "in": "_run",
+              "kind": "except",
+              "line": 414
+            },
+            {
+              "in": "_speak_with_timeout",
+              "kind": "raise",
+              "line": 423
+            },
+            {
+              "in": "_speak_with_timeout",
+              "kind": "raise",
+              "line": 428
+            },
+            {
+              "in": "_play_audio",
+              "kind": "except",
+              "line": 470
+            },
+            {
+              "in": "_play_audio",
+              "kind": "except",
+              "line": 480
+            },
+            {
+              "in": "_play_audio",
+              "kind": "raise",
+              "line": 483
+            }
+          ],
           "hash": "d7992ecea0d2f7606d39bbdc28bd7f36180c3d31eef97132efeaf9a6ebf4a2d9",
           "importsFiles": [
             "src/escape_the_valley/narration.py"
@@ -4005,18 +5261,25 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 15,
+          "reads": 17,
           "where": [
             "caller"
           ],
-          "writes": 3
+          "writes": 4
         }
       ],
-      "outsideReads": 15,
-      "outsideWrites": 3,
+      "outsideReads": 17,
+      "outsideWrites": 4,
       "role": "code",
       "testedBy": 23,
-      "unresolvedSites": 0
+      "unresolvedNamed": [
+        {
+          "path": "src/escape_the_valley/notices.py",
+          "specifier": null,
+          "why": "dynamic"
+        }
+      ],
+      "unresolvedSites": 1
     },
     {
       "dynamicReads": 0,
@@ -4033,7 +5296,8 @@
         },
         {
           "hash": "e5de409d8483e92e42525036e712898715025638d544cf499445051375de1e41",
-          "path": "tests/conftest.py"
+          "path": "tests/conftest.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "2702870271b01b1596a3e501dc4a84b6675f10db249965a65403ccd9a00ee1c6",
@@ -4089,7 +5353,8 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/save.py"
           ],
-          "path": "tests/test_backpack.py"
+          "path": "tests/test_backpack.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "833a6d6743b61cd0c91cd83150c0c07aee0bf90f7c7205875a56379e4924f120",
@@ -4130,7 +5395,7 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "cf6d16f2daad782c68c93078111715ba591f27e6cd3d2ff101277449fadec8bf",
+          "hash": "3af468c9dde501dae43941af374a3d6ebd8288df134d8739d82ed541965367b2",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
@@ -4155,7 +5420,14 @@
             "src/escape_the_valley/save.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_cli_stats.py"
+          "names": [
+            "scripts/gen_third_party_notices.py"
+          ],
+          "path": "tests/test_cli_stats.py",
+          "spawns": [
+            "src/escape_the_valley/__main__.py"
+          ],
+          "testFramework": "pytest"
         },
         {
           "hash": "a38a1c5488ec3efabb10c7fd5abc3f24a1af499a7d85634fd82016e3240f5747",
@@ -4187,7 +5459,8 @@
             "src/escape_the_valley/resources.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_event_loader.py"
+          "path": "tests/test_event_loader.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "db0179b7efa7873034e5833590d56f0fb38d6bead6493b13d7f63cead5ea6ae9",
@@ -4212,7 +5485,8 @@
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_four_tier_live.py"
+          "path": "tests/test_four_tier_live.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "6dee2f8823acf4e491cac5fefa890cdba07943ce6231b660ae510fb453b41226",
@@ -4311,10 +5585,11 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_models.py"
+          "path": "tests/test_models.py",
+          "testFramework": "pytest"
         },
         {
-          "hash": "9ead7f145e83c989914360c9357eb812461b980721f6fd3c84b3bc49d23043e9",
+          "hash": "5b2b946c11148cda7ed24d0e16fa3caffe49c9dc079240829fdd255cf7acbd4f",
           "importsFiles": [
             "src/escape_the_valley/narration.py",
             "src/escape_the_valley/step_engine.py"
@@ -4327,6 +5602,9 @@
             "test_python_and_npm_versions_match"
           ],
           "hash": "b47ed46d1b003c696875e69a1a5b0c9d4179296aa83103e33bfb0c7e416724d9",
+          "names": [
+            "bin/escape-the-valley.js"
+          ],
           "path": "tests/test_npx_launcher.py"
         },
         {
@@ -4362,7 +5640,8 @@
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_save.py"
+          "path": "tests/test_save.py",
+          "testFramework": "pytest"
         },
         {
           "exports": [
@@ -4562,6 +5841,7 @@
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/voice.py",
             "src/escape_the_valley/__init__.py",
+            "src/escape_the_valley/ui.py",
             "src/escape_the_valley/intent.py",
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/backpack.py",
@@ -4581,10 +5861,12 @@
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/tui_app.py",
+            "src/escape_the_valley/ui.py",
             "src/escape_the_valley/voice.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_tui_smoke.py"
+          "path": "tests/test_tui_smoke.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "3498e03f4c243b5f436ee738677e48da09775be3166863340d19d03c56c5aebe",
@@ -4596,7 +5878,8 @@
             "src/escape_the_valley/narration.py",
             "src/escape_the_valley/voice.py"
           ],
-          "path": "tests/test_voice.py"
+          "path": "tests/test_voice.py",
+          "testFramework": "pytest"
         },
         {
           "hash": "86a5ef26b6d965349443a3c5a3a8658b4a38606dae3cfb20328d43dff6c26ba0",
@@ -4635,6 +5918,7 @@
       "checksCount": 2,
       "commands": [
         {
+          "dir": "",
           "job": "test",
           "programs": [
             "npx"
@@ -4642,6 +5926,7 @@
           "step": "Atlas check"
         },
         {
+          "dir": "",
           "job": "test",
           "programs": [
             "pip"
@@ -4649,6 +5934,7 @@
           "step": "Install dependencies"
         },
         {
+          "dir": "",
           "job": "test",
           "programs": [
             "ruff"
@@ -4656,6 +5942,7 @@
           "step": "Lint"
         },
         {
+          "dir": "",
           "job": "test",
           "programs": [
             "pip",
@@ -4664,6 +5951,7 @@
           "step": "Dependency audit"
         },
         {
+          "dir": "",
           "job": "test",
           "programs": [
             "pytest"
@@ -4673,6 +5961,72 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/ci.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "test",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                },
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                },
+                {
+                  "from": "3.13",
+                  "range": ">=3.13.0 <3.14.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "${{ matrix.python-version }}"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Set up Node for Atlas",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "CI",
@@ -4730,6 +6084,16 @@
         "releases": false
       },
       "stages": [],
+      "tests": [
+        {
+          "config": "pyproject.toml",
+          "files": 0,
+          "job": "test",
+          "junit": true,
+          "runner": "pytest",
+          "step": "Test"
+        }
+      ],
       "triggers": [
         {
           "event": "pull_request"
@@ -4769,6 +6133,7 @@
       "checksCount": 0,
       "commands": [
         {
+          "dir": "site",
           "job": "build",
           "programs": [
             "npm"
@@ -4776,6 +6141,7 @@
           "step": "Install site dependencies"
         },
         {
+          "dir": "site",
           "job": "build",
           "programs": [
             "npm"
@@ -4785,6 +6151,56 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/pages.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "environment": {
+            "name": "github-pages"
+          },
+          "name": "deploy",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Deploy site to GitHub Pages",
@@ -4859,6 +6275,7 @@
       "checksCount": 1,
       "commands": [
         {
+          "dir": "",
           "job": "publish",
           "programs": [
             "python"
@@ -4868,6 +6285,40 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/publish.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "environment": {
+            "name": "pypi"
+          },
+          "name": "publish",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Publish to PyPI",
@@ -4938,6 +6389,7 @@
       "checksCount": 0,
       "commands": [
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
@@ -4945,6 +6397,7 @@
           "step": "2"
         },
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
@@ -4952,6 +6405,7 @@
           "step": "3"
         },
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
@@ -4959,6 +6413,15 @@
           "step": "Install dependencies + PyInstaller"
         },
         {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
+          "step": "Remove PEP 610 direct_url.json build record from venv"
+        },
+        {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
@@ -4966,6 +6429,7 @@
           "step": "Generate third-party notices"
         },
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "cp",
@@ -4976,13 +6440,15 @@
           "step": "Build binary"
         },
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
           ],
-          "step": "Verify third-party notices against PyInstaller TOC"
+          "step": "Verify third-party notices against PyInstaller TOC and check bundle archive"
         },
         {
+          "dir": "",
           "job": "build",
           "programs": [
             "uv"
@@ -4990,6 +6456,7 @@
           "step": "Smoke test binary"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "cat",
@@ -5001,6 +6468,58 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/release-binaries.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            },
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            },
+            {
+              "labels": [
+                "windows-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "os": "win32"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "release",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [],
       "name": "Release Binaries",
@@ -5057,6 +6576,16 @@
         "releases": true
       },
       "stages": [],
+      "tests": [
+        {
+          "job": "build",
+          "ran": [
+            "scripts/smoke_test_binary.py"
+          ],
+          "runner": null,
+          "step": "Smoke test binary"
+        }
+      ],
       "triggers": [
         {
           "event": "release",
@@ -5077,6 +6606,17 @@
           ]
         }
       ],
+      "unresolvedChecks": [
+        {
+          "job": "build",
+          "manifest": "pyproject.toml",
+          "requires": ">=3.11",
+          "rule": "D1-python",
+          "step": "Install dependencies + PyInstaller",
+          "tool": "uv pip",
+          "why": "no setup-python step before it"
+        }
+      ],
       "uses": [
         "actions/checkout",
         "actions/download-artifact",
@@ -5090,6 +6630,7 @@
       "checksCount": 2,
       "commands": [
         {
+          "dir": "",
           "job": "gate/test",
           "programs": [
             "npx"
@@ -5097,6 +6638,7 @@
           "step": "Atlas check"
         },
         {
+          "dir": "",
           "job": "gate/test",
           "programs": [
             "pip"
@@ -5104,6 +6646,7 @@
           "step": "Install dependencies"
         },
         {
+          "dir": "",
           "job": "gate/test",
           "programs": [
             "ruff"
@@ -5111,6 +6654,7 @@
           "step": "Lint"
         },
         {
+          "dir": "",
           "job": "gate/test",
           "programs": [
             "pip",
@@ -5119,6 +6663,7 @@
           "step": "Dependency audit"
         },
         {
+          "dir": "",
           "job": "gate/test",
           "programs": [
             "pytest"
@@ -5126,6 +6671,7 @@
           "step": "Test"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "echo",
@@ -5137,6 +6683,7 @@
           "step": "Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "echo",
@@ -5145,6 +6692,7 @@
           "step": "Verify tag matches package.json version"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "echo",
@@ -5153,6 +6701,7 @@
           "step": "Verify tag matches pyproject.toml version"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "npm"
@@ -5160,6 +6709,7 @@
           "step": "Install dependencies"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "npm"
@@ -5167,6 +6717,7 @@
           "step": "npm pack dry-run (verify tarball shape)"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "1",
@@ -5178,6 +6729,7 @@
           "step": "Create GitHub Release (idempotent)"
         },
         {
+          "dir": "",
           "job": "release",
           "programs": [
             "npm"
@@ -5187,6 +6739,112 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/release.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "gate/test",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                },
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                },
+                {
+                  "from": "3.13",
+                  "range": ">=3.13.0 <3.14.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "${{ matrix.python-version }}"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Set up Node for Atlas",
+              "uses": "actions/setup-node",
+              "version": "22"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "gate/codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "release",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "22",
+                  "range": ">=22.0.0 <23.0.0-0"
+                }
+              ],
+              "step": "Setup Node",
+              "uses": "actions/setup-node",
+              "version": "22"
+            },
+            {
+              "ranges": [
+                {
+                  "from": "3.11",
+                  "range": ">=3.11.0 <3.12.0-0"
+                }
+              ],
+              "step": "Setup Python for pyproject version check",
+              "uses": "actions/setup-python",
+              "version": "3.11"
+            }
+          ]
+        }
+      ],
       "landings": [],
       "mentions": [
         {
@@ -5269,6 +6927,19 @@
         "releases": true
       },
       "stages": [],
+      "tests": [
+        {
+          "config": "pyproject.toml",
+          "files": 0,
+          "job": "gate/test",
+          "junit": true,
+          "runner": "pytest",
+          "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
+        }
+      ],
       "triggers": [
         {
           "event": "push",
@@ -5446,10 +7117,10 @@
       "to": "src"
     }
   ],
-  "engine": "1.23.0",
+  "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "0d112bcfb8b39010010b3aa8ca4e14194e13dcfe",
-    "tracked": 157
+    "commit": "5b69405a065570f1f71b8bc739c86b47b0469eef",
+    "tracked": 196
   },
   "landings": [
     {
@@ -5465,14 +7136,19 @@
     {
       "readers": [
         {
-          "by": "src/escape_the_valley/notices.py",
+          "by": "src/escape_the_valley/_licenses/SOURCES.json",
           "call": "literal",
-          "confidence": "weak"
+          "confidence": "text"
         },
         {
           "by": "src/escape_the_valley/notices.py",
-          "call": "read_text",
+          "call": "literal",
           "confidence": "ast"
+        },
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "weak"
         }
       ],
       "target": "LICENSE",
@@ -5556,6 +7232,72 @@
     {
       "readers": [
         {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/LICENSE",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "read_text",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/SOURCES.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/aarch64-apple-darwin",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "src/escape_the_valley/event_loader.py",
           "call": "read_text",
           "confidence": "ast"
@@ -5597,5 +7339,31 @@
   "submodules": [],
   "symlinks": [],
   "testFiles": 26,
+  "testsNotRun": [
+    "tests/test_adapter.py",
+    "tests/test_backpack.py",
+    "tests/test_backpack_ledger.py",
+    "tests/test_backpack_models.py",
+    "tests/test_backpack_save.py",
+    "tests/test_cli_stats.py",
+    "tests/test_death_causes.py",
+    "tests/test_event_loader.py",
+    "tests/test_events.py",
+    "tests/test_four_tier_live.py",
+    "tests/test_gm.py",
+    "tests/test_ledger.py",
+    "tests/test_ledger_proof.py",
+    "tests/test_memory.py",
+    "tests/test_memory_emitters.py",
+    "tests/test_models.py",
+    "tests/test_narration.py",
+    "tests/test_npx_launcher.py",
+    "tests/test_physics.py",
+    "tests/test_save.py",
+    "tests/test_step_engine.py",
+    "tests/test_tui_smoke.py",
+    "tests/test_voice.py",
+    "tests/test_worldgen.py"
+  ],
   "unassigned": []
 }

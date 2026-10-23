@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata as md
+import json
+import platform
 import re
 import sys
 import sysconfig
 from pathlib import Path
+from typing import Any
 
 from . import __version__
 
@@ -46,29 +50,8 @@ _RUNTIME_SEED_ROOTS: tuple[str, ...] = (
     "xrpl-py",
 )
 
-_GAME_MIT_LICENSE_FALLBACK = """\
-MIT License
-
-Copyright (c) 2026 mcp-tool-shop
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+_LICENSES_DIR: Path = Path(__file__).resolve().parent / "_licenses"
+_SOURCES_JSON_PATH: Path = _LICENSES_DIR / "SOURCES.json"
 
 _LICENSE_FILENAME_RE = re.compile(
     r"^(license|licence|copying|notice|authors)([._-].*)?$",
@@ -100,173 +83,6 @@ _COPYLEFT_SOURCE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# CPython's Section C ("Licenses and Acknowledgements for Incorporated Software"
-# from CPython Doc/license.rst) covering third-party C libraries linked into or
-# shipped with the CPython interpreter binary across Windows, macOS, and Linux.
-_CPYTHON_INCORPORATED_SOFTWARE_NOTICES = """\
-C. LICENSES AND ACKNOWLEDGEMENTS FOR INCORPORATED SOFTWARE (CPython Runtime)
-============================================================================
-
-This section lists the licenses and acknowledgements for third-party software
-incorporated into or bundled alongside the CPython runtime distribution:
-OpenSSL, libffi, zlib, Expat, bzip2, XZ Utils / liblzma, SQLite, and mpdecimal.
-
-1. OpenSSL (The OpenSSL Project — Apache License 2.0)
------------------------------------------------------
-Copyright (c) 1998-2025 The OpenSSL Project. All rights reserved.
-Copyright (c) 1995-1998 Eric Young. All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
-
-2. libffi (MIT License)
------------------------
-libffi - Copyright (c) 1996-2024 Anthony Green, Red Hat, Inc and others.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-3. zlib (Zlib License)
-----------------------
-Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler
-
-This software is provided 'as-is', without any express or implied warranty. In
-no event will the authors be held liable for any damages arising from the use
-of this software.
-
-Permission is granted to anyone to use this software for any purpose, including
-commercial applications, and to alter it and redistribute it freely, subject to
-the following restrictions:
-
-1. The origin of this software must not be misrepresented; you must not claim
-   that you wrote the original software. If you use this software in a product,
-   an acknowledgment in the product documentation would be appreciated but is
-   not required.
-2. Altered source versions must be plainly marked as such, and must not be
-   misrepresented as being the original software.
-3. This notice may not be removed or altered from any source distribution.
-
-4. Expat XML Parser (MIT License)
----------------------------------
-Copyright (c) 1998-2000 Thai Open Source Software Center Ltd and Clark Cooper
-Copyright (c) 2001-2024 Expat maintainers
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-5. bzip2 / libbzip2 (BSD-Style License)
----------------------------------------
-This program, "bzip2", the associated library "libbzip2", and all documentation,
-are copyright (C) 1996-2019 Julian R Seward. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. The origin of this software must not be misrepresented; you must not claim
-   that you wrote the original software. If you use this software in a product,
-   an acknowledgment in the product documentation would be appreciated but is
-   not required.
-3. Altered source versions must be plainly marked as such, and must not be
-   misrepresented as being the original software.
-4. The name of the author may not be used to endorse or promote products derived
-   from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-
-6. XZ Utils / liblzma (0BSD / Public Domain)
---------------------------------------------
-Author: Lasse Collin and contributors
-
-liblzma in XZ Utils is distributed under the BSD Zero Clause License (0BSD) and
-public domain dedications. Permission to use, copy, modify, and/or distribute
-this software for any purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS.
-
-7. SQLite (Public Domain)
--------------------------
-The author or authors of SQLite have dedicated the code to the public domain.
-Anyone is free to copy, modify, publish, use, compile, sell, or distribute the
-original SQLite code, either in source code form or as a compiled binary, for
-any purpose, commercial or non-commercial, and by any means.
-
-8. mpdecimal / libmpdec (BSD-2-Clause License)
-----------------------------------------------
-Copyright (c) 2008-2020 Stefan Krah. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED.
-"""
-
-_CPYTHON_PSF_FALLBACK = """\
-PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
---------------------------------------------
-
-1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
-   the Individual or Organization ("Licensee") accessing and otherwise using
-   this software ("Python") in source or binary form and its associated
-   documentation.
-
-2. Subject to the terms and conditions of this License Agreement, PSF hereby
-   grants Licensee a nonexclusive, royalty-free, world-wide license to
-   reproduce, analyze, test, perform and/or display publicly, prepare
-   derivative works, distribute, and otherwise use Python alone or in any
-   derivative version, provided, however, that PSF's License Agreement and
-   PSF's notice of copyright, i.e., "Copyright (c) 2001-2026 Python Software
-   Foundation; All Rights Reserved" are retained in Python alone or in any
-   derivative version prepared by Licensee.
-"""
-
 
 def _norm(name: str) -> str:
     """PEP 503 normalize a distribution name."""
@@ -281,6 +97,189 @@ def _is_stub_only_dist(norm_name: str) -> bool:
 def _requires_source_line(license_label: str) -> bool:
     """Return True if license_label is in the MPL, LGPL, or GPL family."""
     return bool(_COPYLEFT_SOURCE_RE.search(license_label))
+
+
+def _sha256_bytes(data: bytes) -> str:
+    """Return lowercase hex SHA-256 digest of raw bytes."""
+    return hashlib.sha256(data).hexdigest()
+
+
+def _load_sources_manifest() -> dict[str, Any]:
+    """Load and return `src/escape_the_valley/_licenses/SOURCES.json`."""
+    if not _SOURCES_JSON_PATH.is_file():
+        raise FileNotFoundError(
+            f"Vendored license manifest not found: {_SOURCES_JSON_PATH}"
+        )
+    return json.loads(_SOURCES_JSON_PATH.read_text(encoding="utf-8"))
+
+
+def _detect_target_triple(
+    platform_str: str | None = None,
+    machine_str: str | None = None,
+) -> str:
+    """Determine the python-build-standalone target triple for the running platform."""
+    plat = (platform_str if platform_str is not None else sys.platform).lower()
+    mach = (machine_str if machine_str is not None else platform.machine()).lower()
+
+    if plat.startswith("linux") and mach in {"x86_64", "amd64"}:
+        return "x86_64-unknown-linux-gnu"
+    if plat == "darwin" and mach in {"arm64", "aarch64"}:
+        return "aarch64-apple-darwin"
+    if plat in {"win32", "cygwin", "msys"} and mach in {"amd64", "x86_64"}:
+        return "x86_64-pc-windows-msvc"
+    return f"{mach}-{plat}"
+
+
+def _read_interpreter_pbs_build_tag() -> str | None:
+    """Read the pbs build tag from `<sys.base_prefix>/BUILD` or `sys.version`."""
+    base = Path(sys.base_prefix)
+    build_file = base / "BUILD"
+    if build_file.is_file():
+        tag = build_file.read_text(encoding="utf-8", errors="replace").strip()
+        if tag:
+            return tag
+
+    python_json = base / "PYTHON.json"
+    if python_json.is_file():
+        try:
+            meta = json.loads(python_json.read_text(encoding="utf-8"))
+            tag = str(meta.get("build_tag") or "").strip()
+            if tag:
+                return tag
+        except Exception:
+            pass
+
+    m = re.search(r"\+(\d{8})\b", sys.version)
+    if m:
+        return m.group(1)
+    return None
+
+
+def _verify_vendored_licenses_match(
+    sources: dict[str, Any],
+    target: str | None = None,
+    *,
+    require_pbs_tag: bool = True,
+) -> str:
+    """Verify running CPython version, pbs build tag, and target match `_licenses/`.
+
+    Refuses with `RuntimeError` if `_licenses/` is vendored for a different
+    CPython version, pbs build tag, or target platform.
+    """
+    resolved_target = target if target is not None else _detect_target_triple()
+    targets = sources.get("targets") or {}
+    if resolved_target not in targets or not (_LICENSES_DIR / resolved_target).is_dir():
+        raise RuntimeError(
+            f"Vendored _licenses/ does not cover target {resolved_target!r} "
+            f"(available targets: {sorted(targets)})"
+        )
+
+    expected_py_ver = str(sources.get("python_version") or "").strip()
+    running_py_ver = sys.version.split()[0].split("+")[0]
+    if expected_py_ver and running_py_ver != expected_py_ver:
+        raise RuntimeError(
+            f"Running interpreter CPython version {running_py_ver!r} does not match "
+            f"vendored _licenses/ CPython version {expected_py_ver!r}"
+        )
+
+    expected_pbs_tag = str(sources.get("pbs_build_tag") or "").strip()
+    running_pbs_tag = _read_interpreter_pbs_build_tag()
+    if expected_pbs_tag:
+        if running_pbs_tag is None and require_pbs_tag:
+            raise RuntimeError(
+                f"Running interpreter does not expose a python-build-standalone "
+                f"build tag (expected {expected_pbs_tag!r})"
+            )
+        if running_pbs_tag is not None and running_pbs_tag != expected_pbs_tag:
+            raise RuntimeError(
+                f"Running interpreter python-build-standalone build tag {running_pbs_tag!r} "
+                f"does not match vendored _licenses/ build tag {expected_pbs_tag!r}"
+            )
+
+    return resolved_target
+
+
+def verify_vendored_licenses_integrity() -> dict[str, Any]:
+    """Verify every vendored file under `_licenses/` exists and matches `SOURCES.json` SHA-256."""
+    sources = _load_sources_manifest()
+
+    game_lic = sources["game_license"]
+    game_lic_path = _LICENSES_DIR / game_lic["vendored_path"]
+    if not game_lic_path.is_file():
+        raise FileNotFoundError(f"Missing vendored game license: {game_lic_path}")
+    actual_game_sha = _sha256_bytes(game_lic_path.read_bytes())
+    if actual_game_sha != game_lic["sha256"]:
+        raise RuntimeError(
+            f"SHA-256 mismatch for {game_lic_path}: "
+            f"expected {game_lic['sha256']}, got {actual_game_sha}"
+        )
+
+    inc = sources["cpython_incorporated_software"]
+    doc_path = _LICENSES_DIR / inc["doc_license_rst_vendored_path"]
+    inc_path = _LICENSES_DIR / inc["vendored_path"]
+    for p in (doc_path, inc_path):
+        if not p.is_file():
+            raise FileNotFoundError(f"Missing vendored CPython file: {p}")
+
+    doc_bytes = doc_path.read_bytes()
+    inc_bytes = inc_path.read_bytes()
+    actual_doc_sha = _sha256_bytes(doc_bytes)
+    actual_inc_sha = _sha256_bytes(inc_bytes)
+    if actual_doc_sha != inc["doc_license_rst_sha256"]:
+        raise RuntimeError(
+            f"SHA-256 mismatch for {doc_path}: "
+            f"expected {inc['doc_license_rst_sha256']}, got {actual_doc_sha}"
+        )
+    if actual_inc_sha != inc["sha256"]:
+        raise RuntimeError(
+            f"SHA-256 mismatch for {inc_path}: "
+            f"expected {inc['sha256']}, got {actual_inc_sha}"
+        )
+
+    doc_text = doc_bytes.decode("utf-8")
+    inc_text = inc_bytes.decode("utf-8")
+    if not doc_text.endswith(inc_text):
+        raise RuntimeError(
+            f"{inc_path} is not a verbatim suffix section of {doc_path}"
+        )
+
+    for target_name, target_info in (sources.get("targets") or {}).items():
+        vendored_archive_paths: set[str] = set()
+        for entry in target_info.get("files") or []:
+            rel_path = entry["vendored_path"]
+            fpath = _LICENSES_DIR / rel_path
+            if not fpath.is_file():
+                raise FileNotFoundError(
+                    f"Missing vendored pbs license file for {target_name}: {fpath}"
+                )
+            actual_sha = _sha256_bytes(fpath.read_bytes())
+            if actual_sha != entry["sha256"]:
+                raise RuntimeError(
+                    f"SHA-256 mismatch for {fpath}: "
+                    f"expected {entry['sha256']}, got {actual_sha}"
+                )
+            vendored_archive_paths.add(entry["archive_path"])
+
+        archive_all = set(target_info.get("archive_license_files") or [])
+        sys_paths = {
+            p
+            for s in (target_info.get("system_libraries") or [])
+            for p in (s.get("archive_paths") or [])
+        }
+        excl_paths = {
+            p
+            for ex in (target_info.get("excluded_unbundled_extensions") or [])
+            for p in (ex.get("archive_paths") or [])
+        }
+        if archive_all:
+            accounted = vendored_archive_paths | sys_paths | excl_paths
+            if accounted != archive_all:
+                raise RuntimeError(
+                    f"Unaccounted archive license files for {target_name}: "
+                    f"{sorted(archive_all ^ accounted)}"
+                )
+
+    return sources
 
 
 def _resolve_upstream_url(dist: md.Distribution) -> str | None:
@@ -365,26 +364,91 @@ def _locate_cpython_license_file() -> Path | None:
     return None
 
 
-def _read_cpython_license_files() -> list[tuple[str, str]]:
-    """Return [(display_name, text), ...] for CPython's PSF license and incorporated software."""
-    results: list[tuple[str, str]] = []
+def _read_cpython_license_blocks(
+    sources: dict[str, Any],
+    target: str,
+) -> list[tuple[str, str, str, str]]:
+    """Return `[(title, source_url, sha256_line, verbatim_text), ...]` for CPython and pbs."""
     lic_path = _locate_cpython_license_file()
-    lic_text = ""
-    if lic_path is not None:
-        try:
-            lic_text = lic_path.read_text(encoding="utf-8", errors="replace").strip()
-        except Exception:
-            lic_text = ""
+    if lic_path is None:
+        raise FileNotFoundError(
+            f"CPython LICENSE.txt not found under sys.base_prefix ({sys.base_prefix!r}); "
+            "refusing to generate partial PSF license notices."
+        )
 
+    raw_lic = lic_path.read_bytes()
+    lic_text = raw_lic.decode("utf-8", errors="replace").strip()
     if not lic_text:
-        lic_text = _CPYTHON_PSF_FALLBACK.strip()
+        raise FileNotFoundError(
+            f"CPython LICENSE file at {lic_path} is empty; "
+            "refusing to generate partial PSF license notices."
+        )
+    lic_sha = _sha256_bytes(raw_lic)
 
-    results.append(("LICENSE.txt", lic_text))
-    results.append((
-        "CPython Incorporated Third-Party Software Notices",
-        _CPYTHON_INCORPORATED_SOFTWARE_NOTICES.strip(),
+    target_info = sources["targets"][target]
+    cpython_tag = sources["cpython_tag"]
+    interp_source_url = (
+        f"{target_info['pbs_archive_url']} "
+        f"(path: {target_info['install_license_archive_path']}, "
+        f"archive sha256: {target_info['archive_sha256']})"
+    )
+
+    blocks: list[tuple[str, str, str, str]] = [
+        (
+            f"CPython Interpreter {lic_path.name} ({target})",
+            interp_source_url,
+            lic_sha,
+            lic_text,
+        )
+    ]
+
+    inc_info = sources["cpython_incorporated_software"]
+    inc_path = _LICENSES_DIR / inc_info["vendored_path"]
+    if not inc_path.is_file():
+        raise FileNotFoundError(
+            f"Vendored CPython incorporated-software section missing: {inc_path}"
+        )
+    inc_raw = inc_path.read_bytes()
+    inc_sha = _sha256_bytes(inc_raw)
+    if inc_sha != inc_info["sha256"]:
+        raise RuntimeError(
+            f"SHA-256 mismatch for {inc_path}: expected {inc_info['sha256']}, got {inc_sha}"
+        )
+    inc_text = inc_raw.decode("utf-8").strip()
+    blocks.append((
+        f"CPython {cpython_tag} Doc/license.rst — {inc_info['section_heading']}",
+        f"{inc_info['source_url']} (Doc/license.rst sha256: {inc_info['doc_license_rst_sha256']})",
+        inc_sha,
+        inc_text,
     ))
-    return results
+
+    for entry in target_info["files"]:
+        vpath = _LICENSES_DIR / entry["vendored_path"]
+        if not vpath.is_file():
+            raise FileNotFoundError(
+                f"Vendored python-build-standalone license file missing: {vpath}"
+            )
+        raw_bytes = vpath.read_bytes()
+        fsha = _sha256_bytes(raw_bytes)
+        if fsha != entry["sha256"]:
+            raise RuntimeError(
+                f"SHA-256 mismatch for {vpath}: expected {entry['sha256']}, got {fsha}"
+            )
+        text = raw_bytes.decode("utf-8").replace("\r\n", "\n").strip()
+        src_desc = (
+            f"{entry['pbs_archive_url']} "
+            f"(archive: {entry['archive_name']}, "
+            f"archive sha256: {entry['archive_sha256']}, "
+            f"path: {entry['archive_path']})"
+        )
+        blocks.append((
+            f"python-build-standalone ({target}): {entry['archive_path']} — {entry['component']}",
+            src_desc,
+            fsha,
+            text,
+        ))
+
+    return blocks
 
 
 def _resolve_license_label(dist: md.Distribution) -> str:
@@ -412,8 +476,10 @@ def _resolve_license_label(dist: md.Distribution) -> str:
     return "Unknown"
 
 
-def _extract_dist_license_files(dist: md.Distribution) -> list[tuple[str, str]]:
-    """Return [(display_name, text), ...] for all license/copying/notice files in dist."""
+def _extract_dist_license_files(
+    dist: md.Distribution,
+) -> list[tuple[str, str, str]]:
+    """Return `[(display_name, sha256, text), ...]` for all license/copying/notice files in dist."""
     files = list(dist.files or [])
     # Prefer files inside *.dist-info/ so deduplication keeps canonical metadata names.
     files.sort(
@@ -423,7 +489,7 @@ def _extract_dist_license_files(dist: md.Distribution) -> list[tuple[str, str]]:
         )
     )
 
-    results: list[tuple[str, str]] = []
+    results: list[tuple[str, str, str]] = []
     seen_texts: set[str] = set()
 
     for f in files:
@@ -444,13 +510,16 @@ def _extract_dist_license_files(dist: md.Distribution) -> list[tuple[str, str]]:
             continue
 
         try:
-            text = f.locate().read_text(encoding="utf-8", errors="replace").strip()
+            located = Path(str(f.locate()))
+            raw_bytes = located.read_bytes()
+            text = raw_bytes.decode("utf-8", errors="replace").strip()
         except Exception:
             continue
 
         if not text or text in seen_texts:
             continue
         seen_texts.add(text)
+        file_sha = _sha256_bytes(raw_bytes)
 
         # Strip the leading `<pkg>-<ver>.dist-info/(licenses/)?` prefix so no
         # installation layout noise leaks into the output.
@@ -460,7 +529,7 @@ def _extract_dist_license_files(dist: md.Distribution) -> list[tuple[str, str]]:
             rel,
             flags=re.IGNORECASE,
         )
-        results.append((display_rel or base, text))
+        results.append((display_rel or base, file_sha, text))
 
     return results
 
@@ -545,31 +614,68 @@ def _collect_runtime_distributions(
     ]
 
 
-def _read_game_license_text(dists_by_norm: dict[str, md.Distribution]) -> str:
-    """Read Escape the Valley's own MIT LICENSE text."""
-    repo_license = Path(__file__).resolve().parent.parent.parent / "LICENSE"
-    if repo_license.is_file():
-        try:
-            return repo_license.read_text(encoding="utf-8", errors="replace").strip()
-        except Exception:
-            pass
+def _read_game_license_block(
+    sources: dict[str, Any],
+    dists_by_norm: dict[str, md.Distribution],
+) -> tuple[str, str, str]:
+    """Read Escape the Valley's MIT LICENSE verbatim as `(source_url, sha256, text)`."""
+    game_meta = sources.get("game_license") or {}
+    source_url = str(
+        game_meta.get("source_url")
+        or f"https://github.com/mcp-tool-shop-org/escape-the-valley/blob/v{__version__}/LICENSE"
+    )
+
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "LICENSE",
+        _LICENSES_DIR / str(game_meta.get("vendored_path") or "LICENSE"),
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            raw = cand.read_bytes()
+            text = raw.decode("utf-8", errors="replace").strip()
+            if text:
+                return source_url, _sha256_bytes(raw), text
 
     etv_dist = dists_by_norm.get("escape-the-valley")
     if etv_dist is not None:
         files = _extract_dist_license_files(etv_dist)
         if files:
-            return files[0][1]
+            _, fsha, text = files[0]
+            return source_url, fsha, text
 
-    return _GAME_MIT_LICENSE_FALLBACK.strip()
+    raise FileNotFoundError(
+        "Escape the Valley LICENSE file not found in repository or _licenses/."
+    )
 
 
 def generate_third_party_notices(
     distributions: list[md.Distribution] | None = None,
+    *,
+    target: str | None = None,
+    include_only_dists: set[str] | None = None,
+    release: bool = True,
 ) -> str:
-    """Generate the full THIRD_PARTY_NOTICES.txt content from installed metadata.
+    """Generate the full THIRD_PARTY_NOTICES.txt content from installed metadata and vendored files.
 
+    When `release=True`, verifies the running interpreter against `_licenses/SOURCES.json`
+    and includes the verbatim CPython + python-build-standalone license texts.
+    When `release=False` (pip-install runtime fallback), prints the game's license,
+    the installed distributions, and a one-line note that CPython and
+    python-build-standalone license texts apply to the release binaries only,
+    without raising on non-pinned Python versions or platforms.
     Contains no local filesystem paths.
     """
+    sources = _load_sources_manifest()
+    resolved_target: str | None = None
+    cpython_blocks: list[tuple[str, str, str, str]] = []
+    if release:
+        resolved_target = _verify_vendored_licenses_match(
+            sources,
+            target=target,
+            require_pbs_tag=(target is None),
+        )
+        cpython_blocks = _read_cpython_license_blocks(sources, resolved_target)
+
     raw_dists = (
         list(distributions)
         if distributions is not None
@@ -583,39 +689,80 @@ def generate_third_party_notices(
             if norm_name not in dists_by_norm:
                 dists_by_norm[norm_name] = d
 
-    runtime_dists = _collect_runtime_distributions(dists_by_norm)
-    pyinstaller_dist = dists_by_norm.get("pyinstaller")
+    if include_only_dists is not None:
+        allowed_norms = {
+            _norm(x)
+            for x in include_only_dists
+            if _norm(x) not in {"escape-the-valley", "pyinstaller"}
+            and not _is_stub_only_dist(_norm(x))
+        }
+        runtime_dists = [
+            dists_by_norm[k]
+            for k in sorted(
+                (k for k in dists_by_norm if k in allowed_norms),
+                key=lambda k: (dists_by_norm[k].metadata.get("Name") or k).lower(),
+            )
+        ]
+    else:
+        runtime_dists = _collect_runtime_distributions(dists_by_norm)
+
+    pyinstaller_dist = dists_by_norm.get("pyinstaller") if release else None
     py_ver = sys.version.split()[0]
-    cpython_files = _read_cpython_license_files()
+    game_src_url, game_sha, game_text = _read_game_license_block(
+        sources, dists_by_norm
+    )
 
     sep = "=" * 80
     lines: list[str] = [
         sep,
         f"Escape the Valley (escape-the-valley {__version__}) — License & Third-Party Notices",
+        f"Source: {game_src_url}",
+        f"SHA256: {game_sha}",
         sep,
         "",
-        _read_game_license_text(dists_by_norm),
-        "",
-        sep,
-        "Name: Python (CPython Runtime and Standard Library)",
-        f"Version: {py_ver}",
-        "License: PSF-2.0 (Python Software Foundation License Version 2 + Incorporated Software)",
-        sep,
+        game_text,
         "",
     ]
 
-    for label, text in cpython_files:
-        lines.append(f"--- {label} ---")
-        lines.append(text)
-        lines.append("")
+    if release and resolved_target is not None:
+        pbs_tag = sources["pbs_build_tag"]
+        lines.extend([
+            sep,
+            "Name: Python (CPython Runtime and Standard Library)",
+            f"Version: {py_ver}",
+            f"Target: {resolved_target} (python-build-standalone {pbs_tag})",
+            (
+                "License: PSF-2.0 "
+                "(Python Software Foundation License Version 2 + Incorporated Software)"
+            ),
+            sep,
+            "",
+        ])
+        for label, src_url, fsha, text in cpython_blocks:
+            lines.append(f"--- {label} ---")
+            lines.append(f"Source: {src_url}")
+            lines.append(f"SHA256: {fsha}")
+            lines.append(text)
+            lines.append("")
+    else:
+        lines.extend([
+            (
+                "Note: CPython and python-build-standalone license texts "
+                "apply to the standalone release binaries only."
+            ),
+            "",
+        ])
 
     lines.extend([
         sep,
         "Summary of Included Third-Party Distributions",
         sep,
         "",
-        f"- Python (CPython Runtime and Standard Library) {py_ver} (PSF-2.0)",
     ])
+    if release:
+        lines.append(
+            f"- Python (CPython Runtime and Standard Library) {py_ver} (PSF-2.0)"
+        )
 
     for d in runtime_dists:
         name = d.metadata.get("Name") or "Unknown"
@@ -636,16 +783,20 @@ def generate_third_party_notices(
         pyi_ver = pyinstaller_dist.metadata.get("Version") or "Unknown"
         pyi_lic = _resolve_license_label(pyinstaller_dist)
         pyi_files = _extract_dist_license_files(pyinstaller_dist)
+        pyi_src_url = f"https://pypi.org/project/pyinstaller/{pyi_ver}/#files"
         lines.extend([
             sep,
             "Name: PyInstaller (Bootloader and Runtime Hooks)",
             f"Version: {pyi_ver}",
             f"License: {pyi_lic}",
+            f"Source: {pyi_src_url}",
             sep,
             "",
         ])
-        for label, text in pyi_files:
+        for label, fsha, text in pyi_files:
             lines.append(f"--- {label} ---")
+            lines.append(f"Source: {pyi_src_url} ({label})")
+            lines.append(f"SHA256: {fsha}")
             lines.append(text)
             lines.append("")
 
@@ -654,21 +805,25 @@ def generate_third_party_notices(
         ver = d.metadata.get("Version") or "Unknown"
         lic = _resolve_license_label(d)
         lic_files = _extract_dist_license_files(d)
+        dist_src_line = _format_source_line(name, ver, d)
+        pypi_files_url = f"https://pypi.org/project/{name}/{ver}/#files"
 
         header_lines = [
             sep,
             f"Name: {name}",
             f"Version: {ver}",
             f"License: {lic}",
+            dist_src_line,
+            sep,
+            "",
         ]
-        if _requires_source_line(lic):
-            header_lines.append(_format_source_line(name, ver, d))
-        header_lines.extend([sep, ""])
         lines.extend(header_lines)
 
         if lic_files:
-            for label, text in lic_files:
+            for label, fsha, text in lic_files:
                 lines.append(f"--- {label} ---")
+                lines.append(f"Source: {pypi_files_url} ({label})")
+                lines.append(f"SHA256: {fsha}")
                 lines.append(text)
                 lines.append("")
         else:
@@ -723,34 +878,17 @@ def _build_top_level_to_dist_map(
     return mapping
 
 
-def verify_toc_against_notices(
+def collect_toc_bundled_distributions(
     build_dir: str | Path,
-    notices_path: str | Path = "THIRD_PARTY_NOTICES.txt",
     distributions: list[md.Distribution] | None = None,
 ) -> list[str]:
-    """Verify every top-level site-packages distribution in PyInstaller's TOC has a notices entry.
-
-    Reads all `*.toc` (and `xref-*.html`) files under `build_dir`, maps every
-    `site-packages/<entry>` path back to its owning distribution via
-    `importlib.metadata`, and raises `RuntimeError` if any bundled third-party
-    distribution is absent from `notices_path`.
-    """
+    """Return sorted normalized names of site-packages dists in PyInstaller's TOC."""
     build_root = Path(build_dir)
     toc_files = sorted(build_root.rglob("*.toc")) if build_root.is_dir() else []
     if not toc_files:
         raise FileNotFoundError(
             f"No PyInstaller .toc files found under {build_root}"
         )
-
-    notices_file = Path(notices_path)
-    if not notices_file.is_file():
-        raise FileNotFoundError(f"Notices file not found: {notices_file}")
-
-    notices_text = notices_file.read_text(encoding="utf-8", errors="replace")
-    noticed_norms: set[str] = set()
-    for m in re.finditer(r"^Name:\s*(.+)$", notices_text, flags=re.MULTILINE):
-        raw_entry = m.group(1).strip()
-        noticed_norms.add(_norm(raw_entry))
 
     raw_dists = (
         list(distributions)
@@ -794,7 +932,6 @@ def verify_toc_against_notices(
                 or top_map.get(entry.lower())
             )
             if dist_norm is None:
-                # Strip .dist-info / .egg-info / .py suffix if unmapped
                 cleaned = re.sub(
                     r"(-[0-9][A-Za-z0-9_.-]*)?\.(dist-info|egg-info|py|pyd|so)$",
                     "",
@@ -811,6 +948,164 @@ def verify_toc_against_notices(
                 continue
             bundled_dists.add(dist_norm)
 
+    return sorted(bundled_dists)
+
+
+def collect_toc_bundled_excluded_extensions(
+    build_dir: str | Path,
+    *,
+    target: str | None = None,
+    sources: dict[str, Any] | None = None,
+) -> list[str]:
+    """Return sorted `excluded_unbundled_extensions` names found in `build_dir`'s TOC."""
+    build_root = Path(build_dir)
+    toc_files = sorted(build_root.rglob("*.toc")) if build_root.is_dir() else []
+    if not toc_files:
+        raise FileNotFoundError(
+            f"No PyInstaller .toc files found under {build_root}"
+        )
+
+    manifest = sources if sources is not None else _load_sources_manifest()
+    resolved_target = target if target is not None else _detect_target_triple()
+    target_info = (manifest.get("targets") or {}).get(resolved_target) or {}
+    excluded_entries = target_info.get("excluded_unbundled_extensions") or []
+
+    ext_candidates: dict[str, set[str]] = {}
+    for item in excluded_entries:
+        ext = str(item.get("extension") or "").strip()
+        if not ext:
+            continue
+        cands = {ext}
+        if ext in {"_tkinter", "_dbm"}:
+            cands.add(ext.lstrip("_"))
+        if ext == "_curses":
+            cands.add("_curses_panel")
+        ext_candidates[ext] = cands
+
+    if not ext_candidates:
+        return []
+
+    found: set[str] = set()
+    toc_tuple_re = re.compile(
+        r"""\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*['"]([A-Z_]+)['"]\s*\)"""
+    )
+    quoted_re = re.compile(r"""['"]([^'"]+)['"]""")
+    for tf in toc_files:
+        try:
+            text = tf.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        # 1. Check 3-tuple TOC entries (dest_name, src_path, typecode):
+        for m in toc_tuple_re.finditer(text):
+            for part in (m.group(1), m.group(2)):
+                raw_tok = part.replace("\\\\", "/").replace("\\", "/")
+                base = raw_tok.rsplit("/", 1)[-1]
+                for ext, cands in ext_candidates.items():
+                    if ext in found:
+                        continue
+                    for cand in cands:
+                        if (
+                            base == cand
+                            or base.startswith(f"{cand}.")
+                            or raw_tok == cand
+                            or raw_tok.startswith(f"{cand}.")
+                            or raw_tok.startswith(f"{cand}/")
+                            or f"/{cand}/" in raw_tok
+                        ):
+                            found.add(ext)
+                            break
+        # 2. Also check any quoted filename/path with a '.' or '/' (ignoring
+        # bare module names in Analysis-00.toc's `excludes` list):
+        for m in quoted_re.finditer(text):
+            raw_tok = m.group(1).replace("\\\\", "/").replace("\\", "/")
+            if "." not in raw_tok and "/" not in raw_tok:
+                continue
+            base = raw_tok.rsplit("/", 1)[-1]
+            for ext, cands in ext_candidates.items():
+                if ext in found:
+                    continue
+                for cand in cands:
+                    if (
+                        base == cand
+                        or base.startswith(f"{cand}.")
+                        or raw_tok.startswith(f"{cand}.")
+                        or raw_tok.startswith(f"{cand}/")
+                        or f"/{cand}/" in raw_tok
+                    ):
+                        found.add(ext)
+                        break
+
+    return sorted(found)
+
+
+def prune_notices_to_toc(
+    build_dir: str | Path,
+    notices_path: str | Path = "THIRD_PARTY_NOTICES.txt",
+    distributions: list[md.Distribution] | None = None,
+    *,
+    target: str | None = None,
+    release: bool = True,
+) -> list[str]:
+    """Regenerate `notices_path` pruned to the exact distributions present in `build_dir`'s TOC."""
+    bundled = collect_toc_bundled_distributions(
+        build_dir, distributions=distributions
+    )
+    content = generate_third_party_notices(
+        distributions=distributions,
+        target=target,
+        include_only_dists=set(bundled),
+        release=release,
+    )
+    Path(notices_path).write_text(content, encoding="utf-8")
+    return bundled
+
+
+def verify_toc_against_notices(
+    build_dir: str | Path,
+    notices_path: str | Path = "THIRD_PARTY_NOTICES.txt",
+    distributions: list[md.Distribution] | None = None,
+    *,
+    target: str | None = None,
+) -> list[str]:
+    """Verify PyInstaller's TOC against `notices_path` and `excluded_unbundled_extensions`.
+
+    Raises `RuntimeError` if:
+    - any `excluded_unbundled_extensions` entry for the target appears in the TOC;
+    - any bundled third-party distribution is missing from `notices_path`; OR
+    - `notices_path` lists any unbundled third-party distribution.
+    """
+    found_excluded = collect_toc_bundled_excluded_extensions(
+        build_dir, target=target
+    )
+    if found_excluded:
+        raise RuntimeError(
+            f"Excluded unbundled extension(s) found in PyInstaller TOC: "
+            f"{', '.join(found_excluded)}"
+        )
+
+    bundled_list = collect_toc_bundled_distributions(
+        build_dir, distributions=distributions
+    )
+    bundled_dists = set(bundled_list)
+
+    notices_file = Path(notices_path)
+    if not notices_file.is_file():
+        raise FileNotFoundError(f"Notices file not found: {notices_file}")
+
+    notices_text = notices_file.read_text(encoding="utf-8", errors="replace")
+    non_site_package_entries = {
+        _norm("Python (CPython Runtime and Standard Library)"),
+        _norm("PyInstaller (Bootloader and Runtime Hooks)"),
+        "pyinstaller",
+        "python",
+    }
+    noticed_norms: set[str] = set()
+    for m in re.finditer(r"^Name:\s*(.+)$", notices_text, flags=re.MULTILINE):
+        raw_entry = m.group(1).strip()
+        norm_entry = _norm(raw_entry)
+        if norm_entry not in non_site_package_entries:
+            noticed_norms.add(norm_entry)
+
     missing = sorted(d for d in bundled_dists if d not in noticed_norms)
     if missing:
         raise RuntimeError(
@@ -818,13 +1113,76 @@ def verify_toc_against_notices(
             f"from {notices_file}: {', '.join(missing)}"
         )
 
-    return sorted(bundled_dists)
+    extra = sorted(d for d in noticed_norms if d not in bundled_dists)
+    if extra:
+        raise RuntimeError(
+            f"Unbundled site-packages distributions in {notices_file} absent "
+            f"from PyInstaller TOC: {', '.join(extra)}"
+        )
+
+    return bundled_list
 
 
-def write_third_party_notices(output_path: str | Path = "THIRD_PARTY_NOTICES.txt") -> Path:
+def verify_bundle_no_direct_url(
+    binary_path: str | Path,
+    *,
+    archive_entries: list[str] | tuple[str, ...] | set[str] | None = None,
+) -> list[str]:
+    """Verify a PyInstaller bundle contains no `direct_url.json` PEP 610 build record.
+
+    Lists the archive via `PyInstaller.archive.readers.CArchiveReader` (unless
+    `archive_entries` is injected for testing) and raises `RuntimeError` if any
+    entry ends in `direct_url.json`.
+    """
+    if archive_entries is None:
+        import importlib
+
+        readers_mod = importlib.import_module(
+            ".".join(("PyInstaller", "archive", "readers"))
+        )
+        reader = readers_mod.CArchiveReader(str(Path(binary_path)))
+        entries = sorted(str(k) for k in reader.toc.keys())
+    else:
+        entries = sorted(str(k) for k in archive_entries)
+
+    bad = [
+        e
+        for e in entries
+        if e.replace("\\", "/").lower() == "direct_url.json"
+        or e.replace("\\", "/").lower().endswith("/direct_url.json")
+    ]
+    if bad:
+        raise RuntimeError(
+            f"Bundled PEP 610 direct_url.json build record found in {binary_path}: "
+            f"{', '.join(bad)}"
+        )
+    return entries
+
+
+def write_third_party_notices(
+    output_path: str | Path = "THIRD_PARTY_NOTICES.txt",
+    *,
+    target: str | None = None,
+    toc_build_dir: str | Path | None = None,
+    distributions: list[md.Distribution] | None = None,
+    release: bool = True,
+) -> Path:
     """Generate and write THIRD_PARTY_NOTICES.txt to output_path."""
     path = Path(output_path)
-    content = generate_third_party_notices()
+    if toc_build_dir is not None:
+        prune_notices_to_toc(
+            toc_build_dir,
+            path,
+            distributions=distributions,
+            target=target,
+            release=release,
+        )
+        return path
+    content = generate_third_party_notices(
+        distributions=distributions,
+        target=target,
+        release=release,
+    )
     path.write_text(content, encoding="utf-8")
     return path
 
@@ -857,4 +1215,4 @@ def get_third_party_notices_text() -> str:
         raise FileNotFoundError(
             "Bundled THIRD_PARTY_NOTICES.txt not found in frozen binary."
         )
-    return generate_third_party_notices()
+    return generate_third_party_notices(release=False)
