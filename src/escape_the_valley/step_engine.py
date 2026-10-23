@@ -303,14 +303,6 @@ class StepEngine:
     def _do_travel(self) -> None:
         self.state.last_action = "TRAVEL"
 
-        # Decrement maintenance window
-        if self.state.maintained_turns_remaining > 0:
-            self.state.maintained_turns_remaining -= 1
-
-        # Decrement escape valve cooldown
-        if self.state.escape_valve_cooldown > 0:
-            self.state.escape_valve_cooldown -= 1
-
         # Check if at a fork first
         node = _find_node(self.state)
         if (
@@ -370,6 +362,14 @@ class StepEngine:
                     "this way."
                 )
                 return
+
+        # Decrement maintenance window (H-3: after fork/route early return)
+        if self.state.maintained_turns_remaining > 0:
+            self.state.maintained_turns_remaining -= 1
+
+        # Decrement escape valve cooldown (H-3: after fork/route early return)
+        if self.state.escape_valve_cooldown > 0:
+            self.state.escape_valve_cooldown -= 1
 
         distance = compute_travel_distance(self.state)
 
@@ -601,19 +601,19 @@ class StepEngine:
         self.diagnostics["escape_valves_used"] += 1
         self.state.escape_valve_cooldown = 3
         result = abandon_cargo(self.state)
-        dropped = result.get("dropped", {})
         dropped_items = [
-            f"-{abs(v)} {k}" for k, v in dropped.items() if v < 0
+            f"-{abs(v)} {k}" for k, v in result.items() if v < 0
         ]
+        dropped_summary = ", ".join(dropped_items) or "nothing"
         self.msgs.lines.append(
             "Abandoned cargo to lighten the wagon. "
-            f"Wagon +{result.get('wagon_repair', 25)}. "
-            f"Dropped: {', '.join(dropped_items) or 'nothing'}. "
+            "Wagon +25. "
+            f"Dropped: {dropped_summary}. "
             "Morale fell."
         )
         emit_escape_valve_card(
             self.state, "abandon_cargo",
-            "Abandoned cargo to save the wagon.",
+            f"Abandoned cargo to save the wagon (dropped: {dropped_summary}).",
         )
 
     def _do_desperate_repair(self) -> None:

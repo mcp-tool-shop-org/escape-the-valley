@@ -1,0 +1,26 @@
+bundled  annotated-doc              2 files, e.g. pyz:annotated_doc
+bundled  anyio                     43 files, e.g. pyz:anyio
+bundled  base58                     1 files, e.g. pyz:base58
+bundled  certifi                    4 files, e.g. pyz:certifi
+bundled  ECPy                       8 files, e.g. pyz:ecpy
+bundled  escape-the-valley         28 files, e.g. pyz:escape_the_valley
+bundled  h11                       11 files, e.g. pyz:h11
+bundled  httpcore                  31 files, e.g. pyz:httpcore
+bundled  httpx                     23 files, e.g. pyz:httpx
+bundled  idna                       6 files, e.g. pyz:idna
+bundled  linkify-it-py              4 files, e.g. pyz:linkify_it
+bundled  markdown-it-py            62 files, e.g. pyz:markdown_it
+bundled  mdurl                      6 files, e.g. pyz:mdurl
+bundled  platformdirs               9 files, e.g. pyz:platformdirs
+bundled  pycryptodome              59 files, e.g. carchive:Crypto/Cipher/_ARC4.abi3.so
+bundled  Pygments                 340 files, e.g. pyz:pygments
+bundled  rich                     100 files, e.g. pyz:rich
+bundled  shellingham                2 files, e.g. pyz:shellingham
+bundled  textual                  262 files, e.g. pyz:textual
+bundled  typer                     29 files, e.g. pyz:typer
+bundled  typing_extensions          1 files, e.g. pyz:typing_extensions
+bundled  websockets                48 files, e.g. pyz:websockets
+bundled  xrpl-py                  297 files, e.g. pyz:xrpl
+in bundle, not listed: []
+listed, not in bundle: []
+pyinstaller files in bundle: (0, '-')  escape-the-valley: (28, 'pyz:escape_the_valley')

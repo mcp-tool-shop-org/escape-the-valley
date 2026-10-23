@@ -1,0 +1,26 @@
+Testnet transactions this check relied on (all tesSUCCESS, validated; read back from rippled in
+5-backpack/account_tx.txt, which lists all 29 unique transactions on the two run wallets, including the
+faucet funding, trust lines and opening mints).
+
+Run A  73475cb4-2c853b9b  wallet rHJgLAiKwMVzS8YXC8XZNFye8dp1o7UKUV  issuer rNB14jSV8toif2U1qz9AfKcjDzv6UowcK
+  settle, Fellgate, day 11   E07719F552F1CB9235221AB3EFEFCD711B66C43D7535170FAC2B472F2E6B7D7B  (issuer -> A, +2 PRT)
+  settle, Fellgate, day 11   E78630CBEAED39C89C4C9C782387CC8AD50A34F5DFD994E99382EA1664FE73D1  (A -> issuer, 24 FOD)
+  settle, Fellgate, day 11   678B19D59EA4FDF6E61DF746E17CA90C103D22BC94D4081F583846A4B9D7C017  (A -> issuer, 7 AMO)
+  parcel, 5 food to run B    440A2E758EAD4FFF72787A64EEE6D957E1A473A1F6610B8353ECE31B088CEA74  (A -> B, 12 drops, PARCEL memo)
+
+Run B  73475cb4-93d7d481  wallet rwmL1CmjeA71ALAJWjKtizTJTgBCJdMaok  issuer rwT6p51QWft9UrCL6bQn1qXDY8svz7T7aQ
+  settle, Fellgate, day 11   3F4155283483BE4052015837AE73DD4363673CEE6E313C977313330568CFB1CD  (issuer -> B, +2 PRT)
+  settle, Fellgate, day 11   C0EA63DFD72A5DA54682C0D1E88132E57E194DBA6C56140EA1AB41AAF6DBEE16  (B -> issuer, 7 AMO)
+  settle, Fellgate, day 11   556ACFE8BAA75A594313FBB12F580CCBC9D2C79624F4F43487D2A97481010686  (B -> issuer, 24 FOD)
+
+Wallets made by mistake (see "Off the brief", D1): pressing `e` on the TUI's open ledger nudge ran the
+enable flow in three early probe runs on seed 10. Each made a player and an issuer wallet from the
+Testnet faucet. Nothing else was sent from them.
+  4a44dc15-92a1f6e9  player rpN8DGBgt2ydaJ11L3ugPkiWF5DAVs2PCg  issuer rKZecfVWA7dxSsnUo4faBL6iA8ENgPbS29
+  4a44dc15-5c8484e1  player rDoZ9Nuq3JsSDQp3r1peVRLw5cDQ4Le5xU  issuer rKAqSv44mCnoXqsutWkeh6S9EWvR4xqsuX
+  4a44dc15-d2fc882a  player rnPwZyqRivNBK1u8VTv8WvaTrWXErFPkEs  issuer rsgkHe1u8bmPDJrezu3GQZ77mHqN94W7WK
+Item 7, enable from the frozen binary on 0d112bc (a player and an issuer wallet each, from the faucet):
+  3.12 build  7902699b-68895840  player rweCbG8xuxLFQGdp9XYFK9SuwybzfZLsj2
+  3.13 build  7902699b-a31a371d  player rGZjmEC9j3t5UhrenYZUbnrnyVcgHZCvDu  (first build, see 7-binary/build-py313/)
+
+Faucet grants in all: 14 (2 each for runs A and B, 6 for the three probes, 2 for each item 7 enable).

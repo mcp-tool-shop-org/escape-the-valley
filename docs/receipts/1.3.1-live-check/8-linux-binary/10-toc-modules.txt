@@ -1,0 +1,6 @@
+wrapt            PYZ-00.toc:    0   Analysis-00.toc site-packages:    0
+deprecated       PYZ-00.toc:    0   Analysis-00.toc site-packages:    0
+mdit_py_plugins  PYZ-00.toc:    0   Analysis-00.toc site-packages:    0
+rich             PYZ-00.toc:  100   Analysis-00.toc site-packages:  100
+xrpl             PYZ-00.toc:  274   Analysis-00.toc site-packages:  320
+certifi          PYZ-00.toc:    2   Analysis-00.toc site-packages:    4

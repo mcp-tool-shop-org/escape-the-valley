@@ -12,7 +12,7 @@ from escape_the_valley.step_engine import StepMessages
 
 class TestSanitize:
     def test_strips_windows_paths(self):
-        text = "Found data at C:\\Users\\admin\\secrets.txt"
+        text = "Found data at C:\\Users\\Public\\secrets.txt"
         result = _sanitize(text)
         assert "C:\\" not in result
 

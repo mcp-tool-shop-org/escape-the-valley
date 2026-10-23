@@ -26,7 +26,10 @@ MAX_STEPS = 3000
 PINS = [
     (1207, "triumphant"),
     (1188, "weathered"),
-    (1006, "pyrrhic"),
+    # H-3: fixing fork route prompts burning a turn of wagon maintenance
+    # upgraded seed 1006 from pyrrhic to weathered; 1009 is the WAVE_6
+    # 300-set pyrrhic pin under corrected fork maintenance ticking.
+    (1009, "pyrrhic"),
     (1000, "lost"),
 ]
 

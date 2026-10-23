@@ -1,0 +1,2 @@
+etv-linux-7481d88: 20 /home/ strings in _sysconfigdata, 12 distinct; first: <home>/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/bin
+camp-linux-150-release: 20 /home/ strings in _sysconfigdata, 12 distinct; first: /home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin

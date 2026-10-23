@@ -27,6 +27,8 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 
 ## What's New
 
+**1.3.1** — CLI runs (`trail new` / `trail continue`) now emit memory cards and canonical cause-of-death like the TUI (`trail stats`, Trail Ledger death days, and GM memory briefs work in both modes). TUI Abandon Cargo reports the actual cargo dropped. Fork route prompts no longer burn a turn of wagon maintenance or escape-valve cooldown. Replay runs on the same seed get distinct `run_id`s for XRPL memos. GitHub Release / `npx` binaries now bundle `xrpl-py`. Windows piped output (`cp1252`) no longer crashes on Rich box-drawing characters (#19).
+
 **1.3.0** — Four endings you can actually hit, including weathered. Wagon is a threat, not the whole game. Early Winter slows a tagged year. Desert fords stay off the sand. Hunt names who got hurt. `npx @mcptoolshop/escape-the-valley` launches the v1.3.0 binary (it had been stuck on the dead v1.1.1 GitHub artifact).
 
 **1.2.1** — PyPI wheel actually uploads (Metadata-Version 2.3). Same product as 1.2.0.
@@ -44,7 +46,7 @@ Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a rela
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (GitHub v1.3.0 binary; v1.1.0 and v1.1.1
+# Zero-prerequisite npm launcher (GitHub v1.3.1 binary; v1.1.0 and v1.1.1
 # artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
@@ -125,7 +127,7 @@ trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 
 In the TUI, **L** opens the ledger menu; with the backpack on, **R** proofs this save (same verdicts). It does not Rest.
 
-Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
+Bundled in the `npx` / GitHub Release binary; for `pip` installs, run `pip install "escape-the-valley[xrpl]"` (or `pip install -e ".[xrpl]"`) for the `xrpl-py` dependency.
 
 ## Commands
 
@@ -138,6 +140,7 @@ Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 | `trail journal` | Show recent journal entries |
 | `trail self-check` | Check game environment health |
 | `trail version` | Show version |
+| `trail licenses` | Show license and third-party notices (or `trail --licenses`) |
 | `trail ledger status` | Show backpack status |
 | `trail ledger enable` | Enable XRPL backpack |
 | `trail ledger disable` | Disable XRPL backpack |
@@ -145,7 +148,7 @@ Requires `pip install -e ".[xrpl]"` for the `xrpl-py` dependency.
 | `trail ledger reconcile` | Retry failed settlements |
 | `trail ledger proof` | Proof the loaded save (PASS/FAIL/INCONCLUSIVE) |
 | `trail ledger wallet` | Show wallet details |
-| `trail stats` | Show run statistics (supports `--json`) |
+| `trail stats` | Show run statistics and memory cards (supports `--json`) |
 | `trail parcel send <addr> <supply> <amount>` | Send supplies to another traveler |
 | `trail parcel list` | List received parcels |
 | `trail parcel accept <id>` | Accept a pending parcel |
@@ -177,7 +180,7 @@ The first narrated turn loads the model and can take 10-30s — that's normal, n
 
 - Python 3.11+
 - Ollama (optional, for AI narration)
-- xrpl-py (optional, for ledger backpack)
+- xrpl-py (optional, for ledger backpack on `pip` installs; bundled in the `npx` / GitHub Release binary)
 
 ## Security
 
@@ -185,6 +188,6 @@ No telemetry. No accounts. GM narration is on by default (HTTP to local Ollama);
 
 ## License
 
-MIT
+MIT — run `trail licenses` (or `trail --licenses`) to view the game's license and third-party dependency notices (also attached to each GitHub Release as `THIRD_PARTY_NOTICES.txt`).
 
 Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

@@ -1,0 +1,19 @@
+{
+  "run_id": "73475cb4-4be97571",
+  "seed": 42,
+  "day": 15,
+  "time_of_day": "night",
+  "party_alive": 0,
+  "party_total": 4,
+  "distance_traveled": 205,
+  "distance_remaining": 17,
+  "total_distance": 396,
+  "game_over": true,
+  "victory": false,
+  "gm_profile": "fireside",
+  "journal_entries": 28,
+  "events_seen": 12,
+  "memory_cards": 12,
+  "twists": 1,
+  "wagon_condition": 73
+}
