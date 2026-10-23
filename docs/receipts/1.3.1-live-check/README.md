@@ -62,7 +62,7 @@ everything but the licences match (N2).**
 - **Linux:** `licenses` is byte-identical to the release's `THIRD_PARTY_NOTICES-linux-x64.txt`, and
   `--verify-bundle` passes the release asset.
 - **N2, Windows:** `licenses` isn't byte-identical to `THIRD_PARTY_NOTICES-win-x64.txt`. The release file has 291
-  lines ending `\\r\\r\\n`, from licence texts kept with their CRLF endings. The binary reads those back as extra blank
+  lines ending `\r\r\n`, from licence texts kept with their CRLF endings. The binary reads those back as extra blank
   lines.
 - **pip:** `pip install escape-the-valley==1.3.1` on Python 3.13 runs `trail licenses` with exit 0.
 
@@ -443,7 +443,7 @@ is still there in the released Linux notices: the header reads `SHA256: 367e5141
 
 **N2 (minor): on Windows, `licenses` doesn't reproduce the release notices byte for byte.**
 - **The file:** the copy bundled in the `.exe` is the release's `THIRD_PARTY_NOTICES-win-x64.txt`, the same
-  sha256. Its lines end `\r\n`, except 291 that end `
+  sha256. Its lines end `\r\n`, except 291 that end `
 ` (`win/08-crcrlf-blocks.txt`). They are in five blocks
   whose source files are CRLF and are copied without normalising the line endings:
   - the game LICENSE: 20 lines;
@@ -452,9 +452,9 @@ is still there in the released Linux notices: the header reads `SHA256: 367e5141
   - pycryptodome's `LICENSE.rst`: 60;
   - websockets' `LICENSE`: 23.
 
-  On the Windows build, writing that text in text mode turns each `\r\n` into `
+  On the Windows build, writing that text in text mode turns each `\r\n` into `
 `.
-- **What `licenses` prints:** it reads the bundled file with universal newlines, so each `
+- **What `licenses` prints:** it reads the bundled file with universal newlines, so each `
 ` becomes two line
   breaks and those lines gain a blank line after them. It then prints with `\r\n`. The output is exactly that
   reading of the file (a Python `newline=None` read, re-joined with `\r\n`, equals `03-licenses.out`). It has
