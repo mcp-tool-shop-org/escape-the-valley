@@ -83,7 +83,7 @@ jobs:
 
       - name: Test
         id: tests
-        run: pytest --tb=short -q ${{ env.COVERAGE_LEG == 'true' && '--cov=escape_the_valley --cov-report=term --cov-report=xml' || '' }} --junitxml=junit.xml
+        run: pytest --tb=short -q ${{ env.COVERAGE_LEG == 'true' && '--cov=escape_the_valley --cov-report=term --cov-report=xml --cov-fail-under=86' || '' }} --junitxml=junit.xml
 
       # The codecov job below uploads what these two steps save; this job
       # never holds an OIDC token. Coverage is saved when the tests passed,

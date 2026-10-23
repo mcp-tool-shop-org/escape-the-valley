@@ -1,0 +1,70 @@
+42 '--- ... ---' blocks in the notices
+PASS cpython/LICENSE.incorporated-software.rst: file sha256 d4f3b2147ce2d4b6 == SOURCES.json d4f3b2147ce2d4b6
+PASS cpython/LICENSE.incorporated-software.rst: notices SHA256 line d4f3b2147ce2d4b6 == SOURCES.json
+PASS cpython/LICENSE.incorporated-software.rst: block text is the vendored file verbatim (38035 chars)
+PASS cpython/Doc-license.rst: file sha256 == SOURCES.json
+PASS Doc/license.rst sha256 is cited in the notices
+PASS CPython Interpreter LICENSE.txt block SHA256 == SOURCES.json install_license_sha256 (3b2f81fe21d181c4)
+PASS x86_64-unknown-linux-gnu/LICENSE.cpython.txt: file sha256 86e61415828a8b5b == SOURCES.json 86e61415828a8b5b
+PASS x86_64-unknown-linux-gnu/LICENSE.cpython.txt: notices SHA256 line 86e61415828a8b5b == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.cpython.txt: block text is the vendored file verbatim (36163 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.bzip2.txt: file sha256 1f38bbc7caacafd6 == SOURCES.json 1f38bbc7caacafd6
+PASS x86_64-unknown-linux-gnu/LICENSE.bzip2.txt: notices SHA256 line 1f38bbc7caacafd6 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.bzip2.txt: block text is the vendored file verbatim (1742 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.expat.txt: file sha256 122f2c27000472a2 == SOURCES.json 122f2c27000472a2
+PASS x86_64-unknown-linux-gnu/LICENSE.expat.txt: notices SHA256 line 122f2c27000472a2 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.expat.txt: block text is the vendored file verbatim (1143 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.libedit.txt: file sha256 29cea33c32bbc978 == SOURCES.json 29cea33c32bbc978
+PASS x86_64-unknown-linux-gnu/LICENSE.libedit.txt: notices SHA256 line 29cea33c32bbc978 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.libedit.txt: block text is the vendored file verbatim (1613 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.libffi.txt: file sha256 deaf3a42effb551a == SOURCES.json deaf3a42effb551a
+PASS x86_64-unknown-linux-gnu/LICENSE.libffi.txt: notices SHA256 line deaf3a42effb551a == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.libffi.txt: block text is the vendored file verbatim (1131 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.liblzma.txt: file sha256 9a4062de0a2c388a == SOURCES.json 9a4062de0a2c388a
+PASS x86_64-unknown-linux-gnu/LICENSE.liblzma.txt: notices SHA256 line 9a4062de0a2c388a == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.liblzma.txt: block text is the vendored file verbatim (659 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.libuuid.txt: file sha256 122ee1f7e258f2c3 == SOURCES.json 122ee1f7e258f2c3
+PASS x86_64-unknown-linux-gnu/LICENSE.libuuid.txt: notices SHA256 line 122ee1f7e258f2c3 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.libuuid.txt: block text is the vendored file verbatim (1431 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt: file sha256 669512af7219f58b == SOURCES.json 669512af7219f58b
+PASS x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt: notices SHA256 line 669512af7219f58b == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt: block text is the vendored file verbatim (1283 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.ncurses.txt: file sha256 87a4c4442337b896 == SOURCES.json 87a4c4442337b896
+PASS x86_64-unknown-linux-gnu/LICENSE.ncurses.txt: notices SHA256 line 87a4c4442337b896 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.ncurses.txt: block text is the vendored file verbatim (1446 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt: file sha256 9c04cce50c4989d5 == SOURCES.json 9c04cce50c4989d5
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt: notices SHA256 line 9c04cce50c4989d5 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt: block text is the vendored file verbatim (6116 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt: file sha256 7d5450cb2d142651 == SOURCES.json 7d5450cb2d142651
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt: notices SHA256 line 7d5450cb2d142651 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt: block text is the vendored file verbatim (10140 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.sqlite.txt: file sha256 38bef3d28b24f145 == SOURCES.json 38bef3d28b24f145
+PASS x86_64-unknown-linux-gnu/LICENSE.sqlite.txt: notices SHA256 line 38bef3d28b24f145 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.sqlite.txt: block text is the vendored file verbatim (1480 chars)
+PASS x86_64-unknown-linux-gnu/LICENSE.zlib.txt: file sha256 818922b2620f1280 == SOURCES.json 818922b2620f1280
+PASS x86_64-unknown-linux-gnu/LICENSE.zlib.txt: notices SHA256 line 818922b2620f1280 == SOURCES.json
+PASS x86_64-unknown-linux-gnu/LICENSE.zlib.txt: block text is the vendored file verbatim (991 chars)
+PASS _licenses/LICENSE: file sha256 5ae6b3c8f446f0a7 == SOURCES.json game_license
+FAIL game LICENSE header SHA256 367e5141e4f5884e == SOURCES.json game_license 5ae6b3c8f446f0a7
+INFO header SHA256 == sha256 of the vendored LICENSE with CRLF->LF: True
+PASS openssl-3 block carries apache.org LICENSE-2.0.txt verbatim from the title through section 9 (whitespace-normalised, 9102 chars; licence URL compared as https)
+PASS openssl-3 block has Apache-2.0 section 1
+PASS openssl-3 block has Apache-2.0 section 2
+PASS openssl-3 block has Apache-2.0 section 3
+PASS openssl-3 block has Apache-2.0 section 4
+PASS openssl-3 block has Apache-2.0 section 5
+PASS openssl-3 block has Apache-2.0 section 6
+PASS openssl-3 block has Apache-2.0 section 7
+PASS openssl-3 block has Apache-2.0 section 8
+PASS openssl-3 block has Apache-2.0 section 9
+PASS openssl-3 block has 'END OF TERMS AND CONDITIONS'
+INFO openssl-3 block omits apache.org's APPENDIX (how to apply the licence to your own work): True
+INFO openssl-1.1 block: 6116 chars, starts 'LICENSE ISSUES\n  ==============\n\n  The O'
+PASS bzip2 block has its liability paragraph (IN NO EVENT SHALL THE AUTHOR BE LIABLE ... SUCH DAMAGE)
+PASS mpdecimal block has its liability paragraph (IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE ... SUCH DAMAGE)
+INFO Name: headers: Python (CPython Runtime and Standard Library), PyInstaller (Bootloader and Runtime Hooks), annotated-doc, anyio, base58, certifi, ECPy, h11, httpcore, httpx, idna, linkify-it-py, markdown-it-py, mdurl, platformdirs, pycryptodome, Pygments, rich, shellingham, textual, typer, typing_extensions, websockets, xrpl-py
+PASS Deprecated is not listed
+PASS mdit-py-plugins is not listed
+PASS wrapt is not listed
+RESULT FAIL 1
+exit 1

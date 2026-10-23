@@ -1,0 +1,7 @@
+Windows release THIRD_PARTY_NOTICES-win-x64.txt: lines ending CR CR LF, by distribution and block
+  20  Escape the Valley (header) / game LICENSE
+ 138  Python (CPython Runtime and Standard Library) / CPython Interpreter LICENSE.txt (x86_64-pc-windows-msvc)
+  50  pycryptodome / AUTHORS.rst
+  60  pycryptodome / LICENSE.rst
+  23  websockets / LICENSE
+total 291

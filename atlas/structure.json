@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "a6d7bf4cc21c860980dc6a8ec1f6025ac596d477d6ace51c80938b3b12bc9a1c",
+          "hash": "5e3786c0ed9630b0577395296100044abe2d036104aed306a9119c82748bee0a",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -21,11 +21,11 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "09297e4ce12731fb532338655e2065587a12af929232b99bbebf8a331925e0e5",
+          "hash": "735528d31aee481fc727eb62cf3d8e35c841273317884e60c004777f418441de",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
-          "hash": "1aa70af7fcd2e501e0f5279b376a7296a9392a3253b068bf6710ebad4474db22",
+          "hash": "2600fc9d944d4b3d4fb889b119a322ac57df94142e96c284491ecefb4367cbf4",
           "path": ".github/workflows/release.yml"
         },
         {
@@ -109,7 +109,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "e9981ce44adf519c71c83e505d7154096edb851d57a92bec20583306ea19eeb9",
+          "hash": "7b8420527c040ce4c3731af47f1038107093baea95a29596070c7f8773d62d50",
           "path": "bin/escape-the-valley.js"
         }
       ],
@@ -136,6 +136,1730 @@
           "path": "docs/landing-design-brief.md"
         },
         {
+          "hash": "be8bbde0c41d1db922481ad625821609045fc5c64045b42e87bb67343ca34b57",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.cmd"
+        },
+        {
+          "hash": "8d5adbce433fe2d2559a25b10cd46b44326509c454ba8f21fd03849f7797e1e1",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.out"
+        },
+        {
+          "hash": "2822068b3458fb364b9ac31dd9187036db1ca8eae5ede65d7447ea8a4003f0ba",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.exit"
+        },
+        {
+          "hash": "72dc84b8bcac44b1ee7ede5bd1edf98435a2cbb6646723a3171bdef1e463e66a",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.out"
+        },
+        {
+          "hash": "6252daf3871461682bdc3a6da953f3f2226aa44d4d8906dbbe1ae73350adfc52",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.exit"
+        },
+        {
+          "hash": "7844e7ac48b331ef093960aba7ce8141ae291b507222dd01a47a8985d4431bb5",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.out"
+        },
+        {
+          "hash": "f5646ff3f6ce9f11c850585e1ee5d9795f05463de13b57ec2fca7cb133aece1c",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.exit"
+        },
+        {
+          "hash": "2b7c68b6a615251f9c5c0023bf1bfcc2f6a8e546eef74bb2d98fa6668b0a0d76",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.out"
+        },
+        {
+          "hash": "4c23970d62965a2af2cb3ff5d24fc56790587d0778cae870bc8b710d62a737da",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.cmd"
+        },
+        {
+          "hash": "22fdae1dbc8f74be5aae5b473fb44618a2328842b1b654dd7984b87637dd7484",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.out"
+        },
+        {
+          "hash": "642a5a6e3c628f0f6edf6b58bdd06c9e0b3351b8b0499af7cbb164a02e5b3353",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.cmd"
+        },
+        {
+          "hash": "aaa91e45197dfa224cb03c1860d5242918ae9aaa3ca8b1b75553ae5335c021a4",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.out"
+        },
+        {
+          "hash": "2822068b3458fb364b9ac31dd9187036db1ca8eae5ede65d7447ea8a4003f0ba",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.exit"
+        },
+        {
+          "hash": "5a66205a50014e82e8cc6fb1316a789f425f4ff025cef4cfb719ee204eec29de",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.out"
+        },
+        {
+          "hash": "6252daf3871461682bdc3a6da953f3f2226aa44d4d8906dbbe1ae73350adfc52",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.exit"
+        },
+        {
+          "hash": "d044e74583ac7f5f5da946f9537e351beae5da3940abd6f9ddf16d2ec8b2c3a8",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.out"
+        },
+        {
+          "hash": "f5646ff3f6ce9f11c850585e1ee5d9795f05463de13b57ec2fca7cb133aece1c",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.exit"
+        },
+        {
+          "hash": "e6d1e1b84a1ce96a0be4f3cb9f3cbcf6e7b3f00dd83d3b5a56272d60923e9be6",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.out"
+        },
+        {
+          "hash": "1c94468fd9e3d337cda6b1f18641a9dbcf289fd1b4c874316b0090d9e5f58ae8",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/identity-scan-linux-binary.txt"
+        },
+        {
+          "hash": "b3afb79badf12d369d6d3c29c85d032618c090250e5ad4db32e1bda58400e204",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/00-uv-python-dir-before.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.exit"
+        },
+        {
+          "hash": "66bc9db83ef917a9da316fc459d1a41e87404e90657647a22bf903b026657f5d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.exit"
+        },
+        {
+          "hash": "8c3a09fae2efbcc2c59acc84ea4f8c9ae673ecd87dd6b2f824ff10924988cd66",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.exit"
+        },
+        {
+          "hash": "7460ae076021f12c6868ab6f58f59a14695914bfb7ddfc7b488dbcf3aae3c768",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.exit"
+        },
+        {
+          "hash": "8cc3fc4704a052f1aa9d50526c8b4f564978cee6a39ca4923fbe4495c69b295e",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.exit"
+        },
+        {
+          "hash": "e467b5471484333c37148795176c685815ea4c0d7e2c2366cca471db7eb27342",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.exit"
+        },
+        {
+          "hash": "13c83231e758b5caf47cdcb0e98cf54cfc3f6e7ee2eb0937f5434f252d874966",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.exit"
+        },
+        {
+          "hash": "1e9ec7e4e0aaf57f8062b04207fef2c61ef1533f068722a8b2fda3edc65d1e53",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.exit"
+        },
+        {
+          "hash": "53d83cd858853c7229994784124c74f49d17ca248c5bb131aa92aff347222c48",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.exit"
+        },
+        {
+          "hash": "e9d48a5b30aa4450d3bb7eef3437a2d9bed69d72880f9e4d3342b278c0f8afd7",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.exit"
+        },
+        {
+          "hash": "150b1703b8e7321d5cf2b9d251662509ad78d231f83843c68c86f6ba0b99b265",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.exit"
+        },
+        {
+          "hash": "50ae56146806c988a33f6a4d4f608be5c3e52147f7056011fa56e58c7d80289b",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.exit"
+        },
+        {
+          "hash": "3295402114963123df9e6e14a87223e71412322b3f72d741aad440b31ec4c068",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.exit"
+        },
+        {
+          "hash": "871480964799fb830af738931c2ead8c66760b55aa762d5e36570c19c92653f1",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.exit"
+        },
+        {
+          "hash": "cd00a3cd6747ce172258ea9a6032e5e4540b89580464fdcbd2f83b58d82381c9",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.log"
+        },
+        {
+          "hash": "2d6f48f79ebd45f4b4aec30fafdc5b5ff84e6948d9c65011d982bad7d6808c4d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/file.txt"
+        },
+        {
+          "hash": "e80f2bd2851807f0e50b0101d2962ac175affa17b6efc5bf838a9e08c7983512",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/head.txt"
+        },
+        {
+          "hash": "e859a8de1d79d0a96e3a082d0bc9500337df0a11c43a0ad88d875da7c94dce5a",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/neg-controls-sha256.txt"
+        },
+        {
+          "hash": "88f304400f025f23d2685cc077bc4f42eb79982be86cb81c5273fb1498601374",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/uv-version.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/versions.txt"
+        },
+        {
+          "hash": "51754d8180813ee1e456ff0f6424b21b5539189685b534c4ebcf82d53a7fbb90",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/sysconfigdata-prefix.txt"
+        },
+        {
+          "hash": "262d474b1df3cab3684dd25f904dc0377c0e9f871fe5e9e0d013b61dab8a29f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/checksums-1.3.1.txt"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.cmd"
+        },
+        {
+          "hash": "82379c8a2091b986929a4183af58b0113af0bbe00178a8f25117c9562603f17b",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.exit"
+        },
+        {
+          "hash": "38bdb0de2742093f06e1ef5bde1ac58c565b0db180b1191169baa37a60ff5809",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.exit"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.exit"
+        },
+        {
+          "hash": "2bc204dc0bc99ce846d334fcba37863381489d9e86a2f45c4c695b950b843bd6",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cache-files.txt"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cached-sha256.txt"
+        },
+        {
+          "hash": "c28ef7b9202a58378f45b9be91d230abd155f2166c7206195d591b9c979aa92c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.exit"
+        },
+        {
+          "hash": "e3cbe3aa9b713144b5bbd0c02c5b944184871bcb2138f1461fb76d1d342b44b2",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.out"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-release-asset-sha256.txt"
+        },
+        {
+          "hash": "ffc81918e8a22a924994540475d4cd07977759aea316b11f642aca26761b0ad5",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-tag-head.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.exit"
+        },
+        {
+          "hash": "d2e8c3c6438d5027af517950e72d92d3c4c418e2e541b401eca87e7de998e58c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.exit"
+        },
+        {
+          "hash": "0bab0186dd44b31f00ebe2be6373a5590ec244ca47df6a25728d6f354cd796bf",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.log"
+        },
+        {
+          "hash": "21710c2b721ce81df424f3178c8786855352321a858f66c93d415e9af084cb52",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/node-version.txt"
+        },
+        {
+          "hash": "6462b7614fbc26a451bb3d32109340b69071edd02334af4975e445a44d0500c3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/python-version.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.exit"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.cmd"
+        },
+        {
+          "hash": "b24231c968ca62343afc022dc9e37ff01443fc85bd63d8d591530392b3ba6dd9",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.exit"
+        },
+        {
+          "hash": "ec115e856ed073f6540890a0c46936004f017dc3d983b82fa5b408a11be279f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.exit"
+        },
+        {
+          "hash": "aaf2ffd8d5390a3b507d20c758e639b186ad77b0e3856a8dcd007b38e027b6d1",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.out"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.exit"
+        },
+        {
+          "hash": "cae5453174f39549f9d0e01fea591a2c0ce7713d567634fb4bc561a89b92680f",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cache-files.txt"
+        },
+        {
+          "hash": "936e92063ca3b57f6bd063185da15ecb43ac6e7f50f09e74349c738597217ffc",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cached-sha256.txt"
+        },
+        {
+          "hash": "a98eb65f8bc39e5bdc2f04e467ccf03341ac3bae4a31604faba2021479983c5e",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.exit"
+        },
+        {
+          "hash": "fd3e8903ade4b5e67312bbb8e971b11a3f1678d4ab555ca4a61b00b5ed30e124",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.out"
+        },
+        {
+          "hash": "b079791836a61d890f2d63ec46057e152be0127b72c6752cfeb15037789b584c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/08-crcrlf-blocks.txt"
+        },
+        {
+          "hash": "89624f93557cdf694bba5366a1a56f97dead916a011b0ea6650225bce90d0bc8",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/node-version.txt"
+        },
+        {
+          "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/abandon-card.json"
+        },
+        {
+          "hash": "9efe20295835b715d4bc14ccabc3f1b56ab689848cb19fe9a852715d2fe07158",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/after-e.narration.txt"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/before-e.narration.txt"
+        },
+        {
+          "hash": "ca95b8875a168eda30e7a2c5a4ac1b65b3b57aa0da5f4042fbebb65ee1687c16",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.exit"
+        },
+        {
+          "hash": "103c8d1d0e19a5154da1d6f07293d467771f15cd0d4a845bd0a19bf5aa335b0d",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.out"
+        },
+        {
+          "hash": "36983abc8b99cb9e929f895109c479d10f6435613a1feaffd4106cd0092ceab3",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/steps.jsonl"
+        },
+        {
+          "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/abandon-card.json"
+        },
+        {
+          "hash": "9efe20295835b715d4bc14ccabc3f1b56ab689848cb19fe9a852715d2fe07158",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.narration.txt"
+        },
+        {
+          "hash": "500a4be161ddcf74567c9f0d0db657dabb9630afb9fbbc836e5d8f0b69d91620",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.svg"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.narration.txt"
+        },
+        {
+          "hash": "f4e6eb6bb87c9e2b5e9ad1b25d41e54f969464e5b6605de0684085bfc85a6e6c",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.svg"
+        },
+        {
+          "hash": "22811ece206530a10d450066a9e3558b431edb27f18bf1739597cc8a5b5245ca",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.exit"
+        },
+        {
+          "hash": "fa69cc01d6b8ada7bea9fdb07358bc878397c902ba12be8a7717e0743e1d742b",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.out"
+        },
+        {
+          "hash": "9afc1e5d6ec6ae27493eed6b67bd4edb09dae5d47a3b6a26c0b719924605f958",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/steps.jsonl"
+        },
+        {
+          "hash": "a7fb176c90a6abfa367128ddef654454a84c4c58475faceb76679cf97a4e8b76",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/abandon-card.json"
+        },
+        {
+          "hash": "aec7f0a606af7cd2a07f149c73106578475b49f5d4ca46196b49542de9cf2e06",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/after-e.narration.txt"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/before-e.narration.txt"
+        },
+        {
+          "hash": "ca95b8875a168eda30e7a2c5a4ac1b65b3b57aa0da5f4042fbebb65ee1687c16",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.exit"
+        },
+        {
+          "hash": "453097c97a6f93ca00d0334c33fb1c1e4afaf503013b3122d81b945b4f8fa4d2",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.out"
+        },
+        {
+          "hash": "36983abc8b99cb9e929f895109c479d10f6435613a1feaffd4106cd0092ceab3",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/steps.jsonl"
+        },
+        {
+          "hash": "001f7ed43d7afd2bb4b198092cfc6efee1cdc6c10cf34b7ea98e4a9a96976b64",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/after-e.svg"
+        },
+        {
+          "hash": "758deb00606115350cebab6ca63a357b820b9ee1d7d472fa6b672d63b31aff4f",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.cmd"
+        },
+        {
+          "hash": "cf57833caf92dc17c8d5df4ef3969779d224aa4de5937d414d613e568ca52312",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.exit"
+        },
+        {
+          "hash": "6a6a8693c50b628e0b8b33edb8e12eceb8d9e4d9c3a1ac566da81411fa9c496e",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.out"
+        },
+        {
+          "hash": "a7fb176c90a6abfa367128ddef654454a84c4c58475faceb76679cf97a4e8b76",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/abandon-card.json"
+        },
+        {
+          "hash": "aec7f0a606af7cd2a07f149c73106578475b49f5d4ca46196b49542de9cf2e06",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.narration.txt"
+        },
+        {
+          "hash": "f2e2b2237a2b884db7c3c4c45fdebbc7dc00007fd405a3f9cb9c6680bc97a586",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.svg"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.narration.txt"
+        },
+        {
+          "hash": "3895e87d03f21542c750537bf4d46a164d539fd41a887828a84aff3542b64577",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.svg"
+        },
+        {
+          "hash": "22811ece206530a10d450066a9e3558b431edb27f18bf1739597cc8a5b5245ca",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.err"
+        },
+        {
+          "hash": "28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.exit"
+        },
+        {
+          "hash": "ccce3facde7bfa42aeb5bced3ae7881846a7fedf89457f29b98a068e8222fb13",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.out"
+        },
+        {
+          "hash": "9afc1e5d6ec6ae27493eed6b67bd4edb09dae5d47a3b6a26c0b719924605f958",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/steps.jsonl"
+        },
+        {
+          "hash": "5ebaab30fb4cc2f556df8875e500417af95c713621bf3c3a222c9b1b4b49c43f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-024-r.narration.txt"
+        },
+        {
+          "hash": "cfaf509838aabf1ac5ff90e25aee83f88706231962dc10f8f902cc5be5d78d3f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-025-p.narration.txt"
+        },
+        {
+          "hash": "052a5f268ef16773d12b839fab3b93b5cadcbb4d538f27f20ce4a5b5d06b028a",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.narration.txt"
+        },
+        {
+          "hash": "e984bf0277a9c316eb04b9a07118faed147411eef5433bd93769b9704fd725c7",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.svg"
+        },
+        {
+          "hash": "83308c47efb67d631eaecd54a76758b019357cfdfc268fcc1787e957c3e03e7d",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-027-1.narration.txt"
+        },
+        {
+          "hash": "0dc775ad1516ad86b86700f3c54449f8abcdb77ff881533b4d79e7c45efd22aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.narration.txt"
+        },
+        {
+          "hash": "6967c604ebe945304acd2fa06cc4060e21c893ccff394598390cf8581f5010a3",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.svg"
+        },
+        {
+          "hash": "3d414d0dd4b6ea5b642872a128b85cf5d2f91c04dcde3a789159afe8d5048c10",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.narration.txt"
+        },
+        {
+          "hash": "cdc20b5a4b8a2b82e85c4ff12c1db44a5f7e23524df7dc66f7cb0c5ff1a2054c",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.svg"
+        },
+        {
+          "hash": "5ebaab30fb4cc2f556df8875e500417af95c713621bf3c3a222c9b1b4b49c43f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-024-r.narration.txt"
+        },
+        {
+          "hash": "cfaf509838aabf1ac5ff90e25aee83f88706231962dc10f8f902cc5be5d78d3f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-025-p.narration.txt"
+        },
+        {
+          "hash": "052a5f268ef16773d12b839fab3b93b5cadcbb4d538f27f20ce4a5b5d06b028a",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.narration.txt"
+        },
+        {
+          "hash": "09ee279af2e6a457c465a95277b759bbded8ac98a7f406e50f9731b2c7a8ffa5",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.svg"
+        },
+        {
+          "hash": "83308c47efb67d631eaecd54a76758b019357cfdfc268fcc1787e957c3e03e7d",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-027-1.narration.txt"
+        },
+        {
+          "hash": "0dc775ad1516ad86b86700f3c54449f8abcdb77ff881533b4d79e7c45efd22aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.narration.txt"
+        },
+        {
+          "hash": "82fc13c87c974a6abd05a84106a1d9842a0698aa34e0196a43481d661f8d90f9",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.svg"
+        },
+        {
+          "hash": "3d414d0dd4b6ea5b642872a128b85cf5d2f91c04dcde3a789159afe8d5048c10",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.narration.txt"
+        },
+        {
+          "hash": "88ad48b05ae115cadd607c1b913ec08c13bb33209d84621dde31e99046d16066",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.svg"
+        },
+        {
+          "hash": "ed96bbc29e55b94104177c305e8e63902bfb50b3f2840608ed464c379ef2a929",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.exit"
+        },
+        {
+          "hash": "3fa77b0e81d4b2696223e64be18f9574b45b618217bbbf0033492aaf707f3caa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.out"
+        },
+        {
+          "hash": "c060e856dfecd52d8e58fe0e0dca6c8a331a8ff272df62a3cda485ae9c55cad6",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/steps.jsonl"
+        },
+        {
+          "hash": "ed96bbc29e55b94104177c305e8e63902bfb50b3f2840608ed464c379ef2a929",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.exit"
+        },
+        {
+          "hash": "f91e6d84d9cd5b732839503d28306477d37e1c45c2f7379dffdc2bff54867200",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.out"
+        },
+        {
+          "hash": "3f26ea022e94ad5cc7ce4f24f7a8b0bcca7bf29c546da465131f25c7a0207c94",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/steps.jsonl"
+        },
+        {
+          "hash": "27115903198f430905af68b5bfadc7859662a91c3630eb9fc4adcbbf235d7b4a",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.cmd"
+        },
+        {
+          "hash": "25dff676ef36a1a0a2b6cc7060c717f5fdf38d3770dc854f247b59166bb6fca8",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.out"
+        },
+        {
+          "hash": "04fe00297679e69a379424936e4573086a2a03fa20c5fec9a41b5759b53a21e7",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.exit"
+        },
+        {
+          "hash": "38d84a6377cfa4886f33b830005828db19e3d51a19d3c2dba5d61469868cf51b",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.out"
+        },
+        {
+          "hash": "289ba1912708aaa3e98744648156a7294e9570a1c8cf9e887d14214c5ed11cd5",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/03-after-A.txt"
+        },
+        {
+          "hash": "30a539a4a69766d3dd3bcde2bf691c972e74c91c2421a673bbeeb7ba6e688875",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.cmd"
+        },
+        {
+          "hash": "a49a98ff83be311e943512d9d7f23a57ab0c93774b209389c9f693002d73ff44",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.out"
+        },
+        {
+          "hash": "04fe00297679e69a379424936e4573086a2a03fa20c5fec9a41b5759b53a21e7",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.exit"
+        },
+        {
+          "hash": "ed3041cfefce1e116165821692ce671521e57bde128db20498713ad39e235e0a",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.out"
+        },
+        {
+          "hash": "ef248de93f7f00320e64206fbf7f2c58e64716cd4940d4f07be612f7c9bd3e99",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/06-after-B.txt"
+        },
+        {
+          "hash": "13722ccd27a01547d9afff1187a4cf9e019ee23e4ea69cabb8c23d5da0fab3e5",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/account_tx.txt"
+        },
+        {
+          "hash": "2e67abd09d90c61ca28eaa5cf520f7207fc9267686b574e78ccf68956ec3e618",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.cmd"
+        },
+        {
+          "hash": "f50cd998f228f9321335f580d08c656eaa1cc9a55e2c07db8afc9756f32f66ef",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.out"
+        },
+        {
+          "hash": "0b37d3fb0e9e88c8bf8710d416409a5e975fba126c23599fdaaeae89c5b73735",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.exit"
+        },
+        {
+          "hash": "4fe1b6874addf221e0d1f57865722d12904fc1325af85e76c53e093749494f0f",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.out"
+        },
+        {
+          "hash": "ec6bc46683bdfb043c1193ac11a0b40c5f4de6c159fc7e23bb33b2c36c7db3dc",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.exit"
+        },
+        {
+          "hash": "71b4a3fe4d6dfd0dabd929312cc223dc324e43e992185de9ff9e0cc3cb3dad65",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.exit"
+        },
+        {
+          "hash": "eba2a028c31666f4d67c6fbd3187585ff98d04bcf78a65326b3d274528b6bcd7",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.out"
+        },
+        {
+          "hash": "7a04b2a39111e5212f8246d2353275212677c539c8c83e5e2db47da7d601c324",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.exit"
+        },
+        {
+          "hash": "92a8efaac3bf3d9ea0f3210de0cf40b1eaf2e36eb20ab6066e86986d5739498e",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "eba2a028c31666f4d67c6fbd3187585ff98d04bcf78a65326b3d274528b6bcd7",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.out"
+        },
+        {
+          "hash": "2e67abd09d90c61ca28eaa5cf520f7207fc9267686b574e78ccf68956ec3e618",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.cmd"
+        },
+        {
+          "hash": "b9e88a9bdc4ade17842361dacb18322ebb708531e6a9675bf5d4c3e391e26589",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.out"
+        },
+        {
+          "hash": "37ac8ae4deff0e4d99054ffe7200d06499aafe633865712f57c634136bf57f8c",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.exit"
+        },
+        {
+          "hash": "a2847ae5cb88600297a795e3a02236401aa8d7eb90236e47473b34b45938c710",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.out"
+        },
+        {
+          "hash": "c9e9c5da877069ec1805d70eaef4029b2a719f48c96610d47011fbeca18079d2",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.exit"
+        },
+        {
+          "hash": "7e3cb772d151e534622bba692e2ce798bb160165248b94ee65e509cfe6747b9d",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.out"
+        },
+        {
+          "hash": "985b52804f1fae132914338c80722da2e67abdbb76953eb4c64f6bc737ca244a",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.err"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.exit"
+        },
+        {
+          "hash": "b09289ebaf810012be48621726e1e81b271fc70306a21f32eb2b1fd214cb1558",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.out"
+        },
+        {
+          "hash": "f8c5f1839e99a84eaddd5ff9238d6d456ae6cc365839cbc50311848b33e8e4c6",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.exit"
+        },
+        {
+          "hash": "1f3acd98cca48a708c7054932b0b446f2297fd3b7ec4157b7c6736bb74fd4ab0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.out"
+        },
+        {
+          "hash": "37ac8ae4deff0e4d99054ffe7200d06499aafe633865712f57c634136bf57f8c",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.exit"
+        },
+        {
+          "hash": "a2847ae5cb88600297a795e3a02236401aa8d7eb90236e47473b34b45938c710",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.out"
+        },
+        {
+          "hash": "ec6bc46683bdfb043c1193ac11a0b40c5f4de6c159fc7e23bb33b2c36c7db3dc",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.exit"
+        },
+        {
+          "hash": "6cfad8f7a78e51ad70cb44d288ebce98eb99707691f11e480b0f511de882bf03",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.exit"
+        },
+        {
+          "hash": "e8f28ea1e7c5119257a5f42b3c838268e4131f34afcb53ebd748931498dfdc4f",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.out"
+        },
+        {
+          "hash": "af823fda24254916974c90eadd5ce0b2b19a10256b39a2d88a7c5c53932bbf09",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.exit"
+        },
+        {
+          "hash": "343bd4d9966531b37e0f17c4070263029b7eac889eb29906f37a5908fca2a6d0",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.out"
+        },
+        {
+          "hash": "af823fda24254916974c90eadd5ce0b2b19a10256b39a2d88a7c5c53932bbf09",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.cmd"
+        },
+        {
+          "hash": "19d586d231652beb11826f5925d988ec91d234c982cf77ff7ff3d9511902afd9",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.err"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.exit"
+        },
+        {
+          "hash": "ea9fecc0ba10d6d60d23ee9a145f5b41fd713b850e48d58a8bbeae07bb022e4c",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.out"
+        },
+        {
+          "hash": "1d1f0d203b9a47ddbaf5a4888bc69735111854292654a4a28fc6fd601d9fdc19",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/01-install-notices.log"
+        },
+        {
+          "hash": "846997535a6e84285b4912eec9b31682d36ac7512ec52710615b816642fed643",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/02-pyinstaller.log"
+        },
+        {
+          "hash": "e26074fe4bb516149a51620292c01805c89b3787f03397d3d0002847026738c4",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/03-binary-sha256.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.exit"
+        },
+        {
+          "hash": "7e67543e8ae9e0d400f37c0ba49b75f620de8d029f1f36b8a3ce029ec8b161e7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.out"
+        },
+        {
+          "hash": "3c633fb47bccfd1375c53baf144514f22256f1f4682ba3a8e244db008b7e65e0",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/09-identity-scan-binary.txt"
+        },
+        {
+          "hash": "7f59ea29e239967a5f32e987be7c5c54479b6708897fbcb9f20f88a2560e1f2e",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/10-unpack.txt"
+        },
+        {
+          "hash": "71ab6851ff0ec78dd1665221920ff2db1ea81366b55afafdd2fbb767a8a825a3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/11-identity-scan-unpacked.txt"
+        },
+        {
+          "hash": "a56c15f8dce6c42140b1e9ae26c80e75fc98ace8ad9107626b2dee62de97b6d4",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/12-hit-sources.md"
+        },
+        {
+          "hash": "79d4aed8015122cb5befee8653bc52bc6b2a6202ba30b9a2bee99f58e5b64d43",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/13-identity-scan-binary-v2.txt"
+        },
+        {
+          "hash": "648133a986e7291f59eba881a1dd623a550ee4edb82da351a482abaabe7ca2d3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-head.txt"
+        },
+        {
+          "hash": "dfd13e97da6ed14531d24b7df2cf121558d014dc90d1f0a92f497188792a4067",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/03-binary-sha256.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.exit"
+        },
+        {
+          "hash": "7e67543e8ae9e0d400f37c0ba49b75f620de8d029f1f36b8a3ce029ec8b161e7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.out"
+        },
+        {
+          "hash": "759ae868ed1fcdec69ce0d713074a8faeec4035ee53324d6ac4ca5dd4c353097",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/09-identity-scan-binary.txt"
+        },
+        {
+          "hash": "826ed670533f0e2e9d81dd99187c5f6c52df59e3a8d736cf2911090bd6cec080",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/11-identity-scan-unpacked.txt"
+        },
+        {
+          "hash": "f2f26cb0956c03d5ade711505a6daa236160688929749b2af80fb784e8943376",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.out"
+        },
+        {
+          "hash": "ded22bd60413a6cbcfa72561c8fd94537bb98546ea391ae372c3ec9e50ea60b7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.exit"
+        },
+        {
+          "hash": "f1f9748b8dcc96f7404803ac0943c073c1b55f44192205f9f51446feee82eee3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.out"
+        },
+        {
+          "hash": "cb33549f905592847b0c6d523161027ad983b822edbc3af62572e6f021f04570",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.cmd"
+        },
+        {
+          "hash": "10979105b98491db3e866db2b20377bf6fb24587577a325f95365cde9d16ed91",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.out"
+        },
+        {
+          "hash": "85de5da7bc9ae025611f12161e253eb174d7522810c119ea0b5ea318a3048ad8",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.exit"
+        },
+        {
+          "hash": "781c373db3b6de232f4ca7a70245adc9ae1add0e82fbe2b96f8a70312be80808",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.out"
+        },
+        {
+          "hash": "a46c4fea7fb990a6e32671c96bb2f991137206cb82fa81bfabcdd79fa8600bca",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.exit"
+        },
+        {
+          "hash": "2e28159817f9cd5a4d835bc52a04af8a36b3777e22528a2f73b02e6c77baad27",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.out"
+        },
+        {
+          "hash": "123130430d1bcccff792f64f5e3098b34e9a5964e5c08d929180896fe014ca12",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "f6c75a32b1125a6d99c456ab67a1e3ef79603dd597e56f6a3491641a07d776df",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.out"
+        },
+        {
+          "hash": "a05532fce4bbd9ef4937526eb722d26ffefb4d08bf5f5dc3bd49423a818e1cea",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/python.txt"
+        },
+        {
+          "hash": "f2f26cb0956c03d5ade711505a6daa236160688929749b2af80fb784e8943376",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.out"
+        },
+        {
+          "hash": "ded22bd60413a6cbcfa72561c8fd94537bb98546ea391ae372c3ec9e50ea60b7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.exit"
+        },
+        {
+          "hash": "f1f9748b8dcc96f7404803ac0943c073c1b55f44192205f9f51446feee82eee3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.out"
+        },
+        {
+          "hash": "cb33549f905592847b0c6d523161027ad983b822edbc3af62572e6f021f04570",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.cmd"
+        },
+        {
+          "hash": "0bd0f0efa127844a68810960c5c66cfda051690833a5a617f5ee48e4d00980d9",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.out"
+        },
+        {
+          "hash": "85de5da7bc9ae025611f12161e253eb174d7522810c119ea0b5ea318a3048ad8",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.exit"
+        },
+        {
+          "hash": "90ee7362490515f25a5bd310236ef1f48127f183c430267703242b2928c4a42f",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.out"
+        },
+        {
+          "hash": "a46c4fea7fb990a6e32671c96bb2f991137206cb82fa81bfabcdd79fa8600bca",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.exit"
+        },
+        {
+          "hash": "fedc4be23262f5f1e3411643fb3c0f908ed52d707862ba6c08bfed0d69e8a61a",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.out"
+        },
+        {
+          "hash": "123130430d1bcccff792f64f5e3098b34e9a5964e5c08d929180896fe014ca12",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "573a24a8d818ba132c55f0c1e0b14bdec4f64fe47c80a154e4fdc1fff8212794",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.out"
+        },
+        {
+          "hash": "3edffdd62c3ada1de8a849f59becf05d8139a95a19c33f76109af33bc84b941a",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.exit"
+        },
+        {
+          "hash": "7b56217ebc9af18f6c6536b2bef0e8e9df7976ad27460ab8a2f48128b9bb0884",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.exit"
+        },
+        {
+          "hash": "788684cf799ed24e5e060f16291dacb2cb329a6f7fb07ed9a41525e1a8c4ca86",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/licenses-hashes.txt"
+        },
+        {
+          "hash": "77cc29d2e73376463abaf0fd9efb6361acf1be56126b15fb0f6b688f9ad896a1",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/01-install.log"
+        },
+        {
+          "hash": "2de8c771bb6230b9f50e803a3f2de4b532e21dcf20d56fe71d83b1fc4b9cf2cd",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/02-bundled-path.txt"
+        },
+        {
+          "hash": "f9fba9feecdd4000e33e5f905081b0f20bb3b6d1d2f7232dfef6c96c71765d58",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.out"
+        },
+        {
+          "hash": "73b2d194028dbc0959e2a1f5c25a464fa2e7b7de4994a86dd73f30c6fdeb6bb7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.exit"
+        },
+        {
+          "hash": "2602fbf8936b6d1e35f1c87efbbaf2b217c16c0001dcd8f3d4e04982e4267371",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.exit"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.exit"
+        },
+        {
+          "hash": "12e95439a738cb082571d97c56b3694a0861e83fb430f6315823993371fd795b",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.exit"
+        },
+        {
+          "hash": "85e3055bf573800772749181b0943e57b6be8603543341a3685ead7325b1c315",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.exit"
+        },
+        {
+          "hash": "9afba5ff2c488a565dbb6b8cee9d0390e7da65beb2b219959619c4be327b4950",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.exit"
+        },
+        {
+          "hash": "60bb95b884337f2617482b204af4926fdfb51b4d7fb5a7646fa90e3a22b57292",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.exit"
+        },
+        {
+          "hash": "b18df07cac992adf2eefba53a96f4df9d8ed6a1022cf19947e4f3cb2b551a529",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.exit"
+        },
+        {
+          "hash": "c46fb650b3abbdcef9fc74d4e964660c48a569cb7728e29cd426f15db74a6ffa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.exit"
+        },
+        {
+          "hash": "54d28bdfb76a76876ad1df8ca762fad56a4de2de4b2d9037af550041a487c0e6",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.exit"
+        },
+        {
+          "hash": "324448f77ce995f8979bc4b450a292b1393c9022381eaeaed2d71d205d9223bb",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.log"
+        },
+        {
+          "hash": "8e2c9c214c5cda6317a6af9c88939b1370f5d1e0e7c9c73a23ba41e3b02c9566",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/09-verify-toc-negative-rich.log"
+        },
+        {
+          "hash": "7dbe643d8721eff702b1cfa88aaba4e8c0382a9ff305c06a88f76ecbb6737e89",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/10-toc-modules.txt"
+        },
+        {
+          "hash": "cbc416f406ca1fffb5844c98dc17900df42b0807358e720c563481322cd8b232",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/file.txt"
+        },
+        {
+          "hash": "fabd374b081980a2c32b5730181b81d4728d96b3b285ed6362cc30d30c1481e9",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/head.txt"
+        },
+        {
+          "hash": "cc712eef7f5796a047d9629b9aa6f08ff6f848c2e4197e67e5fb54877266d6a9",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/notices-names.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/versions.txt"
+        },
+        {
+          "hash": "25ad07374967ff0f11add31fb5b4d881fb5bf8f656489cf7a02ef4e142209211",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/bundled-dists.txt"
+        },
+        {
+          "hash": "81d939c8a653312c0e621e1a8282551fbc1956b40ce49596b5bb7f29d26a62f8",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-hit-sources.md"
+        },
+        {
+          "hash": "e2e3ecadfb0a1ab824bacda67488aca6a964b2dae14050ec462538c398a183e2",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-linux-binary.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.exit"
+        },
+        {
+          "hash": "58e0db7cd88862485b4db7439db365e18a2431dda16812d58b69b31cca409e65",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.exit"
+        },
+        {
+          "hash": "8c3a09fae2efbcc2c59acc84ea4f8c9ae673ecd87dd6b2f824ff10924988cd66",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.exit"
+        },
+        {
+          "hash": "89dd100dfe56f70f3091ce86fa8286b767b158406a2bbcc831da3dd313ca7021",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.exit"
+        },
+        {
+          "hash": "8cc3fc4704a052f1aa9d50526c8b4f564978cee6a39ca4923fbe4495c69b295e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.exit"
+        },
+        {
+          "hash": "e467b5471484333c37148795176c685815ea4c0d7e2c2366cca471db7eb27342",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.exit"
+        },
+        {
+          "hash": "c0454c93fe5ce53ff2a5c139e1e16a0e2b157d00e7fa30be53cadec02d53e592",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.exit"
+        },
+        {
+          "hash": "1e9ec7e4e0aaf57f8062b04207fef2c61ef1533f068722a8b2fda3edc65d1e53",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.exit"
+        },
+        {
+          "hash": "ab5d479484a07465666562383edb1f730d5dabb1ff7087c8a68caa17d3d39ddd",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.exit"
+        },
+        {
+          "hash": "e9d48a5b30aa4450d3bb7eef3437a2d9bed69d72880f9e4d3342b278c0f8afd7",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.exit"
+        },
+        {
+          "hash": "150b1703b8e7321d5cf2b9d251662509ad78d231f83843c68c86f6ba0b99b265",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.exit"
+        },
+        {
+          "hash": "d16d797798b591472f016d2bcb0483e3a00d9f0a0f75f64cdcca09003718643c",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.exit"
+        },
+        {
+          "hash": "40a11bad42dc9190e197c9677ef35de8671ebfcbac9102b4fa7453f397d7a2d5",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.log"
+        },
+        {
+          "hash": "34390db4910c38ee17ac6552cece99663eafdc8a8facada2d12ca45296f25212",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/THIRD_PARTY_NOTICES-linux-x64.txt"
+        },
+        {
+          "hash": "9732dc92c1d507356b8268523bb173a6c3f73fecc41fd325c1e7422e3ad138da",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/file.txt"
+        },
+        {
+          "hash": "093b72bf48103e82b41125bc956e60d19f0a1f21864374e8f84d45c53690c63e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/head.txt"
+        },
+        {
+          "hash": "ca4857ff68a8930c278aa2c72c4c2b092d6c4cb777612d97d53c8125f99759bd",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/notices-before-prune.txt"
+        },
+        {
+          "hash": "88f304400f025f23d2685cc077bc4f42eb79982be86cb81c5273fb1498601374",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/uv-version.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/versions.txt"
+        },
+        {
+          "hash": "b99eadd1dcbe0eecf6c2547a3bb54ad5c19c416e74d8846e6af03656b389a0e9",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check-negative.txt"
+        },
+        {
+          "hash": "b526f37bcef411c331cbb32914e62275146b9eea3688d49b7c63332451e66daa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check.txt"
+        },
+        {
+          "hash": "6eebeae102a541d90ec172b925f16e4bb86aea34fa641e3211d5b087a808cbd1",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-three-copies-sha256.txt"
+        },
+        {
+          "hash": "2b40b30309e3911853553de30d15a1e9d6f988a327eb58ad95871868e073b64f",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/python-version.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.err"
+        },
+        {
+          "hash": "28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.exit"
+        },
+        {
+          "hash": "28a2f1824a1d016897a4ab872c6976f8a1c04942f265da67070d6392c5f0f24e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.out"
+        },
+        {
+          "hash": "b6543c39e3dda6e2e370df730509dec6bffbc5938c1eac8a5166a0bc8cf292e9",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/sysconfigdata-home-paths.txt"
+        },
+        {
+          "hash": "c4ef66ce7422df1a0ffb4398b72e7a504909e9033974889de1444a67420b89f8",
+          "path": "docs/receipts/1.3.1-live-check/README.md"
+        },
+        {
+          "hash": "242ab7d773918fe2654fb5a4218574dc0617f29529e0d62d9d9e9ed8582e47b0",
+          "path": "docs/receipts/1.3.1-live-check/code.txt"
+        },
+        {
+          "hash": "7af5da4e1b3a69477f808b60acc237c9e360bdad1fd7872a9615f8101cc39855",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_final.sh"
+        },
+        {
+          "hash": "af61ec55e0df861429ae51fe3e26109afe31c0019210c6994cc2691ead8b377b",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh"
+        },
+        {
+          "hash": "5debae6f49f10098e86b2d795eb79b9884a31a05f5a064f33f970f7e51bff1f7",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh"
+        },
+        {
+          "hash": "913ec60c9a5ec3e2b0a88e2ebddfb896798613656fbe7b5dc16d6f81c3e8f1a2",
+          "path": "docs/receipts/1.3.1-live-check/harness/bundled_dists.py.txt"
+        },
+        {
+          "hash": "6a6d7ce87fb83b4e142162b6f245b72535f3b58e5c8ced5c36b7b1298abc9e52",
+          "path": "docs/receipts/1.3.1-live-check/harness/cli_drive.py.txt"
+        },
+        {
+          "hash": "7bd034bc945d8461621dc2bf5f540238a4ba017e9c0b7784e1b2e6a9c8402299",
+          "path": "docs/receipts/1.3.1-live-check/harness/etv_ledger_probe.py.txt"
+        },
+        {
+          "hash": "8c5a4de5fc50a13d751831221ba5124d6862b5a93d8284d47051151878056b58",
+          "path": "docs/receipts/1.3.1-live-check/harness/hit_context.py.txt"
+        },
+        {
+          "hash": "e0f9c0ff7e24bab62cc99f69b61e3e7c1d9d2f7ccb60d1f23ce29cffb5c6f75b",
+          "path": "docs/receipts/1.3.1-live-check/harness/hit_context_scan.py.txt"
+        },
+        {
+          "hash": "6783ff0de016e943eb4889ac45b08d94ca9733bdeb72dbeec78bbc336b1e2d87",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build.sh"
+        },
+        {
+          "hash": "6db4f0e088937c38a915977ca0aafa43d38f2cbefb63bfef60f36ebfb5c0159e",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
+        },
+        {
+          "hash": "425e10fc763b0d960e01621e508fc8a205baffa4e6f282f58dec13db9c8690af",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
+        },
+        {
+          "hash": "602da5986f960b92415553792e0bb1d0e547e0de246512ebbbe68282d0a313a7",
+          "path": "docs/receipts/1.3.1-live-check/harness/notices_check.py.txt"
+        },
+        {
+          "hash": "0eab72fe39e7fecb9e94a7d4fa412d36412252f2fe2e6a668e2c1447f68c0587",
+          "path": "docs/receipts/1.3.1-live-check/harness/npm_release_check_etv.sh"
+        },
+        {
+          "hash": "1818f49b649b9adc1a849d8aa67de00555a00bd691b941e2d50293a6af2f24f7",
+          "path": "docs/receipts/1.3.1-live-check/harness/redact_tree.py.txt"
+        },
+        {
+          "hash": "d61bb1b22636d511e21677eb79624acbd7de70ad7b09fb79b3dfe9dc12c7c09d",
+          "path": "docs/receipts/1.3.1-live-check/harness/seed_search.py.txt"
+        },
+        {
+          "hash": "552de51ace43b8d8da5385971ab3600d34c723c68392322b7ff292b9ea76f256",
+          "path": "docs/receipts/1.3.1-live-check/harness/toc_has.sh"
+        },
+        {
+          "hash": "f719211c78bd0a4a5d166a8c4a62a8752cddc3d7d9f3cd1d582ead324dc3e264",
+          "path": "docs/receipts/1.3.1-live-check/harness/tui_drive.py.txt"
+        },
+        {
+          "hash": "79d201f47bb1f90f086e8780562e29be66fbb2586c37339863c1de712daaf3e7",
+          "path": "docs/receipts/1.3.1-live-check/harness/tui_key_probe.py.txt"
+        },
+        {
+          "hash": "654002f7d1ebd468a21e9246bd672fcf1416b5d06e65a71dad6f79076e9b3c4c",
+          "path": "docs/receipts/1.3.1-live-check/harness/unpack_pyinstaller.py.txt"
+        },
+        {
+          "hash": "ef107adbf81895d58e54913900ac0e05503f0bd230b4049068223272edde9c55",
+          "path": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh"
+        },
+        {
+          "hash": "f840c4fec8ad4264ce0b0d035172470b940a6b060f2463b167718571c7b85144",
+          "path": "docs/receipts/1.3.1-live-check/hashes.txt"
+        },
+        {
           "hash": "8694eee992f51e5e43d1810db9e8050f74b39a84710c199034eb2a8f4cee3542",
           "path": "docs/survival-guide.md"
         }
@@ -159,15 +1883,15 @@
       "externals": 0,
       "files": [
         {
-          "hash": "6c05b6ba208da5b5e2400f21a0ddd78b272c75ade974d215a47884c3681580c2",
+          "hash": "d64c73abd47a9095b8491e07526e4108390fac980886df32963ae29d9da81a37",
           "path": ".gitattributes"
         },
         {
-          "hash": "68f8b46d3db9b52f3ad68fe399891e9a505d05b802aa3146418303726574e1f7",
+          "hash": "9bcbe82a77c5cb49e6008d394db76d66f03bd35a129decae3477d0b5a2a6e42f",
           "path": ".gitignore"
         },
         {
-          "hash": "11293e52f2202bf5ae0beec3dc27bb9a26b0925c54ae2b871e6b2383e067e7b4",
+          "hash": "84ed34a5ac998e03b3ac2c6784409a69eaf949b83b67803ebfbf6e2d91705e05",
           "path": "CHANGELOG.md"
         },
         {
@@ -175,35 +1899,35 @@
           "path": "LICENSE"
         },
         {
-          "hash": "f9dd6df5fe7325ca1248a0cd64cf483fbf07f911b20d43a5a77b1356a75fafe3",
+          "hash": "7598a7d69d7d7f20da3cd5093eaa589ec9419f6914fc653bdbc008c27801afce",
           "path": "README.es.md"
         },
         {
-          "hash": "38813d121368e99c6eff4e1cf258a5be0c5f1e7906587200ffea3515672ad735",
+          "hash": "7ccef5cc0523317c3bdec484ee03868a292a11df43d1c06936bb159a67834698",
           "path": "README.fr.md"
         },
         {
-          "hash": "45894a3450693b7751847267a04f93fc879cbb4fc0337d4ba81a8938ac520dc6",
+          "hash": "be717ff151d260e36c1a230066f89629bc96c3dbe34c1d5f68157f986c6627c6",
           "path": "README.hi.md"
         },
         {
-          "hash": "238b52288333c8ab2f61c9535b6cb645412bad595d5f0b5018ac49249d48b08f",
+          "hash": "1d7b0e449d8fcacbb5d8ca53a1bdfa5d1d44f1d84ef0c9f55351af14497de003",
           "path": "README.it.md"
         },
         {
-          "hash": "78107cd026b4ff2efcdfb840aeeba4aa7c15beb65ffe4aff55b6356086c10fe7",
+          "hash": "786d91aec3a29a9c21994b3c59f9d83ad11596647737caafb34702741787ce3e",
           "path": "README.ja.md"
         },
         {
-          "hash": "6dfbcf66b36db66f043b319551dcd39ba3bfddc3a43d3b5bf6a803f0b23fa91f",
+          "hash": "512b0bfb3694b84b9320985d0912fd4f159c88250f7baa996e9c80a436feb6cc",
           "path": "README.md"
         },
         {
-          "hash": "86e4b0b8150d9b3b2d430e5213aa5a38fd6240b38ad75962cadf07e8d2634414",
+          "hash": "53c5be82a991a4a0b45861f1c37b090655b249960367bbdf161079bfd9c13847",
           "path": "README.pt-BR.md"
         },
         {
-          "hash": "4f1dba463a253e3eaa4b1339ac168935505be3777f4015b6b701b20105807ac8",
+          "hash": "d03978410db4b9ee118850e850a1c7c0454c8e48af6c11efe3f07da680112e92",
           "path": "README.zh.md"
         },
         {
@@ -215,7 +1939,7 @@
           "path": "SECURITY.md"
         },
         {
-          "hash": "737915ccc7a65209dbf0cf290c889b03a8119d0f876425d154e1add4833186f4",
+          "hash": "86d222168bd56fda0eba28fcd66a99f4872afb9453b2678a89ac28e69b98b184",
           "path": "SHIP_GATE.md"
         },
         {
@@ -223,11 +1947,11 @@
           "path": "codecov.yml"
         },
         {
-          "hash": "07b7ab25db81fa04eb48edb168b68208f12e8f3d83f1136642f790df89d7692f",
+          "hash": "e0f540820915653340ea621580efb1378f12474636f1f57a03b9d1d4a1c122e6",
           "path": "package.json"
         },
         {
-          "hash": "e80196c447031d4f56aa8fcad35dbcbb63ddb717820e60136c186795a517bf6f",
+          "hash": "ee18558ad2fb9bca333f4d7c012df96c490d25d2155f1cd4ad8483c327e016c7",
           "path": "pyproject.toml"
         }
       ],
@@ -249,6 +1973,80 @@
       "entryPoints": [],
       "externals": 0,
       "files": [
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "main"
+          ],
+          "failurePaths": [
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 50
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 72
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 92
+            },
+            {
+              "kind": "raise",
+              "line": 108
+            }
+          ],
+          "hash": "07eab0403253f7dc05d23790b51ac93723994d69de694502e4203d290def67bf",
+          "importsFiles": [
+            "src/escape_the_valley/notices.py"
+          ],
+          "path": "scripts/gen_third_party_notices.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "branch": "args and args[0] == \"--prune-toc\"",
+                  "line": 47,
+                  "name": "prune_notices_to_toc",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "branch": "args and args[0] == \"--verify-toc\"",
+                  "line": 71,
+                  "name": "verify_toc_against_notices",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "branch": "args and args[0] == \"--verify-bundle\"",
+                  "line": 91,
+                  "name": "verify_bundle_no_direct_url",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "line": 102,
+                  "name": "write_third_party_notices",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": true,
+              "isDefaultExport": false,
+              "name": "main"
+            }
+          ]
+        },
         {
           "exports": [
             "main"
@@ -343,14 +2141,14 @@
             {
               "in": "main",
               "kind": "except",
-              "line": 114
+              "line": 116
             },
             {
               "kind": "raise",
-              "line": 155
+              "line": 200
             }
           ],
-          "hash": "a3475da49a3a3d137d2cbe348ab88f7f145da6291bc8e575194abd09a5e2e200",
+          "hash": "7fbc53211c4097d25d37930acb8d071bd56b67c7c08220866419c84d003276db",
           "path": "scripts/smoke_test_binary.py",
           "sequences": []
         },
@@ -620,7 +2418,7 @@
           "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
         },
         {
-          "hash": "55dd7b8a54c65c6299a018c6b5015c3ee3aefdb618b24e16ed611d72659c641c",
+          "hash": "12055c9de52c9c97509f805eae443de3d5f5dbeab5b587b168fdfdffbf1eec1e",
           "path": "site/public/index.html"
         },
         {
@@ -641,11 +2439,11 @@
           "path": "site/src/content/docs/handbook/beginners.md"
         },
         {
-          "hash": "ad57cefba286db5dd41c6339454428ae38cf719faa05151b1aa672d560f32496",
+          "hash": "fe52f3836c5b1b061d6c3c18eabcc0aac2f92f83837819dd8820c112cfa8151d",
           "path": "site/src/content/docs/handbook/commands.md"
         },
         {
-          "hash": "403d0e8797d1c5401f7e7ccd51b96a9ba07a84a52ecc1ebb6c95e5f3a62823ee",
+          "hash": "ada82443956ab98963a2cbc6954bb1c33b8e9203bdc1657a2a90eb2a906c680e",
           "path": "site/src/content/docs/handbook/getting-started.md"
         },
         {
@@ -669,12 +2467,12 @@
           "path": "site/src/content/docs/handbook/troubleshooting.md"
         },
         {
-          "hash": "c60dd418eb3808c38b4458ccec92d2460d31e82ff7aae0438f0e469676337c91",
+          "hash": "14df94024847a5293cb71670597b36fd8c8db4629b522a0a9fd688bcf81a272d",
           "path": "site/src/content/docs/handbook/xrpl-ledger.md"
         },
         {
           "constantOnly": true,
-          "hash": "26f136ef997b3165e0278b1504f08d96398057f49a69546ea4a74395ff115238",
+          "hash": "61a55a3b1669192a76f60e667b4cf10d4cf0eef9a303f7cd0ce95f26ef65893b",
           "path": "site/src/site-config.ts"
         },
         {
@@ -711,7 +2509,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 0,
+      "dynamicReads": 7,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -722,7 +2520,7 @@
       "files": [
         {
           "constantOnly": true,
-          "hash": "cccb98a069d170411348314de904305a47b5a62db86114bcd1b83b0f588d44cb",
+          "hash": "b09a666ed5c04f9f61bf720ce251bd4bf946f1c7d55cfc0d2a3526106e123907",
           "path": "src/escape_the_valley/__init__.py"
         },
         {
@@ -793,6 +2591,162 @@
               "name": "_tui_check_and_exit"
             }
           ]
+        },
+        {
+          "hash": "5ae6b3c8f446f0a7cb95176e4dadb91b68aaffb16b3be09f64f5de248b6a973a",
+          "path": "src/escape_the_valley/_licenses/LICENSE"
+        },
+        {
+          "hash": "fdababb2e2459a82dca2c6b96e19c413aa604cdb091d063a56578b3c873e7f34",
+          "path": "src/escape_the_valley/_licenses/SOURCES.json"
+        },
+        {
+          "hash": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.expat.txt"
+        },
+        {
+          "hash": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.zlib.txt"
+        },
+        {
+          "hash": "341832873fd316a37927e79385093fbbfd40a467428480835fe435a80cadf4e5",
+          "path": "src/escape_the_valley/_licenses/cpython/Doc-license.rst"
+        },
+        {
+          "hash": "d4f3b2147ce2d4b6a4671b208523669923778b9a3f609aab753c41d34540698a",
+          "path": "src/escape_the_valley/_licenses/cpython/LICENSE.incorporated-software.rst"
+        },
+        {
+          "hash": "bd5628cc76fb0ebf9c657d1dd4d1a240a1a7b216c31663e7bbf1131c0b70a910",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "8fe98bf9822926d854f56ffd8d97877d8b942617aa44eb7ea77fd99e22f2537e",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "8a9cfe4b5924f4b25881aa0c9f5e4561c5f31065d0c4a13cdcdbcf917edf39aa",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.expat.txt"
+        },
+        {
+          "hash": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "cbccaa3efe07a9a602751375085be572d4410a250b996716fbe8c5255c7ec6f2",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "f094277cd46e1f6e4d87916cc4b51e22f613d45eb81f48231c3cb7caf8fc8a6a",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "d8eb9aba7ef6b5ed06cb3ec19a7242316af2e5933c638eb67fb781c13884e01d",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.zlib.txt"
+        },
+        {
+          "hash": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.bzip2.txt"
+        },
+        {
+          "hash": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.cpython.txt"
+        },
+        {
+          "hash": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.expat.txt"
+        },
+        {
+          "hash": "29cea33c32bbc9785142386377915612a2fa786482c46843383384aded2e09b1",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libedit.txt"
+        },
+        {
+          "hash": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libffi.txt"
+        },
+        {
+          "hash": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.liblzma.txt"
+        },
+        {
+          "hash": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.libuuid.txt"
+        },
+        {
+          "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt"
+        },
+        {
+          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt"
+        },
+        {
+          "hash": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.sqlite.txt"
+        },
+        {
+          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.zlib.txt"
         },
         {
           "exports": [
@@ -1020,6 +2974,7 @@
             "ledger_settle",
             "ledger_status",
             "ledger_wallet",
+            "licenses",
             "main_callback",
             "new",
             "parcel_accept",
@@ -1043,54 +2998,54 @@
               "line": 33
             },
             {
+              "in": "_licenses_callback",
+              "kind": "raise",
+              "line": 41
+            },
+            {
               "in": "new",
               "kind": "except",
-              "line": 165
+              "line": 179
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 170
+              "line": 184
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 176
+              "line": 190
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 181
+              "line": 195
             },
             {
               "in": "play",
               "kind": "raise",
-              "line": 219
+              "line": 233
             },
             {
               "in": "play",
               "kind": "raise",
-              "line": 223
+              "line": 237
             },
             {
               "in": "status",
               "kind": "raise",
-              "line": 244
+              "line": 258
             },
             {
               "in": "journal",
               "kind": "raise",
-              "line": 257
+              "line": 271
             },
             {
               "in": "self_check",
               "kind": "except",
-              "line": 326
-            },
-            {
-              "in": "self_check",
-              "kind": "except",
-              "line": 353
+              "line": 340
             },
             {
               "in": "self_check",
@@ -1100,195 +3055,200 @@
             {
               "in": "self_check",
               "kind": "except",
-              "line": 393
+              "line": 381
             },
             {
               "in": "self_check",
               "kind": "except",
-              "line": 412
+              "line": 407
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 426
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 465
+              "line": 479
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 471
+              "line": 485
             },
             {
               "in": "tui",
               "kind": "except",
-              "line": 478
+              "line": 492
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 483
+              "line": 497
             },
             {
               "in": "tui",
               "kind": "except",
-              "line": 512
+              "line": 526
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 517
+              "line": 531
             },
             {
               "in": "stats",
               "kind": "raise",
-              "line": 578
+              "line": 600
             },
             {
               "in": "postcard",
               "kind": "raise",
-              "line": 675
+              "line": 697
             },
             {
               "in": "ledger_status",
               "kind": "raise",
-              "line": 699
+              "line": 721
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 720
+              "line": 742
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 724
+              "line": 746
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 743
+              "line": 765
             },
             {
               "in": "ledger_disable",
               "kind": "raise",
-              "line": 752
+              "line": 774
             },
             {
               "in": "ledger_disable",
               "kind": "raise",
-              "line": 756
+              "line": 778
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 773
+              "line": 795
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 777
+              "line": 799
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 806
+              "line": 828
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 815
+              "line": 837
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 819
+              "line": 841
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 824
+              "line": 846
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 850
+              "line": 872
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 859
+              "line": 881
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 866
+              "line": 888
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 868
+              "line": 890
             },
             {
               "in": "ledger_wallet",
               "kind": "raise",
-              "line": 877
+              "line": 899
             },
             {
               "in": "ledger_wallet",
               "kind": "raise",
-              "line": 887
+              "line": 909
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 918
+              "line": 940
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 922
+              "line": 944
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 936
+              "line": 958
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 957
+              "line": 979
             },
             {
               "in": "parcel_list",
               "kind": "raise",
-              "line": 966
+              "line": 988
             },
             {
               "in": "parcel_accept",
               "kind": "raise",
-              "line": 996
+              "line": 1018
             },
             {
               "in": "parcel_accept",
               "kind": "raise",
-              "line": 1006
+              "line": 1028
             },
             {
               "in": "parcel_sent",
               "kind": "raise",
-              "line": 1025
+              "line": 1047
             },
             {
               "in": "wallet_share",
               "kind": "raise",
-              "line": 1053
+              "line": 1075
             },
             {
               "in": "wallet_share",
               "kind": "raise",
-              "line": 1058
+              "line": 1080
             }
           ],
-          "hash": "4347133ed87881706aac629860d91bc62d3bd63200616745d745d609d99a68db",
+          "hash": "81f6c25493a35e11e5617d63db936e82067f3d0887842f45c70b6ab852186e2d",
           "importsFiles": [
             "src/escape_the_valley/__init__.py",
             "src/escape_the_valley/backpack.py",
@@ -1298,6 +3258,7 @@
             "src/escape_the_valley/ledger.py",
             "src/escape_the_valley/ledger_proof.py",
             "src/escape_the_valley/models.py",
+            "src/escape_the_valley/notices.py",
             "src/escape_the_valley/save.py",
             "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/tui_app.py",
@@ -1310,15 +3271,31 @@
             {
               "calls": [
                 {
+                  "branch": "value",
+                  "line": 40,
+                  "name": "get_third_party_notices_text",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_licenses_callback"
+            },
+            {
+              "calls": [
+                {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 53,
+                  "line": 61,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
                   }
                 },
                 {
-                  "line": 54,
+                  "line": 62,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -1334,7 +3311,7 @@
               "calls": [
                 {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 53,
+                  "line": 61,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -1342,7 +3319,7 @@
                   "via": "_postcard_lines"
                 },
                 {
-                  "line": 54,
+                  "line": 62,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -1358,49 +3335,64 @@
             {
               "calls": [
                 {
-                  "line": 160,
+                  "line": 153,
+                  "name": "_ensure_utf8_stdio",
+                  "target": {
+                    "file": "src/escape_the_valley/ui.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "main_callback"
+            },
+            {
+              "calls": [
+                {
+                  "line": 174,
                   "name": "show_title_screen",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
                   }
                 },
                 {
-                  "line": 164,
+                  "line": 178,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 179,
+                  "line": 193,
                   "name": "has_save",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 184,
+                  "line": 198,
                   "name": "create_new_run",
                   "target": {
                     "file": "src/escape_the_valley/worldgen.py"
                   }
                 },
                 {
-                  "line": 198,
+                  "line": 212,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 204,
+                  "line": 218,
                   "name": "GameEngine",
                   "target": {
                     "file": "src/escape_the_valley/engine.py"
                   }
                 },
                 {
-                  "line": 205,
+                  "line": 219,
                   "name": "run",
                   "receiver": "GameEngine",
                   "target": {
@@ -1416,35 +3408,35 @@
             {
               "calls": [
                 {
-                  "line": 214,
+                  "line": 228,
                   "name": "show_title_screen",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
                   }
                 },
                 {
-                  "line": 216,
+                  "line": 230,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 228,
+                  "line": 242,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 234,
+                  "line": 248,
                   "name": "GameEngine",
                   "target": {
                     "file": "src/escape_the_valley/engine.py"
                   }
                 },
                 {
-                  "line": 235,
+                  "line": 249,
                   "name": "run",
                   "receiver": "GameEngine",
                   "target": {
@@ -1460,14 +3452,14 @@
             {
               "calls": [
                 {
-                  "line": 241,
+                  "line": 255,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 246,
+                  "line": 260,
                   "name": "show_status",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
@@ -1482,14 +3474,14 @@
             {
               "calls": [
                 {
-                  "line": 254,
+                  "line": 268,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 259,
+                  "line": 273,
                   "name": "show_journal",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
@@ -1504,42 +3496,42 @@
             {
               "calls": [
                 {
-                  "line": 295,
+                  "line": 309,
                   "name": "has_save",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 296,
+                  "line": 310,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 342,
+                  "line": 356,
                   "name": "build_event_library",
                   "target": {
                     "file": "src/escape_the_valley/events.py"
                   }
                 },
                 {
-                  "line": 377,
+                  "line": 391,
                   "name": "VoiceConfig",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 377,
+                  "line": 391,
                   "name": "VoiceBridge",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 405,
+                  "line": 419,
                   "name": "_resolve_css_path",
                   "target": {
                     "file": "src/escape_the_valley/tui_app.py"
@@ -1647,14 +3639,14 @@
                     }
                   ],
                   "innerTruncated": true,
-                  "line": 459,
+                  "line": 473,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 477,
+                  "line": 491,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -1739,42 +3731,42 @@
                     }
                   ],
                   "innerTruncated": true,
-                  "line": 486,
+                  "line": 500,
                   "name": "create_new_run",
                   "target": {
                     "file": "src/escape_the_valley/worldgen.py"
                   }
                 },
                 {
-                  "line": 497,
+                  "line": 511,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 511,
+                  "line": 525,
                   "name": "VoicePace",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 519,
+                  "line": 533,
                   "name": "VoiceConfig",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 525,
+                  "line": 539,
                   "name": "StepEngine",
                   "target": {
                     "file": "src/escape_the_valley/step_engine.py"
                   }
                 },
                 {
-                  "line": 526,
+                  "line": 540,
                   "name": "LedgerTrailApp",
                   "target": {
                     "file": "src/escape_the_valley/tui_app.py"
@@ -1789,21 +3781,36 @@
             {
               "calls": [
                 {
-                  "line": 550,
+                  "line": 558,
+                  "name": "get_third_party_notices_text",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "licenses"
+            },
+            {
+              "calls": [
+                {
+                  "line": 572,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 550,
+                  "line": 572,
                   "name": "GMClient",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 554,
+                  "line": 576,
                   "name": "is_available",
                   "receiver": "GMClient",
                   "target": {
@@ -1819,14 +3826,14 @@
             {
               "calls": [
                 {
-                  "line": 575,
+                  "line": 597,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 550,
+                  "line": 572,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
@@ -1834,7 +3841,7 @@
                   "via": "_gm_diagnostics"
                 },
                 {
-                  "line": 550,
+                  "line": 572,
                   "name": "GMClient",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
@@ -1842,7 +3849,7 @@
                   "via": "_gm_diagnostics"
                 },
                 {
-                  "line": 554,
+                  "line": 576,
                   "name": "is_available",
                   "receiver": "GMClient",
                   "target": {
@@ -1859,7 +3866,7 @@
             {
               "calls": [
                 {
-                  "line": 672,
+                  "line": 694,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -1867,7 +3874,7 @@
                 },
                 {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 53,
+                  "line": 61,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -1875,7 +3882,7 @@
                   "via": "_postcard_lines"
                 },
                 {
-                  "line": 54,
+                  "line": 62,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -1891,21 +3898,21 @@
             {
               "calls": [
                 {
-                  "line": 696,
+                  "line": 718,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 704,
+                  "line": 726,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 704,
+                  "line": 726,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -1913,7 +3920,7 @@
                   }
                 },
                 {
-                  "line": 705,
+                  "line": 727,
                   "name": "status_line",
                   "receiver": "BackpackManager",
                   "target": {
@@ -1921,7 +3928,7 @@
                   }
                 },
                 {
-                  "line": 708,
+                  "line": 730,
                   "name": "wallet_info",
                   "receiver": "BackpackManager",
                   "target": {
@@ -1937,21 +3944,21 @@
             {
               "calls": [
                 {
-                  "line": 717,
+                  "line": 739,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 729,
+                  "line": 751,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 729,
+                  "line": 751,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -1959,7 +3966,7 @@
                   }
                 },
                 {
-                  "line": 732,
+                  "line": 754,
                   "name": "enable",
                   "receiver": "BackpackManager",
                   "target": {
@@ -1967,7 +3974,7 @@
                   }
                 },
                 {
-                  "line": 734,
+                  "line": 756,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -1975,7 +3982,7 @@
                   }
                 },
                 {
-                  "line": 737,
+                  "line": 759,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -1990,21 +3997,21 @@
             {
               "calls": [
                 {
-                  "line": 749,
+                  "line": 771,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 761,
+                  "line": 783,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 761,
+                  "line": 783,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2012,7 +4019,7 @@
                   }
                 },
                 {
-                  "line": 762,
+                  "line": 784,
                   "name": "disable",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2020,7 +4027,7 @@
                   }
                 },
                 {
-                  "line": 763,
+                  "line": 785,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2035,21 +4042,21 @@
             {
               "calls": [
                 {
-                  "line": 770,
+                  "line": 792,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 789,
+                  "line": 811,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 789,
+                  "line": 811,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2057,7 +4064,7 @@
                   }
                 },
                 {
-                  "line": 792,
+                  "line": 814,
                   "name": "settle",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2065,7 +4072,7 @@
                   }
                 },
                 {
-                  "line": 794,
+                  "line": 816,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2073,7 +4080,7 @@
                   }
                 },
                 {
-                  "line": 797,
+                  "line": 819,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2088,21 +4095,21 @@
             {
               "calls": [
                 {
-                  "line": 812,
+                  "line": 834,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 829,
+                  "line": 851,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 829,
+                  "line": 851,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2110,7 +4117,7 @@
                   }
                 },
                 {
-                  "line": 832,
+                  "line": 854,
                   "name": "_retry_pending",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2118,7 +4125,7 @@
                   }
                 },
                 {
-                  "line": 834,
+                  "line": 856,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2126,7 +4133,7 @@
                   }
                 },
                 {
-                  "line": 838,
+                  "line": 860,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2141,14 +4148,14 @@
             {
               "calls": [
                 {
-                  "line": 856,
+                  "line": 878,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 863,
+                  "line": 885,
                   "name": "proof_player_save",
                   "target": {
                     "file": "src/escape_the_valley/ledger_proof.py"
@@ -2163,21 +4170,21 @@
             {
               "calls": [
                 {
-                  "line": 874,
+                  "line": 896,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 882,
+                  "line": 904,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 882,
+                  "line": 904,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2185,7 +4192,7 @@
                   }
                 },
                 {
-                  "line": 883,
+                  "line": 905,
                   "name": "wallet_info",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2201,21 +4208,21 @@
             {
               "calls": [
                 {
-                  "line": 915,
+                  "line": 937,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 941,
+                  "line": 963,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 941,
+                  "line": 963,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2223,7 +4230,7 @@
                   }
                 },
                 {
-                  "line": 944,
+                  "line": 966,
                   "name": "send_parcel",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2231,7 +4238,7 @@
                   }
                 },
                 {
-                  "line": 946,
+                  "line": 968,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2239,7 +4246,7 @@
                   }
                 },
                 {
-                  "line": 949,
+                  "line": 971,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2254,7 +4261,7 @@
             {
               "calls": [
                 {
-                  "line": 963,
+                  "line": 985,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2269,21 +4276,21 @@
             {
               "calls": [
                 {
-                  "line": 993,
+                  "line": 1015,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 1011,
+                  "line": 1033,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 1011,
+                  "line": 1033,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -2291,7 +4298,7 @@
                   }
                 },
                 {
-                  "line": 1012,
+                  "line": 1034,
                   "name": "accept_parcel",
                   "receiver": "BackpackManager",
                   "target": {
@@ -2299,7 +4306,7 @@
                   }
                 },
                 {
-                  "line": 1013,
+                  "line": 1035,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2314,7 +4321,7 @@
             {
               "calls": [
                 {
-                  "line": 1022,
+                  "line": 1044,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2329,7 +4336,7 @@
             {
               "calls": [
                 {
-                  "line": 1050,
+                  "line": 1072,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -2357,24 +4364,35 @@
             {
               "in": "__init__",
               "kind": "except",
-              "line": 90
+              "line": 100
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 553
+            },
+            {
+              "in": "_apply_memory_proposals",
+              "kind": "except",
+              "line": 560
             },
             {
               "in": "_settle_checkpoint",
               "kind": "except",
-              "line": 506
+              "line": 603
             },
             {
               "in": "_check_parcels",
               "kind": "except",
-              "line": 555
+              "line": 652
             }
           ],
-          "hash": "e25bb921112060c5528bc597ccfc8051b843be341baf0f43eebf1e6b615f1075",
+          "hash": "935d8835e9c8c676725ff985f78af0a32bfd37e21653284417c267fa8e1cdab4",
           "importOrder": [
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/gm.py",
             "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/memory_emitters.py",
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/physics.py",
             "src/escape_the_valley/save.py",
@@ -2390,6 +4408,7 @@
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/gm.py",
             "src/escape_the_valley/memory.py",
+            "src/escape_the_valley/memory_emitters.py",
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/physics.py",
             "src/escape_the_valley/save.py",
@@ -3215,15 +5234,15 @@
             {
               "in": "setstate",
               "kind": "except",
-              "line": 426
+              "line": 428
             },
             {
               "in": "setstate",
               "kind": "raise",
-              "line": 427
+              "line": 429
             }
           ],
-          "hash": "d4caa78ae6f30ca2c6bd2e99912a12dece62badcac84231a83053152da40fe8b",
+          "hash": "4bb6e90bf015d94f20c2390498dcb2d2dd51242e8ae5dbd9f4f344194805ca23",
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py"
           ],
@@ -3238,6 +5257,212 @@
             "src/escape_the_valley/step_engine.py"
           ],
           "path": "src/escape_the_valley/narration.py"
+        },
+        {
+          "exports": [
+            "collect_toc_bundled_distributions",
+            "collect_toc_bundled_excluded_extensions",
+            "generate_third_party_notices",
+            "get_third_party_notices_text",
+            "prune_notices_to_toc",
+            "resolve_bundled_notices_path",
+            "verify_bundle_no_direct_url",
+            "verify_toc_against_notices",
+            "verify_vendored_licenses_integrity",
+            "write_third_party_notices"
+          ],
+          "failurePaths": [
+            {
+              "in": "_load_sources_manifest",
+              "kind": "raise",
+              "line": 111
+            },
+            {
+              "in": "_read_interpreter_pbs_build_tag",
+              "kind": "except",
+              "line": 150
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 173
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 181
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 190
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 195
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 210
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 213
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 223
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 230
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 235
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 243
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 253
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 258
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 278
+            },
+            {
+              "in": "_locate_cpython_license_file",
+              "kind": "except",
+              "line": 363
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 375
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 383
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 409
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 415
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 429
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 435
+            },
+            {
+              "in": "_extract_dist_license_files",
+              "kind": "except",
+              "line": 517
+            },
+            {
+              "in": "_read_game_license_block",
+              "kind": "raise",
+              "line": 647
+            },
+            {
+              "in": "_build_top_level_to_dist_map",
+              "kind": "except",
+              "line": 852
+            },
+            {
+              "in": "collect_toc_bundled_distributions",
+              "kind": "raise",
+              "line": 890
+            },
+            {
+              "in": "collect_toc_bundled_distributions",
+              "kind": "except",
+              "line": 920
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "raise",
+              "line": 965
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "except",
+              "line": 997
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1082
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1094
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1112
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1119
+            },
+            {
+              "in": "_find_sysconfigdata_home_paths",
+              "kind": "except",
+              "line": 1174
+            },
+            {
+              "in": "verify_bundle_no_direct_url",
+              "kind": "except",
+              "line": 1250
+            },
+            {
+              "in": "verify_bundle_no_direct_url",
+              "kind": "raise",
+              "line": 1292
+            },
+            {
+              "in": "get_third_party_notices_text",
+              "kind": "raise",
+              "line": 1349
+            }
+          ],
+          "hash": "8aa2ee4cb15f552f6f0266aa2ffe897e19537d0c7dfb33784a906f3146a8268d",
+          "importsFiles": [
+            "src/escape_the_valley/__init__.py"
+          ],
+          "path": "src/escape_the_valley/notices.py"
         },
         {
           "exports": [
@@ -4103,7 +6328,7 @@
               "line": 1386
             }
           ],
-          "hash": "ee97ac6e94e5f0df7b5768a4d5c675a1f6e8f4b5a24e6d70acce2f3ffdc5dd80",
+          "hash": "162f33ffc86ba518bdb38c051e1dc20ea15a1b95ee81b89c757b08867b4fba0a",
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -4261,7 +6486,7 @@
           "path": "src/escape_the_valley/tui_app.py"
         },
         {
-          "entry": "_no_color",
+          "entry": "_ensure_utf8_stdio",
           "entryRule": 1,
           "exports": [
             "show_action_menu",
@@ -4275,7 +6500,14 @@
             "show_status",
             "show_title_screen"
           ],
-          "hash": "d61f88bb3897b91b9695a6d7802cc2853a44efa2d5f1500954785514ef47c591",
+          "failurePaths": [
+            {
+              "in": "_ensure_utf8_stdio",
+              "kind": "except",
+              "line": 26
+            }
+          ],
+          "hash": "97067974fe3265445173d6fa29469c7ec40caab948aac92f2399a6431446e9b1",
           "importOrder": [
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/resources.py",
@@ -4291,7 +6523,7 @@
             {
               "calls": [
                 {
-                  "line": 372,
+                  "line": 386,
                   "name": "build_deterministic_epilogue",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
@@ -4767,18 +6999,25 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 12,
+          "reads": 17,
           "where": [
             "caller"
           ],
-          "writes": 2
+          "writes": 4
         }
       ],
-      "outsideReads": 12,
-      "outsideWrites": 2,
+      "outsideReads": 17,
+      "outsideWrites": 4,
       "role": "code",
       "testedBy": 23,
-      "unresolvedSites": 0
+      "unresolvedNamed": [
+        {
+          "path": "src/escape_the_valley/notices.py",
+          "specifier": null,
+          "why": "dynamic"
+        }
+      ],
+      "unresolvedSites": 1
     },
     {
       "dynamicReads": 0,
@@ -4894,24 +7133,39 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "29378bda456d9408cc39d6c28701e8ff1bc96e40683b07fa7a335840eedcf5c4",
+          "hash": "6b935817cc275209cfeeea5d5014636c3d2a8e724ce971865982fae3fa771093",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/worldgen.py",
             "src/escape_the_valley/gm.py",
             "src/escape_the_valley/backpack.py",
-            "src/escape_the_valley/backpack_models.py"
+            "src/escape_the_valley/backpack_models.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/ledger.py",
+            "src/escape_the_valley/notices.py"
           ],
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
             "src/escape_the_valley/cli.py",
+            "src/escape_the_valley/engine.py",
             "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/ledger.py",
             "src/escape_the_valley/models.py",
+            "src/escape_the_valley/notices.py",
+            "src/escape_the_valley/save.py",
             "src/escape_the_valley/worldgen.py"
           ],
-          "path": "tests/test_cli_stats.py"
+          "names": [
+            "scripts/gen_third_party_notices.py"
+          ],
+          "path": "tests/test_cli_stats.py",
+          "spawns": [
+            "src/escape_the_valley/__main__.py"
+          ],
+          "testFramework": "pytest"
         },
         {
           "hash": "a38a1c5488ec3efabb10c7fd5abc3f24a1af499a7d85634fd82016e3240f5747",
@@ -4960,7 +7214,7 @@
           "exports": [
             "test_live_four_tier_gate"
           ],
-          "hash": "05dedaf5159dc3ba666988e8e9ab2b34904c5943dc0f5a0b2ebf91e10b6bac20",
+          "hash": "55178771c6db0ca0589330438e8df804a58873419a039e14a4175b54f64cecca",
           "importsFiles": [
             "agents/skilled.py",
             "src/escape_the_valley/gm.py",
@@ -5073,7 +7327,7 @@
           "testFramework": "pytest"
         },
         {
-          "hash": "9ead7f145e83c989914360c9357eb812461b980721f6fd3c84b3bc49d23043e9",
+          "hash": "5b2b946c11148cda7ed24d0e16fa3caffe49c9dc079240829fdd255cf7acbd4f",
           "importsFiles": [
             "src/escape_the_valley/narration.py",
             "src/escape_the_valley/step_engine.py"
@@ -5101,7 +7355,7 @@
           "path": "tests/test_physics.py"
         },
         {
-          "hash": "6f41ec6f5b0ba95887dd892baf8ce203a202d51dfb7c43650e00df481208da1b",
+          "hash": "25f7b9e663f45c50418580c41882b5181c26cbfb7473aeae238b37768aca31f5",
           "importOrder": [
             "src/escape_the_valley/engine.py",
             "src/escape_the_valley/gm.py",
@@ -5130,6 +7384,7 @@
         {
           "exports": [
             "test_abandon_cargo_in_engine",
+            "test_abandon_cargo_names_dropped_supplies_in_narration_and_memory_card",
             "test_abandon_cargo_rejected_when_wagon_ok",
             "test_adapter_after_travel",
             "test_adapter_camp_shows_camp_actions",
@@ -5184,6 +7439,8 @@
             "test_gameengine_death_computes_lost_ending",
             "test_gameengine_desperate_repair_valve",
             "test_gameengine_fixed_seed_reproduces",
+            "test_gameengine_fork_preserves_cooldown_until_travel",
+            "test_gameengine_fork_preserves_maintenance_until_travel",
             "test_gameengine_gm_scene_ids_are_letters_from_the_template_set",
             "test_gameengine_hard_ration_valve",
             "test_gameengine_live_death_line_names_cause",
@@ -5201,6 +7458,7 @@
             "test_gameengine_self_edge_single_connection_does_not_loop_or_manufacture_victory",
             "test_gameengine_single_resolvable_connection_message_is_accurate",
             "test_gameengine_spoilage_seed_reproduces",
+            "test_gameengine_stepengine_memory_milestone_and_death_cause_parity",
             "test_gameengine_town_settles_when_backpack_enabled",
             "test_gameengine_town_skips_settle_when_backpack_off",
             "test_gameengine_town_trade_mirrors_stepengine",
@@ -5257,6 +7515,8 @@
             "test_starts_in_camp",
             "test_step_autosaves_by_default",
             "test_stepengine_arrival_same_water_cache_on_dest_town",
+            "test_stepengine_fork_preserves_cooldown_until_travel",
+            "test_stepengine_fork_preserves_maintenance_until_travel",
             "test_stepengine_live_death_line_names_cause",
             "test_taboo_kept_never_river_reads_journal",
             "test_town_arrival_recorded_in_journal",
@@ -5266,7 +7526,7 @@
             "test_victory_shows_trail_ledger",
             "test_weathered_all_survive_but_slow"
           ],
-          "hash": "265f3b373c8fd7122ac44be2373cd7ff12bf11d378bec7036a3f29749c9320a7",
+          "hash": "591c7755bf11c3ab764301b736a6bc88595f0ac1491613080ed36cb2888367fb",
           "importOrder": [
             "src/escape_the_valley/adapter.py",
             "src/escape_the_valley/gm.py",
@@ -5360,15 +7620,21 @@
           "testFramework": "pytest"
         },
         {
-          "hash": "f453f2e3661645ab8a2692589ca4097e2519b7579acf6c54febb82f69d023083",
+          "hash": "86a5ef26b6d965349443a3c5a3a8658b4a38606dae3cfb20328d43dff6c26ba0",
           "importOrder": [
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/resources.py"
           ],
           "importsFiles": [
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/resources.py",
+            "src/escape_the_valley/step_engine.py",
             "src/escape_the_valley/worldgen.py"
           ],
           "path": "tests/test_worldgen.py"
@@ -5572,7 +7838,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -5914,7 +8180,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         }
       ],
       "readers": [],
@@ -5976,9 +8242,12 @@
           "dir": "",
           "job": "build",
           "programs": [
-            "uv"
+            "echo",
+            "id",
+            "mkdir",
+            "sudo"
           ],
-          "step": "2"
+          "step": "Set neutral UV_PYTHON_INSTALL_DIR outside user homes (G1)"
         },
         {
           "dir": "",
@@ -5994,17 +8263,50 @@
           "programs": [
             "uv"
           ],
+          "step": "4"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
           "step": "Install dependencies + PyInstaller"
         },
         {
           "dir": "",
           "job": "build",
           "programs": [
+            "uv"
+          ],
+          "step": "Remove PEP 610 direct_url.json build record from venv"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
+          "step": "Generate third-party notices"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "cp",
             "echo",
             "mv",
             "uv"
           ],
           "step": "Build binary"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
+          "step": "Verify third-party notices against PyInstaller TOC and check bundle archive"
         },
         {
           "dir": "",
@@ -6090,16 +8392,21 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 1
+          "files": 2
         },
         {
           "boundary": "src",
           "depth": 0,
-          "files": 26
+          "files": 27
         }
       ],
       "readers": [],
       "runs": [
+        {
+          "job": "build",
+          "path": "scripts/gen_third_party_notices.py",
+          "runKind": "executes"
+        },
         {
           "job": "build",
           "path": "scripts/smoke_test_binary.py",
@@ -6112,7 +8419,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 3,
       "secrets": [],
       "sends": {
         "assets": [
@@ -6486,7 +8793,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -7028,7 +9335,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 25
+          "files": 26
         }
       ],
       "readers": [],
@@ -7197,8 +9504,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "fd8b7bbf47baa217f7cf1dcc6cbc6d9c19c38a5b",
-    "tracked": 186
+    "commit": "da680ff86deca189ce226d1bee47d715c9cb942f",
+    "tracked": 658
   },
   "landings": [
     {
@@ -7209,6 +9516,27 @@
         }
       ],
       "target": "CHANGELOG.md",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/_licenses/SOURCES.json",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        },
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "weak"
+        }
+      ],
+      "target": "LICENSE",
       "writers": []
     },
     {
@@ -7227,11 +9555,6 @@
         {
           "by": ".github/workflows/release.yml",
           "confidence": "config"
-        },
-        {
-          "by": "bin/escape-the-valley.js",
-          "call": "import",
-          "confidence": "ast"
         }
       ],
       "target": "package.json",
@@ -7416,6 +9739,63 @@
     {
       "readers": [
         {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "scripts/gen_third_party_notices.py",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "scripts/smoke_test_binary.py",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "site/astro.config.mjs",
           "call": "content-collection",
           "confidence": "ast"
@@ -7455,6 +9835,72 @@
         }
       ],
       "target": "src/escape_the_valley",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/LICENSE",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "read_text",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/SOURCES.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/aarch64-apple-darwin",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "src/escape_the_valley/notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu",
       "writers": []
     },
     {

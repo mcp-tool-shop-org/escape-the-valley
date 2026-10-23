@@ -71,44 +71,109 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 9,
+      "added": 128,
+      "changed": 17,
       "moved": 0,
-      "parts": 1,
+      "parts": 4,
       "removed": 0
     },
     "items": [
       {
         "kind": "door",
-        "sentence": "CI now also runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 1 more.",
+        "sentence": "CI's push trigger now also names `rust/**`.",
+        "subjects": [
+          ".github/workflows/ci.yml"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "CI now also runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 2 more.",
         "subjects": [
           ".github/workflows/ci.yml",
           "rust/etv-core/src/model.rs",
           "rust/etv-core/src/rng.rs",
           "rust/etv-core/src/save.rs",
-          "rust/etv-core/src/worldgen.rs"
+          "rust/etv-core/src/worldgen.rs",
+          "rust/etv-core/tests/"
         ]
       },
       {
         "kind": "door",
-        "sentence": "Release now also runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 1 more.",
+        "sentence": "CI now also checks rust/etv-core/src/lib.rs.",
         "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/model.rs",
-          "rust/etv-core/src/rng.rs",
-          "rust/etv-core/src/save.rs",
-          "rust/etv-core/src/worldgen.rs"
+          ".github/workflows/ci.yml",
+          "rust/etv-core/src/lib.rs"
         ]
       },
       {
+        "kind": "door",
+        "sentence": "And 6 more changes to doors.",
+        "subjects": []
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/vectors.json is now written by rust-spikes/s1-rng/gen_vectors.py.",
+        "subjects": [
+          "rust-spikes/s1-rng/vectors.json",
+          "rust-spikes/s1-rng/gen_vectors.py"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/ is now read by rust-spikes/Cargo.toml.",
+        "subjects": [
+          "rust-spikes/s1-rng/",
+          "rust-spikes/Cargo.toml"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust-spikes/s1-rng/vectors.json is now read by rust-spikes/s1-rng/src/lib.rs.",
+        "subjects": [
+          "rust-spikes/s1-rng/vectors.json",
+          "rust-spikes/s1-rng/src/lib.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "And 14 more new writers and readers of places.",
+        "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/Cargo.lock"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/Cargo.toml"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust-spikes/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust-spikes/deny.toml"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 27 more new files that belong to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "9 files changed content, across 1 part.",
+        "sentence": "128 files added and 17 changed content, across 4 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "5b985fa5cbc7851ccda96c490c1aa2eac1085bc2",
-      "generatedAt": "2026-10-23T05:36:25.995Z"
+      "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
+      "generatedAt": "2026-10-23T03:49:37.424Z"
     },
     "unchanged": false
   },
@@ -195,9 +260,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "fd8b7bbf47baa217f7cf1dcc6cbc6d9c19c38a5b",
+  "commit": "da680ff86deca189ce226d1bee47d715c9cb942f",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (63 files), Rust (10), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).",
+  "derived": "10 parts, mostly Python (65 files), Rust (10), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -216,7 +281,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -266,7 +331,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         },
         {
           "boundary": "tests",
@@ -315,18 +380,19 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 1
+          "files": 2
         },
         {
           "boundary": "src",
           "depth": 0,
-          "files": 26
+          "files": 27
         }
       ],
       "runs": [
+        "scripts/gen_third_party_notices.py",
         "scripts/smoke_test_binary.py"
       ],
-      "runsCount": 1,
+      "runsCount": 2,
       "runsMore": 0,
       "sends": [
         "creates a GitHub release",
@@ -385,7 +451,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 27
+          "files": 28
         }
       ],
       "runs": [],
@@ -489,7 +555,7 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 25
+          "files": 26
         }
       ],
       "runs": [
@@ -595,10 +661,11 @@
       ]
     }
   ],
-  "generatedAt": "2026-10-23T08:00:23.099Z",
+  "generatedAt": "2026-10-23T08:17:04.995Z",
   "limits": [
-    "1 write uses a path built at run time and is not named here.",
-    "2 writes and 13 reads go to a path their caller passes, not to this repository.",
+    "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
+    "1 write and 7 reads use paths built at run time and are not named here.",
+    "4 writes and 18 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "30 files belong to no part: rust-spikes/Cargo.lock, rust-spikes/Cargo.toml, rust-spikes/deny.toml and 27 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."

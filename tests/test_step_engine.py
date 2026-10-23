@@ -3502,3 +3502,201 @@ def test_hunt_names_injured_member(monkeypatch):
     )
     engine._do_hunt()
     assert f"{wounded} was injured on the hunt." in engine.msgs.lines
+
+
+# ── v1.3.1 Audit Fixes (H-1, H-2, H-3, M-1) ────────────────────────
+
+
+def test_abandon_cargo_names_dropped_supplies_in_narration_and_memory_card():
+    """H-2: Abandon Cargo narration and escape-valve memory card name dropped supplies."""
+    from escape_the_valley.adapter import state_to_frame
+
+    engine = _make_engine(seed=42)
+    engine.state.wagon.condition = 20
+    engine.state.supplies.set("salt", 10)
+    engine.state.supplies.set("cloth", 8)
+    engine.state.supplies.set("rope", 4)
+    engine.state.supplies.set("boots", 6)
+
+    msgs = engine.step(PlayerIntent(IntentAction.ABANDON_CARGO))
+    last_narration = "\n".join(msgs.lines)
+    frame = state_to_frame(engine)
+
+    assert "Dropped: nothing" not in last_narration
+    assert "-5 salt" in last_narration
+    assert "-4 cloth" in last_narration
+    assert "-2 rope" in last_narration
+    assert "-3 boots" in last_narration
+    assert "-5 salt" in frame.narration
+
+    valve_cards = [
+        c for c in engine.state.memory_cards
+        if c.id.startswith("eng_valve_abandon_cargo_")
+    ]
+    assert len(valve_cards) == 1
+    assert "nothing" not in valve_cards[0].text
+    assert "-5 salt" in valve_cards[0].text
+    assert "-4 cloth" in valve_cards[0].text
+
+
+def _setup_fork_state(seed: int = 42):
+    state = create_new_run(seed=seed)
+    fork_node = next(n for n in state.map_nodes if len(n.connections) > 1)
+    state.location_id = fork_node.node_id
+    state.destination_id = fork_node.node_id
+    state.distance_remaining = 0
+    return state
+
+
+def test_stepengine_fork_preserves_maintenance_until_travel():
+    """H-3: StepEngine fork route prompt keeps maintenance unchanged; travel drops by 1."""
+    state = _setup_fork_state(seed=42)
+    state.maintained_turns_remaining = 2
+    engine = StepEngine(state, GMConfig(enabled=False), autosave=False)
+    engine.phase = GamePhase.CAMP
+
+    # Step 1: travel at fork enters ROUTE without burning maintenance
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.ROUTE
+    assert state.maintained_turns_remaining == 2
+
+    # Step 2: pick route A -> back to CAMP, still 2
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.phase == GamePhase.CAMP
+    assert state.maintained_turns_remaining == 2
+
+    # Step 3: actual travel leg decrements maintenance by 1
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert state.maintained_turns_remaining == 1
+
+
+def test_stepengine_fork_preserves_cooldown_until_travel():
+    """H-3: StepEngine fork route prompt keeps cooldown unchanged; travel drops by 1."""
+    state = _setup_fork_state(seed=42)
+    state.escape_valve_cooldown = 3
+    engine = StepEngine(state, GMConfig(enabled=False), autosave=False)
+    engine.phase = GamePhase.CAMP
+
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert engine.phase == GamePhase.ROUTE
+    assert state.escape_valve_cooldown == 3
+
+    engine.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+    assert engine.phase == GamePhase.CAMP
+    assert state.escape_valve_cooldown == 3
+
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
+    assert state.escape_valve_cooldown == 2
+
+
+def test_gameengine_fork_preserves_maintenance_until_travel(monkeypatch):
+    """H-3: GameEngine fork route prompt sees unchanged maintenance; travel drops by 1."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    state = _setup_fork_state(seed=42)
+    state.maintained_turns_remaining = 2
+    engine = GameEngine(state, GMConfig(enabled=False))
+
+    seen_at_prompt: list[int] = []
+
+    def _fake_route_choice(connections):
+        seen_at_prompt.append(engine.state.maintained_turns_remaining)
+        return connections[0][0]
+
+    monkeypatch.setattr(engine_mod, "show_route_choice", _fake_route_choice)
+    engine._do_travel()
+    assert seen_at_prompt == [2]
+    assert engine.state.maintained_turns_remaining == 1
+
+
+def test_gameengine_fork_preserves_cooldown_until_travel(monkeypatch):
+    """H-3: GameEngine fork route prompt sees unchanged cooldown; travel that follows drops by 1."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    state = _setup_fork_state(seed=42)
+    state.escape_valve_cooldown = 3
+    engine = GameEngine(state, GMConfig(enabled=False))
+
+    seen_at_prompt: list[int] = []
+
+    def _fake_route_choice(connections):
+        seen_at_prompt.append(engine.state.escape_valve_cooldown)
+        return connections[0][0]
+
+    monkeypatch.setattr(engine_mod, "show_route_choice", _fake_route_choice)
+    engine._do_travel()
+    assert seen_at_prompt == [3]
+    assert engine.state.escape_valve_cooldown == 2
+
+
+def test_gameengine_stepengine_memory_milestone_and_death_cause_parity(monkeypatch):
+    """H-1 & M-1: running the same seed and choices through both engines yields identical
+    memory card ids/kinds, identical journal milestones, and identical canonical cause_of_death."""
+    import escape_the_valley.engine as engine_mod
+    from escape_the_valley.engine import GameEngine
+
+    _stub_gameengine_ui(monkeypatch)
+    monkeypatch.setattr(
+        engine_mod, "show_event_scene", lambda title, narr, choices: choices[0]["id"]
+    )
+    monkeypatch.setattr(engine_mod, "show_route_choice", lambda conns: conns[0][0])
+
+    seed = 41
+    state_step = create_new_run(seed=seed)
+    state_cli = create_new_run(seed=seed)
+    # Set up supplies/wagon/health so Abandon Cargo, breakdown/crisis/event, and death all fire
+    for st in (state_step, state_cli):
+        st.supplies.food = 0
+        st.supplies.water = 0
+        st.wagon.condition = 25
+        for m in st.party.members:
+            m.health = 35
+
+    eng_step = StepEngine(state_step, GMConfig(enabled=False), autosave=False)
+    eng_cli = GameEngine(state_cli, GMConfig(enabled=False))
+
+    # First use Abandon Cargo escape valve in both engines, then travel until game over
+    eng_step.step(PlayerIntent(IntentAction.ABANDON_CARGO))
+    eng_cli._do_abandon_cargo()
+
+    for _ in range(80):
+        if eng_step.phase == GamePhase.GAME_OVER or state_cli.game_over:
+            break
+        # StepEngine: if at fork,TRAVEL enters ROUTE, then CHOOSE A, then TRAVEL moves
+        eng_step.step(PlayerIntent(IntentAction.TRAVEL))
+        if eng_step.phase == GamePhase.ROUTE:
+            eng_step.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            eng_step.step(PlayerIntent(IntentAction.TRAVEL))
+        if eng_step.phase == GamePhase.EVENT:
+            eng_step.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        # GameEngine: one _do_travel() resolves route choice, travel, and event inline
+        eng_cli._do_travel()
+        eng_cli._check_game_over()
+
+    assert state_step.game_over is True
+    assert state_cli.game_over is True
+    assert state_cli.cause_of_death == state_step.cause_of_death
+    assert state_cli.cause_of_death in {
+        "Starvation", "Dehydration", "Disease", "Injury", "Wagon failure",
+    }
+
+    step_cards = [(c.id, c.kind, c.title, c.text) for c in state_step.memory_cards]
+    cli_cards = [(c.id, c.kind, c.title, c.text) for c in state_cli.memory_cards]
+    assert cli_cards == step_cards
+    assert len(cli_cards) > 0
+
+    step_milestones = [
+        (e.day, e.event_id, e.scene_title, e.outcome)
+        for e in state_step.journal
+    ]
+    cli_milestones = [
+        (e.day, e.event_id, e.scene_title, e.outcome)
+        for e in state_cli.journal
+    ]
+    assert cli_milestones == step_milestones
+    assert any(e.event_id.startswith("death:") for e in state_cli.journal)

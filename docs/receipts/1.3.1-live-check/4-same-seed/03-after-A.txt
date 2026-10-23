@@ -1,0 +1,3 @@
+save run_id: 73475cb4-2c853b9b | backpack enabled: True | wallet: rHJgLAiKwMVzS8YXC8XZNFye8dp1o7UKUV
+secrets.json entries: 1
+  73475cb4-2c853b9b {'wallet_secret': '<present>', 'issuer_secret': '<present>'}

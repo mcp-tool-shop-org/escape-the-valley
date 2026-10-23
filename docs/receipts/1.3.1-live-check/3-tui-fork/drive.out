@@ -1,0 +1,11 @@
+r {'phase': 'camp', 'day': 6, 'time': 'morning', 'location': 'node_04', 'dest': 'node_04', 'dist_remaining': 0, 'maint': 0, 'last_action': 'REST'}
+   narration: The party rests for a day.
+p {'phase': 'camp', 'day': 6, 'time': 'morning', 'location': 'node_04', 'dest': 'node_04', 'dist_remaining': 0, 'maint': 2, 'last_action': 'REPAIR'}
+   narration: Maintenance window: the wagon rides steady. (-3 water) | Wagon repaired to 100/100. -1 part.
+t {'phase': 'route', 'day': 6, 'time': 'morning', 'location': 'node_04', 'dest': 'node_04', 'dist_remaining': 0, 'maint': 2, 'last_action': 'TRAVEL'}
+   narration: The trail forks ahead. Choose your path.
+1 {'phase': 'camp', 'day': 6, 'time': 'morning', 'location': 'node_04', 'dest': 'node_05', 'dist_remaining': 11, 'maint': 2, 'last_action': 'TRAVEL'}
+   narration: Heading toward Ashen Bluffs (11 miles).
+t {'phase': 'event', 'day': 6, 'time': 'afternoon', 'location': 'node_04', 'dest': 'node_05', 'dist_remaining': 6, 'maint': 1, 'last_action': 'TRAVEL'}
+   narration: Traveled 5 miles. 6 miles remaining. |  | Someone is burning with fever. The rest of the camp watches uneasily.
+28 snapshots; run_id 73475cb4-13db2704
