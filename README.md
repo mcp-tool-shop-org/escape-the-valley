@@ -188,6 +188,6 @@ No telemetry. No accounts. GM narration is on by default (HTTP to local Ollama);
 
 ## License
 
-MIT — run `trail licenses` (or `trail --licenses`) to view the game's license and third-party dependency notices (also attached to each GitHub Release as `THIRD_PARTY_NOTICES.txt`).
+MIT — run `trail licenses` (or `trail --licenses`) to view the game's license and third-party dependency notices (also attached to each GitHub Release, one file per platform: `THIRD_PARTY_NOTICES-<os>-<arch>.txt`).
 
 Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

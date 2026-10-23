@@ -8,7 +8,8 @@ All notable changes to Escape the Valley are documented here.
 
 ### Added
 
-- **Third-party license notices (`THIRD_PARTY_NOTICES.txt` & `trail licenses`, #28).** Standalone PyInstaller binaries now bundle full third-party license and notice texts alongside the game's MIT license (also attached to the GitHub Release as `THIRD_PARTY_NOTICES.txt`), readable via `trail licenses` or `trail --licenses` (generated at runtime from installed package metadata on `pip` installs).
+- **Third-party license notices (`THIRD_PARTY_NOTICES.txt` & `trail licenses`, #28).** Standalone PyInstaller binaries now bundle full third-party license and notice texts alongside the game's MIT license (also attached to the GitHub Release as `THIRD_PARTY_NOTICES-<os>-<arch>.txt`, one per platform), readable via `trail licenses` or `trail --licenses` (generated at runtime from installed package metadata on `pip` installs). The binaries' notices carry verbatim CPython `Doc/license.rst` (v3.12.13) and python-build-standalone 20260510 licence texts for each target, pinned by SHA-256 in `_licenses/SOURCES.json`, and list exactly the distributions PyInstaller bundled.
+- **Clean release binaries.** The release build installs Python outside any user home, strips the PEP 610 `direct_url.json` build record, and fails if a bundle carries either a build record or a home path in `_sysconfigdata`.
 
 ### Fixed
 
