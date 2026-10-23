@@ -160,41 +160,42 @@ GETRANDBITS_WIDTHS: list[int] = [
 ]
 
 # Includes general bit-width ranges and all 18 `randint(a, b)` ranges used in the 1.3.1 engine:
-# (1, 2) worldgen.py:204,220; (1, 8) worldgen.py:98; (2, 4) physics.py:130; (3, 8) physics.py:224;
-# (3, 9) step_engine.py:1244; (3, 10) physics.py:394; (4, 6) worldgen.py:76; (5, 12) physics.py:381;
-# (5, 15) physics.py:166,220,400,518; (7, 16) physics.py:422; (8, 16) physics.py:424;
-# (8, 18) physics.py:193; (8, 20) physics.py:198; (8, 25) worldgen.py:114;
-# (15, 35) physics.py:133; (80, 100) worldgen.py:208; (-3, 3) events.py:2136; (-5, 5) worldgen:92.
+# (1, 2) worldgen.py:204,220; (1, 8) worldgen.py:98; (2, 4) physics.py:393;
+# (3, 8) physics.py:218,336; (3, 9) step_engine.py:1244 (engine.py:926); (3, 10) physics.py:327;
+# (4, 6) worldgen.py:76; (5, 12) physics.py:279; (5, 15) physics.py:193,292,414,518;
+# (7, 16) physics.py:277; (8, 16) physics.py:164; (8, 18) physics.py:275; (8, 20) physics.py:198;
+# (8, 25) worldgen.py:107; (15, 35) worldgen.py:113; (80, 100) worldgen.py:208;
+# (-3, 3) events.py:2136; (-5, 5) worldgen.py:92.
 RANDINT_RANGES: list[tuple[int, int]] = [
     (0, 0),
     (0, 1),
     (0, 2),
-    (1, 2),  # worldgen.py:204,220 num_traits / pick_twists count
+    (1, 2),  # worldgen.py:204,220 generate_party num_traits / pick_twists count
     (1, 6),
-    (1, 8),  # worldgen.py:98 node hazard
-    (2, 4),  # physics.py:130 check_spoilage loss
+    (1, 8),  # worldgen.py:98 generate_map node hazard
+    (2, 4),  # physics.py:393 check_spoilage food loss
     (2, 6),
-    (3, 8),  # physics.py:224 sickness damage
-    (3, 9),  # step_engine.py:1244 town trade food offer
-    (3, 10),  # physics.py:394 hunt injury damage
+    (3, 8),  # physics.py:218,336 check_health_effects sickness damage / rest_day morale boost
+    (3, 9),  # step_engine.py:1244 (engine.py:926) _arrive_at_next_node town trade food_offer
+    (3, 10),  # physics.py:327 rest_day member heal
     (4, 5),
-    (4, 6),  # worldgen.py:76 town spacing
+    (4, 6),  # worldgen.py:76 generate_map town spacing
     (4, 12),
-    (5, 12),  # physics.py:381 night travel mishap wagon damage
-    (5, 15),  # physics.py:166,220,400,518 breakdown/heal/rest/desperate_repair injury
-    (7, 16),  # physics.py:422 hunt food yield (healer)
-    (8, 16),  # physics.py:424 hunt food yield (normal)
-    (8, 18),  # physics.py:193 starvation damage
-    (8, 20),  # physics.py:198 dehydration damage
-    (8, 25),  # worldgen.py:114 leg distance
+    (5, 12),  # physics.py:279 attempt_hunt food yield (other biomes)
+    (5, 15),  # physics.py:193,292,414,518 starvation / hunt & desperate_repair injury / night wagon
+    (7, 16),  # physics.py:277 attempt_hunt food yield (Biome.PLAINS)
+    (8, 16),  # physics.py:164 check_breakdown wagon damage
+    (8, 18),  # physics.py:275 attempt_hunt food yield (Biome.FOREST)
+    (8, 20),  # physics.py:198 check_health_effects dehydration damage
+    (8, 25),  # worldgen.py:107 generate_map leg distance
     (10, 20),
     (12, 16),
     (15, 25),
-    (15, 35),  # physics.py:133 repair_wagon gain
+    (15, 35),  # worldgen.py:113 generate_map fork branch_dist
     (70, 100),
-    (80, 100),  # worldgen.py:208 initial member health
+    (80, 100),  # worldgen.py:208 generate_party initial member health
     (-3, 3),  # events.py:2136 resolve_event health_delta jitter
-    (-5, 5),  # worldgen.py:92 node temperature jitter
+    (-5, 5),  # worldgen.py:92 generate_map node temperature jitter
     (0, 32),
     (0, 255),
     (0, 256),

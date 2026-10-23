@@ -1484,7 +1484,7 @@ fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, Strin
 
 // Fails on b86fbe4 because `turns_1000_seeds.json.gz` on b86fbe4 had 0 `"Dehydration"` deaths
 // (vs 18), 0 active `ABANDON_CARGO` (vs 16), 0 active `DESPERATE_REPAIR` (vs 9 succeeded + 4 failed),
-// 80 game-overs (vs 91), 256 distinct events (vs 258), and 59,653 turns (vs 59,522).
+// 60 game-overs (53 before turn 60 + 7 on turn 60, vs 91), 257 distinct events (vs 258), and 59,653 turns (vs 59,522).
 #[test]
 fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");

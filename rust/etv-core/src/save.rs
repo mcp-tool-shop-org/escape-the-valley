@@ -319,8 +319,10 @@ pub fn write_secrets_sidecar(save_dir: &Path, state: &RunState) -> std::io::Resu
 }
 
 /// Read wallet/issuer seeds for `run_id` from `.trail/secrets.json` (`save.py::_read_secrets_sidecar`).
-/// Returns `None` if the sidecar or entry is absent, unreadable, or not a JSON object,
-/// leaving `secrets.json` untouched on disk (quarantine happens on write only).
+/// Returns `None` if the sidecar or entry is absent, unreadable, not a JSON object, or an empty
+/// JSON object `{}` (matching Python's `if secrets:` in `save.py:279-282` so an empty entry
+/// leaves any inline legacy `backpack` secrets intact), leaving `secrets.json` untouched on disk
+/// (quarantine happens on write only).
 pub fn read_secrets_sidecar(save_dir: &Path, run_id: &str) -> Option<RunSecrets> {
     let secrets_path = save_dir.join(SECRETS_FILE);
     if !secrets_path.exists() {
@@ -329,6 +331,9 @@ pub fn read_secrets_sidecar(save_dir: &Path, run_id: &str) -> Option<RunSecrets>
     let raw = fs::read_to_string(&secrets_path).ok()?;
     let store = parse_secrets_store(&raw).ok()?;
     let entry_obj = store.get(run_id)?.as_object()?;
+    if entry_obj.is_empty() {
+        return None;
+    }
     let wallet_secret = entry_obj
         .get("wallet_secret")
         .and_then(|v| v.as_str())
@@ -1373,6 +1378,55 @@ mod tests {
         assert_eq!(
             rewritten_val["run-fresh"]["wallet_secret"],
             json!("sEdVFreshWallet999")
+        );
+
+        // 5. Empty entry `{}` keeps inline secret from legacy run.json (`save.py:279-282`: `if secrets:`),
+        // while a non-empty entry holding only one of the two keys sets the missing one to `""`.
+        let mut legacy_state = create_new_run(42);
+        legacy_state.run_id = "run-empty-entry".to_string();
+        save_game(&legacy_state, tmp.path()).unwrap();
+
+        let save_path = save_dir.join(SAVE_FILE);
+        let mut run_json_val: Value =
+            serde_json::from_str(&fs::read_to_string(&save_path).unwrap()).unwrap();
+        run_json_val["backpack"]["wallet_secret"] = json!("sEdVInlineLegacyWallet");
+        run_json_val["backpack"]["issuer_secret"] = json!("sEdVInlineLegacyIssuer");
+        fs::write(
+            &save_path,
+            serde_json::to_string_pretty(&run_json_val).unwrap(),
+        )
+        .unwrap();
+
+        fs::write(&secrets_path, "{\"run-empty-entry\": {}}").unwrap();
+        let loaded_empty_entry = load_game(tmp.path()).expect("load legacy run with empty entry");
+        assert_eq!(
+            loaded_empty_entry.backpack.wallet_secret, "sEdVInlineLegacyWallet",
+            "inline wallet_secret must be kept when secrets.json entry is {{}}"
+        );
+        assert_eq!(
+            loaded_empty_entry.backpack.issuer_secret, "sEdVInlineLegacyIssuer",
+            "inline issuer_secret must be kept when secrets.json entry is {{}}"
+        );
+        assert!(
+            read_secrets_sidecar(&save_dir, "run-empty-entry").is_none(),
+            "empty entry object {{}} in secrets.json must return None like Python's `if secrets:`"
+        );
+
+        // Entry holding only one of the two keys still sets the missing one to `""`
+        fs::write(
+            &secrets_path,
+            "{\"run-empty-entry\": {\"wallet_secret\": \"sEdVSidecarOnlyWallet\"}}",
+        )
+        .unwrap();
+        let loaded_partial_entry =
+            load_game(tmp.path()).expect("load legacy run with partial entry");
+        assert_eq!(
+            loaded_partial_entry.backpack.wallet_secret,
+            "sEdVSidecarOnlyWallet"
+        );
+        assert_eq!(
+            loaded_partial_entry.backpack.issuer_secret, "",
+            "missing key in non-empty sidecar entry must set that secret to empty string"
         );
     }
 }
