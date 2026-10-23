@@ -193,18 +193,22 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy
           rustup default 1.98.1
-          curl -sSfL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz \
-            | tar -xz -C "$HOME/.cargo/bin" --strip-components=1 cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny
+          # Pinned SHA-256 from https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz.sha256
+          curl -sSfL -o /tmp/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz \
+            https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  /tmp/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz -C "$HOME/.cargo/bin" --strip-components=1 cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny
+          rm -f /tmp/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz
 
       - name: Format check
         run: cargo fmt --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
 
       - name: License check
-        run: cargo deny check licenses
+        run: cargo deny --locked check licenses
 
