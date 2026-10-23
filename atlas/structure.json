@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "dcb48dad41338802ca60c782a7bc4de0afc804cfe627aab36a783bc9aee87892",
+          "hash": "5e3786c0ed9630b0577395296100044abe2d036104aed306a9119c82748bee0a",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -25,8 +25,12 @@
           "path": ".github/workflows/release-binaries.yml"
         },
         {
-          "hash": "1aa70af7fcd2e501e0f5279b376a7296a9392a3253b068bf6710ebad4474db22",
+          "hash": "2600fc9d944d4b3d4fb889b119a322ac57df94142e96c284491ecefb4367cbf4",
           "path": ".github/workflows/release.yml"
+        },
+        {
+          "hash": "6111ca747ef3b7364d6c8c3abb49c87971e442c5988c172fa9d68f08623d5249",
+          "path": ".github/workflows/rust-spike-release.yml"
         }
       ],
       "globs": [
@@ -250,6 +254,378 @@
         {
           "hash": "e6d1e1b84a1ce96a0be4f3cb9f3cbcf6e7b3f00dd83d3b5a56272d60923e9be6",
           "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.out"
+        },
+        {
+          "hash": "1c94468fd9e3d337cda6b1f18641a9dbcf289fd1b4c874316b0090d9e5f58ae8",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/identity-scan-linux-binary.txt"
+        },
+        {
+          "hash": "b3afb79badf12d369d6d3c29c85d032618c090250e5ad4db32e1bda58400e204",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/00-uv-python-dir-before.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.exit"
+        },
+        {
+          "hash": "66bc9db83ef917a9da316fc459d1a41e87404e90657647a22bf903b026657f5d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.exit"
+        },
+        {
+          "hash": "8c3a09fae2efbcc2c59acc84ea4f8c9ae673ecd87dd6b2f824ff10924988cd66",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.exit"
+        },
+        {
+          "hash": "7460ae076021f12c6868ab6f58f59a14695914bfb7ddfc7b488dbcf3aae3c768",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.exit"
+        },
+        {
+          "hash": "8cc3fc4704a052f1aa9d50526c8b4f564978cee6a39ca4923fbe4495c69b295e",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.exit"
+        },
+        {
+          "hash": "e467b5471484333c37148795176c685815ea4c0d7e2c2366cca471db7eb27342",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.exit"
+        },
+        {
+          "hash": "13c83231e758b5caf47cdcb0e98cf54cfc3f6e7ee2eb0937f5434f252d874966",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.exit"
+        },
+        {
+          "hash": "1e9ec7e4e0aaf57f8062b04207fef2c61ef1533f068722a8b2fda3edc65d1e53",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.exit"
+        },
+        {
+          "hash": "53d83cd858853c7229994784124c74f49d17ca248c5bb131aa92aff347222c48",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.exit"
+        },
+        {
+          "hash": "e9d48a5b30aa4450d3bb7eef3437a2d9bed69d72880f9e4d3342b278c0f8afd7",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.exit"
+        },
+        {
+          "hash": "150b1703b8e7321d5cf2b9d251662509ad78d231f83843c68c86f6ba0b99b265",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.exit"
+        },
+        {
+          "hash": "50ae56146806c988a33f6a4d4f608be5c3e52147f7056011fa56e58c7d80289b",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.exit"
+        },
+        {
+          "hash": "3295402114963123df9e6e14a87223e71412322b3f72d741aad440b31ec4c068",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.exit"
+        },
+        {
+          "hash": "871480964799fb830af738931c2ead8c66760b55aa762d5e36570c19c92653f1",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.exit"
+        },
+        {
+          "hash": "cd00a3cd6747ce172258ea9a6032e5e4540b89580464fdcbd2f83b58d82381c9",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.log"
+        },
+        {
+          "hash": "2d6f48f79ebd45f4b4aec30fafdc5b5ff84e6948d9c65011d982bad7d6808c4d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/file.txt"
+        },
+        {
+          "hash": "e80f2bd2851807f0e50b0101d2962ac175affa17b6efc5bf838a9e08c7983512",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/head.txt"
+        },
+        {
+          "hash": "e859a8de1d79d0a96e3a082d0bc9500337df0a11c43a0ad88d875da7c94dce5a",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/neg-controls-sha256.txt"
+        },
+        {
+          "hash": "88f304400f025f23d2685cc077bc4f42eb79982be86cb81c5273fb1498601374",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/uv-version.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/versions.txt"
+        },
+        {
+          "hash": "51754d8180813ee1e456ff0f6424b21b5539189685b534c4ebcf82d53a7fbb90",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/sysconfigdata-prefix.txt"
+        },
+        {
+          "hash": "262d474b1df3cab3684dd25f904dc0377c0e9f871fe5e9e0d013b61dab8a29f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/checksums-1.3.1.txt"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.cmd"
+        },
+        {
+          "hash": "82379c8a2091b986929a4183af58b0113af0bbe00178a8f25117c9562603f17b",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.exit"
+        },
+        {
+          "hash": "38bdb0de2742093f06e1ef5bde1ac58c565b0db180b1191169baa37a60ff5809",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.exit"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.exit"
+        },
+        {
+          "hash": "2bc204dc0bc99ce846d334fcba37863381489d9e86a2f45c4c695b950b843bd6",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cache-files.txt"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cached-sha256.txt"
+        },
+        {
+          "hash": "c28ef7b9202a58378f45b9be91d230abd155f2166c7206195d591b9c979aa92c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.exit"
+        },
+        {
+          "hash": "e3cbe3aa9b713144b5bbd0c02c5b944184871bcb2138f1461fb76d1d342b44b2",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.out"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-release-asset-sha256.txt"
+        },
+        {
+          "hash": "ffc81918e8a22a924994540475d4cd07977759aea316b11f642aca26761b0ad5",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-tag-head.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.exit"
+        },
+        {
+          "hash": "d2e8c3c6438d5027af517950e72d92d3c4c418e2e541b401eca87e7de998e58c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.exit"
+        },
+        {
+          "hash": "0bab0186dd44b31f00ebe2be6373a5590ec244ca47df6a25728d6f354cd796bf",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.log"
+        },
+        {
+          "hash": "21710c2b721ce81df424f3178c8786855352321a858f66c93d415e9af084cb52",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/node-version.txt"
+        },
+        {
+          "hash": "6462b7614fbc26a451bb3d32109340b69071edd02334af4975e445a44d0500c3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/python-version.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.exit"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.cmd"
+        },
+        {
+          "hash": "b24231c968ca62343afc022dc9e37ff01443fc85bd63d8d591530392b3ba6dd9",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.exit"
+        },
+        {
+          "hash": "ec115e856ed073f6540890a0c46936004f017dc3d983b82fa5b408a11be279f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.exit"
+        },
+        {
+          "hash": "aaf2ffd8d5390a3b507d20c758e639b186ad77b0e3856a8dcd007b38e027b6d1",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.out"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.exit"
+        },
+        {
+          "hash": "cae5453174f39549f9d0e01fea591a2c0ce7713d567634fb4bc561a89b92680f",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cache-files.txt"
+        },
+        {
+          "hash": "936e92063ca3b57f6bd063185da15ecb43ac6e7f50f09e74349c738597217ffc",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cached-sha256.txt"
+        },
+        {
+          "hash": "a98eb65f8bc39e5bdc2f04e467ccf03341ac3bae4a31604faba2021479983c5e",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.exit"
+        },
+        {
+          "hash": "fd3e8903ade4b5e67312bbb8e971b11a3f1678d4ab555ca4a61b00b5ed30e124",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.out"
+        },
+        {
+          "hash": "b079791836a61d890f2d63ec46057e152be0127b72c6752cfeb15037789b584c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/08-crcrlf-blocks.txt"
+        },
+        {
+          "hash": "89624f93557cdf694bba5366a1a56f97dead916a011b0ea6650225bce90d0bc8",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/node-version.txt"
         },
         {
           "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
@@ -1392,7 +1768,7 @@
           "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/sysconfigdata-home-paths.txt"
         },
         {
-          "hash": "32d45d84d3f090b8666920bef320492094a7414319c592e754051103e37880b9",
+          "hash": "c4ef66ce7422df1a0ffb4398b72e7a504909e9033974889de1444a67420b89f8",
           "path": "docs/receipts/1.3.1-live-check/README.md"
         },
         {
@@ -1402,6 +1778,14 @@
         {
           "hash": "7af5da4e1b3a69477f808b60acc237c9e360bdad1fd7872a9615f8101cc39855",
           "path": "docs/receipts/1.3.1-live-check/harness/_run_final.sh"
+        },
+        {
+          "hash": "af61ec55e0df861429ae51fe3e26109afe31c0019210c6994cc2691ead8b377b",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh"
+        },
+        {
+          "hash": "5debae6f49f10098e86b2d795eb79b9884a31a05f5a064f33f970f7e51bff1f7",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh"
         },
         {
           "hash": "913ec60c9a5ec3e2b0a88e2ebddfb896798613656fbe7b5dc16d6f81c3e8f1a2",
@@ -1432,8 +1816,16 @@
           "path": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
         },
         {
+          "hash": "425e10fc763b0d960e01621e508fc8a205baffa4e6f282f58dec13db9c8690af",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
+        },
+        {
           "hash": "602da5986f960b92415553792e0bb1d0e547e0de246512ebbbe68282d0a313a7",
           "path": "docs/receipts/1.3.1-live-check/harness/notices_check.py.txt"
+        },
+        {
+          "hash": "0eab72fe39e7fecb9e94a7d4fa412d36412252f2fe2e6a668e2c1447f68c0587",
+          "path": "docs/receipts/1.3.1-live-check/harness/npm_release_check_etv.sh"
         },
         {
           "hash": "1818f49b649b9adc1a849d8aa67de00555a00bd691b941e2d50293a6af2f24f7",
@@ -1495,11 +1887,11 @@
           "path": ".gitattributes"
         },
         {
-          "hash": "534a44378a6bff56117156fa511211b896a554d7d20a259def6c360d7c42c712",
+          "hash": "9bcbe82a77c5cb49e6008d394db76d66f03bd35a129decae3477d0b5a2a6e42f",
           "path": ".gitignore"
         },
         {
-          "hash": "736632399a8c0be59bc8c7c8a6706f0bd4a89d6f3e485c84e28e4c7d969ea4f8",
+          "hash": "84ed34a5ac998e03b3ac2c6784409a69eaf949b83b67803ebfbf6e2d91705e05",
           "path": "CHANGELOG.md"
         },
         {
@@ -1507,35 +1899,35 @@
           "path": "LICENSE"
         },
         {
-          "hash": "f9dd6df5fe7325ca1248a0cd64cf483fbf07f911b20d43a5a77b1356a75fafe3",
+          "hash": "7598a7d69d7d7f20da3cd5093eaa589ec9419f6914fc653bdbc008c27801afce",
           "path": "README.es.md"
         },
         {
-          "hash": "38813d121368e99c6eff4e1cf258a5be0c5f1e7906587200ffea3515672ad735",
+          "hash": "7ccef5cc0523317c3bdec484ee03868a292a11df43d1c06936bb159a67834698",
           "path": "README.fr.md"
         },
         {
-          "hash": "45894a3450693b7751847267a04f93fc879cbb4fc0337d4ba81a8938ac520dc6",
+          "hash": "be717ff151d260e36c1a230066f89629bc96c3dbe34c1d5f68157f986c6627c6",
           "path": "README.hi.md"
         },
         {
-          "hash": "238b52288333c8ab2f61c9535b6cb645412bad595d5f0b5018ac49249d48b08f",
+          "hash": "1d7b0e449d8fcacbb5d8ca53a1bdfa5d1d44f1d84ef0c9f55351af14497de003",
           "path": "README.it.md"
         },
         {
-          "hash": "78107cd026b4ff2efcdfb840aeeba4aa7c15beb65ffe4aff55b6356086c10fe7",
+          "hash": "786d91aec3a29a9c21994b3c59f9d83ad11596647737caafb34702741787ce3e",
           "path": "README.ja.md"
         },
         {
-          "hash": "29a04d8438832115a3133b0d146adaec09df659d62f53596e7c58325b748a80a",
+          "hash": "512b0bfb3694b84b9320985d0912fd4f159c88250f7baa996e9c80a436feb6cc",
           "path": "README.md"
         },
         {
-          "hash": "86e4b0b8150d9b3b2d430e5213aa5a38fd6240b38ad75962cadf07e8d2634414",
+          "hash": "53c5be82a991a4a0b45861f1c37b090655b249960367bbdf161079bfd9c13847",
           "path": "README.pt-BR.md"
         },
         {
-          "hash": "4f1dba463a253e3eaa4b1339ac168935505be3777f4015b6b701b20105807ac8",
+          "hash": "d03978410db4b9ee118850e850a1c7c0454c8e48af6c11efe3f07da680112e92",
           "path": "README.zh.md"
         },
         {
@@ -1547,7 +1939,7 @@
           "path": "SECURITY.md"
         },
         {
-          "hash": "870d8e75e3bfbd213e965c04d682fa9c34d5be346256a29b7ac8bd881e2bf6f9",
+          "hash": "86d222168bd56fda0eba28fcd66a99f4872afb9453b2678a89ac28e69b98b184",
           "path": "SHIP_GATE.md"
         },
         {
@@ -2026,7 +2418,7 @@
           "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
         },
         {
-          "hash": "55dd7b8a54c65c6299a018c6b5015c3ee3aefdb618b24e16ed611d72659c641c",
+          "hash": "12055c9de52c9c97509f805eae443de3d5f5dbeab5b587b168fdfdffbf1eec1e",
           "path": "site/public/index.html"
         },
         {
@@ -2047,7 +2439,7 @@
           "path": "site/src/content/docs/handbook/beginners.md"
         },
         {
-          "hash": "c37e30b7759db6c2274bc1543531af9fc8e9bf641b3697a1029a9c64dd6042dd",
+          "hash": "fe52f3836c5b1b061d6c3c18eabcc0aac2f92f83837819dd8820c112cfa8151d",
           "path": "site/src/content/docs/handbook/commands.md"
         },
         {
@@ -2080,7 +2472,7 @@
         },
         {
           "constantOnly": true,
-          "hash": "26f136ef997b3165e0278b1504f08d96398057f49a69546ea4a74395ff115238",
+          "hash": "61a55a3b1669192a76f60e667b4cf10d4cf0eef9a303f7cd0ce95f26ef65893b",
           "path": "site/src/site-config.ts"
         },
         {
@@ -7261,7 +7653,7 @@
   ],
   "doors": [
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -7303,6 +7695,51 @@
             "pytest"
           ],
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "curl",
+            "echo",
+            "rm",
+            "rustup",
+            "sha256sum",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
         }
       ],
       "elsewhere": [],
@@ -7371,6 +7808,22 @@
               }
             }
           ]
+        },
+        {
+          "basis": "declared",
+          "name": "rust",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
         }
       ],
       "landings": [],
@@ -7405,6 +7858,49 @@
       "readers": [],
       "runs": [
         {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/lib.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "directory": true,
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/tests/",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "test",
           "path": "src/",
@@ -7417,7 +7913,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 8,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -7438,6 +7934,13 @@
           "junit": true,
           "runner": "pytest",
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "files": 5,
+          "job": "rust",
+          "runner": "cargo test",
+          "step": "Test"
         }
       ],
       "triggers": [
@@ -7451,6 +7954,7 @@
             "atlas/**",
             "codecov.yml",
             "pyproject.toml",
+            "rust/**",
             "site/astro.config.mjs",
             "site/package-lock.json",
             "site/package.json",
@@ -7984,7 +8488,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -8026,6 +8530,51 @@
             "pytest"
           ],
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "curl",
+            "echo",
+            "rm",
+            "rustup",
+            "sha256sum",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
         },
         {
           "dir": "",
@@ -8163,6 +8712,22 @@
         },
         {
           "basis": "declared",
+          "name": "gate/rust",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
           "name": "release",
           "runsOn": [
             {
@@ -8248,6 +8813,49 @@
       "readers": [],
       "runs": [
         {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/lib.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "directory": true,
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/tests/",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "gate/test",
           "path": "src/",
@@ -8260,7 +8868,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 8,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -8295,6 +8903,16 @@
           "through": [
             ".github/workflows/ci.yml"
           ]
+        },
+        {
+          "dir": "rust",
+          "files": 5,
+          "job": "gate/rust",
+          "runner": "cargo test",
+          "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
         }
       ],
       "triggers": [
@@ -8317,6 +8935,306 @@
         "codecov/codecov-action"
       ],
       "usesWorkflowToken": true
+    },
+    {
+      "checksCount": 2,
+      "commands": [
+        {
+          "dir": "",
+          "job": "build-ubuntu",
+          "programs": [
+            "rustup"
+          ],
+          "step": "Install Rust 1.98.1 and targets"
+        },
+        {
+          "dir": "",
+          "job": "build-ubuntu",
+          "programs": [
+            "python3",
+            "sudo"
+          ],
+          "step": "Install mingw-w64 and maturin + zig"
+        },
+        {
+          "dir": "rust-spikes",
+          "job": "build-ubuntu",
+          "programs": [
+            "cargo",
+            "cp",
+            "ls",
+            "maturin",
+            "mkdir",
+            "python3",
+            "strip",
+            "x86_64-w64-mingw32-strip"
+          ],
+          "step": "Build linux-x64 and win-x64 binaries + wheels"
+        },
+        {
+          "dir": "",
+          "job": "build-macos",
+          "programs": [
+            "rustup"
+          ],
+          "step": "Install Rust 1.98.1 and targets"
+        },
+        {
+          "dir": "",
+          "job": "build-macos",
+          "programs": [
+            "python3"
+          ],
+          "step": "Install maturin"
+        },
+        {
+          "dir": "rust-spikes",
+          "job": "build-macos",
+          "programs": [
+            "cargo",
+            "cp",
+            "ls",
+            "maturin",
+            "mkdir",
+            "python3",
+            "strip"
+          ],
+          "step": "Build darwin-arm64 and darwin-x64 binaries + wheels"
+        },
+        {
+          "dir": "",
+          "job": "checksums",
+          "programs": [
+            "cat",
+            "cd",
+            "sha256sum"
+          ],
+          "step": "Generate GNU sha256sum checksums"
+        },
+        {
+          "dir": "",
+          "job": "smoke-linux",
+          "programs": [
+            "chmod"
+          ],
+          "step": "Smoke test linux-x64 binary"
+        },
+        {
+          "dir": "",
+          "job": "smoke-windows",
+          "programs": [],
+          "step": "Smoke test cross-built win-x64 binary on Windows"
+        },
+        {
+          "dir": "",
+          "job": "smoke-macos",
+          "programs": [
+            "arch",
+            "chmod"
+          ],
+          "step": "Smoke test darwin-arm64 and darwin-x64 binaries on macOS"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/rust-spike-release.yml",
+      "jobs": [
+        {
+          "basis": "declared",
+          "name": "build-ubuntu",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "build-macos",
+          "runsOn": [
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "checksums",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-linux",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-windows",
+          "runsOn": [
+            {
+              "labels": [
+                "windows-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "os": "win32"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-macos",
+          "runsOn": [
+            {
+              "labels": [
+                "macos-latest"
+              ],
+              "platform": {
+                "cpu": "arm64",
+                "os": "darwin"
+              }
+            }
+          ]
+        }
+      ],
+      "landings": [],
+      "mentions": [],
+      "name": "Rust Spike Release (S4)",
+      "permissions": [
+        "contents:read"
+      ],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "job": "build-macos",
+          "path": "rust-spikes/s4-hello/Cargo.toml",
+          "runKind": "checks"
+        },
+        {
+          "job": "build-ubuntu",
+          "path": "rust-spikes/s4-hello/Cargo.toml",
+          "runKind": "checks"
+        },
+        {
+          "job": "build-macos",
+          "matched": true,
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "checks",
+          "via": "cargo build"
+        },
+        {
+          "job": "build-ubuntu",
+          "matched": true,
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "checks",
+          "via": "cargo build"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "tests": [
+        {
+          "job": "smoke-linux",
+          "runner": null,
+          "step": "Smoke test linux-x64 binary"
+        },
+        {
+          "job": "smoke-windows",
+          "runner": null,
+          "step": "Smoke test cross-built win-x64 binary on Windows"
+        },
+        {
+          "job": "smoke-macos",
+          "runner": null,
+          "step": "Smoke test darwin-arm64 and darwin-x64 binaries on macOS"
+        }
+      ],
+      "triggers": [
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/download-artifact",
+        "actions/setup-python",
+        "actions/upload-artifact"
+      ],
+      "usesWorkflowToken": false
     },
     {
       "checksCount": 0,
@@ -8443,6 +9361,116 @@
       "triggers": [],
       "uses": [],
       "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s2-xrpl/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s2-xrpl",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s2-xrpl/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s3-voice/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s3-voice",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s3-voice/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust-spikes/s4-hello/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "s4-hello",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust-spikes/s4-hello/src/main.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
     }
   ],
   "edges": [
@@ -8476,8 +9504,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
-    "tracked": 530
+    "commit": "da680ff86deca189ce226d1bee47d715c9cb942f",
+    "tracked": 658
   },
   "landings": [
     {
@@ -8545,12 +9573,193 @@
     {
       "readers": [
         {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s1-rng",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s1-rng/src/lib.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust-spikes/s1-rng/vectors.json",
+      "writers": [
+        {
+          "by": "rust-spikes/s1-rng/gen_vectors.py",
+          "confidence": "ast"
+        }
+      ]
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s2-xrpl",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s2-xrpl/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s2-xrpl/src/main.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s3-voice",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s4-hello/pyproject.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello/Cargo.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust-spikes/s4-hello/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust-spikes/s4-hello/src/main.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust/etv-core",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/rng_s1_vectors.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/saves_20.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/oracle/vectors/worldgen_200.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
           "call": "literal",
           "confidence": "text"
         },
         {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
           "call": "literal",
           "confidence": "text"
         },
@@ -8572,6 +9781,11 @@
         },
         {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
           "call": "literal",
           "confidence": "text"
         }
@@ -8692,6 +9906,11 @@
     {
       "readers": [
         {
+          "by": "rust/etv-core/src/worldgen.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        },
+        {
           "by": "src/escape_the_valley/event_loader.py",
           "call": "read_text",
           "confidence": "ast"
@@ -8732,7 +9951,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 26,
+  "testFiles": 27,
   "testsNotRun": [
     "tests/test_adapter.py",
     "tests/test_backpack.py",
@@ -8759,5 +9978,395 @@
     "tests/test_voice.py",
     "tests/test_worldgen.py"
   ],
-  "unassigned": []
+  "unassigned": [
+    {
+      "hash": "b190c788aebdc4f4cc1be6f65210ff16db8a300634a53c1d52c5945c29867023",
+      "path": "rust-spikes/Cargo.lock"
+    },
+    {
+      "hash": "9be285d21c2251967079e4b3224711c1463fd245736e20ac7b21f51a22658ad2",
+      "path": "rust-spikes/Cargo.toml"
+    },
+    {
+      "hash": "614cb01f6ebf3c177ec42f5abdd82bba8640549a0ca837e3cd07c75676dbe248",
+      "path": "rust-spikes/deny.toml"
+    },
+    {
+      "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
+      "path": "rust-spikes/rust-toolchain.toml"
+    },
+    {
+      "hash": "577df8e2e9dbc538c849b352d87fc7195f4b92053d01b4ee0f47463fb5d72702",
+      "path": "rust-spikes/s1-rng/Cargo.toml"
+    },
+    {
+      "exports": [
+        "f64_bits",
+        "generate_save_restore_vector",
+        "generate_seed_vectors",
+        "main",
+        "serialize_state",
+        "weighted_choice"
+      ],
+      "hash": "38bf034a7281854f6c6634a7dea14eecbf756664098858597751322ce07e510a",
+      "path": "rust-spikes/s1-rng/gen_vectors.py"
+    },
+    {
+      "failurePaths": [
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 266
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 269
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 273
+        }
+      ],
+      "hash": "0a2e0b0eec797fb8e95add10a184e0eb988632a7a0d2bdf6f4c8fce1d2c41d47",
+      "path": "rust-spikes/s1-rng/src/lib.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "c73e383215f56c5065370d136430b9697572d3b52d3c4e745ec1fbe1be295f2e",
+      "path": "rust-spikes/s1-rng/vectors.json"
+    },
+    {
+      "hash": "0ca7cec42c69af3e2c41ab984e9ddc5bf6b0bcb9d6b2817cbf35032b5243c6de",
+      "path": "rust-spikes/s2-xrpl/Cargo.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "exports": [
+        "assert_testnet_endpoint",
+        "hex_encode_upper",
+        "validate_exact_integer_balance"
+      ],
+      "failurePaths": [
+        {
+          "in": "assert_testnet_endpoint",
+          "kind": "err",
+          "line": 48
+        },
+        {
+          "in": "validate_exact_integer_balance",
+          "kind": "err",
+          "line": 62
+        }
+      ],
+      "hash": "6b2aed38d30aaa11ed2cd44f74e9aebcc0eadd7cdaecbc62759246af425071df",
+      "path": "rust-spikes/s2-xrpl/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    },
+    {
+      "hash": "e68d3c9e2e1212a0fd7e8353f2ec821461e4b13d35bb189f1a568bb589fd3c64",
+      "path": "rust-spikes/s3-voice/Cargo.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "failurePaths": [
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 749
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 753
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 760
+        },
+        {
+          "in": "load_voice_pack",
+          "kind": "err",
+          "line": 773
+        }
+      ],
+      "hash": "db37a655cefb82f47259af9aff9b8f3c3e32a71c7bbb4492d85452590ea12743",
+      "path": "rust-spikes/s3-voice/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    },
+    {
+      "hash": "d3426689d18e777312ff04a10ea1caa0a6b4f45eadb1300aef3db9a5fa271cea",
+      "path": "rust-spikes/s4-hello/Cargo.toml"
+    },
+    {
+      "hash": "e4b3de6d5379db05646d4e52ce7b71cf4b1107e0079eb28f3426a669185c5c90",
+      "path": "rust-spikes/s4-hello/pyproject.toml"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "failurePaths": [
+        {
+          "in": "run_self_test",
+          "kind": "err",
+          "line": 36
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 53
+        }
+      ],
+      "hash": "6da636b82920e7a1520e1d6f5bf20e3ef1062a5d2691e14fe9aa2b16d0ee958c",
+      "path": "rust-spikes/s4-hello/src/main.rs",
+      "sequences": [],
+      "testsInside": true
+    },
+    {
+      "hash": "4f8eba448e9afa06e43a6ec6fe74c33ae6450c8a8e515a85581ba454120e7172",
+      "path": "rust/Cargo.lock"
+    },
+    {
+      "hash": "cbee77d854941041228ce61e5877c02429100cdd7915836d566e3c3b17d7d6b1",
+      "path": "rust/Cargo.toml"
+    },
+    {
+      "hash": "392fda967992e4c8b2004196d4ca55afadab096607e32ebec376388defc6cd27",
+      "path": "rust/deny.toml"
+    },
+    {
+      "hash": "8cb10221f1532af4284e11cf2bff95b77f93a66aa155d8f8be225ce523cc4726",
+      "path": "rust/etv-core/Cargo.toml"
+    },
+    {
+      "hash": "0e69a67192e531223765e159b20ec8ae0737d827868ddc31bc079aa88a6403d3",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/lib.rs"
+    },
+    {
+      "exports": [
+        "default_supplies_map",
+        "doctrine_modifiers",
+        "is_valid_resource_key",
+        "parse_minted_txid"
+      ],
+      "hash": "f22b9733311711474cb7108c8deb3396e2e47ecc97066cedba733be877b1fced",
+      "importsFiles": [
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs"
+      ],
+      "path": "rust/etv-core/src/model.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "coerce_rng_state",
+        "deserialize_lenient_rng_state",
+        "hex_encode"
+      ],
+      "failurePaths": [
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 339
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 342
+        },
+        {
+          "in": "setstate",
+          "kind": "err",
+          "line": 346
+        }
+      ],
+      "hash": "5e457e1485d789ac13765b0bcb2bd9fcc736fea91d4f5dd797daea47da372ae3",
+      "path": "rust/etv-core/src/rng.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "atomic_write_text",
+        "backup_corrupt_save",
+        "has_save",
+        "load_game",
+        "load_game_result",
+        "load_supplies",
+        "read_secrets_sidecar",
+        "save_game",
+        "state_to_value",
+        "value_to_state",
+        "write_secrets_sidecar"
+      ],
+      "failurePaths": [
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 107
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 115
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 134
+        },
+        {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 137
+        },
+        {
+          "in": "apply_owner_only_permissions",
+          "kind": "match-err",
+          "line": 233
+        },
+        {
+          "in": "parse_seed",
+          "kind": "err",
+          "line": 540
+        },
+        {
+          "in": "parse_seed",
+          "kind": "err",
+          "line": 565
+        },
+        {
+          "in": "value_to_state",
+          "kind": "err",
+          "line": 582
+        },
+        {
+          "in": "load_backpack",
+          "kind": "err",
+          "line": 940
+        }
+      ],
+      "hash": "a2700c6375deb4446e1949ca19bdb6ae10b8f6ae555d7fd81a0a82c233b461c2",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/save.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "convert_event",
+        "convert_profile",
+        "create_new_run",
+        "create_new_run_with_rng",
+        "generate_map",
+        "generate_party",
+        "generate_weather",
+        "load_json_events",
+        "load_json_events_from_str",
+        "pick_twists",
+        "place_caches"
+      ],
+      "hash": "43d1b9d14f3656849a99e8293d7f775ae9c8a06be9c99d400e59a9af7f682852",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs"
+      ],
+      "path": "rust/etv-core/src/worldgen.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "7c5375140ee06b61f5dcfc6f54db30d5db7eb4ef05f3d11ea06efff8e15bdac7",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/oracle_parity.rs",
+      "testsInside": true
+    },
+    {
+      "exports": [
+        "build_worldgen_seeds",
+        "canonical_run_state_json",
+        "drive_steps",
+        "f64_bits",
+        "generate_s1_save_restore_vector",
+        "generate_s1_seed_vector",
+        "generate_worldgen_vectors",
+        "get_oracle_metadata",
+        "main",
+        "make_20_real_saves",
+        "make_migration_vectors",
+        "next_100_draws_from_save",
+        "rng_state_sha256_hex",
+        "serialize_rng_state",
+        "weighted_choice"
+      ],
+      "failurePaths": [
+        {
+          "in": "next_100_draws_from_save",
+          "kind": "except",
+          "line": 440
+        }
+      ],
+      "hash": "3613f3fdf643e9d8a1eb90c3ea9ccd7c9bc3aab86aa328b1399d57a8a2e776ba",
+      "importOrder": [
+        "src/escape_the_valley/__init__.py",
+        "src/escape_the_valley/backpack_models.py",
+        "src/escape_the_valley/event_loader.py",
+        "src/escape_the_valley/gm.py",
+        "src/escape_the_valley/intent.py",
+        "src/escape_the_valley/models.py",
+        "src/escape_the_valley/save.py",
+        "src/escape_the_valley/step_engine.py",
+        "src/escape_the_valley/worldgen.py",
+        "src/escape_the_valley/memory_emitters.py"
+      ],
+      "importsFiles": [
+        "src/escape_the_valley/__init__.py",
+        "src/escape_the_valley/backpack_models.py",
+        "src/escape_the_valley/event_loader.py",
+        "src/escape_the_valley/gm.py",
+        "src/escape_the_valley/intent.py",
+        "src/escape_the_valley/memory_emitters.py",
+        "src/escape_the_valley/models.py",
+        "src/escape_the_valley/save.py",
+        "src/escape_the_valley/step_engine.py",
+        "src/escape_the_valley/worldgen.py"
+      ],
+      "path": "rust/oracle/generate_vectors.py"
+    },
+    {
+      "hash": "771b8d5d516ee17d0c9d825c25395ed794f911f4aafa9515a03b2a9b8206b160",
+      "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
+    },
+    {
+      "hash": "670caba9b3ae5bbfdd815994e048aa02a7b58ab2b7eedb4a941cd65d17e2efcf",
+      "path": "rust/oracle/vectors/saves_20.json.gz"
+    },
+    {
+      "hash": "bf0d4e794db438f297d723870bc22a34bf2ddac2827134af050cd6165d3d3017",
+      "path": "rust/oracle/vectors/worldgen_200.json.gz"
+    },
+    {
+      "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
+      "path": "rust/rust-toolchain.toml"
+    }
+  ]
 }
