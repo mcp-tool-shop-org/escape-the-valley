@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "dcb48dad41338802ca60c782a7bc4de0afc804cfe627aab36a783bc9aee87892",
+          "hash": "81880db39d666650261e4a832afd2d55b09649007d2c8f89cffb8db6d9f98bfb",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -21,11 +21,11 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "735528d31aee481fc727eb62cf3d8e35c841273317884e60c004777f418441de",
+          "hash": "f1c12193e961816cf1b98a41553bf9543ad6ed7de4a3b594babe21d637f8ba26",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
-          "hash": "1aa70af7fcd2e501e0f5279b376a7296a9392a3253b068bf6710ebad4474db22",
+          "hash": "2600fc9d944d4b3d4fb889b119a322ac57df94142e96c284491ecefb4367cbf4",
           "path": ".github/workflows/release.yml"
         }
       ],
@@ -105,7 +105,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "7b8420527c040ce4c3731af47f1038107093baea95a29596070c7f8773d62d50",
+          "hash": "f4d9f93faac749a910f754dca4267ff234abcc934043c90abdfff5ffbf0621cf",
           "path": "bin/escape-the-valley.js"
         }
       ],
@@ -250,6 +250,378 @@
         {
           "hash": "e6d1e1b84a1ce96a0be4f3cb9f3cbcf6e7b3f00dd83d3b5a56272d60923e9be6",
           "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.out"
+        },
+        {
+          "hash": "1c94468fd9e3d337cda6b1f18641a9dbcf289fd1b4c874316b0090d9e5f58ae8",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/identity-scan-linux-binary.txt"
+        },
+        {
+          "hash": "b3afb79badf12d369d6d3c29c85d032618c090250e5ad4db32e1bda58400e204",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/00-uv-python-dir-before.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.exit"
+        },
+        {
+          "hash": "66bc9db83ef917a9da316fc459d1a41e87404e90657647a22bf903b026657f5d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.exit"
+        },
+        {
+          "hash": "8c3a09fae2efbcc2c59acc84ea4f8c9ae673ecd87dd6b2f824ff10924988cd66",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.exit"
+        },
+        {
+          "hash": "7460ae076021f12c6868ab6f58f59a14695914bfb7ddfc7b488dbcf3aae3c768",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.exit"
+        },
+        {
+          "hash": "8cc3fc4704a052f1aa9d50526c8b4f564978cee6a39ca4923fbe4495c69b295e",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/04-remove-direct-url.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.exit"
+        },
+        {
+          "hash": "e467b5471484333c37148795176c685815ea4c0d7e2c2366cca471db7eb27342",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/05-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.exit"
+        },
+        {
+          "hash": "13c83231e758b5caf47cdcb0e98cf54cfc3f6e7ee2eb0937f5434f252d874966",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/06-pyinstaller-1.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.exit"
+        },
+        {
+          "hash": "1e9ec7e4e0aaf57f8062b04207fef2c61ef1533f068722a8b2fda3edc65d1e53",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/07-prune-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.exit"
+        },
+        {
+          "hash": "53d83cd858853c7229994784124c74f49d17ca248c5bb131aa92aff347222c48",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/08-pyinstaller-2.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.exit"
+        },
+        {
+          "hash": "e9d48a5b30aa4450d3bb7eef3437a2d9bed69d72880f9e4d3342b278c0f8afd7",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/09-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.exit"
+        },
+        {
+          "hash": "150b1703b8e7321d5cf2b9d251662509ad78d231f83843c68c86f6ba0b99b265",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/10-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.exit"
+        },
+        {
+          "hash": "50ae56146806c988a33f6a4d4f608be5c3e52147f7056011fa56e58c7d80289b",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/11-verify-bundle.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.exit"
+        },
+        {
+          "hash": "3295402114963123df9e6e14a87223e71412322b3f72d741aad440b31ec4c068",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/12-smoke.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.exit"
+        },
+        {
+          "hash": "871480964799fb830af738931c2ead8c66760b55aa762d5e36570c19c92653f1",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/13-neg-verify-bundle-camp150.log"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.exit"
+        },
+        {
+          "hash": "cd00a3cd6747ce172258ea9a6032e5e4540b89580464fdcbd2f83b58d82381c9",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/14-neg-verify-bundle-etv-7481d88-local.log"
+        },
+        {
+          "hash": "2d6f48f79ebd45f4b4aec30fafdc5b5ff84e6948d9c65011d982bad7d6808c4d",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/file.txt"
+        },
+        {
+          "hash": "e80f2bd2851807f0e50b0101d2962ac175affa17b6efc5bf838a9e08c7983512",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/head.txt"
+        },
+        {
+          "hash": "e859a8de1d79d0a96e3a082d0bc9500337df0a11c43a0ad88d875da7c94dce5a",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/neg-controls-sha256.txt"
+        },
+        {
+          "hash": "88f304400f025f23d2685cc077bc4f42eb79982be86cb81c5273fb1498601374",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/uv-version.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/linux-build/versions.txt"
+        },
+        {
+          "hash": "51754d8180813ee1e456ff0f6424b21b5539189685b534c4ebcf82d53a7fbb90",
+          "path": "docs/receipts/1.3.1-live-check/10-g1-24926be/sysconfigdata-prefix.txt"
+        },
+        {
+          "hash": "262d474b1df3cab3684dd25f904dc0377c0e9f871fe5e9e0d013b61dab8a29f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/checksums-1.3.1.txt"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.cmd"
+        },
+        {
+          "hash": "82379c8a2091b986929a4183af58b0113af0bbe00178a8f25117c9562603f17b",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.exit"
+        },
+        {
+          "hash": "38bdb0de2742093f06e1ef5bde1ac58c565b0db180b1191169baa37a60ff5809",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/03-licenses.exit"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/04-licenses-flag.exit"
+        },
+        {
+          "hash": "2bc204dc0bc99ce846d334fcba37863381489d9e86a2f45c4c695b950b843bd6",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cache-files.txt"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/05-cached-sha256.txt"
+        },
+        {
+          "hash": "c28ef7b9202a58378f45b9be91d230abd155f2166c7206195d591b9c979aa92c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.exit"
+        },
+        {
+          "hash": "e3cbe3aa9b713144b5bbd0c02c5b944184871bcb2138f1461fb76d1d342b44b2",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/07-direct-help.out"
+        },
+        {
+          "hash": "1bce5afbbc3005905628891f8e21b488728acdfd2e607d8eb81bfc75935ada23",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-release-asset-sha256.txt"
+        },
+        {
+          "hash": "ffc81918e8a22a924994540475d4cd07977759aea316b11f642aca26761b0ad5",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/08-tag-head.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.exit"
+        },
+        {
+          "hash": "d2e8c3c6438d5027af517950e72d92d3c4c418e2e541b401eca87e7de998e58c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/09-verify-bundle-release-asset.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.exit"
+        },
+        {
+          "hash": "0bab0186dd44b31f00ebe2be6373a5590ec244ca47df6a25728d6f354cd796bf",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/10-verify-bundle-launcher-cache.log"
+        },
+        {
+          "hash": "21710c2b721ce81df424f3178c8786855352321a858f66c93d415e9af084cb52",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/linux/node-version.txt"
+        },
+        {
+          "hash": "6462b7614fbc26a451bb3d32109340b69071edd02334af4975e445a44d0500c3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/python-version.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/pip-py313/trail-licenses.exit"
+        },
+        {
+          "hash": "744594ca244f7d2e0f4798f1d7489982457b5c0ad124c2b85ec0b2c9ac4374ad",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.cmd"
+        },
+        {
+          "hash": "b24231c968ca62343afc022dc9e37ff01443fc85bd63d8d591530392b3ba6dd9",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/01-version.out"
+        },
+        {
+          "hash": "241695b57496fb543112e4ba9818f9d15717b96372fdee340b8c7dd42821c681",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.exit"
+        },
+        {
+          "hash": "ec115e856ed073f6540890a0c46936004f017dc3d983b82fa5b408a11be279f3",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/02-help.out"
+        },
+        {
+          "hash": "7c54ce5bf4e070e24f90ae1ea1c95eb0468fdaa5075d96be827a986e3081c989",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.exit"
+        },
+        {
+          "hash": "aaf2ffd8d5390a3b507d20c758e639b186ad77b0e3856a8dcd007b38e027b6d1",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/03-licenses.out"
+        },
+        {
+          "hash": "a856faa88e290b06f77ead72690d794ab69e11da490188e51345f60d2e709294",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/04-licenses-flag.exit"
+        },
+        {
+          "hash": "cae5453174f39549f9d0e01fea591a2c0ce7713d567634fb4bc561a89b92680f",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cache-files.txt"
+        },
+        {
+          "hash": "936e92063ca3b57f6bd063185da15ecb43ac6e7f50f09e74349c738597217ffc",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/05-cached-sha256.txt"
+        },
+        {
+          "hash": "a98eb65f8bc39e5bdc2f04e467ccf03341ac3bae4a31604faba2021479983c5e",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.exit"
+        },
+        {
+          "hash": "fd3e8903ade4b5e67312bbb8e971b11a3f1678d4ab555ca4a61b00b5ed30e124",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/07-direct-help.out"
+        },
+        {
+          "hash": "b079791836a61d890f2d63ec46057e152be0127b72c6752cfeb15037789b584c",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/08-crcrlf-blocks.txt"
+        },
+        {
+          "hash": "89624f93557cdf694bba5366a1a56f97dead916a011b0ea6650225bce90d0bc8",
+          "path": "docs/receipts/1.3.1-live-check/11-npm-release/win/node-version.txt"
         },
         {
           "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
@@ -1392,7 +1764,7 @@
           "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/sysconfigdata-home-paths.txt"
         },
         {
-          "hash": "32d45d84d3f090b8666920bef320492094a7414319c592e754051103e37880b9",
+          "hash": "c4ef66ce7422df1a0ffb4398b72e7a504909e9033974889de1444a67420b89f8",
           "path": "docs/receipts/1.3.1-live-check/README.md"
         },
         {
@@ -1402,6 +1774,14 @@
         {
           "hash": "7af5da4e1b3a69477f808b60acc237c9e360bdad1fd7872a9615f8101cc39855",
           "path": "docs/receipts/1.3.1-live-check/harness/_run_final.sh"
+        },
+        {
+          "hash": "af61ec55e0df861429ae51fe3e26109afe31c0019210c6994cc2691ead8b377b",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh"
+        },
+        {
+          "hash": "5debae6f49f10098e86b2d795eb79b9884a31a05f5a064f33f970f7e51bff1f7",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh"
         },
         {
           "hash": "913ec60c9a5ec3e2b0a88e2ebddfb896798613656fbe7b5dc16d6f81c3e8f1a2",
@@ -1432,8 +1812,16 @@
           "path": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
         },
         {
+          "hash": "425e10fc763b0d960e01621e508fc8a205baffa4e6f282f58dec13db9c8690af",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
+        },
+        {
           "hash": "602da5986f960b92415553792e0bb1d0e547e0de246512ebbbe68282d0a313a7",
           "path": "docs/receipts/1.3.1-live-check/harness/notices_check.py.txt"
+        },
+        {
+          "hash": "0eab72fe39e7fecb9e94a7d4fa412d36412252f2fe2e6a668e2c1447f68c0587",
+          "path": "docs/receipts/1.3.1-live-check/harness/npm_release_check_etv.sh"
         },
         {
           "hash": "1818f49b649b9adc1a849d8aa67de00555a00bd691b941e2d50293a6af2f24f7",
@@ -1491,7 +1879,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "d64c73abd47a9095b8491e07526e4108390fac980886df32963ae29d9da81a37",
+          "hash": "41747e2d03efb9d072cb4515940c9645d3ed35647f128186e8dce817304e1bc5",
           "path": ".gitattributes"
         },
         {
@@ -1499,7 +1887,11 @@
           "path": ".gitignore"
         },
         {
-          "hash": "736632399a8c0be59bc8c7c8a6706f0bd4a89d6f3e485c84e28e4c7d969ea4f8",
+          "hash": "172bcde80fd69c2caaa4e52428d5623d29ce9a38f99db0d3b600345857a5e7f0",
+          "path": ".polyglot-terms.json"
+        },
+        {
+          "hash": "a1758eedc8d8570b254d7f4166eebd948a0bafaa6459880fdeabbea1531895a8",
           "path": "CHANGELOG.md"
         },
         {
@@ -1507,35 +1899,35 @@
           "path": "LICENSE"
         },
         {
-          "hash": "f9dd6df5fe7325ca1248a0cd64cf483fbf07f911b20d43a5a77b1356a75fafe3",
+          "hash": "7598a7d69d7d7f20da3cd5093eaa589ec9419f6914fc653bdbc008c27801afce",
           "path": "README.es.md"
         },
         {
-          "hash": "38813d121368e99c6eff4e1cf258a5be0c5f1e7906587200ffea3515672ad735",
+          "hash": "7ccef5cc0523317c3bdec484ee03868a292a11df43d1c06936bb159a67834698",
           "path": "README.fr.md"
         },
         {
-          "hash": "45894a3450693b7751847267a04f93fc879cbb4fc0337d4ba81a8938ac520dc6",
+          "hash": "be717ff151d260e36c1a230066f89629bc96c3dbe34c1d5f68157f986c6627c6",
           "path": "README.hi.md"
         },
         {
-          "hash": "238b52288333c8ab2f61c9535b6cb645412bad595d5f0b5018ac49249d48b08f",
+          "hash": "1d7b0e449d8fcacbb5d8ca53a1bdfa5d1d44f1d84ef0c9f55351af14497de003",
           "path": "README.it.md"
         },
         {
-          "hash": "78107cd026b4ff2efcdfb840aeeba4aa7c15beb65ffe4aff55b6356086c10fe7",
+          "hash": "786d91aec3a29a9c21994b3c59f9d83ad11596647737caafb34702741787ce3e",
           "path": "README.ja.md"
         },
         {
-          "hash": "29a04d8438832115a3133b0d146adaec09df659d62f53596e7c58325b748a80a",
+          "hash": "80caa4b693371550fb97655b74f1eaba80ef3ec054951f43054e8dbaa5bffd4d",
           "path": "README.md"
         },
         {
-          "hash": "86e4b0b8150d9b3b2d430e5213aa5a38fd6240b38ad75962cadf07e8d2634414",
+          "hash": "53c5be82a991a4a0b45861f1c37b090655b249960367bbdf161079bfd9c13847",
           "path": "README.pt-BR.md"
         },
         {
-          "hash": "4f1dba463a253e3eaa4b1339ac168935505be3777f4015b6b701b20105807ac8",
+          "hash": "d03978410db4b9ee118850e850a1c7c0454c8e48af6c11efe3f07da680112e92",
           "path": "README.zh.md"
         },
         {
@@ -1547,7 +1939,7 @@
           "path": "SECURITY.md"
         },
         {
-          "hash": "870d8e75e3bfbd213e965c04d682fa9c34d5be346256a29b7ac8bd881e2bf6f9",
+          "hash": "86d222168bd56fda0eba28fcd66a99f4872afb9453b2678a89ac28e69b98b184",
           "path": "SHIP_GATE.md"
         },
         {
@@ -1555,11 +1947,11 @@
           "path": "codecov.yml"
         },
         {
-          "hash": "e0f540820915653340ea621580efb1378f12474636f1f57a03b9d1d4a1c122e6",
+          "hash": "45eb3ec454833ddce40738cfa09fb39754d1491b6b12c01a11bf3df1f97a2db8",
           "path": "package.json"
         },
         {
-          "hash": "ee18558ad2fb9bca333f4d7c012df96c490d25d2155f1cd4ad8483c327e016c7",
+          "hash": "2eb137d300f04d2b76fcfa99eb127454ab6bb92c82f49696a70a4141c35bf094",
           "path": "pyproject.toml"
         }
       ],
@@ -1591,24 +1983,29 @@
             {
               "in": "main",
               "kind": "except",
-              "line": 50
+              "line": 58
             },
             {
               "in": "main",
               "kind": "except",
-              "line": 72
+              "line": 84
             },
             {
               "in": "main",
               "kind": "except",
-              "line": 92
+              "line": 106
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 126
             },
             {
               "kind": "raise",
-              "line": 108
+              "line": 145
             }
           ],
-          "hash": "07eab0403253f7dc05d23790b51ac93723994d69de694502e4203d290def67bf",
+          "hash": "405ca336b367d59f9a25dfde1386939517a5d9cb8c7c38d1db444ec245f4a181",
           "importsFiles": [
             "src/escape_the_valley/notices.py"
           ],
@@ -1617,8 +2014,42 @@
             {
               "calls": [
                 {
+                  "branch": "args and args[0] == \"--verify-pbs-archive\"",
+                  "inner": [
+                    {
+                      "line": 1467,
+                      "name": "read_bytes",
+                      "target": null,
+                      "via": "_inspect_archive_file"
+                    },
+                    {
+                      "line": 1502,
+                      "name": "with_suffix",
+                      "target": null,
+                      "via": "_inspect_archive_file"
+                    },
+                    {
+                      "line": 1328,
+                      "name": "open",
+                      "target": null,
+                      "via": "_decompress_zst_to_file"
+                    },
+                    {
+                      "line": 1489,
+                      "name": "extractfile",
+                      "target": null,
+                      "via": "_read_tar_stream"
+                    }
+                  ],
+                  "line": 53,
+                  "name": "verify_pbs_archive_accounting",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
                   "branch": "args and args[0] == \"--prune-toc\"",
-                  "line": 47,
+                  "line": 81,
                   "name": "prune_notices_to_toc",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
@@ -1626,7 +2057,7 @@
                 },
                 {
                   "branch": "args and args[0] == \"--verify-toc\"",
-                  "line": 71,
+                  "line": 105,
                   "name": "verify_toc_against_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
@@ -1634,14 +2065,14 @@
                 },
                 {
                   "branch": "args and args[0] == \"--verify-bundle\"",
-                  "line": 91,
+                  "line": 125,
                   "name": "verify_bundle_no_direct_url",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
                   }
                 },
                 {
-                  "line": 102,
+                  "line": 139,
                   "name": "write_third_party_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
@@ -2026,7 +2457,7 @@
           "path": "site/public/fonts/zilla-slab-700-normal-latin.woff2"
         },
         {
-          "hash": "55dd7b8a54c65c6299a018c6b5015c3ee3aefdb618b24e16ed611d72659c641c",
+          "hash": "12055c9de52c9c97509f805eae443de3d5f5dbeab5b587b168fdfdffbf1eec1e",
           "path": "site/public/index.html"
         },
         {
@@ -2043,15 +2474,15 @@
           "path": "site/src/content.config.ts"
         },
         {
-          "hash": "5c015747621ec7f4965e535ba706550ac8ef0b856247ef034c6dace26e40f920",
+          "hash": "29c80b99e57f26619d579cde9dea90266d35d06cba771220622a8fe5ddc72012",
           "path": "site/src/content/docs/handbook/beginners.md"
         },
         {
-          "hash": "c37e30b7759db6c2274bc1543531af9fc8e9bf641b3697a1029a9c64dd6042dd",
+          "hash": "fe52f3836c5b1b061d6c3c18eabcc0aac2f92f83837819dd8820c112cfa8151d",
           "path": "site/src/content/docs/handbook/commands.md"
         },
         {
-          "hash": "ada82443956ab98963a2cbc6954bb1c33b8e9203bdc1657a2a90eb2a906c680e",
+          "hash": "f037babaef13e3bd59fd8b26af4154cc94df31475990bb0ee648a94f3652c3ff",
           "path": "site/src/content/docs/handbook/getting-started.md"
         },
         {
@@ -2063,7 +2494,7 @@
           "path": "site/src/content/docs/handbook/index.md"
         },
         {
-          "hash": "cf84caf0225ca44f52fe55922b2ce6592862d2b5fbd88b6cc71805bd10165a4c",
+          "hash": "76fbde502055c6a9e9e7251dd0ca432f51d96f85853965dba933d81706eb7af6",
           "path": "site/src/content/docs/handbook/mechanics.md"
         },
         {
@@ -2080,7 +2511,7 @@
         },
         {
           "constantOnly": true,
-          "hash": "26f136ef997b3165e0278b1504f08d96398057f49a69546ea4a74395ff115238",
+          "hash": "61a55a3b1669192a76f60e667b4cf10d4cf0eef9a303f7cd0ce95f26ef65893b",
           "path": "site/src/site-config.ts"
         },
         {
@@ -2128,7 +2559,7 @@
       "files": [
         {
           "constantOnly": true,
-          "hash": "b09a666ed5c04f9f61bf720ce251bd4bf946f1c7d55cfc0d2a3526106e123907",
+          "hash": "5cc31331d1f6bad9a3ee848d8c9af5331f3f50e8a52628222e8529079879336a",
           "path": "src/escape_the_valley/__init__.py"
         },
         {
@@ -2201,11 +2632,11 @@
           ]
         },
         {
-          "hash": "5ae6b3c8f446f0a7cb95176e4dadb91b68aaffb16b3be09f64f5de248b6a973a",
+          "hash": "367e5141e4f5884e5791c4021f33a9faa958840a5decf44e1b273a87aad1c459",
           "path": "src/escape_the_valley/_licenses/LICENSE"
         },
         {
-          "hash": "fdababb2e2459a82dca2c6b96e19c413aa604cdb091d063a56578b3c873e7f34",
+          "hash": "ab50b55b4fe83174afc263829dedbc2a3241b6721bee166817f8b7c52266f264",
           "path": "src/escape_the_valley/_licenses/SOURCES.json"
         },
         {
@@ -2237,11 +2668,11 @@
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
         },
         {
-          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "hash": "e35b9f92a18a934b43c0ed15925662fee722dd32c22c86ab5913ca8d8b693919",
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-1.1.txt"
         },
         {
-          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "hash": "657443fd2340ed2d45d44ceb57df718bc810abcc060a9032f93759c4afab9fa2",
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-3.txt"
         },
         {
@@ -2249,7 +2680,7 @@
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.sqlite.txt"
         },
         {
-          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "hash": "cedeb5f6a7c86e78f28a526b3f0b772d2743bbdf210c88bb5fad6bc65bc3d406",
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.zlib.txt"
         },
         {
@@ -2261,47 +2692,47 @@
           "path": "src/escape_the_valley/_licenses/cpython/LICENSE.incorporated-software.rst"
         },
         {
-          "hash": "bd5628cc76fb0ebf9c657d1dd4d1a240a1a7b216c31663e7bbf1131c0b70a910",
+          "hash": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.bzip2.txt"
         },
         {
-          "hash": "8fe98bf9822926d854f56ffd8d97877d8b942617aa44eb7ea77fd99e22f2537e",
+          "hash": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.cpython.txt"
         },
         {
-          "hash": "8a9cfe4b5924f4b25881aa0c9f5e4561c5f31065d0c4a13cdcdbcf917edf39aa",
+          "hash": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.expat.txt"
         },
         {
-          "hash": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+          "hash": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libffi.txt"
         },
         {
-          "hash": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+          "hash": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.liblzma.txt"
         },
         {
-          "hash": "cbccaa3efe07a9a602751375085be572d4410a250b996716fbe8c5255c7ec6f2",
+          "hash": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.libuuid.txt"
         },
         {
-          "hash": "f094277cd46e1f6e4d87916cc4b51e22f613d45eb81f48231c3cb7caf8fc8a6a",
+          "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
         },
         {
-          "hash": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "hash": "e35b9f92a18a934b43c0ed15925662fee722dd32c22c86ab5913ca8d8b693919",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt"
         },
         {
-          "hash": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+          "hash": "657443fd2340ed2d45d44ceb57df718bc810abcc060a9032f93759c4afab9fa2",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
         },
         {
-          "hash": "d8eb9aba7ef6b5ed06cb3ec19a7242316af2e5933c638eb67fb781c13884e01d",
+          "hash": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.sqlite.txt"
         },
         {
-          "hash": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+          "hash": "cedeb5f6a7c86e78f28a526b3f0b772d2743bbdf210c88bb5fad6bc65bc3d406",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.zlib.txt"
         },
         {
@@ -2341,11 +2772,11 @@
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
         },
         {
-          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "hash": "e35b9f92a18a934b43c0ed15925662fee722dd32c22c86ab5913ca8d8b693919",
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt"
         },
         {
-          "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "hash": "657443fd2340ed2d45d44ceb57df718bc810abcc060a9032f93759c4afab9fa2",
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt"
         },
         {
@@ -2353,7 +2784,7 @@
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.sqlite.txt"
         },
         {
-          "hash": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "hash": "cedeb5f6a7c86e78f28a526b3f0b772d2743bbdf210c88bb5fad6bc65bc3d406",
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.zlib.txt"
         },
         {
@@ -2606,59 +3037,59 @@
               "line": 33
             },
             {
+              "in": "_emit_licenses_text",
+              "kind": "except",
+              "line": 47
+            },
+            {
               "in": "_licenses_callback",
               "kind": "raise",
-              "line": 41
+              "line": 55
             },
             {
               "in": "new",
               "kind": "except",
-              "line": 179
+              "line": 193
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 184
+              "line": 198
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 190
+              "line": 204
             },
             {
               "in": "new",
               "kind": "raise",
-              "line": 195
+              "line": 209
             },
             {
               "in": "play",
               "kind": "raise",
-              "line": 233
+              "line": 247
             },
             {
               "in": "play",
               "kind": "raise",
-              "line": 237
+              "line": 251
             },
             {
               "in": "status",
               "kind": "raise",
-              "line": 258
+              "line": 272
             },
             {
               "in": "journal",
               "kind": "raise",
-              "line": 271
+              "line": 285
             },
             {
               "in": "self_check",
               "kind": "except",
-              "line": 340
-            },
-            {
-              "in": "self_check",
-              "kind": "except",
-              "line": 367
+              "line": 354
             },
             {
               "in": "self_check",
@@ -2668,195 +3099,200 @@
             {
               "in": "self_check",
               "kind": "except",
-              "line": 407
+              "line": 395
             },
             {
               "in": "self_check",
               "kind": "except",
-              "line": 426
+              "line": 421
+            },
+            {
+              "in": "self_check",
+              "kind": "except",
+              "line": 440
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 479
+              "line": 493
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 485
+              "line": 499
             },
             {
               "in": "tui",
               "kind": "except",
-              "line": 492
+              "line": 506
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 497
+              "line": 511
             },
             {
               "in": "tui",
               "kind": "except",
-              "line": 526
+              "line": 540
             },
             {
               "in": "tui",
               "kind": "raise",
-              "line": 531
+              "line": 545
             },
             {
               "in": "stats",
               "kind": "raise",
-              "line": 600
+              "line": 612
             },
             {
               "in": "postcard",
               "kind": "raise",
-              "line": 697
+              "line": 709
             },
             {
               "in": "ledger_status",
               "kind": "raise",
-              "line": 721
+              "line": 733
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 742
+              "line": 754
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 746
+              "line": 758
             },
             {
               "in": "ledger_enable",
               "kind": "raise",
-              "line": 765
+              "line": 777
             },
             {
               "in": "ledger_disable",
               "kind": "raise",
-              "line": 774
+              "line": 786
             },
             {
               "in": "ledger_disable",
               "kind": "raise",
-              "line": 778
+              "line": 790
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 795
+              "line": 807
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 799
+              "line": 811
             },
             {
               "in": "ledger_settle",
               "kind": "raise",
-              "line": 828
+              "line": 840
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 837
+              "line": 849
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 841
+              "line": 853
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 846
+              "line": 858
             },
             {
               "in": "ledger_reconcile",
               "kind": "raise",
-              "line": 872
+              "line": 884
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 881
+              "line": 893
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 888
+              "line": 900
             },
             {
               "in": "ledger_proof",
               "kind": "raise",
-              "line": 890
+              "line": 902
             },
             {
               "in": "ledger_wallet",
               "kind": "raise",
-              "line": 899
+              "line": 911
             },
             {
               "in": "ledger_wallet",
               "kind": "raise",
-              "line": 909
+              "line": 921
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 940
+              "line": 952
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 944
+              "line": 956
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 958
+              "line": 970
             },
             {
               "in": "parcel_send",
               "kind": "raise",
-              "line": 979
+              "line": 991
             },
             {
               "in": "parcel_list",
               "kind": "raise",
-              "line": 988
+              "line": 1000
             },
             {
               "in": "parcel_accept",
               "kind": "raise",
-              "line": 1018
+              "line": 1030
             },
             {
               "in": "parcel_accept",
               "kind": "raise",
-              "line": 1028
+              "line": 1040
             },
             {
               "in": "parcel_sent",
               "kind": "raise",
-              "line": 1047
+              "line": 1059
             },
             {
               "in": "wallet_share",
               "kind": "raise",
-              "line": 1075
+              "line": 1087
             },
             {
               "in": "wallet_share",
               "kind": "raise",
-              "line": 1080
+              "line": 1092
             }
           ],
-          "hash": "81f6c25493a35e11e5617d63db936e82067f3d0887842f45c70b6ab852186e2d",
+          "hash": "3b3007eb595d52fb8545d8ee78555371828bcea13bf94ee2155ed8db56a60e25",
           "importsFiles": [
             "src/escape_the_valley/__init__.py",
             "src/escape_the_valley/backpack.py",
@@ -2879,12 +3315,28 @@
             {
               "calls": [
                 {
-                  "branch": "value",
-                  "line": 40,
+                  "line": 42,
                   "name": "get_third_party_notices_text",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
                   }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_emit_licenses_text"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "value",
+                  "line": 42,
+                  "name": "get_third_party_notices_text",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  },
+                  "via": "_emit_licenses_text"
                 }
               ],
               "exported": false,
@@ -2896,14 +3348,14 @@
               "calls": [
                 {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 61,
+                  "line": 75,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
                   }
                 },
                 {
-                  "line": 62,
+                  "line": 76,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -2919,7 +3371,7 @@
               "calls": [
                 {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 61,
+                  "line": 75,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -2927,7 +3379,7 @@
                   "via": "_postcard_lines"
                 },
                 {
-                  "line": 62,
+                  "line": 76,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -2943,7 +3395,7 @@
             {
               "calls": [
                 {
-                  "line": 153,
+                  "line": 167,
                   "name": "_ensure_utf8_stdio",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
@@ -2958,49 +3410,49 @@
             {
               "calls": [
                 {
-                  "line": 174,
+                  "line": 188,
                   "name": "show_title_screen",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
                   }
                 },
                 {
-                  "line": 178,
+                  "line": 192,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 193,
+                  "line": 207,
                   "name": "has_save",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 198,
+                  "line": 212,
                   "name": "create_new_run",
                   "target": {
                     "file": "src/escape_the_valley/worldgen.py"
                   }
                 },
                 {
-                  "line": 212,
+                  "line": 226,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 218,
+                  "line": 232,
                   "name": "GameEngine",
                   "target": {
                     "file": "src/escape_the_valley/engine.py"
                   }
                 },
                 {
-                  "line": 219,
+                  "line": 233,
                   "name": "run",
                   "receiver": "GameEngine",
                   "target": {
@@ -3016,35 +3468,35 @@
             {
               "calls": [
                 {
-                  "line": 228,
+                  "line": 242,
                   "name": "show_title_screen",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
                   }
                 },
                 {
-                  "line": 230,
+                  "line": 244,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 242,
+                  "line": 256,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 248,
+                  "line": 262,
                   "name": "GameEngine",
                   "target": {
                     "file": "src/escape_the_valley/engine.py"
                   }
                 },
                 {
-                  "line": 249,
+                  "line": 263,
                   "name": "run",
                   "receiver": "GameEngine",
                   "target": {
@@ -3060,14 +3512,14 @@
             {
               "calls": [
                 {
-                  "line": 255,
+                  "line": 269,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 260,
+                  "line": 274,
                   "name": "show_status",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
@@ -3082,14 +3534,14 @@
             {
               "calls": [
                 {
-                  "line": 268,
+                  "line": 282,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 273,
+                  "line": 287,
                   "name": "show_journal",
                   "target": {
                     "file": "src/escape_the_valley/ui.py"
@@ -3104,42 +3556,42 @@
             {
               "calls": [
                 {
-                  "line": 309,
+                  "line": 323,
                   "name": "has_save",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 310,
+                  "line": 324,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 356,
+                  "line": 370,
                   "name": "build_event_library",
                   "target": {
                     "file": "src/escape_the_valley/events.py"
                   }
                 },
                 {
-                  "line": 391,
+                  "line": 405,
                   "name": "VoiceConfig",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 391,
+                  "line": 405,
                   "name": "VoiceBridge",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 419,
+                  "line": 433,
                   "name": "_resolve_css_path",
                   "target": {
                     "file": "src/escape_the_valley/tui_app.py"
@@ -3156,25 +3608,25 @@
                 {
                   "inner": [
                     {
-                      "line": 190,
+                      "line": 206,
                       "name": "exists",
                       "target": null,
                       "via": "_backup_corrupt_save"
                     },
                     {
-                      "line": 197,
+                      "line": 213,
                       "name": "with_name",
                       "target": null,
                       "via": "_backup_corrupt_save"
                     },
                     {
-                      "line": 206,
+                      "line": 222,
                       "name": "rename",
                       "target": null,
                       "via": "_backup_corrupt_save"
                     },
                     {
-                      "line": 415,
+                      "line": 431,
                       "name": "Condition",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3182,7 +3634,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 416,
+                      "line": 432,
                       "name": "Trait",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3190,7 +3642,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 412,
+                      "line": 428,
                       "name": "PartyMember",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3198,7 +3650,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 454,
+                      "line": 470,
                       "name": "TimeOfDay",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3206,7 +3658,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 463,
+                      "line": 479,
                       "name": "GMProfile",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3214,7 +3666,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 464,
+                      "line": 480,
                       "name": "TwistModifier",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3222,7 +3674,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 558,
+                      "line": 574,
                       "name": "SeededRNG",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3230,7 +3682,7 @@
                       "via": "_coerce_rng_state"
                     },
                     {
-                      "line": 475,
+                      "line": 491,
                       "name": "PartyState",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3238,7 +3690,7 @@
                       "via": "_dict_to_state"
                     },
                     {
-                      "line": 480,
+                      "line": 496,
                       "name": "Pace",
                       "target": {
                         "file": "src/escape_the_valley/models.py"
@@ -3247,14 +3699,14 @@
                     }
                   ],
                   "innerTruncated": true,
-                  "line": 473,
+                  "line": 487,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 491,
+                  "line": 505,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -3339,42 +3791,42 @@
                     }
                   ],
                   "innerTruncated": true,
-                  "line": 500,
+                  "line": 514,
                   "name": "create_new_run",
                   "target": {
                     "file": "src/escape_the_valley/worldgen.py"
                   }
                 },
                 {
-                  "line": 511,
+                  "line": 525,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 525,
+                  "line": 539,
                   "name": "VoicePace",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 533,
+                  "line": 547,
                   "name": "VoiceConfig",
                   "target": {
                     "file": "src/escape_the_valley/voice.py"
                   }
                 },
                 {
-                  "line": 539,
+                  "line": 553,
                   "name": "StepEngine",
                   "target": {
                     "file": "src/escape_the_valley/step_engine.py"
                   }
                 },
                 {
-                  "line": 540,
+                  "line": 554,
                   "name": "LedgerTrailApp",
                   "target": {
                     "file": "src/escape_the_valley/tui_app.py"
@@ -3389,11 +3841,12 @@
             {
               "calls": [
                 {
-                  "line": 558,
+                  "line": 42,
                   "name": "get_third_party_notices_text",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
-                  }
+                  },
+                  "via": "_emit_licenses_text"
                 }
               ],
               "exported": true,
@@ -3404,21 +3857,21 @@
             {
               "calls": [
                 {
-                  "line": 572,
+                  "line": 584,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 572,
+                  "line": 584,
                   "name": "GMClient",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
                   }
                 },
                 {
-                  "line": 576,
+                  "line": 588,
                   "name": "is_available",
                   "receiver": "GMClient",
                   "target": {
@@ -3434,14 +3887,14 @@
             {
               "calls": [
                 {
-                  "line": 597,
+                  "line": 609,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 572,
+                  "line": 584,
                   "name": "GMConfig",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
@@ -3449,7 +3902,7 @@
                   "via": "_gm_diagnostics"
                 },
                 {
-                  "line": 572,
+                  "line": 584,
                   "name": "GMClient",
                   "target": {
                     "file": "src/escape_the_valley/gm.py"
@@ -3457,7 +3910,7 @@
                   "via": "_gm_diagnostics"
                 },
                 {
-                  "line": 576,
+                  "line": 588,
                   "name": "is_available",
                   "receiver": "GMClient",
                   "target": {
@@ -3474,7 +3927,7 @@
             {
               "calls": [
                 {
-                  "line": 694,
+                  "line": 706,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3482,7 +3935,7 @@
                 },
                 {
                   "branch": "state.backpack.enabled and state.backpack.settlements",
-                  "line": 61,
+                  "line": 75,
                   "name": "build_xrpl_postcard",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -3490,7 +3943,7 @@
                   "via": "_postcard_lines"
                 },
                 {
-                  "line": 62,
+                  "line": 76,
                   "name": "build_trail_ledger",
                   "target": {
                     "file": "src/escape_the_valley/ledger.py"
@@ -3506,21 +3959,21 @@
             {
               "calls": [
                 {
-                  "line": 718,
+                  "line": 730,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 726,
+                  "line": 738,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 726,
+                  "line": 738,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3528,7 +3981,7 @@
                   }
                 },
                 {
-                  "line": 727,
+                  "line": 739,
                   "name": "status_line",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3536,7 +3989,7 @@
                   }
                 },
                 {
-                  "line": 730,
+                  "line": 742,
                   "name": "wallet_info",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3552,21 +4005,21 @@
             {
               "calls": [
                 {
-                  "line": 739,
+                  "line": 751,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 751,
+                  "line": 763,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 751,
+                  "line": 763,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3574,7 +4027,7 @@
                   }
                 },
                 {
-                  "line": 754,
+                  "line": 766,
                   "name": "enable",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3582,7 +4035,7 @@
                   }
                 },
                 {
-                  "line": 756,
+                  "line": 768,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3590,7 +4043,7 @@
                   }
                 },
                 {
-                  "line": 759,
+                  "line": 771,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3605,21 +4058,21 @@
             {
               "calls": [
                 {
-                  "line": 771,
+                  "line": 783,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 783,
+                  "line": 795,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 783,
+                  "line": 795,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3627,7 +4080,7 @@
                   }
                 },
                 {
-                  "line": 784,
+                  "line": 796,
                   "name": "disable",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3635,7 +4088,7 @@
                   }
                 },
                 {
-                  "line": 785,
+                  "line": 797,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3650,21 +4103,21 @@
             {
               "calls": [
                 {
-                  "line": 792,
+                  "line": 804,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 811,
+                  "line": 823,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 811,
+                  "line": 823,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3672,7 +4125,7 @@
                   }
                 },
                 {
-                  "line": 814,
+                  "line": 826,
                   "name": "settle",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3680,7 +4133,7 @@
                   }
                 },
                 {
-                  "line": 816,
+                  "line": 828,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3688,7 +4141,7 @@
                   }
                 },
                 {
-                  "line": 819,
+                  "line": 831,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3703,21 +4156,21 @@
             {
               "calls": [
                 {
-                  "line": 834,
+                  "line": 846,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 851,
+                  "line": 863,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 851,
+                  "line": 863,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3725,7 +4178,7 @@
                   }
                 },
                 {
-                  "line": 854,
+                  "line": 866,
                   "name": "_retry_pending",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3733,7 +4186,7 @@
                   }
                 },
                 {
-                  "line": 856,
+                  "line": 868,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3741,7 +4194,7 @@
                   }
                 },
                 {
-                  "line": 860,
+                  "line": 872,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3756,14 +4209,14 @@
             {
               "calls": [
                 {
-                  "line": 878,
+                  "line": 890,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 885,
+                  "line": 897,
                   "name": "proof_player_save",
                   "target": {
                     "file": "src/escape_the_valley/ledger_proof.py"
@@ -3778,21 +4231,21 @@
             {
               "calls": [
                 {
-                  "line": 896,
+                  "line": 908,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 904,
+                  "line": 916,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 904,
+                  "line": 916,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3800,7 +4253,7 @@
                   }
                 },
                 {
-                  "line": 905,
+                  "line": 917,
                   "name": "wallet_info",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3816,21 +4269,21 @@
             {
               "calls": [
                 {
-                  "line": 937,
+                  "line": 949,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 963,
+                  "line": 975,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 963,
+                  "line": 975,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3838,7 +4291,7 @@
                   }
                 },
                 {
-                  "line": 966,
+                  "line": 978,
                   "name": "send_parcel",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3846,7 +4299,7 @@
                   }
                 },
                 {
-                  "line": 968,
+                  "line": 980,
                   "name": "close",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3854,7 +4307,7 @@
                   }
                 },
                 {
-                  "line": 971,
+                  "line": 983,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3869,7 +4322,7 @@
             {
               "calls": [
                 {
-                  "line": 985,
+                  "line": 997,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3884,21 +4337,21 @@
             {
               "calls": [
                 {
-                  "line": 1015,
+                  "line": 1027,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
                   }
                 },
                 {
-                  "line": 1033,
+                  "line": 1045,
                   "name": "BackpackManager",
                   "target": {
                     "file": "src/escape_the_valley/backpack.py"
                   }
                 },
                 {
-                  "line": 1033,
+                  "line": 1045,
                   "name": "save_game",
                   "passed": true,
                   "target": {
@@ -3906,7 +4359,7 @@
                   }
                 },
                 {
-                  "line": 1034,
+                  "line": 1046,
                   "name": "accept_parcel",
                   "receiver": "BackpackManager",
                   "target": {
@@ -3914,7 +4367,7 @@
                   }
                 },
                 {
-                  "line": 1035,
+                  "line": 1047,
                   "name": "save_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3929,7 +4382,7 @@
             {
               "calls": [
                 {
-                  "line": 1044,
+                  "line": 1056,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3944,7 +4397,7 @@
             {
               "calls": [
                 {
-                  "line": 1072,
+                  "line": 1084,
                   "name": "load_game",
                   "target": {
                     "file": "src/escape_the_valley/save.py"
@@ -3977,25 +4430,25 @@
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 553
+              "line": 555
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 560
+              "line": 562
             },
             {
               "in": "_settle_checkpoint",
               "kind": "except",
-              "line": 603
+              "line": 605
             },
             {
               "in": "_check_parcels",
               "kind": "except",
-              "line": 652
+              "line": 654
             }
           ],
-          "hash": "935d8835e9c8c676725ff985f78af0a32bfd37e21653284417c267fa8e1cdab4",
+          "hash": "371c16bf05bcc43951133081ab953ad57ff319b34fa6db9aed2fc366c6e56723",
           "importOrder": [
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/gm.py",
@@ -4066,7 +4519,7 @@
             "resolve_event",
             "select_event"
           ],
-          "hash": "a30554549f655dbd59b14635c4578ccd96e3692b594a53e5399d1790cc8cff43",
+          "hash": "7b6d1531d7bf10bd9f289323781844cf709f59c746141a6b47e898a7d54ad5bd",
           "importsFiles": [
             "src/escape_the_valley/event_loader.py",
             "src/escape_the_valley/models.py",
@@ -4092,7 +4545,7 @@
             {
               "calls": [
                 {
-                  "line": 1841,
+                  "line": 1860,
                   "name": "journey_pressure",
                   "target": {
                     "file": "src/escape_the_valley/physics.py"
@@ -4100,12 +4553,12 @@
                 },
                 {
                   "branch": "not candidates",
-                  "line": 1869,
+                  "line": 1888,
                   "name": "choice",
                   "target": null
                 },
                 {
-                  "line": 1871,
+                  "line": 1890,
                   "name": "weighted_choice",
                   "target": null
                 }
@@ -4118,7 +4571,7 @@
             {
               "calls": [
                 {
-                  "line": 2136,
+                  "line": 2170,
                   "name": "randint",
                   "target": null
                 }
@@ -4131,7 +4584,7 @@
             {
               "calls": [
                 {
-                  "line": 2160,
+                  "line": 2194,
                   "name": "_proximate_death_cause",
                   "target": {
                     "file": "src/escape_the_valley/physics.py"
@@ -4867,6 +5320,8 @@
           "path": "src/escape_the_valley/narration.py"
         },
         {
+          "entry": "verify_pbs_archive_accounting",
+          "entryRule": 4,
           "exports": [
             "collect_toc_bundled_distributions",
             "collect_toc_bundled_excluded_extensions",
@@ -4875,6 +5330,7 @@
             "prune_notices_to_toc",
             "resolve_bundled_notices_path",
             "verify_bundle_no_direct_url",
+            "verify_pbs_archive_accounting",
             "verify_toc_against_notices",
             "verify_vendored_licenses_integrity",
             "write_third_party_notices"
@@ -4883,47 +5339,32 @@
             {
               "in": "_load_sources_manifest",
               "kind": "raise",
-              "line": 111
+              "line": 131
             },
             {
               "in": "_read_interpreter_pbs_build_tag",
               "kind": "except",
-              "line": 150
+              "line": 170
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 173
+              "line": 193
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 181
+              "line": 201
             },
             {
               "in": "_verify_vendored_licenses_match",
-              "kind": "raise",
-              "line": 190
-            },
-            {
-              "in": "_verify_vendored_licenses_match",
-              "kind": "raise",
-              "line": 195
-            },
-            {
-              "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
               "line": 210
             },
             {
-              "in": "verify_vendored_licenses_integrity",
+              "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 213
-            },
-            {
-              "in": "verify_vendored_licenses_integrity",
-              "kind": "raise",
-              "line": 223
+              "line": 215
             },
             {
               "in": "verify_vendored_licenses_integrity",
@@ -4933,7 +5374,7 @@
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 235
+              "line": 233
             },
             {
               "in": "verify_vendored_licenses_integrity",
@@ -4943,12 +5384,22 @@
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 253
+              "line": 250
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 258
+              "line": 255
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 263
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 273
             },
             {
               "in": "verify_vendored_licenses_integrity",
@@ -4956,121 +5407,268 @@
               "line": 278
             },
             {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 298
+            },
+            {
               "in": "_locate_cpython_license_file",
               "kind": "except",
-              "line": 363
-            },
-            {
-              "in": "_read_cpython_license_blocks",
-              "kind": "raise",
-              "line": 375
-            },
-            {
-              "in": "_read_cpython_license_blocks",
-              "kind": "raise",
               "line": 383
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 409
+              "line": 395
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 415
+              "line": 403
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 429
+              "line": 428
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 435
+              "line": 434
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 447
+            },
+            {
+              "in": "_read_cpython_license_blocks",
+              "kind": "raise",
+              "line": 453
             },
             {
               "in": "_extract_dist_license_files",
               "kind": "except",
-              "line": 517
+              "line": 534
             },
             {
               "in": "_read_game_license_block",
               "kind": "raise",
-              "line": 647
+              "line": 656
+            },
+            {
+              "in": "_read_game_license_block",
+              "kind": "raise",
+              "line": 669
             },
             {
               "in": "_build_top_level_to_dist_map",
               "kind": "except",
-              "line": 852
+              "line": 874
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "raise",
-              "line": 890
+              "line": 912
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "except",
-              "line": 920
+              "line": 942
             },
             {
               "in": "collect_toc_bundled_excluded_extensions",
               "kind": "raise",
-              "line": 965
+              "line": 987
             },
             {
               "in": "collect_toc_bundled_excluded_extensions",
               "kind": "except",
-              "line": 997
+              "line": 1019
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1082
+              "line": 1104
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1094
+              "line": 1116
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1112
+              "line": 1134
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1119
+              "line": 1141
             },
             {
               "in": "_find_sysconfigdata_home_paths",
               "kind": "except",
-              "line": 1174
+              "line": 1196
             },
             {
               "in": "verify_bundle_no_direct_url",
               "kind": "except",
-              "line": 1250
+              "line": 1272
             },
             {
               "in": "verify_bundle_no_direct_url",
               "kind": "raise",
-              "line": 1292
+              "line": 1314
+            },
+            {
+              "in": "_decompress_zst_to_file",
+              "kind": "except",
+              "line": 1331
+            },
+            {
+              "in": "_decompress_zst_to_file",
+              "kind": "except",
+              "line": 1354
+            },
+            {
+              "in": "_decompress_zst_to_file",
+              "kind": "raise",
+              "line": 1357
+            },
+            {
+              "in": "_decompress_zst_to_file",
+              "kind": "raise",
+              "line": 1390
+            },
+            {
+              "in": "_decompress_zst_to_file",
+              "kind": "raise",
+              "line": 1412
+            },
+            {
+              "in": "verify_pbs_archive_accounting",
+              "kind": "raise",
+              "line": 1446
+            },
+            {
+              "in": "verify_pbs_archive_accounting",
+              "kind": "raise",
+              "line": 1460
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1470
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "except",
+              "line": 1512
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1519
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1523
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1544
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1553
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1587
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1598
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1604
+            },
+            {
+              "in": "_inspect_archive_file",
+              "kind": "raise",
+              "line": 1614
+            },
+            {
+              "in": "verify_pbs_archive_accounting",
+              "kind": "raise",
+              "line": 1624
             },
             {
               "in": "get_third_party_notices_text",
               "kind": "raise",
-              "line": 1349
+              "line": 1696
             }
           ],
-          "hash": "8aa2ee4cb15f552f6f0266aa2ffe897e19537d0c7dfb33784a906f3146a8268d",
+          "hash": "e5f7806e16dbe3aacbc127edd19e5569a6ea210a5a259c4b4e212f73bb602e30",
           "importsFiles": [
             "src/escape_the_valley/__init__.py"
           ],
-          "path": "src/escape_the_valley/notices.py"
+          "path": "src/escape_the_valley/notices.py",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 1328,
+                  "name": "open",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_decompress_zst_to_file"
+            },
+            {
+              "calls": [
+                {
+                  "line": 1467,
+                  "name": "read_bytes",
+                  "target": null,
+                  "via": "_inspect_archive_file"
+                },
+                {
+                  "line": 1502,
+                  "name": "with_suffix",
+                  "target": null,
+                  "via": "_inspect_archive_file"
+                },
+                {
+                  "line": 1328,
+                  "name": "open",
+                  "target": null,
+                  "via": "_decompress_zst_to_file"
+                },
+                {
+                  "line": 1489,
+                  "name": "extractfile",
+                  "target": null,
+                  "via": "_read_tar_stream"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "verify_pbs_archive_accounting"
+            }
+          ]
         },
         {
           "exports": [
@@ -5139,50 +5737,55 @@
             {
               "in": "_write_secrets_sidecar",
               "kind": "except",
-              "line": 145
+              "line": 148
             },
             {
               "in": "_write_secrets_sidecar",
               "kind": "except",
-              "line": 161
+              "line": 160
+            },
+            {
+              "in": "_write_secrets_sidecar",
+              "kind": "except",
+              "line": 177
             },
             {
               "in": "_read_secrets_sidecar",
               "kind": "except",
-              "line": 175
+              "line": 191
             },
             {
               "in": "_backup_corrupt_save",
               "kind": "except",
-              "line": 209
+              "line": 225
             },
             {
               "in": "load_game_result",
               "kind": "except",
-              "line": 231
+              "line": 247
             },
             {
               "in": "load_game_result",
               "kind": "except",
-              "line": 255
+              "line": 271
             },
             {
               "in": "_dict_to_state",
               "kind": "raise",
-              "line": 406
+              "line": 422
             },
             {
               "in": "_coerce_rng_state",
               "kind": "except",
-              "line": 559
+              "line": 575
             },
             {
               "in": "_load_supplies",
               "kind": "except",
-              "line": 588
+              "line": 604
             }
           ],
-          "hash": "b7dbe3e8a652b72363d774d6efe754036fc29d14b506669853e80e458eac7fdf",
+          "hash": "84366d62dd2454e9aaf1f23fe9b82e5eb832ba25c5604804556f3213b12cd91c",
           "importsFiles": [
             "src/escape_the_valley/backpack_models.py",
             "src/escape_the_valley/models.py",
@@ -5193,17 +5796,69 @@
             {
               "calls": [
                 {
-                  "line": 190,
+                  "line": 206,
+                  "name": "exists",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 213,
+                  "name": "with_name",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 222,
+                  "name": "rename",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "save_game"
+            },
+            {
+              "calls": [
+                {
+                  "line": 206,
+                  "name": "exists",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 213,
+                  "name": "with_name",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                },
+                {
+                  "line": 222,
+                  "name": "rename",
+                  "target": null,
+                  "via": "_backup_corrupt_save"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "_write_secrets_sidecar"
+            },
+            {
+              "calls": [
+                {
+                  "line": 206,
                   "name": "exists",
                   "target": null
                 },
                 {
-                  "line": 197,
+                  "line": 213,
                   "name": "with_name",
                   "target": null
                 },
                 {
-                  "line": 206,
+                  "line": 222,
                   "name": "rename",
                   "target": null
                 }
@@ -5216,25 +5871,25 @@
             {
               "calls": [
                 {
-                  "line": 190,
+                  "line": 206,
                   "name": "exists",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 197,
+                  "line": 213,
                   "name": "with_name",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 206,
+                  "line": 222,
                   "name": "rename",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 415,
+                  "line": 431,
                   "name": "Condition",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5242,7 +5897,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 416,
+                  "line": 432,
                   "name": "Trait",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5250,7 +5905,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 412,
+                  "line": 428,
                   "name": "PartyMember",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5258,7 +5913,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 454,
+                  "line": 470,
                   "name": "TimeOfDay",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5266,7 +5921,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 463,
+                  "line": 479,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5274,7 +5929,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 464,
+                  "line": 480,
                   "name": "TwistModifier",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5282,7 +5937,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 558,
+                  "line": 574,
                   "name": "SeededRNG",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5290,7 +5945,7 @@
                   "via": "_coerce_rng_state"
                 },
                 {
-                  "line": 475,
+                  "line": 491,
                   "name": "PartyState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5298,7 +5953,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 480,
+                  "line": 496,
                   "name": "Pace",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5306,7 +5961,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 476,
+                  "line": 492,
                   "name": "WagonState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5314,7 +5969,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "DEFAULT_SUPPLIES",
                   "passed": true,
                   "target": {
@@ -5323,7 +5978,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "SuppliesState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5331,7 +5986,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 587,
+                  "line": 603,
                   "name": "set",
                   "receiver": "SuppliesState",
                   "target": {
@@ -5340,7 +5995,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 484,
+                  "line": 500,
                   "name": "JournalEntry",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5348,7 +6003,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 501,
+                  "line": 517,
                   "name": "Biome",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5356,7 +6011,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 498,
+                  "line": 514,
                   "name": "MapNode",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5364,7 +6019,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 513,
+                  "line": 529,
                   "name": "MemoryCard",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5373,7 +6028,7 @@
                 },
                 {
                   "branch": "not data",
-                  "line": 673,
+                  "line": 689,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5381,7 +6036,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 685,
+                  "line": 701,
                   "name": "SettlementRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5389,7 +6044,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 709,
+                  "line": 725,
                   "name": "ParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5397,7 +6052,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 720,
+                  "line": 736,
                   "name": "SentParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5414,25 +6069,25 @@
             {
               "calls": [
                 {
-                  "line": 190,
+                  "line": 206,
                   "name": "exists",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 197,
+                  "line": 213,
                   "name": "with_name",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 206,
+                  "line": 222,
                   "name": "rename",
                   "target": null,
                   "via": "_backup_corrupt_save"
                 },
                 {
-                  "line": 415,
+                  "line": 431,
                   "name": "Condition",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5440,7 +6095,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 416,
+                  "line": 432,
                   "name": "Trait",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5448,7 +6103,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 412,
+                  "line": 428,
                   "name": "PartyMember",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5456,7 +6111,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 454,
+                  "line": 470,
                   "name": "TimeOfDay",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5464,7 +6119,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 463,
+                  "line": 479,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5472,7 +6127,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 464,
+                  "line": 480,
                   "name": "TwistModifier",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5480,7 +6135,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 558,
+                  "line": 574,
                   "name": "SeededRNG",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5488,7 +6143,7 @@
                   "via": "_coerce_rng_state"
                 },
                 {
-                  "line": 475,
+                  "line": 491,
                   "name": "PartyState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5496,7 +6151,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 480,
+                  "line": 496,
                   "name": "Pace",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5504,7 +6159,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 476,
+                  "line": 492,
                   "name": "WagonState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5512,7 +6167,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "DEFAULT_SUPPLIES",
                   "passed": true,
                   "target": {
@@ -5521,7 +6176,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "SuppliesState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5529,7 +6184,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 587,
+                  "line": 603,
                   "name": "set",
                   "receiver": "SuppliesState",
                   "target": {
@@ -5538,7 +6193,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 484,
+                  "line": 500,
                   "name": "JournalEntry",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5546,7 +6201,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 501,
+                  "line": 517,
                   "name": "Biome",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5554,7 +6209,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 498,
+                  "line": 514,
                   "name": "MapNode",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5562,7 +6217,7 @@
                   "via": "_dict_to_state"
                 },
                 {
-                  "line": 513,
+                  "line": 529,
                   "name": "MemoryCard",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5571,7 +6226,7 @@
                 },
                 {
                   "branch": "not data",
-                  "line": 673,
+                  "line": 689,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5579,7 +6234,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 685,
+                  "line": 701,
                   "name": "SettlementRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5587,7 +6242,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 709,
+                  "line": 725,
                   "name": "ParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5595,7 +6250,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 720,
+                  "line": 736,
                   "name": "SentParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5612,49 +6267,49 @@
             {
               "calls": [
                 {
-                  "line": 415,
+                  "line": 431,
                   "name": "Condition",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 416,
+                  "line": 432,
                   "name": "Trait",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 412,
+                  "line": 428,
                   "name": "PartyMember",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 454,
+                  "line": 470,
                   "name": "TimeOfDay",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 463,
+                  "line": 479,
                   "name": "GMProfile",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 464,
+                  "line": 480,
                   "name": "TwistModifier",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 558,
+                  "line": 574,
                   "name": "SeededRNG",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5662,28 +6317,28 @@
                   "via": "_coerce_rng_state"
                 },
                 {
-                  "line": 475,
+                  "line": 491,
                   "name": "PartyState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 480,
+                  "line": 496,
                   "name": "Pace",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 476,
+                  "line": 492,
                   "name": "WagonState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "DEFAULT_SUPPLIES",
                   "passed": true,
                   "target": {
@@ -5692,7 +6347,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "SuppliesState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5700,7 +6355,7 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 587,
+                  "line": 603,
                   "name": "set",
                   "receiver": "SuppliesState",
                   "target": {
@@ -5709,28 +6364,28 @@
                   "via": "_load_supplies"
                 },
                 {
-                  "line": 484,
+                  "line": 500,
                   "name": "JournalEntry",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 501,
+                  "line": 517,
                   "name": "Biome",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 498,
+                  "line": 514,
                   "name": "MapNode",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 513,
+                  "line": 529,
                   "name": "MemoryCard",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5738,7 +6393,7 @@
                 },
                 {
                   "branch": "not data",
-                  "line": 673,
+                  "line": 689,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5746,7 +6401,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 685,
+                  "line": 701,
                   "name": "SettlementRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5754,7 +6409,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 709,
+                  "line": 725,
                   "name": "ParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5762,7 +6417,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 720,
+                  "line": 736,
                   "name": "SentParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5770,7 +6425,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 731,
+                  "line": 747,
                   "name": "PermitRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5778,7 +6433,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 675,
+                  "line": 691,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5786,7 +6441,7 @@
                   "via": "_load_backpack"
                 },
                 {
-                  "line": 450,
+                  "line": 466,
                   "name": "RunState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5801,7 +6456,7 @@
             {
               "calls": [
                 {
-                  "line": 558,
+                  "line": 574,
                   "name": "SeededRNG",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -5816,7 +6471,7 @@
             {
               "calls": [
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "DEFAULT_SUPPLIES",
                   "passed": true,
                   "target": {
@@ -5824,14 +6479,14 @@
                   }
                 },
                 {
-                  "line": 575,
+                  "line": 591,
                   "name": "SuppliesState",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
                   }
                 },
                 {
-                  "line": 587,
+                  "line": 603,
                   "name": "set",
                   "receiver": "SuppliesState",
                   "target": {
@@ -5848,42 +6503,42 @@
               "calls": [
                 {
                   "branch": "not data",
-                  "line": 673,
+                  "line": 689,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
                   }
                 },
                 {
-                  "line": 685,
+                  "line": 701,
                   "name": "SettlementRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
                   }
                 },
                 {
-                  "line": 709,
+                  "line": 725,
                   "name": "ParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
                   }
                 },
                 {
-                  "line": 720,
+                  "line": 736,
                   "name": "SentParcelRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
                   }
                 },
                 {
-                  "line": 731,
+                  "line": 747,
                   "name": "PermitRecord",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
                   }
                 },
                 {
-                  "line": 675,
+                  "line": 691,
                   "name": "BackpackState",
                   "target": {
                     "file": "src/escape_the_valley/backpack_models.py"
@@ -5913,30 +6568,30 @@
             {
               "in": "_do_change_pace",
               "kind": "except",
-              "line": 580
+              "line": 582
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 780
+              "line": 782
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 788
+              "line": 790
             },
             {
               "in": "_settle_checkpoint",
               "kind": "except",
-              "line": 1332
+              "line": 1334
             },
             {
               "in": "_check_parcels",
               "kind": "except",
-              "line": 1386
+              "line": 1388
             }
           ],
-          "hash": "162f33ffc86ba518bdb38c051e1dc20ea15a1b95ee81b89c757b08867b4fba0a",
+          "hash": "e2334b611b64b9640fde5885a3e4f08368fbbbd954aa18e31d00af4a6f20fa2c",
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -5955,7 +6610,7 @@
             {
               "calls": [
                 {
-                  "line": 1638,
+                  "line": 1640,
                   "name": "EndingResult",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -6115,7 +6770,7 @@
               "line": 26
             }
           ],
-          "hash": "97067974fe3265445173d6fa29469c7ec40caab948aac92f2399a6431446e9b1",
+          "hash": "9c0c478bbc561468896cc94a25094a3c151f8cc5b981ba46b3b52cd6bc05f2d8",
           "importOrder": [
             "src/escape_the_valley/models.py",
             "src/escape_the_valley/resources.py",
@@ -6607,14 +7262,14 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 17,
+          "reads": 18,
           "where": [
             "caller"
           ],
           "writes": 4
         }
       ],
-      "outsideReads": 17,
+      "outsideReads": 18,
       "outsideWrites": 4,
       "role": "code",
       "testedBy": 23,
@@ -6741,7 +7396,7 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "6b935817cc275209cfeeea5d5014636c3d2a8e724ce971865982fae3fa771093",
+          "hash": "941a18c1af2c9c0a3e5e81c6bc74646686c65328e1266d8842990132f1b94d17",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
@@ -6809,11 +7464,27 @@
           "testFramework": "pytest"
         },
         {
-          "hash": "db0179b7efa7873034e5833590d56f0fb38d6bead6493b13d7f63cead5ea6ae9",
-          "importsFiles": [
+          "hash": "cf9d10e54e2afcee10786cae3bdcf35805b99235fad9d3417dc62714e486585c",
+          "importOrder": [
             "src/escape_the_valley/event_loader.py",
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/models.py",
+            "src/escape_the_valley/worldgen.py",
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/ui.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/step_engine.py"
+          ],
+          "importsFiles": [
+            "src/escape_the_valley/engine.py",
+            "src/escape_the_valley/event_loader.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/ui.py",
             "src/escape_the_valley/worldgen.py"
           ],
           "path": "tests/test_events.py"
@@ -6822,7 +7493,7 @@
           "exports": [
             "test_live_four_tier_gate"
           ],
-          "hash": "55178771c6db0ca0589330438e8df804a58873419a039e14a4175b54f64cecca",
+          "hash": "092135086249dc2644f816cf7043fa159297f5b2f7ba9be1aea77f3f9c2a9f66",
           "importsFiles": [
             "agents/skilled.py",
             "src/escape_the_valley/gm.py",
@@ -6963,7 +7634,7 @@
           "path": "tests/test_physics.py"
         },
         {
-          "hash": "25f7b9e663f45c50418580c41882b5181c26cbfb7473aeae238b37768aca31f5",
+          "hash": "b906fe35d0b9ba4180503d3c38c5cf2e7b9efbd4c918af1a61413e37abab6583",
           "importOrder": [
             "src/escape_the_valley/engine.py",
             "src/escape_the_valley/gm.py",
@@ -7261,7 +7932,7 @@
   ],
   "doors": [
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -7286,6 +7957,14 @@
             "ruff"
           ],
           "step": "Lint"
+        },
+        {
+          "dir": "",
+          "job": "test",
+          "programs": [
+            "python"
+          ],
+          "step": "Verify vendored _licenses/ against python-build-standalone archive (#31.2)"
         },
         {
           "dir": "",
@@ -7383,6 +8062,11 @@
       "pushes": false,
       "reach": [
         {
+          "boundary": "scripts",
+          "depth": 0,
+          "files": 7
+        },
+        {
           "boundary": "src",
           "depth": 0,
           "files": 28
@@ -7397,13 +8081,24 @@
           "depth": 1,
           "enters": {
             "file": "agents/skilled.py",
-            "from": "tests/test_four_tier_live.py"
+            "from": "scripts/sim_gm_panel.py"
           },
           "files": 1
         }
       ],
       "readers": [],
       "runs": [
+        {
+          "directory": true,
+          "job": "test",
+          "path": "scripts/",
+          "runKind": "checks"
+        },
+        {
+          "job": "test",
+          "path": "scripts/gen_third_party_notices.py",
+          "runKind": "executes"
+        },
         {
           "directory": true,
           "job": "test",
@@ -7417,7 +8112,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 4,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -7984,7 +8679,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 2,
+      "checksCount": 3,
       "commands": [
         {
           "dir": "",
@@ -8009,6 +8704,14 @@
             "ruff"
           ],
           "step": "Lint"
+        },
+        {
+          "dir": "",
+          "job": "gate/test",
+          "programs": [
+            "python"
+          ],
+          "step": "Verify vendored _licenses/ against python-build-standalone archive (#31.2)"
         },
         {
           "dir": "",
@@ -8226,6 +8929,11 @@
       "pushes": false,
       "reach": [
         {
+          "boundary": "scripts",
+          "depth": 0,
+          "files": 7
+        },
+        {
           "boundary": "src",
           "depth": 0,
           "files": 28
@@ -8240,13 +8948,24 @@
           "depth": 1,
           "enters": {
             "file": "agents/skilled.py",
-            "from": "tests/test_four_tier_live.py"
+            "from": "scripts/sim_gm_panel.py"
           },
           "files": 1
         }
       ],
       "readers": [],
       "runs": [
+        {
+          "directory": true,
+          "job": "gate/test",
+          "path": "scripts/",
+          "runKind": "checks"
+        },
+        {
+          "job": "gate/test",
+          "path": "scripts/gen_third_party_notices.py",
+          "runKind": "executes"
+        },
         {
           "directory": true,
           "job": "gate/test",
@@ -8260,7 +8979,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 2,
+      "runsCount": 4,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -8476,8 +9195,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
-    "tracked": 530
+    "commit": "119458a7d6298392cacdef115d90461b11f068e5",
+    "tracked": 628
   },
   "landings": [
     {
@@ -8545,12 +9264,27 @@
     {
       "readers": [
         {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_g1.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
           "call": "literal",
           "confidence": "text"
         },
         {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
           "call": "literal",
           "confidence": "text"
         },
@@ -8572,6 +9306,11 @@
         },
         {
           "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh",
           "call": "literal",
           "confidence": "text"
         }
