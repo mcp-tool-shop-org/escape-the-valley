@@ -33,11 +33,25 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _emit_licenses_text() -> None:
+    """Emit THIRD_PARTY_NOTICES.txt with LF line endings on all platforms (N2)."""
+    import sys
+
+    from .notices import get_third_party_notices_text
+
+    text = get_third_party_notices_text().replace("\r\n", "\n").replace("\r", "\n")
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except Exception:
+            pass
+    typer.echo(text, nl=False)
+
+
 def _licenses_callback(value: bool) -> None:
     if value:
-        from .notices import get_third_party_notices_text
-
-        typer.echo(get_third_party_notices_text(), nl=False)
+        _emit_licenses_text()
         raise typer.Exit()
 
 
@@ -155,7 +169,12 @@ def main_callback(
 
 @app.command()
 def new(
-    seed: int | None = typer.Option(None, "--seed", "-s", help="RNG seed for reproducible runs"),
+    seed: int | None = typer.Option(
+        None,
+        "--seed",
+        "-s",
+        help="RNG seed; the same seed and choices give the same run in this version",
+    ),
     profile: str = typer.Option(
         "fireside",
         "--gm-profile",
@@ -553,9 +572,7 @@ def version() -> None:
 @app.command()
 def licenses() -> None:
     """Show license and third-party notices."""
-    from .notices import get_third_party_notices_text
-
-    typer.echo(get_third_party_notices_text(), nl=False)
+    _emit_licenses_text()
 
 
 def _gm_diagnostics(model: str) -> dict:

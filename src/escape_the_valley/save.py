@@ -138,11 +138,27 @@ def _write_secrets_sidecar(save_dir: Path, state: RunState) -> None:
     # Load any existing sidecar so we don't clobber other runs' secrets.
     store: dict = {}
     if secrets_path.exists():
+        corrupt = False
         try:
-            store = json.loads(secrets_path.read_text(encoding="utf-8"))
-            if not isinstance(store, dict):
-                store = {}
-        except (json.JSONDecodeError, UnicodeDecodeError):
+            loaded = json.loads(secrets_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                store = loaded
+            else:
+                corrupt = True
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            corrupt = True
+
+        if corrupt:
+            log.warning(
+                "%s is unreadable or malformed; quarantining before rewrite",
+                SECRETS_FILE,
+            )
+            quarantined = _backup_corrupt_save(secrets_path)
+            if quarantined is not None:
+                try:
+                    quarantined.chmod(0o600)
+                except OSError:
+                    pass
             store = {}
 
     if bp.wallet_secret or bp.issuer_secret:

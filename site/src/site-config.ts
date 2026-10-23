@@ -35,7 +35,7 @@ export const config: SiteConfig = {
         },
         {
           title: 'Deterministic Physics',
-          desc: 'Seeded RNG, scarcity curves, and doctrine modifiers. Every run is reproducible. The engine is the rules-lawyer; the GM just tells the story.',
+          desc: 'Seeded RNG, scarcity curves, and doctrine modifiers. Within one version, the same seed and the same choices play the same run. The engine is the rules-lawyer; the GM just tells the story.',
         },
         {
           title: 'Oregon Trail Mechanics',

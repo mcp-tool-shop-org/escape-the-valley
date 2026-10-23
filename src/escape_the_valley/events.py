@@ -1734,10 +1734,24 @@ _TAG_FAMILIES = {"river", "weather", "human", "folklore", "survival", "ford", "b
 
 _COOLDOWN_WINDOW = 6  # remember last N events' primary tags
 _COOLDOWN_PENALTY = 0.25  # multiply weight by this for each recent match
+_EVENT_ID_COOLDOWN_WINDOW = 4  # post-draw per-event_id repeat guard (#21)
+
+
+def _recent_event_id_history(state: RunState) -> list[str]:
+    """Return the mutable per-event_id cooldown ring buffer for `state`."""
+    buf: list[str] | None = getattr(state, "_recent_event_ids", None)
+    if buf is None:
+        buf = [
+            j.event_id
+            for j in state.journal
+            if j.choice_made and j.event_id
+        ][-_EVENT_ID_COOLDOWN_WINDOW:]
+        state._recent_event_ids = buf  # type: ignore[attr-defined]
+    return buf
 
 
 def _record_event_tags(state: RunState, event: EventSkeleton) -> None:
-    """Record an event's primary tags in the cooldown buffer."""
+    """Record an event's primary tags and event_id in the cooldown buffers."""
     family_tags = [t for t in event.tags if t in _TAG_FAMILIES]
     if family_tags:
         state.recent_event_tags.append(family_tags[0])
@@ -1752,6 +1766,11 @@ def _record_event_tags(state: RunState, event: EventSkeleton) -> None:
     max_window = _COOLDOWN_WINDOW * 2
     if len(state.recent_event_tags) > max_window:
         state.recent_event_tags = state.recent_event_tags[-max_window:]
+
+    id_buf = _recent_event_id_history(state)
+    id_buf.append(event.event_id)
+    if len(id_buf) > _EVENT_ID_COOLDOWN_WINDOW:
+        del id_buf[:-_EVENT_ID_COOLDOWN_WINDOW]
 
 
 def _cooldown_factor(state: RunState, event: EventSkeleton) -> float:
@@ -1869,6 +1888,21 @@ def select_event(
         return rng.choice(survival) if survival else library[0]
 
     selected = rng.weighted_choice(candidates, weights)
+
+    # #21: post-draw per-event_id cooldown guard so a recently fired skeleton
+    # cannot repeat within _EVENT_ID_COOLDOWN_WINDOW events while leaving RNG
+    # draw counts unchanged on all non-repeating turns.
+    recent_ids = set(_recent_event_id_history(state))
+    if selected.event_id in recent_ids:
+        non_recent = [
+            (c, w)
+            for c, w in zip(candidates, weights, strict=True)
+            if c.event_id not in recent_ids
+        ]
+        if non_recent:
+            nr_candidates = [c for c, _ in non_recent]
+            nr_weights = [w for _, w in non_recent]
+            selected = rng.weighted_choice(nr_candidates, nr_weights)
 
     # Record this event's tags for future cooldown
     _record_event_tags(state, selected)

@@ -4,6 +4,22 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-23
+
+### Changed
+
+- **Per-`event_id` cooldown (`N=4`) and seed reproducibility note (#21).** `select_event` now tracks the last 4 fired `event_id`s alongside the existing tag-family cooldown so a specific skeleton cannot repeat on consecutive or near-consecutive event steps. Because the post-draw guard re-draws when a candidate in the 4-event cooldown window is hit, **1.3.1 → 1.3.2 moves event draws after a repeat would have happened**, and **a run saved in 1.3.1 continues differently after upgrading to 1.3.2** because event draws move (for example, on `--seed 42 --gm-off` with repeated Travel choosing `A`, Events 1–19 through Travel 36 / Day 13 match 1.3.1 identically and Event 20 at Travel 37 / Day 13 draws `f5_114` instead of repeating `f3_028`). Within one version, the same seed and the same choices play the same run. Reloading a save at a fork can change the run until #41 is fixed.
+
+### Fixed
+
+- **GM-off CLI Outcome panel duplicate line (#20).** In `GameEngine._trigger_event` (`trail new` / `trail continue` with `--gm-off`), the fallback outcome summary was assigned to both `outcome_narration` and `callout`, causing `show_outcome` to print the summary line twice inside the Outcome panel. The fallback path now sets `outcome_narration` only (`callout = ""`), and `show_outcome` suppresses `callout` when it equals `narration`.
+- **Choice hint double punctuation and `1 mile remaining` grammar (#21).** `show_event_scene` now strips trailing `.` from `risk_hint` and `cost_hint` before joining with `; ` or wrapping in `(...)` (eliminating `(Time cost, animal recovers.; A day.)`), and both `StepEngine` and `GameEngine` render singular `1 mile remaining.` when `distance_remaining == 1`.
+- **Quarantine corrupt `.trail/secrets.json` before rewrite (#31.7).** When `_write_secrets_sidecar` encounters an unreadable or non-dict `.trail/secrets.json`, it now renames the corrupt file to `secrets.json.corrupt-<timestamp>` (uniquified, matching `_backup_corrupt_save`), logs a warning naming the file without echoing its contents, and writes a fresh `secrets.json` containing only the current run's entry.
+- **LF-normalised third-party notices and byte-for-byte `trail licenses` output (N1, N2).** Every licence text is normalised to LF (`\n`) before SHA-256 hashing and rendering, `THIRD_PARTY_NOTICES*.txt` is written with `newline="\n"`, and `trail licenses` / `trail --licenses` emit LF on stdout across all platforms so the printed output matches the bundled file byte for byte.
+- **`gen_third_party_notices.py --prune-toc` honours `--release` (#31.1).** `--prune-toc` now forwards `release=release` instead of hardcoding `release=True`.
+- **CI verification of vendored `_licenses/` against python-build-standalone archive (#31.2, #31.3).** Added `verify_pbs_archive_accounting` and `scripts/gen_third_party_notices.py --verify-pbs-archive` (wired into `.github/workflows/ci.yml`) to verify that `_licenses/SOURCES.json` accounts for every file in the pinned python-build-standalone archive's `python/licenses/` and `python/PYTHON.json`, plus Windows `.pyd` and macOS `.so` excluded-extension TOC tests.
+- **Added `.polyglot-terms.json` (#31.5).** Protects CLI commands, flags, XRPL terms, env vars, and file names during polyglot README translation.
+
 ## [1.3.1] - 2026-10-22
 
 ### Added

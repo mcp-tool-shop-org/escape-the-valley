@@ -196,8 +196,10 @@ class GameEngine:
         if self.state.distance_remaining <= 0:
             self._arrive_at_next_node()
         else:
+            rem = self.state.distance_remaining
+            unit = "mile" if rem == 1 else "miles"
             show_message(
-                f"Traveled {distance} miles. {self.state.distance_remaining} miles remaining.",
+                f"Traveled {distance} miles. {rem} {unit} remaining.",
                 "bold",
             )
 
@@ -791,8 +793,8 @@ class GameEngine:
 
         if not outcome_narration:
             outcome_title = "Outcome"
-            callout = _build_fallback_callout(outcome)
-            outcome_narration = callout
+            outcome_narration = _build_fallback_callout(outcome)
+            callout = ""
 
         show_outcome(outcome_title, outcome_narration, callout, outcome.supplies_delta)
 

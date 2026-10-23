@@ -13,7 +13,7 @@ Escape the Valley is a survival game inspired by Oregon Trail. You lead a party 
 
 The game runs in your terminal. An AI narrator (powered by local Ollama) is on by default; pass `--gm-off` to disable it. If Ollama is not running, the game falls back to deterministic narration and still plays. An optional XRPL Testnet ledger tracks your supplies on-chain and stays off until you run `trail ledger enable`. The core game works without either.
 
-Every run is seeded. The same seed with the same choices produces the same outcome. This means you can replay a seed to try different strategies.
+Every run is seeded. Within one version, the same seed and the same choices play the same run. This means you can replay a seed to try different strategies.
 
 ## 2. Installation and first launch
 
@@ -37,7 +37,7 @@ Launch the full-screen TUI (recommended):
 trail tui --seed 42
 ```
 
-The `--seed 42` flag gives you a reproducible world. You can use any number. Without `--seed`, the game picks a random seed based on the current time.
+With `--seed 42`, within one version, the same seed and the same choices play the same run. You can use any number. Without `--seed`, the game picks a random seed based on the current time.
 
 When the game starts, you will see:
 

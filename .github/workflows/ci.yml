@@ -70,7 +70,11 @@ jobs:
         run: pip install -e ".[dev,xrpl]"
 
       - name: Lint
-        run: ruff check src/ tests/
+        run: ruff check src/ tests/ scripts/
+
+      - name: Verify vendored _licenses/ against python-build-standalone archive (#31.2)
+        if: matrix.python-version == '3.12'
+        run: python scripts/gen_third_party_notices.py --verify-pbs-archive --target all
 
       - name: Dependency audit
         # Scan installed deps for known advisories. Non-blocking (|| true) so a

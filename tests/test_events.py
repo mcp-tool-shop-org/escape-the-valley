@@ -760,3 +760,340 @@ class TestAdvertisedInventoryCosts:
         assert costs_b.get("tools") == 1
         assert "parts" not in costs_b
 
+
+class TestIssue20And21Fixes:
+    """#20 and #21 behaviour tests (must fail on 1.3.1 base commit de19ff8)."""
+
+    # Exact 1.3.1 (de19ff8) event sequence on seed 42, GM off, repeated Travel
+    # choosing 'A' at every event and route fork:
+    # (travel_step, day, event_id, rng_counter_after_select_event)
+    SEED_42_EVENTS_1_3_1 = [
+        (1, 1, "f1_017", 206),
+        (6, 2, "f1_020", 238),
+        (8, 3, "f4_066", 252),
+        (9, 3, "f5_110", 260),
+        (12, 4, "f1_006", 281),
+        (14, 5, "f5_118", 295),
+        (17, 6, "f1_036", 310),
+        (18, 6, "f5_090", 319),
+        (20, 7, "f4_058", 334),
+        (21, 7, "f2_010", 343),
+        (22, 8, "animal_lame", 352),
+        (24, 9, "f1_028", 367),
+        (29, 10, "f5_115", 401),
+        (30, 10, "whispering_tree", 409),
+        (31, 11, "f4_045", 416),
+        (32, 11, "f3_028", 425),
+        (33, 12, "storm_sudden", 432),
+        (35, 12, "f3_032", 444),
+        (36, 13, "f3_040", 450),
+        # At Travel 37 (Day 13, Event 20), 1.3.1 repeats 'f3_028' ('Itinerant
+        # Blacksmith'), which already fired 4 event steps earlier at Travel 32:
+        (37, 13, "f3_028", 456),
+        (38, 14, "f2_015", 461),
+    ]
+
+    # Exact 1.3.2 event sequence on seed 42, GM off, repeated Travel ('A'):
+    # Matches 1.3.1 identically through Event 19 (Travel 36, Day 13, rng 450)
+    # and diverges at Event 20 (Travel 37, Day 13) where the 'f3_028' repeat
+    # is rejected by the N=4 event-id cooldown and re-drawn as 'f5_114'.
+    SEED_42_EVENTS_1_3_2 = [
+        (1, 1, "f1_017", 206),
+        (6, 2, "f1_020", 238),
+        (8, 3, "f4_066", 252),
+        (9, 3, "f5_110", 260),
+        (12, 4, "f1_006", 281),
+        (14, 5, "f5_118", 295),
+        (17, 6, "f1_036", 310),
+        (18, 6, "f5_090", 319),
+        (20, 7, "f4_058", 334),
+        (21, 7, "f2_010", 343),
+        (22, 8, "animal_lame", 352),
+        (24, 9, "f1_028", 367),
+        (29, 10, "f5_115", 401),
+        (30, 10, "whispering_tree", 409),
+        (31, 11, "f4_045", 416),
+        (32, 11, "f3_028", 425),
+        (33, 12, "storm_sudden", 432),
+        (35, 12, "f3_032", 444),
+        (36, 13, "f3_040", 450),
+        (37, 13, "f5_114", 457),
+        (39, 14, "f5_099", 467),
+    ]
+
+    def test_gm_off_outcome_panel_renders_summary_once(self, monkeypatch):
+        """#20: GM-off Outcome panel must not print the fallback summary twice."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        import escape_the_valley.engine as engine_mod
+        import escape_the_valley.ui as ui_mod
+        from escape_the_valley.engine import GameEngine
+        from escape_the_valley.gm import GMConfig
+
+        buf = StringIO()
+        test_console = Console(file=buf, width=100, force_terminal=False)
+        monkeypatch.setattr(ui_mod, "console", test_console)
+        monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+
+        state = create_new_run(seed=42)
+        eng = GameEngine(state, GMConfig(enabled=False))
+        monkeypatch.setattr(engine_mod, "save_game", lambda *a, **k: None)
+
+        eng._do_travel()
+
+        rendered = buf.getvalue()
+        summary = "wagon -2, morale -2, 1 time lost"
+        assert rendered.count(summary) == 1, (
+            f"Expected fallback outcome summary once in Outcome panel, "
+            f"got {rendered.count(summary)} times:\n{rendered}"
+        )
+        assert state.journal[-1].outcome == summary
+
+        # Direct call guard if narration and callout ever match:
+        buf2 = StringIO()
+        monkeypatch.setattr(
+            ui_mod, "console", Console(file=buf2, width=100, force_terminal=False)
+        )
+        ui_mod.show_outcome("Outcome", summary, summary, {})
+        assert buf2.getvalue().count(summary) == 1
+
+    def test_seed_42_gm_off_repeated_travel_never_repeats_within_cooldown(self):
+        """#21: repeated Travel (seed 42, GM off; and seed 20) never fires the
+        same event_id on consecutive event steps or within N=4 event steps."""
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+        from escape_the_valley.step_engine import StepEngine
+
+        for seed in (42, 20):
+            state = create_new_run(seed=seed)
+            eng = StepEngine(state, GMConfig(enabled=False))
+            event_ids: list[str] = []
+            while eng.phase != GamePhase.GAME_OVER:
+                if eng.phase == GamePhase.CAMP:
+                    eng.step(PlayerIntent(IntentAction.TRAVEL))
+                elif eng.phase == GamePhase.EVENT:
+                    assert eng._pending_event is not None
+                    event_ids.append(eng._pending_event.event_id)
+                    eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+                elif eng.phase == GamePhase.ROUTE:
+                    eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+            assert len(event_ids) >= 15
+            # No consecutive duplicate event_id:
+            for i in range(1, len(event_ids)):
+                assert event_ids[i] != event_ids[i - 1], (
+                    f"seed {seed}: consecutive event_id repeat {event_ids[i]!r} "
+                    f"at event index {i - 1} -> {i}"
+                )
+            # And no repeat within the N=4 event cooldown window:
+            window = 4
+            for i in range(len(event_ids)):
+                recent = event_ids[max(0, i - window):i]
+                assert event_ids[i] not in recent, (
+                    f"seed {seed}: event_id {event_ids[i]!r} at index {i} "
+                    f"repeated within cooldown window {window} (recent={recent})"
+                )
+
+    def test_seed_42_gm_off_event_sequence_pin_131_vs_132(self):
+        """#21 Publisher pinning condition: seed 42 (GM off, repeated Travel)
+        matches 1.3.1's event sequence up to Travel 36 (Event 19, Day 13) and
+        differs at Travel 37 (Event 20, Day 13) where 1.3.1 repeated f3_028."""
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+        from escape_the_valley.step_engine import StepEngine
+
+        # Verify recorded 1.3.1 vs 1.3.2 tables match up to index 19 and differ at 19:
+        assert self.SEED_42_EVENTS_1_3_1[:19] == self.SEED_42_EVENTS_1_3_2[:19]
+        assert self.SEED_42_EVENTS_1_3_1[19] == (37, 13, "f3_028", 456)
+        assert self.SEED_42_EVENTS_1_3_2[19] == (37, 13, "f5_114", 457)
+        assert self.SEED_42_EVENTS_1_3_1[19] != self.SEED_42_EVENTS_1_3_2[19]
+
+        state = create_new_run(seed=42)
+        eng = StepEngine(state, GMConfig(enabled=False))
+        travel_step = 0
+        observed: list[tuple[int, int, str, int]] = []
+        while eng.phase != GamePhase.GAME_OVER:
+            if eng.phase == GamePhase.CAMP:
+                travel_step += 1
+                eng.step(PlayerIntent(IntentAction.TRAVEL))
+            elif eng.phase == GamePhase.EVENT:
+                assert eng._pending_event is not None
+                observed.append(
+                    (
+                        travel_step,
+                        state.day,
+                        eng._pending_event.event_id,
+                        eng.rng.counter,
+                    )
+                )
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            elif eng.phase == GamePhase.ROUTE:
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        assert observed[:19] == self.SEED_42_EVENTS_1_3_1[:19]
+        assert observed == self.SEED_42_EVENTS_1_3_2
+
+    def test_save_and_reload_mid_cooldown_suppresses_same_repeat(
+        self, tmp_path, monkeypatch
+    ):
+        """Preservation test: PR #40 fix-up 1 (#21): saving and reloading
+        mid-cooldown (after Travel 35 on seed 42, while f3_028 from Travel 32
+        is inside the N=4 cooldown window) rebuilds the cooldown history from
+        state.journal and suppresses the f3_028 repeat at Travel 37 identically
+        to an uninterrupted run."""
+        import escape_the_valley.step_engine as step_engine_mod
+        from escape_the_valley.events import _recent_event_id_history
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+        from escape_the_valley.save import load_game, save_game
+        from escape_the_valley.step_engine import StepEngine
+
+        monkeypatch.setattr(
+            step_engine_mod,
+            "save_game",
+            lambda st, base_dir=None: save_game(st, tmp_path),
+        )
+
+        state = create_new_run(seed=42)
+        eng = StepEngine(state, GMConfig(enabled=False))
+        travel_step = 0
+        observed: list[tuple[int, int, str, int]] = []
+
+        while eng.phase != GamePhase.GAME_OVER:
+            if eng.phase == GamePhase.CAMP:
+                if travel_step == 35:
+                    break
+                travel_step += 1
+                eng.step(PlayerIntent(IntentAction.TRAVEL))
+            elif eng.phase == GamePhase.EVENT:
+                assert eng._pending_event is not None
+                observed.append(
+                    (
+                        travel_step,
+                        eng.state.day,
+                        eng._pending_event.event_id,
+                        eng.rng.counter,
+                    )
+                )
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            elif eng.phase == GamePhase.ROUTE:
+                eng.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        assert eng.phase == GamePhase.CAMP
+        assert eng.state.distance_remaining > 0
+        assert _recent_event_id_history(eng.state) == [
+            "f4_045",
+            "f3_028",
+            "storm_sudden",
+            "f3_032",
+        ]
+
+        # Reload from disk into a brand-new StepEngine mid-cooldown:
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert getattr(loaded, "_recent_event_ids", None) is None
+        assert _recent_event_id_history(loaded) == [
+            "f4_045",
+            "f3_028",
+            "storm_sudden",
+            "f3_032",
+        ]
+
+        eng2 = StepEngine(loaded, GMConfig(enabled=False))
+        while eng2.phase != GamePhase.GAME_OVER:
+            if eng2.phase == GamePhase.CAMP:
+                travel_step += 1
+                eng2.step(PlayerIntent(IntentAction.TRAVEL))
+            elif eng2.phase == GamePhase.EVENT:
+                assert eng2._pending_event is not None
+                observed.append(
+                    (
+                        travel_step,
+                        eng2.state.day,
+                        eng2._pending_event.event_id,
+                        eng2.rng.counter,
+                    )
+                )
+                eng2.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+            elif eng2.phase == GamePhase.ROUTE:
+                eng2.step(PlayerIntent(IntentAction.CHOOSE, choice_id="A"))
+
+        assert observed[19] == (37, 13, "f5_114", 457)
+        assert observed == self.SEED_42_EVENTS_1_3_2
+
+
+    def test_show_event_strips_trailing_periods_from_choice_hints(self, monkeypatch):
+        """#21: trailing periods on risk_hint and cost_hint are stripped before
+        joining so '(... .; ...)' and '... .)' never appear."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        import escape_the_valley.ui as ui_mod
+
+        buf = StringIO()
+        test_console = Console(file=buf, width=100, force_terminal=False)
+        monkeypatch.setattr(test_console, "input", lambda *a, **k: "A")
+        monkeypatch.setattr(ui_mod, "console", test_console)
+        ui_mod.show_event_scene(
+            "Lame Animal",
+            "One of the draft animals is favoring its left foreleg badly.",
+            [
+                {
+                    "id": "A",
+                    "label": "Rest the animal for a day.",
+                    "risk_hint": "Time cost, animal recovers.",
+                    "cost_hint": "A day.",
+                }
+            ],
+        )
+        out = buf.getvalue()
+        assert ".;" not in out
+        assert ".)" not in out
+        assert "(Time cost, animal recovers; A day)" in out
+
+    def test_distance_remaining_singular_one_mile_both_engines(self, monkeypatch):
+        """#21: distance_remaining == 1 uses singular '1 mile remaining.' in
+        both StepEngine and GameEngine."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        import escape_the_valley.engine as engine_mod
+        import escape_the_valley.ui as ui_mod
+        from escape_the_valley.engine import GameEngine
+        from escape_the_valley.gm import GMConfig
+        from escape_the_valley.intent import IntentAction, PlayerIntent
+        from escape_the_valley.step_engine import StepEngine
+
+        # 1. StepEngine:
+        state_step = create_new_run(seed=42)
+        eng_step = StepEngine(state_step, GMConfig(enabled=False))
+        # Seed 42 starts with steady pace (5 miles/turn); set distance_remaining=6
+        # so one travel step leaves distance_remaining == 1.
+        state_step.distance_remaining = 6
+        eng_step.step(PlayerIntent(IntentAction.TRAVEL))
+        assert state_step.distance_remaining == 1
+        joined_lines = "\n".join(eng_step.msgs.lines)
+        assert "1 mile remaining." in joined_lines
+        assert "1 miles" not in joined_lines
+
+        # 2. GameEngine:
+        buf = StringIO()
+        monkeypatch.setattr(
+            ui_mod, "console", Console(file=buf, width=100, force_terminal=False)
+        )
+        monkeypatch.setattr(engine_mod, "show_event_scene", lambda *a, **k: "A")
+        monkeypatch.setattr(engine_mod, "save_game", lambda *a, **k: None)
+
+        state_cli = create_new_run(seed=42)
+        state_cli.distance_remaining = 6
+        eng_cli = GameEngine(state_cli, GMConfig(enabled=False))
+        eng_cli._do_travel()
+        cli_out = buf.getvalue()
+        assert "1 mile remaining." in cli_out
+        assert "1 miles" not in cli_out
+
+

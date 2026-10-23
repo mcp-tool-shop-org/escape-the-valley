@@ -393,9 +393,11 @@ class StepEngine:
         if self.state.distance_remaining <= 0:
             self._arrive_at_next_node()
         else:
+            rem = self.state.distance_remaining
+            unit = "mile" if rem == 1 else "miles"
             self.msgs.lines.append(
                 f"Traveled {distance} miles. "
-                f"{self.state.distance_remaining} miles remaining."
+                f"{rem} {unit} remaining."
             )
 
         # Advance time
