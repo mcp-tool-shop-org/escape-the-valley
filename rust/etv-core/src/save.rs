@@ -1063,3 +1063,147 @@ fn parse_settlement_list(val: Option<&Value>) -> Result<Vec<SettlementRecord>, S
     }
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::worldgen::create_new_run;
+
+    // preservation: missing save returns LoadResult::failure("no_save") and None from load_game
+    #[test]
+    fn test_missing_save_returns_no_save() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        assert!(!has_save(tmp.path()));
+        let res = load_game_result(tmp.path());
+        assert!(!res.ok);
+        assert_eq!(res.reason, "no_save");
+        assert!(res.state.is_none());
+        assert!(load_game(tmp.path()).is_none());
+    }
+
+    // preservation: structural corruption in value_to_state returns Err and load_game_result quarantines
+    #[test]
+    fn test_value_to_state_structural_corruption() {
+        // Non-object top-level JSON
+        assert!(value_to_state(&json!([1, 2, 3])).is_err());
+
+        let base_state = create_new_run(42);
+        let valid_val = state_to_value(&base_state);
+
+        // Missing required keys
+        for req_key in [
+            "party",
+            "wagon",
+            "supplies",
+            "run_id",
+            "seed",
+            "day",
+            "location_id",
+            "distance_remaining",
+        ] {
+            let mut v = valid_val.clone();
+            v.as_object_mut().unwrap().remove(req_key);
+            assert!(
+                value_to_state(&v).is_err(),
+                "removing required key '{req_key}' must fail value_to_state"
+            );
+        }
+
+        // Wrong types on fields and nested objects
+        let bad_mutations: Vec<(&str, Value)> = vec![
+            ("save_version", json!("not_an_int")),
+            ("save_version", json!(99)),
+            ("party", json!("not_an_object")),
+            ("party", json!({"members": "not_a_list"})),
+            ("party", json!({"members": ["not_an_obj"]})),
+            ("party", json!({"members": [{"name": "A", "health": 100, "condition": "bad_cond", "traits": []}]})),
+            ("wagon", json!("not_an_object")),
+            ("wagon", json!({"condition": "bad"})),
+            ("seed", json!(true)),
+            ("rng_counter", json!(-1)),
+            ("twists", json!("not_a_list")),
+            ("journal", json!([{"day": 1}])),
+            ("map_nodes", json!([{"node_id": "n1", "name": "N", "biome": "invalid_biome", "hazard": 1}])),
+            ("memory_cards", json!([{"id": "c1", "kind": "k", "title": "t", "text": "x", "salience": "bad"}])),
+            ("backpack", json!("not_an_object")),
+        ];
+
+        for (key, bad_val) in bad_mutations {
+            let mut v = valid_val.clone();
+            v.as_object_mut().unwrap().insert(key.to_string(), bad_val);
+            assert!(
+                value_to_state(&v).is_err(),
+                "corrupting '{key}' must fail value_to_state"
+            );
+        }
+
+        // Verify load_game_result quarantines a structurally corrupt JSON object
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let save_dir = tmp.path().join(SAVE_DIR);
+        fs::create_dir_all(&save_dir).unwrap();
+        let save_path = save_dir.join(SAVE_FILE);
+        fs::write(&save_path, "{\"save_version\": 1}").unwrap();
+        let res = load_game_result(tmp.path());
+        assert!(!res.ok);
+        assert_eq!(res.reason, "corrupt");
+        assert!(!save_path.exists());
+    }
+
+    // Fails on b888cb8 for two reasons:
+    // 1. Bare JSON integer seed > u64::MAX (within i128) failed serde_json::from_str::<Value> without arbitrary_precision.
+    // 2. Seeds outside i128 (> i128::MAX or < i128::MIN) were quarantined as "corrupt" instead of returning "seed_out_of_range".
+    #[test]
+    fn test_seed_above_u64_max_and_seed_overflow_outside_i128() {
+        let base_state = create_new_run(42);
+        let mut base_val = state_to_value(&base_state);
+
+        // 1. Bare integer seed in (u64::MAX as i128 + 1)..=i128::MAX loads cleanly
+        let seed_above_u64: i128 = (u64::MAX as i128) + 999_999;
+        base_val
+            .as_object_mut()
+            .unwrap()
+            .insert("seed".to_string(), json!(0));
+        let raw_valid_big = serde_json::to_string(&base_val)
+            .unwrap()
+            .replace("\"seed\":0", &format!("\"seed\":{seed_above_u64}"));
+        let parsed_val: Value = serde_json::from_str(&raw_valid_big).unwrap();
+        let loaded = value_to_state(&parsed_val).expect("seed > u64::MAX within i128 must parse");
+        assert_eq!(loaded.seed, seed_above_u64);
+
+        // 2. Bare integer seed > i128::MAX (2^127) is rejected as seed_out_of_range (not quarantined)
+        let above_i128_max = "170141183460469231731687303715884105728"; // i128::MAX + 1
+        let raw_overflow_pos = serde_json::to_string(&base_val)
+            .unwrap()
+            .replace("\"seed\":0", &format!("\"seed\":{above_i128_max}"));
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let save_dir = tmp.path().join(SAVE_DIR);
+        fs::create_dir_all(&save_dir).unwrap();
+        let save_path = save_dir.join(SAVE_FILE);
+        fs::write(&save_path, &raw_overflow_pos).unwrap();
+
+        let res_pos = load_game_result(tmp.path());
+        assert!(!res_pos.ok);
+        assert_eq!(res_pos.reason, "seed_out_of_range");
+        assert!(
+            save_path.exists(),
+            "save with seed > i128::MAX must not be quarantined as corrupt"
+        );
+
+        // 3. Bare integer seed < i128::MIN (-2^127 - 1) and string seed > i128::MAX also return seed_out_of_range
+        let below_i128_min = "-170141183460469231731687303715884105729"; // i128::MIN - 1
+        let raw_overflow_neg = serde_json::to_string(&base_val)
+            .unwrap()
+            .replace("\"seed\":0", &format!("\"seed\":{below_i128_min}"));
+        let val_neg: Value = serde_json::from_str(&raw_overflow_neg).unwrap();
+        let err_neg = value_to_state(&val_neg).unwrap_err();
+        assert!(err_neg.starts_with("seed_out_of_range:"));
+
+        let mut val_str_ov = base_val.clone();
+        val_str_ov
+            .as_object_mut()
+            .unwrap()
+            .insert("seed".to_string(), json!(above_i128_max));
+        let err_str = value_to_state(&val_str_ov).unwrap_err();
+        assert!(err_str.starts_with("seed_out_of_range:"));
+    }
+}

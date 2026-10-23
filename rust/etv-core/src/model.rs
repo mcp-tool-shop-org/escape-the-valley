@@ -1155,3 +1155,52 @@ impl RunState {
         format!("{prefix}-{suffix}")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Fails on b888cb8 because BackpackState::minted_snapshot_of did not exist and
+    // hydrate_minted_from_permit_shim returned () instead of the snapshot BTreeMap.
+    #[test]
+    fn test_minted_snapshot_of_lazy_hydration_and_partial_rejection() {
+        let mut bp = BackpackState::default();
+        assert!(bp.minted_snapshot_of().is_empty());
+        assert!(bp.minted_initial.is_empty());
+
+        // Partial (< 5 resources) permit shim does not hydrate
+        bp.permits.push(PermitRecord {
+            permit_id: MINTED_SNAPSHOT_PERMIT_ID.to_string(),
+            txid: "food=50,water=50,meds=5".to_string(),
+            used: true,
+            day_earned: 1,
+            day_used: 0,
+        });
+        assert!(bp.minted_snapshot_of().is_empty());
+        assert!(bp.minted_initial.is_empty());
+
+        // Complete 5-resource permit shim hydrates lazily and populates minted_initial
+        bp.permits.clear();
+        bp.permits.push(PermitRecord {
+            permit_id: MINTED_SNAPSHOT_PERMIT_ID.to_string(),
+            txid: "ammo=20,food=50,meds=5,parts=4,water=50,unknown=99".to_string(),
+            used: true,
+            day_earned: 1,
+            day_used: 0,
+        });
+        let snap = bp.minted_snapshot_of();
+        assert_eq!(snap.len(), 5);
+        assert_eq!(snap.get("food"), Some(&50));
+        assert_eq!(snap.get("water"), Some(&50));
+        assert_eq!(snap.get("meds"), Some(&5));
+        assert_eq!(snap.get("ammo"), Some(&20));
+        assert_eq!(snap.get("parts"), Some(&4));
+        assert_eq!(bp.minted_initial, snap);
+
+        // Subsequent calls prefer minted_initial over permits
+        bp.permits.clear();
+        bp.minted_initial.insert("food".to_string(), 75);
+        let snap2 = bp.minted_snapshot_of();
+        assert_eq!(snap2.get("food"), Some(&75));
+    }
+}

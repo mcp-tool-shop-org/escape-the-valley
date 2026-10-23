@@ -369,3 +369,49 @@ pub(crate) fn hex_encode(bytes: &[u8]) -> String {
     }
     s
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // preservation: CpythonRng::setstate out-of-bounds / invalid state rejection
+    #[test]
+    fn test_setstate_out_of_bounds_and_coerce_failures() {
+        let mut rng = CpythonRng::from_seed(42);
+        let orig = rng.getstate();
+
+        // Version != 3
+        let bad_ver = RngState(2, vec![0; N + 1], None);
+        assert_eq!(rng.setstate(&bad_ver), Err("unsupported RNG state version"));
+        assert_eq!(rng.getstate(), orig);
+
+        // Wrong internal length (< 625 and > 625)
+        let short_len = RngState(3, vec![0; N], None);
+        assert_eq!(
+            rng.setstate(&short_len),
+            Err("invalid internal state length")
+        );
+        let long_len = RngState(3, vec![0; N + 2], None);
+        assert_eq!(
+            rng.setstate(&long_len),
+            Err("invalid internal state length")
+        );
+        assert_eq!(rng.getstate(), orig);
+
+        // Out-of-bounds MT index (> 624)
+        let mut bad_idx_words = vec![0u32; N + 1];
+        bad_idx_words[N] = (N as u32) + 1;
+        let bad_idx = RngState(3, bad_idx_words.clone(), Some(1.25));
+        assert_eq!(rng.setstate(&bad_idx), Err("invalid MT index"));
+        assert_eq!(rng.getstate(), orig);
+
+        // coerce_rng_state rejects out-of-bounds MT index, > u32::MAX word, and non-f64 gauss_next
+        assert!(coerce_rng_state(&json!([3, bad_idx_words, null])).is_none());
+        let mut over_u32 = vec![0u64; N + 1];
+        over_u32[0] = (u32::MAX as u64) + 1;
+        assert!(coerce_rng_state(&json!([3, over_u32, null])).is_none());
+        let valid_words = vec![0u32; N + 1];
+        assert!(coerce_rng_state(&json!([3, valid_words, "not_a_float"])).is_none());
+    }
+}

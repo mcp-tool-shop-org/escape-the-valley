@@ -797,3 +797,52 @@ pub fn load_json_events_from_str(json_str: &str) -> Vec<EventSkeleton> {
 pub fn load_json_events() -> Vec<EventSkeleton> {
     load_json_events_from_str(EVENT_SKELETONS_JSON)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // preservation: malformed event entries are skipped while valid entries load
+    #[test]
+    fn test_malformed_events_skipped_in_load_json_events() {
+        let payload = json!([
+            "not_an_object",
+            {"title": "Missing ID"},
+            {"id": "", "title": "Empty ID"},
+            {"id": 123, "title": "Non-string ID"},
+            {
+                "id": "bad_choice_entry",
+                "title": "Has non-object choice",
+                "choices": ["not_a_choice_object"]
+            },
+            {
+                "id": "valid_event_01",
+                "title": "Valid Event",
+                "tags": ["folklore", "river"],
+                "weirdness_band": 3,
+                "severity": "unknown_severity_defaults_to_medium",
+                "narration_seed": "A strange mist rises.",
+                "choices": [
+                    {"label": "C1", "intent_action": "FORD", "engine_effect_profile": {"food": -2, "oil": -1, "condition": "ill", "unknown_res": 5}},
+                    {"label": "C2", "intent_action": "WAIT"},
+                    {"label": "C3", "intent_action": "REST"},
+                    {"label": "C4", "intent_action": "INVESTIGATE"},
+                    {"label": "C5_truncated", "intent_action": "TRAVEL"}
+                ]
+            }
+        ]);
+
+        let events = load_json_events_from_str(&payload.to_string());
+        assert_eq!(events.len(), 1);
+        let ev = &events[0];
+        assert_eq!(ev.event_id, "valid_event_01");
+        assert_eq!(ev.severity, "medium");
+        assert!(ev.costs_uncanny_token);
+        assert_eq!(ev.fallback_choices.len(), 4);
+        assert_eq!(
+            ev.outcome_templates.get("A").unwrap().supplies_delta.get("lantern_oil"),
+            Some(&-1)
+        );
+    }
+}
