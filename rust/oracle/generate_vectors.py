@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Oracle vector generator for Escape the Valley 2.0 Phase 1a.
+"""Oracle vector generator for Escape the Valley 2.0 (Phase 1a + Phase 1b).
 
 Run against the pinned CPython 3.12.13 venv in the detached v1.3.1 (47b01a3)
 oracle worktree:
 
-    E:/AI/_worktrees/etv-oracle-131/.venv/Scripts/python.exe rust/oracle/generate_vectors.py
+    uv run --project E:/AI/_worktrees/etv-oracle-131 --python 3.12.13 python rust/oracle/generate_vectors.py
 
 Produces gzip-compressed vector files in `rust/oracle/vectors/`:
-1. `rng_s1_vectors.json.gz`   — S1 RNG call-shape vectors (with `pool_n1000_k20` label fix)
-2. `worldgen_200.json.gz`     — 200 seeds: canonical RunState JSON + RNG state SHA-256 + weather/events
-3. `saves_20.json.gz`         — 20 real Python saves across play stages + next 100 RNG draws + secrets
+1. `rng_s1_vectors.json.gz`    — S1 & gameplay RNG call-shape vectors (both `sample` branches, large/negative seeds)
+2. `worldgen_200.json.gz`      — 200 seeds: canonical RunState JSON + RNG state SHA-256 + weather + 200 JSON events
+3. `saves_20.json.gz`          — 20 real Python saves across play stages + 5 migrations + next 100 RNG draws
+4. `turns_1000_seeds.json.gz`  — 1,000 seeds × 60 turns golden harness + 260 full event library + 8 ending vectors
+5. `resume_120_seeds.json.gz`  — 120 save-and-resume runs saved at fixed turn 20
 """
 
 from __future__ import annotations
@@ -22,6 +24,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -35,9 +39,23 @@ from escape_the_valley.backpack_models import (
     stamp_minted_snapshot,
 )
 from escape_the_valley.event_loader import load_json_events
+from escape_the_valley.events import build_event_library
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
-from escape_the_valley.models import Biome, GMProfile, RunState, SeededRNG
+from escape_the_valley.models import (
+    Biome,
+    Doctrine,
+    GMProfile,
+    JournalEntry,
+    RunState,
+    SeededRNG,
+    Taboo,
+)
+from escape_the_valley.physics import (
+    can_abandon_cargo,
+    can_desperate_repair,
+    can_hard_ration,
+)
 from escape_the_valley.save import (
     SAVE_DIR,
     SAVE_FILE,
@@ -45,7 +63,7 @@ from escape_the_valley.save import (
     load_game,
     save_game,
 )
-from escape_the_valley.step_engine import StepEngine
+from escape_the_valley.step_engine import StepEngine, compute_ending
 from escape_the_valley.worldgen import (
     create_new_run,
     generate_map,
@@ -53,6 +71,10 @@ from escape_the_valley.worldgen import (
     generate_weather,
     pick_twists,
 )
+
+
+def sha256_hex(data: str) -> str:
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 def f64_bits(val: float) -> int:
@@ -80,7 +102,7 @@ def serialize_rng_state(state: tuple[Any, ...]) -> list[Any]:
 def rng_state_sha256_hex(state: tuple[Any, ...]) -> str:
     """Compact JSON SHA-256 of [3, [w0..w623, index], gauss_next]."""
     raw = json.dumps(serialize_rng_state(state), separators=(",", ":"))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return sha256_hex(raw)
 
 
 def get_oracle_metadata() -> dict[str, str]:
@@ -101,28 +123,42 @@ def get_oracle_metadata() -> dict[str, str]:
     }
 
 
-# ── 1. S1 RNG Vectors (with pool_n1000_k20 renamed) ─────────────────────────
+# ── 1. S1 & Gameplay RNG Vectors (both `sample` branches + all call shapes) ──
 
 S1_SEEDS: list[tuple[str, int]] = [
     ("zero", 0),
     ("one", 1),
     ("forty_two", 42),
+    ("neg_one", -1),
+    ("neg_forty_two", -42),
     ("u32_plus_7", (1 << 32) + 7),
+    ("u64_plus_13", (1 << 64) + 13),
     ("bits_100", (1 << 99) + 0x123456789ABCDEF012345678),
     ("negative_large", -98765432101234567890),
+    ("negative_bits_80", -(1 << 80) - 99),
 ]
 
 GETRANDBITS_WIDTHS: list[int] = [
     1, 2, 7, 16, 31, 32, 33, 48, 53, 63, 64, 65, 96, 100, 128,
 ]
 
+# Includes general bit-width ranges and every gameplay `randint(a, b)` call shape
 RANDINT_RANGES: list[tuple[int, int]] = [
     (0, 0),
     (0, 1),
     (0, 2),
     (1, 6),
+    (2, 6),       # physics.py:224 spoilage
+    (3, 9),       # step_engine.py:1349 town trade food offer
+    (4, 5),       # worldgen.py:303 party size
+    (4, 12),      # physics.py:395 hunt food gain
+    (5, 15),      # physics.py:296,345,372,402 night/sickness/heal/hunt-injury
+    (8, 25),      # worldgen.py:259 leg distance & physics.py:257 breakdown damage
+    (10, 20),     # physics.py:319,495 starvation & desperate repair injury
+    (12, 16),     # worldgen.py:216 node count
+    (15, 25),     # physics.py:331,486 dehydration & desperate repair wagon gain
+    (70, 100),    # worldgen.py:310 initial member health
     (-5, 5),
-    (8, 25),
     (0, 32),
     (0, 255),
     (0, 256),
@@ -134,12 +170,19 @@ RANDINT_RANGES: list[tuple[int, int]] = [
     (-(1 << 40), (1 << 40)),
 ]
 
-CHOICE_LENGTHS: list[int] = [1, 3, 5, 18, 60]
+# Includes all gameplay `choice` sequence lengths (2, 3, 4, 5, 7) plus 1, 18, 60
+CHOICE_LENGTHS: list[int] = [1, 2, 3, 4, 5, 7, 18, 60]
 SHUFFLE_LENGTHS: list[int] = [0, 1, 2, 5, 12, 25]
 
+# Covers both CPython `sample` branches:
+# - pool branch (`n <= setsize`, where `setsize = 21 + (4 ** ceil(log(k*3, 4)) if k > 5 else 0)`)
+# - set branch (`n > setsize`)
+# Includes gameplay `sample` shapes: (5, 1), (5, 2) in `pick_twists`, and (8, 1), (8, 2) in `generate_party`.
 SAMPLE_CASES: list[tuple[str, int, int]] = [
     ("pool_k0", 5, 0),
     ("pool_k1", 5, 1),
+    ("pool_n5_k2", 5, 2),
+    ("pool_n8_k1", 8, 1),
     ("pool_n8_k2", 8, 2),
     ("pool_n21_k5", 21, 5),
     ("set_n22_k5", 22, 5),
@@ -149,13 +192,24 @@ SAMPLE_CASES: list[tuple[str, int, int]] = [
     ("set_n50_k3", 50, 3),
     ("pool_n100_k10", 100, 10),
     ("set_n300_k10", 300, 10),
-    ("pool_n1000_k20", 1000, 20),  # Renamed from set_n1000_k20 per Phase 1a brief
+    ("pool_n1000_k20", 1000, 20),
+    ("set_n2000_k20", 2000, 20),
 ]
 
 WEIGHTED_CASES: list[tuple[str, list[str], list[float]]] = [
     ("uniform3", ["a", "b", "c"], [1.0, 1.0, 1.0]),
     ("skewed4", ["river", "bandit", "weather", "omen"], [0.1, 0.25, 0.05, 0.6]),
     ("trail5", ["alpha", "beta", "gamma", "delta", "epsilon"], [10.0, 0.5, 0.5, 3.0, 1.0]),
+    (
+        "weather_alpine7",
+        ["clear", "overcast", "rain", "storm", "fog", "snow", "hot"],
+        [0.25, 0.20, 0.10, 0.15, 0.10, 0.20, 0.0],
+    ),
+    (
+        "events_cooldown10",
+        [f"ev_{i}" for i in range(10)],
+        [1.0, 0.25, 0.0625, 1.4, 2.0, 1.3, 0.3, 1.69, 0.5, 1.0],
+    ),
 ]
 
 
@@ -318,28 +372,63 @@ def canonical_run_state_json(state: RunState) -> tuple[str, str]:
     d = _state_to_dict(state)
     prefix = str(d["run_id"]).split("-")[0]
     d["run_id"] = prefix
-    # For large >64-bit seeds that don't fit in i64, normalize seed in dict to string if outside i64
     if not (-(1 << 63) <= state.seed < (1 << 63)):
         d["seed"] = str(state.seed)
     canonical = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return prefix, canonical
 
 
+def serialize_event_skeleton(ev: Any) -> dict[str, Any]:
+    return {
+        "event_id": ev.event_id,
+        "title": ev.title,
+        "category": ev.category.value,
+        "tags": list(ev.tags),
+        "severity": ev.severity,
+        "biome_filter": [b.value for b in ev.biome_filter] if ev.biome_filter else None,
+        "costs_uncanny_token": ev.costs_uncanny_token,
+        "folklore_type": ev.folklore_type.value if ev.folklore_type else None,
+        "fallback_narration": ev.fallback_narration,
+        "choices": [
+            {
+                "choice_id": c.choice_id,
+                "label": c.label,
+                "action": c.action,
+                "style": c.style,
+                "risk_hint": c.risk_hint,
+                "cost_hint": c.cost_hint,
+            }
+            for c in ev.fallback_choices
+        ],
+        "outcomes": {
+            cid: {
+                "supplies_delta": out.supplies_delta,
+                "supplies_delta_order": list(out.supplies_delta.keys()),
+                "health_delta": out.health_delta,
+                "wagon_delta": out.wagon_delta,
+                "animals_health_delta": out.animals_health_delta,
+                "morale_delta": out.morale_delta,
+                "time_cost": out.time_cost,
+                "distance_delta": out.distance_delta,
+                "special_flags": list(out.special_flags),
+            }
+            for cid, out in ev.outcome_templates.items()
+        },
+    }
+
+
 def generate_worldgen_vectors(meta: dict[str, str]) -> dict[str, Any]:
     seeds = build_worldgen_seeds()
     vectors = []
     for seed in seeds:
-        # Reproduce exact RNG state after create_new_run(seed)
         rng = SeededRNG(seed)
         _ = generate_map(rng)
         _ = generate_party(rng)
         _ = pick_twists(rng)
-        from escape_the_valley.models import Doctrine, Taboo
         _ = rng.choice(list(Doctrine))
         _ = rng.choice(list(Taboo))
         rng_hash = rng_state_sha256_hex(rng.getstate())
 
-        # Weather sample after worldgen for day 1 & day 25 across all 5 biomes
         weather_picks = [
             generate_weather(rng, biome, day).value
             for day in (1, 25)
@@ -347,7 +436,7 @@ def generate_worldgen_vectors(meta: dict[str, str]) -> dict[str, Any]:
         ]
 
         state = create_new_run(seed=seed, gm_profile=GMProfile.FIRESIDE, weirdness_level=2)
-        assert state.rng_counter == rng.counter - 10  # before the 10 weather_picks
+        assert state.rng_counter == rng.counter - 10
         prefix, canonical_json = canonical_run_state_json(state)
 
         vectors.append({
@@ -359,43 +448,8 @@ def generate_worldgen_vectors(meta: dict[str, str]) -> dict[str, Any]:
             "canonical_json": canonical_json,
         })
 
-    # Also include compiled-in JSON event skeletons summary for parity verification
     json_events = load_json_events()
-    event_records = []
-    for ev in json_events:
-        event_records.append({
-            "event_id": ev.event_id,
-            "title": ev.title,
-            "category": ev.category.value,
-            "tags": ev.tags,
-            "severity": ev.severity,
-            "biome_filter": [b.value for b in ev.biome_filter] if ev.biome_filter else None,
-            "costs_uncanny_token": ev.costs_uncanny_token,
-            "folklore_type": ev.folklore_type.value if ev.folklore_type else None,
-            "fallback_narration": ev.fallback_narration,
-            "choices": [
-                {
-                    "choice_id": c.choice_id,
-                    "label": c.label,
-                    "action": c.action,
-                    "style": c.style,
-                }
-                for c in ev.fallback_choices
-            ],
-            "outcomes": {
-                cid: {
-                    "supplies_delta": out.supplies_delta,
-                    "health_delta": out.health_delta,
-                    "wagon_delta": out.wagon_delta,
-                    "animals_health_delta": out.animals_health_delta,
-                    "morale_delta": out.morale_delta,
-                    "time_cost": out.time_cost,
-                    "distance_delta": out.distance_delta,
-                    "special_flags": out.special_flags,
-                }
-                for cid, out in ev.outcome_templates.items()
-            },
-        })
+    event_records = [serialize_event_skeleton(ev) for ev in json_events]
 
     return {
         "schema": "etv-phase1a-worldgen-v1",
@@ -432,7 +486,6 @@ def drive_steps(engine: StepEngine, actions: list[IntentAction], choice_seq: str
 
 
 def next_100_draws_from_save(seed: int, counter: int, rng_state: Any) -> list[dict[str, Any]]:
-    """Reproduce GameEngine/StepEngine RNG restore and record the next 100 mixed draws."""
     rng = SeededRNG(seed, counter)
     if rng_state is not None:
         try:
@@ -466,7 +519,6 @@ def next_100_draws_from_save(seed: int, counter: int, rng_state: Any) -> list[di
 
 
 def make_20_real_saves() -> list[dict[str, Any]]:
-    """Create 20 real Python saves across diverse points of play."""
     T = IntentAction.TRAVEL
     R = IntentAction.REST
     H = IntentAction.HUNT
@@ -504,7 +556,6 @@ def make_20_real_saves() -> list[dict[str, Any]]:
             run_dir.mkdir(parents=True, exist_ok=True)
 
             state = create_new_run(seed=seed, gm_profile=profile)
-            # Make run_id deterministic in committed test vectors so regenerating vectors is reproducible
             det_suffix = hashlib.sha256(f"etv-phase1a-save-{label}".encode()).hexdigest()[:8]
             state.run_id = f"{state.run_id.split('-')[0]}-{det_suffix}"
 
@@ -588,7 +639,6 @@ def make_20_real_saves() -> list[dict[str, Any]]:
                 engine.state.game_over = True
                 engine.state.victory = True
 
-            # Sync RNG state before saving, just as StepEngine._save() does
             engine.state.rng_counter = engine.rng.counter
             engine.state.rng_state = engine.rng.getstate()
 
@@ -600,13 +650,11 @@ def make_20_real_saves() -> list[dict[str, Any]]:
             assert reloaded_for_snap is not None
             minted_snapshot = minted_snapshot_of(reloaded_for_snap.backpack)
 
-            # Compute next 100 RNG draws from this exact saved state
             draws_with_state = next_100_draws_from_save(
                 engine.state.seed,
                 engine.state.rng_counter,
                 parsed_dict["rng_state"],
             )
-            # Also compute next 100 RNG draws when rng_state is None (counter-replay fallback)
             draws_counter_only = next_100_draws_from_save(
                 engine.state.seed,
                 engine.state.rng_counter,
@@ -626,15 +674,11 @@ def make_20_real_saves() -> list[dict[str, Any]]:
 
 
 def make_migration_vectors() -> list[dict[str, Any]]:
-    """Create legacy v1 and v2 save fixtures (using test_save.py / test_backpack_save.py patterns)
-    and record the migrated v3 state produced by Python's load_game -> _state_to_dict."""
     cases: list[dict[str, Any]] = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
         base = Path(tmpdir)
 
-        # Case 1: v1 minimal save (pre-save_version, only 5 legacy supply keys, no rng_state,
-        # no doctrine/taboo/rationing_steps/last_spoilage_day/backpack/memory_cards, unsalted run_id)
         s1 = create_new_run(seed=42)
         s1.run_id = "73475cb4"
         s1.rng_counter = 12
@@ -654,7 +698,6 @@ def make_migration_vectors() -> list[dict[str, Any]]:
         d1.pop("callout_level", None)
         d1["supplies"] = {"food": 12, "water": 8, "meds": 1, "ammo": 4, "parts": 2}
 
-        # Case 2: v1 save with hostile/negative and phantom supplies (F-cfcd07e0 test fixture)
         s2 = create_new_run(seed=19)
         s2.run_id = "73475cb4-00000002"
         d2 = _state_to_dict(s2)
@@ -662,8 +705,6 @@ def make_migration_vectors() -> list[dict[str, Any]]:
         d2.pop("rng_state", None)
         d2["supplies"] = {"food": -5, "water": 30, "ammo": 9999, "gold": 7, "silver": -10}
 
-        # Case 3: v2 mid-evolution save (has save_version=1, backpack without sent_parcels,
-        # no rng_state, no last_spoilage_day, dangling destination_id per F-e86c2e71)
         s3 = create_new_run(seed=7)
         s3.run_id = "73475cb4-00000003"
         s3.location_id = s3.map_nodes[3].node_id
@@ -675,7 +716,6 @@ def make_migration_vectors() -> list[dict[str, Any]]:
         d3.pop("last_spoilage_day", None)
         d3["backpack"].pop("sent_parcels", None)
 
-        # Case 4: v2 save with malformed rng_state ([1, 2, 3]) and reserved permit shim
         s4 = create_new_run(seed=11)
         s4.run_id = "73475cb4-00000004"
         s4.rng_counter = 4
@@ -686,7 +726,6 @@ def make_migration_vectors() -> list[dict[str, Any]]:
         d4 = _state_to_dict(s4)
         d4["rng_state"] = [1, 2, 3]
 
-        # Case 5: v2 save with string rng_state ("nope") and missing optional member/journal fields
         s5 = create_new_run(seed=99)
         s5.run_id = "73475cb4-00000005"
         s5.rng_counter = 9
@@ -733,14 +772,422 @@ def make_migration_vectors() -> list[dict[str, Any]]:
     return cases
 
 
+# ── 4 & 5. Phase 1b Golden Harness: 1,000 Seeds × 60 Turns + 120 Save/Resume ─
+
+def build_1000_seeds() -> list[int]:
+    """1,000 distinct seeds including 0, 1, 42, negative ints, and ints above u32::MAX and u64::MAX."""
+    special = [
+        0,
+        1,
+        42,
+        -1,
+        -42,
+        -999999999,
+        -98765432101234567890,
+        (1 << 31) - 1,
+        1 << 31,
+        (1 << 32) + 7,
+        (1 << 62) + 1337,
+        (1 << 64) + 13,
+        (1 << 99) + 0x123456789ABCDEF012345678,
+        -(1 << 80) - 99,
+    ]
+    seeds = list(special)
+    cand = 2
+    while len(seeds) < 1000:
+        val = -cand if (cand % 9 == 0) else cand
+        if val not in seeds:
+            seeds.append(val)
+        cand += 1
+    assert len(seeds) == 1000
+    return seeds
+
+
+def make_policy_rng(seed: int) -> random.Random:
+    """Create a separate `random.Random` for the action policy from the run seed by a fixed rule."""
+    return random.Random((seed * 0x9E3779B97F4A7C15) ^ 0x5A5A5A5A5A5A5A5A)
+
+
+def normalize_state_dict(d: dict[str, Any]) -> dict[str, Any]:
+    out = dict(d)
+    run_id = str(out.get("run_id", ""))
+    if "-" in run_id:
+        out["run_id"] = run_id.split("-", 1)[0] + "-00000000"
+    if isinstance(out.get("seed"), int) and not (-(1 << 63) <= out["seed"] < (1 << 63)):
+        out["seed"] = str(out["seed"])
+    return out
+
+
+def hash_run_state_and_digest(state: RunState) -> tuple[str, dict[str, Any]]:
+    d = normalize_state_dict(_state_to_dict(state))
+    raw = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    digest = {
+        "day": d["day"],
+        "time": d["time_of_day"],
+        "loc": d["location_id"],
+        "dest": d["destination_id"],
+        "rem": d["distance_remaining"],
+        "dist": d["distance_traveled"],
+        "wagon": d["wagon"]["condition"],
+        "pace": d["wagon"]["pace"],
+        "morale": d["party"]["morale"],
+        "hp": [m["health"] for m in d["party"]["members"]],
+        "sup": d["supplies"],
+        "j_len": len(d["journal"]),
+        "mc_len": len(d["memory_cards"]),
+        "over": d["game_over"],
+        "vic": d["victory"],
+        "cod": d["cause_of_death"],
+    }
+    return sha256_hex(raw), digest
+
+
+def serialize_events_emitted(engine: StepEngine, msgs: Any) -> dict[str, Any]:
+    ending_dict = None
+    if msgs.ending is not None:
+        ending_dict = {
+            "tier": msgs.ending.tier,
+            "headline": msgs.ending.headline,
+            "facts": msgs.ending.facts,
+        }
+    return {
+        "phase": engine.phase.value,
+        "lines": list(msgs.lines),
+        "event_id": engine._pending_event.event_id if engine._pending_event else "",
+        "event_title": msgs.event_title,
+        "event_choices": [
+            {
+                "id": c.id,
+                "label": c.label,
+                "risk_hint": c.risk_hint,
+                "cost_hint": c.cost_hint,
+            }
+            for c in msgs.event_choices
+        ],
+        "route_options": [
+            {"node_id": r.node_id, "name": r.name, "distance": r.distance}
+            for r in msgs.route_options
+        ],
+        "outcome_title": msgs.outcome_title,
+        "outcome_narration": msgs.outcome_narration,
+        "outcome_deltas": dict(msgs.outcome_deltas),
+        "ending": ending_dict,
+    }
+
+
+def pick_intent(engine: StepEngine, prng: random.Random, seed_idx: int, turn: int) -> PlayerIntent:
+    """Action policy drawing from a separate `random.Random` (never the game RNG)."""
+    if engine.phase == GamePhase.EVENT:
+        offered = [c.id for c in engine._pending_event_choices]
+        r = prng.random()
+        if r < 0.02:
+            return PlayerIntent(IntentAction.TRAVEL)
+        if r < 0.04:
+            return PlayerIntent(IntentAction.CHOOSE, choice_id="Z")
+        return PlayerIntent(IntentAction.CHOOSE, choice_id=prng.choice(offered))
+    if engine.phase == GamePhase.ROUTE:
+        offered = ["A", "B", "C", "D"][: len(engine._pending_routes)]
+        r = prng.random()
+        if r < 0.02:
+            return PlayerIntent(IntentAction.TRAVEL)
+        if r < 0.04:
+            return PlayerIntent(IntentAction.CHOOSE, choice_id="D")
+        return PlayerIntent(IntentAction.CHOOSE, choice_id=prng.choice(offered))
+
+    # Every 6th seed pushes hard to exercise breakdowns, starvation, dehydration, and deaths
+    if seed_idx % 6 == 0:
+        if turn == 1:
+            return PlayerIntent(IntentAction.CHANGE_PACE, pace="hard")
+        # Subset of hard-push seeds hunts repeatedly at camp first so food stays at 50 while water drains -> Dehydration deaths
+        if seed_idx % 24 == 6 and turn <= 12 and engine.state.supplies.ammo > 0:
+            return PlayerIntent(IntentAction.HUNT)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    if can_desperate_repair(engine.state) and prng.random() < 0.6:
+        return PlayerIntent(IntentAction.DESPERATE_REPAIR)
+    if can_abandon_cargo(engine.state) and prng.random() < 0.5:
+        return PlayerIntent(IntentAction.ABANDON_CARGO)
+    if can_hard_ration(engine.state) and prng.random() < 0.5:
+        return PlayerIntent(IntentAction.HARD_RATION)
+    if engine.state.last_action == "REPAIR" and prng.random() < 0.5:
+        return PlayerIntent(IntentAction.REST)
+    if (
+        engine.state.last_action == "REST"
+        and engine.state.wagon.condition < 90
+        and engine.state.supplies.parts > 0
+        and prng.random() < 0.5
+    ):
+        return PlayerIntent(IntentAction.REPAIR)
+
+    r = prng.random()
+    if r < 0.65:
+        return PlayerIntent(IntentAction.TRAVEL)
+    if r < 0.74:
+        return PlayerIntent(IntentAction.REST)
+    if r < 0.83:
+        return PlayerIntent(IntentAction.HUNT)
+    if r < 0.91:
+        return PlayerIntent(IntentAction.REPAIR)
+    if r < 0.96:
+        p = prng.choice(["slow", "steady", "hard", "steady", "hard", "badpace"])
+        return PlayerIntent(IntentAction.CHANGE_PACE, pace=p)
+    if r < 0.98:
+        return PlayerIntent(IntentAction.ABANDON_CARGO)
+    if r < 0.99:
+        return PlayerIntent(IntentAction.DESPERATE_REPAIR)
+    return PlayerIntent(IntentAction.HARD_RATION)
+
+
+def generate_ending_vectors() -> list[dict[str, Any]]:
+    """Generate 8 ending/finalization vectors covering all `compute_ending` tiers and `finalize_run`."""
+    cases = []
+
+    # 1. Triumphant (vow kept)
+    s1 = create_new_run(seed=42)
+    s1.victory = True
+    s1.game_over = True
+    s1.day = 15
+    s1.distance_traveled = s1.total_distance
+    s1.taboo = "never_river"
+    cases.append(("triumphant_vow_kept", s1, False))
+
+    # 2. Triumphant (vow broken: never_river + river ford journal entry)
+    s2 = create_new_run(seed=42)
+    s2.victory = True
+    s2.game_over = True
+    s2.day = 15
+    s2.distance_traveled = s2.total_distance
+    s2.taboo = "never_river"
+    s2.journal.append(JournalEntry(
+        day=5,
+        location="Crossing",
+        event_id="river_crossing",
+        scene_title="Deep River",
+        narration="",
+        choice_made="A: Ford carefully",
+        outcome="",
+        deltas={},
+        tags=["river", "ford"],
+    ))
+    cases.append(("triumphant_vow_broken_river", s2, False))
+
+    # 3. Triumphant (vow broken: never_night + night tag)
+    s3 = create_new_run(seed=42)
+    s3.victory = True
+    s3.game_over = True
+    s3.day = 12
+    s3.distance_traveled = s3.total_distance
+    s3.taboo = "never_night"
+    s3.journal.append(JournalEntry(
+        day=4,
+        location="Camp",
+        event_id="wolf_pack",
+        scene_title="Wolves",
+        narration="",
+        choice_made="A: Stand guard",
+        outcome="",
+        deltas={},
+        tags=["danger", "night"],
+    ))
+    cases.append(("triumphant_vow_broken_night", s3, False))
+
+    # 4. Weathered (all alive, days > par_days)
+    s4 = create_new_run(seed=42)
+    s4.victory = True
+    s4.game_over = True
+    s4.day = 99
+    s4.distance_traveled = s4.total_distance
+    cases.append(("weathered_late", s4, False))
+
+    # 5. Pyrrhic (victory with fallen member)
+    s5 = create_new_run(seed=42)
+    s5.victory = True
+    s5.game_over = True
+    s5.day = 18
+    s5.distance_traveled = s5.total_distance
+    s5.taboo = "leave_nothing"
+    s5.party.members[0].health = 0
+    s5.party.members[0].death_cause = "Disease"
+    cases.append(("pyrrhic_one_lost", s5, False))
+
+    # 6. Lost (all party members dead)
+    s6 = create_new_run(seed=42)
+    s6.victory = False
+    s6.game_over = True
+    s6.day = 14
+    s6.cause_of_death = "Starvation"
+    for idx, m in enumerate(s6.party.members):
+        m.health = 0
+        m.death_cause = "Starvation" if idx % 2 == 0 else "Dehydration"
+    cases.append(("lost_all_dead", s6, False))
+
+    # 7. Lost (partial survivors when wagon failed)
+    s7 = create_new_run(seed=42)
+    s7.victory = False
+    s7.game_over = True
+    s7.day = 16
+    s7.cause_of_death = "Wagon failure"
+    s7.party.members[0].health = 0
+    s7.party.members[0].death_cause = "Injury"
+    cases.append(("lost_partial_survivors", s7, False))
+
+    # 8. finalize_run on a stalled non-game-over run with broken wagon and 0 parts
+    s8 = create_new_run(seed=42)
+    s8.wagon.condition = 0
+    s8.supplies.set("parts", 0)
+    cases.append(("finalize_run_wagon_failure", s8, True))
+
+    out = []
+    for label, st, use_finalize in cases:
+        raw_input = json.dumps(_state_to_dict(st), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        if use_finalize:
+            eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
+            ending = eng.finalize_run("stalled")
+            final_cod = eng.state.cause_of_death
+            final_over = eng.state.game_over
+        else:
+            ending = compute_ending(st)
+            final_cod = st.cause_of_death
+            final_over = st.game_over
+        out.append({
+            "label": label,
+            "use_finalize": use_finalize,
+            "input_state_json": raw_input,
+            "expected_cause_of_death": final_cod,
+            "expected_game_over": final_over,
+            "expected_ending": {
+                "tier": ending.tier,
+                "headline": ending.headline,
+                "facts": ending.facts,
+            },
+        })
+    return out
+
+
+def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    seeds = build_1000_seeds()
+    runs: list[dict[str, Any]] = []
+    resume_runs: list[dict[str, Any]] = []
+
+    action_counts: Counter[str] = Counter()
+    phase_counts: Counter[str] = Counter()
+    death_causes: Counter[str] = Counter()
+    distinct_events: set[str] = set()
+    total_turns = 0
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        for idx, seed in enumerate(seeds):
+            st = create_new_run(seed=seed)
+            det_suffix = hashlib.sha256(f"etv-phase1b-seed-{seed}".encode()).hexdigest()[:8]
+            st.run_id = f"{st.run_id.split('-')[0]}-{det_suffix}"
+
+            eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
+            prng = make_policy_rng(seed)
+            turns: list[dict[str, Any]] = []
+            saved_at_20_raw: str | None = None
+
+            for t in range(1, 61):
+                intent = pick_intent(eng, prng, idx, t)
+                action_counts[intent.action.value] += 1
+                msgs = eng.step(intent)
+                total_turns += 1
+                phase_counts[eng.phase.value] += 1
+
+                if eng._pending_event is not None:
+                    distinct_events.add(eng._pending_event.event_id)
+
+                state_hash, state_digest = hash_run_state_and_digest(eng.state)
+                ev_dict = serialize_events_emitted(eng, msgs)
+
+                turns.append({
+                    "t": t,
+                    "act": intent.action.value,
+                    "cid": intent.choice_id,
+                    "pace": intent.pace,
+                    "cnt": eng.state.rng_counter,
+                    "rng_h": rng_state_sha256_hex(eng.state.rng_state),
+                    "st_h": state_hash,
+                    "st_d": state_digest,
+                    "ev": ev_dict,
+                })
+
+                if (
+                    t == 20
+                    and len(resume_runs) < 120
+                    and (
+                        (eng.phase == GamePhase.CAMP and eng.state.distance_remaining > 0)
+                        or eng.phase == GamePhase.ROUTE
+                    )
+                ):
+                    save_dir = base / f"resume_{len(resume_runs):03d}"
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    sp = save_game(eng.state, save_dir)
+                    saved_at_20_raw = sp.read_text(encoding="utf-8")
+
+                if eng.phase == GamePhase.GAME_OVER:
+                    if eng.state.cause_of_death:
+                        death_causes[eng.state.cause_of_death] += 1
+                    break
+
+            runs.append({
+                "seed": str(seed),
+                "turns": turns,
+            })
+
+            if saved_at_20_raw is not None and len(turns) > 20:
+                resume_runs.append({
+                    "seed": str(seed),
+                    "seed_index": idx,
+                    "save_turn": 20,
+                    "raw_save_json": saved_at_20_raw,
+                })
+
+    full_library = [serialize_event_skeleton(ev) for ev in build_event_library()]
+    assert len(full_library) == 260
+    assert len(runs) == 1000
+    assert len(resume_runs) == 120
+
+    ending_vectors = generate_ending_vectors()
+
+    print(
+        f"Golden harness summary: seeds={len(runs)}, total_turns={total_turns}, "
+        f"resume_runs={len(resume_runs)}, distinct_events={len(distinct_events)}/260"
+    )
+    print(f"  Actions: {dict(action_counts)}")
+    print(f"  Phases:  {dict(phase_counts)}")
+    print(f"  Deaths:  {dict(death_causes)}")
+
+    turns_payload = {
+        "schema": "etv-phase1b-turns-v1",
+        "metadata": meta,
+        "seed_count": len(runs),
+        "max_turns_per_seed": 60,
+        "total_turns": total_turns,
+        "event_library_count": len(full_library),
+        "event_library": full_library,
+        "ending_vectors": ending_vectors,
+        "runs": runs,
+    }
+    resume_payload = {
+        "schema": "etv-phase1b-resume-v1",
+        "metadata": meta,
+        "count": len(resume_runs),
+        "save_turn": 20,
+        "resume_runs": resume_runs,
+    }
+    return turns_payload, resume_payload
+
+
 def main() -> None:
+    t0 = time.time()
     out_dir = Path(__file__).resolve().parent / "vectors"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     meta = get_oracle_metadata()
     print(f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']} ({meta['oracle_tag']})")
 
-    # 1. S1 RNG vectors
+    # 1. S1 & Gameplay RNG vectors
     s1_payload = {
         "schema": "etv-s1-rng-v2",
         "metadata": meta,
@@ -773,6 +1220,23 @@ def main() -> None:
         json.dump(saves_payload, f, indent=2)
         f.write("\n")
     print(f"Wrote {saves_path} ({saves_path.stat().st_size} bytes)")
+
+    # 4 & 5. Golden harness: 1,000 seeds × 60 turns + 120 save-and-resume runs at turn 20
+    turns_payload, resume_payload = generate_golden_harness_vectors(meta)
+    turns_path = out_dir / "turns_1000_seeds.json.gz"
+    with gzip.open(turns_path, "wt", encoding="utf-8", compresslevel=9) as f:
+        json.dump(turns_payload, f, separators=(",", ":"), ensure_ascii=False)
+        f.write("\n")
+    print(f"Wrote {turns_path} ({turns_path.stat().st_size} bytes)")
+
+    resume_path = out_dir / "resume_120_seeds.json.gz"
+    with gzip.open(resume_path, "wt", encoding="utf-8", compresslevel=9) as f:
+        json.dump(resume_payload, f, separators=(",", ":"), ensure_ascii=False)
+        f.write("\n")
+    print(f"Wrote {resume_path} ({resume_path.stat().st_size} bytes)")
+
+    total_bytes = sum(p.stat().st_size for p in out_dir.glob("*.json.gz"))
+    print(f"Total committed vector size: {total_bytes} bytes ({total_bytes / (1024 * 1024):.2f} MB) in {time.time() - t0:.1f}s")
 
 
 if __name__ == "__main__":
