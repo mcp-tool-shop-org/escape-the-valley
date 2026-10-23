@@ -468,6 +468,8 @@ struct SaveVector {
     label: String,
     raw_save_json: String,
     canonical_save_json: String,
+    #[serde(default)]
+    minted_snapshot: BTreeMap<String, i32>,
     next_100_draws_with_state: Vec<RngDrawRecord>,
     next_100_draws_counter_only: Vec<RngDrawRecord>,
 }
@@ -477,6 +479,8 @@ struct MigrationVector {
     label: String,
     input_json: String,
     canonical_migrated_json: String,
+    #[serde(default)]
+    minted_snapshot: BTreeMap<String, i32>,
     next_100_draws: Vec<RngDrawRecord>,
 }
 
@@ -607,10 +611,28 @@ fn check_03_save_round_trip_20_saves() {
         );
 
         // 3. Rust reads its own save back and gets the exact same state
-        let reloaded = load_game(tmp2.path()).expect("reload own save");
+        let mut reloaded = load_game(tmp2.path()).expect("reload own save");
         assert_eq!(
             reloaded, loaded_state,
             "reload state mismatch on {}",
+            sv.label
+        );
+        // Right after load, minted_initial is empty (lazy hydration parity with Python)
+        assert!(
+            reloaded.backpack.minted_initial.is_empty(),
+            "minted_initial must be empty right after load on {}",
+            sv.label
+        );
+        // Lazy hydration via minted_snapshot_of matches Python's minted_snapshot_of()
+        let got_snap = reloaded.backpack.minted_snapshot_of();
+        assert_eq!(
+            got_snap, sv.minted_snapshot,
+            "minted_snapshot mismatch on {}",
+            sv.label
+        );
+        assert_eq!(
+            reloaded.backpack.minted_initial, sv.minted_snapshot,
+            "minted_initial field after minted_snapshot_of mismatch on {}",
             sv.label
         );
     }
@@ -636,11 +658,32 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         );
         let state = res.state.unwrap();
 
+        // Right after load, minted_initial is empty (not hydrated eagerly at load time)
+        assert!(
+            state.backpack.minted_initial.is_empty(),
+            "minted_initial must be empty right after load on {}",
+            mv.label
+        );
+
         let migrated_val = state_to_value(&state);
         let canonical = to_canonical_json_string(&migrated_val);
         assert_eq!(
             canonical, mv.canonical_migrated_json,
             "migrated v3 state mismatch on {}",
+            mv.label
+        );
+
+        // Verify lazy mint snapshot hydration matches Python's minted_snapshot_of()
+        let mut bp_for_snap = state.backpack.clone();
+        let got_snap = bp_for_snap.minted_snapshot_of();
+        assert_eq!(
+            got_snap, mv.minted_snapshot,
+            "minted_snapshot mismatch on {}",
+            mv.label
+        );
+        assert_eq!(
+            bp_for_snap.minted_initial, mv.minted_snapshot,
+            "minted_initial field after minted_snapshot_of mismatch on {}",
             mv.label
         );
 

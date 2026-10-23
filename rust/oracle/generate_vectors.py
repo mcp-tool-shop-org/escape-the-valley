@@ -31,6 +31,7 @@ from escape_the_valley.backpack_models import (
     PermitRecord,
     SentParcelRecord,
     SettlementRecord,
+    minted_snapshot_of,
     stamp_minted_snapshot,
 )
 from escape_the_valley.event_loader import load_json_events
@@ -524,6 +525,10 @@ def make_20_real_saves() -> list[dict[str, Any]]:
                 bp.last_settled_supplies = {"food": 40, "water": 38, "meds": 5, "ammo": 18, "parts": 4}
                 bp.last_settlement_day = engine.state.day
                 bp.nudge_shown = True
+                stamp_minted_snapshot(
+                    bp,
+                    {"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 4},
+                )
                 bp.settlements.append(SettlementRecord(
                     day=engine.state.day,
                     location=engine.state.location_id,
@@ -591,6 +596,9 @@ def make_20_real_saves() -> list[dict[str, Any]]:
             raw_json = save_path.read_text(encoding="utf-8")
             parsed_dict = json.loads(raw_json)
             canonical_json = json.dumps(parsed_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            reloaded_for_snap = load_game(run_dir)
+            assert reloaded_for_snap is not None
+            minted_snapshot = minted_snapshot_of(reloaded_for_snap.backpack)
 
             # Compute next 100 RNG draws from this exact saved state
             draws_with_state = next_100_draws_from_save(
@@ -609,6 +617,7 @@ def make_20_real_saves() -> list[dict[str, Any]]:
                 "label": label,
                 "raw_save_json": raw_json,
                 "canonical_save_json": canonical_json,
+                "minted_snapshot": minted_snapshot,
                 "next_100_draws_with_state": draws_with_state,
                 "next_100_draws_counter_only": draws_counter_only,
             })
@@ -710,12 +719,14 @@ def make_migration_vectors() -> list[dict[str, Any]]:
             assert loaded is not None, f"Failed to load migration fixture {label}"
             migrated_dict = _state_to_dict(loaded)
             canonical_migrated = json.dumps(migrated_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            minted_snapshot = minted_snapshot_of(loaded.backpack)
             draws = next_100_draws_from_save(loaded.seed, loaded.rng_counter, loaded.rng_state)
 
             cases.append({
                 "label": label,
                 "input_json": input_json,
                 "canonical_migrated_json": canonical_migrated,
+                "minted_snapshot": minted_snapshot,
                 "next_100_draws": draws,
             })
 

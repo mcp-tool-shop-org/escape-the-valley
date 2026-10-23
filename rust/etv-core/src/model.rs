@@ -938,15 +938,25 @@ fn is_false(b: &bool) -> bool {
 }
 
 impl BackpackState {
-    /// Decode a mint snapshot from the reserved `__minted_initial__` permit shim
-    /// (`backpack_models.py::_parse_minted_txid` / `minted_snapshot_of`).
-    pub fn hydrate_minted_from_permit_shim(&mut self) {
-        if self.minted_initial.len() >= XRPL_RESOURCES.len()
-            && XRPL_RESOURCES
-                .iter()
-                .all(|k| self.minted_initial.contains_key(*k))
+    /// Return the enable-time mint snapshot, hydrating lazily from the `__minted_initial__`
+    /// save shim (`backpack_models.py::minted_snapshot_of`).
+    ///
+    /// Prefers the dedicated `minted_initial` field when all 5 XRPL resources are present
+    /// (filtering out any non-XRPL keys). Falls back to the reserved `__minted_initial__`
+    /// `PermitRecord`, and sets `self.minted_initial` when the shim contains a complete
+    /// 5-resource snapshot. Returns an empty `BTreeMap` when no complete snapshot exists.
+    pub fn minted_snapshot_of(&mut self) -> BTreeMap<String, i32> {
+        if XRPL_RESOURCES
+            .iter()
+            .all(|k| self.minted_initial.contains_key(*k))
         {
-            return;
+            let mut out = BTreeMap::new();
+            for &k in &XRPL_RESOURCES {
+                if let Some(&v) = self.minted_initial.get(k) {
+                    out.insert(k.to_string(), v);
+                }
+            }
+            return out;
         }
         for permit in &self.permits {
             if permit.permit_id != MINTED_SNAPSHOT_PERMIT_ID {
@@ -954,10 +964,22 @@ impl BackpackState {
             }
             let parsed = parse_minted_txid(&permit.txid);
             if XRPL_RESOURCES.iter().all(|k| parsed.contains_key(*k)) {
-                self.minted_initial = parsed;
-                return;
+                let mut complete = BTreeMap::new();
+                for &k in &XRPL_RESOURCES {
+                    if let Some(&v) = parsed.get(k) {
+                        complete.insert(k.to_string(), v);
+                    }
+                }
+                self.minted_initial = complete.clone();
+                return complete;
             }
         }
+        BTreeMap::new()
+    }
+
+    /// Alias for [`BackpackState::minted_snapshot_of`].
+    pub fn hydrate_minted_from_permit_shim(&mut self) -> BTreeMap<String, i32> {
+        self.minted_snapshot_of()
     }
 }
 
