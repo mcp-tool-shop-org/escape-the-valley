@@ -1,0 +1,108 @@
+"""Check a release THIRD_PARTY_NOTICES.txt against the repo's vendored _licenses/ (independent of notices.py).
+Usage: python -I notices_check.py <notices.txt> <_licenses dir> <target> <apache-2.0.txt>
+For each vendored block: the SHA256 line equals SOURCES.json, the vendored file hashes to it, and the block text is
+the file's text verbatim (CRLF->LF, stripped, as the generator writes it). Then the game LICENSE header, and the
+OpenSSL, bzip2 and mpdecimal content checks. Prints one line per check and exits 1 on any FAIL."""
+import hashlib
+import json
+import pathlib
+import re
+import sys
+
+notices = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+lic = pathlib.Path(sys.argv[2])
+target = sys.argv[3]
+apache = pathlib.Path(sys.argv[4]).read_text(encoding="utf-8")
+src = json.loads((lic / "SOURCES.json").read_text(encoding="utf-8"))
+fails = 0
+NL = chr(10)
+CRLF = b"\r\n"
+
+
+def report(ok, msg):
+    global fails
+    fails += not ok
+    print(("PASS " if ok else "FAIL ") + msg)
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+# Blocks are "--- label ---" / "Source: ..." / "SHA256: <hex>" / text, ending at the next block or a "====" line.
+blocks = {}
+L = notices.split(NL)
+SEP = "=" * 80
+heads = [i for i in range(len(L) - 2)
+         if re.fullmatch(r"--- (.+) ---", L[i]) and L[i + 1].startswith("Source: ")
+         and re.fullmatch(r"SHA256: [0-9a-f]{64}", L[i + 2])]
+for n, i in enumerate(heads):
+    end = heads[n + 1] if n + 1 < len(heads) else len(L)
+    j = i + 3
+    while j < end and L[j] != SEP:
+        j += 1
+    label = L[i][4:-4]
+    if label in blocks:
+        label = f"{label} #{n}"
+    blocks[label] = (L[i + 1][8:], L[i + 2][8:], NL.join(L[i + 3:j]).strip())
+print(f"{len(blocks)} '--- ... ---' blocks in the notices")
+
+
+def check_vendored(label_part, rel, want_sha):
+    hit = [k for k in blocks if label_part in k]
+    if len(hit) != 1:
+        report(False, f"{rel}: expected one block containing {label_part!r}, found {len(hit)}")
+        return ""
+    _, line_sha, text = blocks[hit[0]]
+    raw = (lic / rel).read_bytes()
+    report(sha(raw) == want_sha, f"{rel}: file sha256 {sha(raw)[:16]} == SOURCES.json {want_sha[:16]}")
+    report(line_sha == want_sha, f"{rel}: notices SHA256 line {line_sha[:16]} == SOURCES.json")
+    report(text == raw.replace(CRLF, NL.encode()).decode("utf-8").strip(),
+           f"{rel}: block text is the vendored file verbatim ({len(text)} chars)")
+    return text
+
+
+inc = src["cpython_incorporated_software"]
+check_vendored("Incorporated Software", inc["vendored_path"], inc["sha256"])
+d = (lic / inc["doc_license_rst_vendored_path"]).read_bytes()
+report(sha(d) == inc["doc_license_rst_sha256"], f"{inc['doc_license_rst_vendored_path']}: file sha256 == SOURCES.json")
+report(inc["doc_license_rst_sha256"] in notices, "Doc/license.rst sha256 is cited in the notices")
+t = src["targets"][target]
+interp = [k for k in blocks if k.startswith("CPython Interpreter")]
+report(len(interp) == 1 and blocks[interp[0]][1] == t["install_license_sha256"],
+       f"CPython Interpreter LICENSE.txt block SHA256 == SOURCES.json install_license_sha256 ({t['install_license_sha256'][:16]})")
+texts = {}
+for e in t["files"]:
+    texts[e["filename"]] = check_vendored(f"({target}): {e['archive_path']} ", e["vendored_path"], e["sha256"])
+
+gl = src["game_license"]
+graw = (lic / gl["vendored_path"]).read_bytes()
+hdr = re.search(r"^SHA256: ([0-9a-f]{64})$", notices, re.M).group(1)
+report(sha(graw) == gl["sha256"], f"_licenses/LICENSE: file sha256 {sha(graw)[:16]} == SOURCES.json game_license")
+report(hdr == gl["sha256"], f"game LICENSE header SHA256 {hdr[:16]} == SOURCES.json game_license {gl['sha256'][:16]}")
+print(f"INFO header SHA256 == sha256 of the vendored LICENSE with CRLF->LF: {sha(graw.replace(CRLF, NL.encode())) == hdr}")
+
+norm = lambda s: " ".join(s.split())  # noqa: E731
+o3 = texts.get("LICENSE.openssl-3.txt", "")
+terms = norm(apache.split("END OF TERMS AND CONDITIONS")[0]).replace(
+    "http://www.apache.org/licenses/", "https://www.apache.org/licenses/")
+report(terms in norm(o3), "openssl-3 block carries apache.org LICENSE-2.0.txt verbatim from the title through section 9 "
+       f"(whitespace-normalised, {len(terms)} chars; licence URL compared as https)")
+for n in range(1, 10):
+    report(re.search(rf"^\s*{n}\. [A-Z]", o3, re.M) is not None, f"openssl-3 block has Apache-2.0 section {n}")
+report("END OF TERMS AND CONDITIONS" in o3, "openssl-3 block has 'END OF TERMS AND CONDITIONS'")
+print(f"INFO openssl-3 block omits apache.org's APPENDIX (how to apply the licence to your own work): {'APPENDIX' not in o3}")
+o1 = texts.get("LICENSE.openssl-1.1.txt", "")
+print(f"INFO openssl-1.1 block: {len(o1)} chars, starts {o1[:40]!r}")
+bz = texts.get("LICENSE.bzip2.txt", "")
+report(re.search(r"IN NO EVENT SHALL THE AUTHOR BE LIABLE.*?SUCH DAMAGE", bz, re.S) is not None,
+       "bzip2 block has its liability paragraph (IN NO EVENT SHALL THE AUTHOR BE LIABLE ... SUCH DAMAGE)")
+mp = texts.get("LICENSE.mpdecimal.txt", "")
+report(re.search(r"IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE.*?SUCH DAMAGE", mp, re.S) is not None,
+       "mpdecimal block has its liability paragraph (IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE ... SUCH DAMAGE)")
+names = re.findall(r"^Name: (.+)$", notices, re.M)
+print("INFO Name: headers:", ", ".join(names))
+for gone in ("Deprecated", "mdit-py-plugins", "wrapt"):
+    report(not any(n.lower() == gone.lower() for n in names) and f"- {gone} " not in notices, f"{gone} is not listed")
+print(f"RESULT {'PASS' if not fails else f'FAIL {fails}'}")
+sys.exit(1 if fails else 0)

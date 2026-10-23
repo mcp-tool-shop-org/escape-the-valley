@@ -1,0 +1,11 @@
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/io.pyc:@0x847
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/ntpath.pyc:@0x1976
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe73c8c
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe63b77
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/bz2.pyc-body:@0x1b9
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/_sysconfigdata__linux_x86_64-linux-gnu.pyc-body:@0x2c42
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/httpx/_urls.pyc-body:@0x320a
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/pygments/lexers/gdscript.pyc-body:@0x111
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/rich/_spinners.pyc-body:@0x448
+RESULT HIT 9
+exit 1

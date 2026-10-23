@@ -1,4 +1,4 @@
-# 1.3.1 live check on `9773b08`
+# 1.3.1 live check on `9773b08`, then `0d112bc`, `c6c30b5` and `7481d88`
 
 This is the live check the Editor asked for on **`9773b08`** (PR #25, `release/1.3.1` → `main`). That commit
 carries the player-facing fixes from the 1.3.0 audit. Items 1–6 ran on it. Item 7, the local binary build, ran on
@@ -32,6 +32,15 @@ reported to the Publisher. **Item 8 PASS** on `c6c30b5`: a Linux build in WSL pa
 `--verify-toc` step (exit 0, 22 distributions; a negative control exits 1) and the smoke test. Off the brief I
 found three player-facing defects that 1.3.0 has too (D1–D3). None
 comes from 1.3.1.
+
+**Item 9, the final candidate `7481d88`:** a Linux build that follows the workflow exactly passes `--verify-toc`,
+`--verify-bundle`, the smoke test and the notices content check. The vendored licence texts and the listed
+distributions are right. There are two findings:
+- **G1:** the binary's `_sysconfigdata` carries the build machine's home path (`/home/runner/…` on CI), and the
+  gate reports it.
+- **N1 (minor):** the game LICENSE header hash depends on line endings.
+
+`trail licenses` works from a pip install on Python 3.13.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
 
@@ -229,6 +238,102 @@ and 0 under `site-packages` in `Analysis-00.toc`. For comparison, rich, xrpl and
 (`10-toc-modules.txt`). The generator lists what is installed, and the check fails only on a bundled distribution
 with no entry, so listing too many does no harm.
 
+## Item 9: the final candidate, a Linux build on `7481d88` — PASS on the brief, one notices defect, one gate hit (`9-final-7481d88/`)
+
+The Editor asked for this on **`7481d88`** (PR #25 head, fixup 4 plus its atlas map). It ran in WSL (Ubuntu 26.04,
+uv 0.11.18, uv's concurrency capped at 12 of 24 cores, CPU only) in a fresh clone at that commit.
+`harness/linux_build_final.sh` runs the linux-x64 leg of `release-binaries.yml` as written at `7481d88`, with no
+changes this time, since the workflow now pins the Python:
+1. `uv python install 3.12.13`, `uv venv --python 3.12.13`, `uv pip install ".[xrpl]" "pyinstaller>=6.9.0"`;
+2. the `direct_url.json` removal step (`Removed direct_url.json from build venv.`);
+3. `gen_third_party_notices.py --release` (251,748 bytes, 27 `Name:` entries);
+4. the first `pyinstaller` call with the four `--exclude-module`s, then `--release --prune-toc` (240,186 bytes,
+   22 distributions), then the second `pyinstaller --noconfirm` call;
+5. the rename and the per-OS notices copy.
+
+The binary, `escape-the-valley-1.3.1-linux-x64`, is an ELF x86-64, **20,964,960 bytes**, sha256
+`70df0d60cfc9a1839ad7f832b3a6d51a9ab84588de915877750124fdc1e41a39`. Python 3.12.13, PyInstaller 6.22.3.
+
+| Check | Result |
+|---|---|
+| `--verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt` | **exit 0**: `[toc-check] Verified 22 bundled site-packages distributions and excluded extensions against THIRD_PARTY_NOTICES.txt` |
+| `--verify-bundle dist/escape-the-valley-1.3.1-linux-x64` | **exit 0**: `[bundle-check] Verified 114 archive entries in dist/escape-the-valley-1.3.1-linux-x64: no direct_url.json present` |
+| `scripts/smoke_test_binary.py` | **PASS**, exit 0: `--help`; 260 events (floor 200); `tui.tcss` loads; xrpl extra present; licences present |
+| `identity-scan.py` on the binary | `RESULT HIT 9`, exit 1, **no `build-record`**. 8 hits are third party; **1 is the build machine's home path** (G1 below) |
+| Notices content (`notices-check.txt`) | every check passes **except the game LICENSE header hash** (N1 below) |
+| pip install into Python 3.13.13 (Windows), then `trail licenses` | **exit 0**, 71,252 bytes, nothing on stderr (`pip-py313/`) |
+
+**The identity scan, verbatim** (`identity-scan-linux-binary.txt`; paths read `<scratch>`):
+
+```
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/io.pyc:@0x847
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/base_library.zip/ntpath.pyc:@0x1976
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe73c8c
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!carchive/libpython3.12.so.1.0:@0xe63b77
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/bz2.pyc-body:@0x1b9
+HIT home-path <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/_sysconfigdata__linux_x86_64-linux-gnu.pyc-body:@0x2c42
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/httpx/_urls.pyc-body:@0x320a
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/pygments/lexers/gdscript.pyc-body:@0x111
+HIT gmail <scratch>/1.3.1-final-7481d88/linux/escape-the-valley-1.3.1-linux-x64!pyz/PYZ.pyz/rich/_spinners.pyc-body:@0x448
+RESULT HIT 9
+```
+
+`identity-scan-hit-sources.md` names each one. The third-party hits are CPython's `io` and `bz2` author lines and
+its `splitroot()` docstring (in the stdlib zip and again in libpython), the pygments and rich author lines, and an
+httpx docstring example.
+
+**G1, the hit that isn't third party: `_sysconfigdata` carries the builder's home path.** uv writes the
+interpreter's install prefix into `_sysconfigdata__linux_x86_64-linux-gnu.py` when it installs Python, and
+PyInstaller bundles that module. Here it is 20 strings under `<home>/.local/share/uv/python/cpython-3.12.13-…`, the
+WSL account on this rig. The released xrpl-camp 1.5.0 Linux asset, built on CI, has the same 20 strings under
+`/home/runner/work/_temp/uv-python-dir/…` (`sysconfigdata-home-paths.txt`). So a CI build of `7481d88` will carry
+`/home/runner/…` there too, and the gate's bundle-only `/home/<account>` check will report it. The
+`direct_url.json` removal doesn't touch this file. I haven't tested a fix.
+
+**The notices content** (`harness/notices_check.py.txt`). It works from the repo's `_licenses/` and doesn't use
+`notices.py`.
+- **Three copies, one file:** the pruned `THIRD_PARTY_NOTICES.txt`, `dist/THIRD_PARTY_NOTICES-linux-x64.txt` and
+  the copy bundled in the binary are byte-identical, sha256 `34390db4…` (`notices-three-copies-sha256.txt`).
+- **Every vendored block matches `SOURCES.json`.** All 13 python-build-standalone files for
+  `x86_64-unknown-linux-gnu` (cpython, bzip2, expat, libedit, libffi, liblzma, libuuid, mpdecimal, ncurses,
+  openssl-1.1, openssl-3, sqlite, zlib) pass three checks each:
+  - the vendored file's sha256 equals `SOURCES.json`;
+  - the block's `SHA256:` line equals it;
+  - the block text is the file's text verbatim.
+- **The CPython sections:** the Incorporated Software section passes the same three checks. The `Doc/license.rst`
+  hash is right and cited. The interpreter's `LICENSE.txt` block hash equals `install_license_sha256`.
+- **OpenSSL:** the openssl-3 block carries the Apache-2.0 text from apache.org verbatim from the title through
+  section 9 and `END OF TERMS AND CONDITIONS` (whitespace normalised; the licence URL is `https` here and `http` at
+  apache.org). It leaves out apache.org's APPENDIX, the how-to for applying the licence to your own work, as
+  OpenSSL's own `LICENSE.txt` does. The openssl-1.1 block (fixup 4's G4) is there as well.
+- **bzip2 and mpdecimal:** both blocks carry their liability paragraphs (`IN NO EVENT SHALL THE AUTHOR BE LIABLE …`
+  and `IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE …`).
+- **The distributions match the bundle exactly.** `harness/bundled_dists.py.txt` maps every file each installed
+  distribution put in the build venv (its `RECORD`) to the unpacked bundle. 22 distributions have files in it, and
+  they are the 22 the notices list, with nothing missing and nothing extra (`bundled-dists.txt`). `Deprecated`,
+  `mdit-py-plugins` and `wrapt` were in the generated file and are gone after `--prune-toc`.
+- **A negative control on the checker:** one changed word in a copy's bzip2 paragraph gives `RESULT FAIL`, exit 1
+  (`notices-check-negative.txt`).
+
+**N1 (minor): the game LICENSE header hash depends on the checkout's line endings.** The notices header reads
+`SHA256: 367e5141…`, but `SOURCES.json` `game_license` says `5ae6b3c8…`, the hash of `_licenses/LICENSE`. The text
+is the same MIT licence. The difference is line endings:
+- `_licenses/LICENSE` is committed with CRLF and `-text`, so it is `5ae6b3c8…` on every checkout.
+- The generator reads the repo-root `LICENSE` first. That file is LF in the index (`text=auto`), so it is LF on a
+  Linux checkout (`367e5141…`, which is the CRLF→LF form of the vendored file) and normally CRLF on Windows.
+- The pip install reads the vendored copy and prints `5ae6b3c8…`.
+
+So the Linux (and likely macOS) release notices cite a hash that matches no committed file byte for byte. Nothing
+checks the header against `SOURCES.json`.
+
+**pip install on a Python that isn't 3.12.13.** `uv venv -p 3.13` gave 3.13.13 on Windows, then
+`uv pip install ./<7481d88>` (no `[xrpl]`). `trail licenses` exits 0 with 71,252 bytes: the game licence, the note
+`CPython and python-build-standalone license texts apply to the standalone release binaries only.`, and the 19
+installed distributions. So the release-only pins don't break the pip fallback (fixup 4's G1).
+
+**What it doesn't cover:** macOS (darwin-arm64) and the Windows leg of this commit didn't run. On macOS,
+`_sysconfigdata` would hold the macOS runner's home path, but that is untested. The binary itself isn't committed.
+
 ## Off the brief (all three are on 1.3.0 too; none from 1.3.1)
 
 - **D1 (minor, UX): in the TUI, `e` on the open ledger nudge starts a Testnet enable instead of Abandon Cargo**
@@ -275,8 +380,15 @@ with no entry, so listing too many does no harm.
   - `build-py313/`, the first build's results.
 - `8-linux-binary/`: each step's `.log` and `.exit`, the negative control, `notices-names.txt`,
   `10-toc-modules.txt`, and the binary's hash, `file` type and versions. The notices text isn't committed.
+- `9-final-7481d88/`:
+  - `linux-build/`: each step's `.log` and `.exit`, the notices before and after the prune, and the binary's hash,
+    `file` type and versions;
+  - the identity scan and `identity-scan-hit-sources.md`, plus `sysconfigdata-home-paths.txt`;
+  - `notices-check.txt` and its negative control, `bundled-dists.txt` and `notices-three-copies-sha256.txt`;
+  - `pip-py313/`: `trail licenses` on Python 3.13.
 - `code.txt`, `hashes.txt`.
 - `harness/`: `cli_drive`, `tui_drive`, `tui_key_probe` (D1), `seed_search` (how seed 10 was found),
   `etv_ledger_probe`, `redact_tree`, `unpack_pyinstaller` and `hit_context` (item 7). Each is a `.py.txt`, which
   keeps them out of the repo's lint. The item 8 shell scripts are `linux_build.sh`, `verify_toc_negative.sh` and
-  `toc_has.sh`.
+  `toc_has.sh`. Item 9 adds `linux_build_final.sh` and `_run_final.sh`, plus `notices_check`, `bundled_dists` and
+  `hit_context_scan` as `.py.txt`.

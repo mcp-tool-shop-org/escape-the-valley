@@ -1,0 +1,6 @@
+FAIL x86_64-unknown-linux-gnu/LICENSE.cpython.txt: block text is the vendored file verbatim (36163 chars)
+FAIL x86_64-unknown-linux-gnu/LICENSE.bzip2.txt: block text is the vendored file verbatim (1742 chars)
+FAIL game LICENSE header SHA256 367e5141e4f5884e == SOURCES.json game_license 5ae6b3c8f446f0a7
+FAIL bzip2 block has its liability paragraph (IN NO EVENT SHALL THE AUTHOR BE LIABLE ... SUCH DAMAGE)
+RESULT FAIL 4
+exit 1
