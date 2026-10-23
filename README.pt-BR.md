@@ -21,32 +21,34 @@
 
 ## O que é isto?
 
-Escape the Valley é um jogo de sobrevivência no estilo Oregon Trail, que roda no seu terminal. Lidere um grupo de colonos por uma região selvagem gerada proceduralmente. Gerencie comida, água, condição da carroça e moral, enquanto enfrenta eventos, perigos e decisões difíceis.
+Escape the Valley é um jogo de sobrevivência no estilo Oregon Trail que roda no seu terminal. Lidere um grupo de colonos por uma região selvagem gerada proceduralmente. Gerencie comida, água, condição da carroça e moral enquanto enfrenta eventos, perigos e decisões difíceis.
 
-Um Mestre de Jogo de IA opcional (alimentado pelo Ollama) narra sua jornada com três vozes distintas. Um livro-razão opcional da XRPL Testnet rastreia as mudanças em seus suprimentos como recibos na cadeia de blocos — prova de que você sobreviveu, ou prova de que tentou.
+Um Mestre de Jogo de IA opcional (alimentado por Ollama) narra sua jornada com três vozes distintas de narração. Um livro de registro XRPL Testnet opcional rastreia suas mudanças de suprimentos como recibos na blockchain — prova de que você sobreviveu ou prova de que tentou.
 
-## O que há de novo?
+## O que há de novo
 
-**1.3.1** — As execuções da CLI (`trail new` / `trail continue`) agora emitem cartões de memória e a causa canônica da morte, como na TUI (`trail stats`, dias de morte no Trail Ledger e resumos de memória do GM funcionam em ambos os modos). O relatório de Abandono de Carga da TUI mostra a carga real descartada. As opções de rota alternativa não consomem mais um turno de manutenção da carroça ou tempo de recarga da válvula de escape. As execuções repetidas com a mesma semente geram `run_id`s distintos para os memorandos da XRPL. Os binários de lançamento GitHub / `npx` agora incluem `xrpl-py`. A saída do Windows via pipe (`cp1252`) não causa mais falhas com caracteres de desenho de caixa Rich (#19).
+**1.3.2** — Tempo de espera por `event_id` (`N=4`) impede que o mesmo evento se repita em turnos consecutivos ou quase consecutivos (#21; 1.3.1 → 1.3.2 move a seleção de eventos após uma repetição, então uma partida salva em 1.3.1 continua de forma diferente após a atualização para 1.3.2 porque a seleção de eventos muda. Dentro de uma mesma versão, a mesma semente e as mesmas escolhas resultam na mesma partida). O painel de resultados da CLI com o GM desativado renderiza o resumo padrão uma vez (#20), as dicas de escolha removem a pontuação dupla no final e `1 mile remaining.` usa gramática singular. Arquivos `.trail/secrets.json` corrompidos são colocados em quarentena antes de serem reescritos (#31.7). A saída de `THIRD_PARTY_NOTICES*.txt` e `trail licenses` é normalizada para LF em todas as plataformas, e o CI verifica a integridade da licença fornecida em relação ao arquivo python-build-standalone baixado (#31.1, #31.2, #31.3, #31.5).
 
-**1.3.0** — Quatro finais que você realmente pode alcançar, incluindo o final "endurecido". A carroça é uma ameaça, não o jogo inteiro. O início do inverno retarda um ano. As travessias de rios no deserto evitam a areia. A caça indica quem se machucou. `npx @mcptoolshop/escape-the-valley` inicia o binário v1.3.0 (estava preso no artefato morto v1.1.1 GitHub).
+**1.3.1** — As execuções da CLI (`trail new` / `trail continue`) agora emitem cartões de memória e a causa canônica da morte, como na TUI (`trail stats`, dias de morte no registro da trilha e resumos de memória do GM funcionam em ambos os modos). A TUI Abandon Cargo relata a carga real descartada. Os prompts da rota alternativa não consomem mais um turno de manutenção da carroça ou tempo de espera da válvula de escape. As partidas repetidas com a mesma semente obtêm `run_id`s distintos para XRPL memorandos. Os binários GitHub Release / `npx` agora incluem `xrpl-py`. A saída do Windows em pipeline (`cp1252`) não causa mais falhas em caracteres Rich de desenho de caixa (#19).
 
-**1.2.1** — PyPI realmente faz o upload (Versão de Metadados 2.3). O mesmo produto da versão 1.2.0.
+**1.3.0** — Quatro finais que você realmente pode alcançar, incluindo o final de sobrevivência. A carroça é uma ameaça, não o jogo inteiro. O início do inverno retarda um ano marcado. As travessias do deserto evitam a areia. A caça indica quem se machucou. `npx @mcptoolshop/escape-the-valley` inicia o binário v1.3.0 (estava preso no artefato morto v1.1.1 GitHub).
 
-**1.2.0** — Os binários de lançamento GitHub iniciam (biblioteca de eventos + folha de estilo incluída; as asserções de teste `--help` e ≥200 eventos). `trail ledger proof` audita o arquivo salvo carregado. A TUI mostra semente/doutrina/reviravoltas/moral; `c` alterna o ritmo; o menu do livro-razão `R` comprova este arquivo salvo. HUD legível em 80×24 e 120×30.
+**1.2.1** — PyPI realmente faz o upload (Metadata-Version 2.3). O mesmo produto da versão 1.2.0.
 
-**1.1.1** — `pip install "escape-the-valley[voice]"` realmente instala (o pacote extra estava fixado em um pacote não publicado). O binário PyInstaller não inclui mais o pacote de voz extra.
+**1.2.0** — Os binários GitHub Release são lançados (biblioteca de eventos + folha de estilo incluída; as asserções de fumaça verificam `--help` e ≥200 eventos). `trail ledger proof` audita o salvamento carregado. A TUI mostra semente/doutrina/reviravoltas/moral; `c` alterna o ritmo; o menu do registro `R` comprova este salvamento. O HUD é legível em 80×24 e 120×30.
 
-**1.1.0** — narração em streaming, finais graduados, eventos que podem ferir, prova de reconciliação no livro-razão, artefatos de execução.
+**1.1.1** — `pip install "escape-the-valley[voice]"` realmente instala (o extra estava fixado em um pacote não publicado). O binário PyInstaller não inclui mais o extra de voz.
 
-Os binários anexados aos lançamentos v1.1.0 e v1.1.1 GitHub não são iniciados (uma importação relativa no ponto de entrada congelado). Use `pip install escape-the-valley` ou o binário v1.2.0+ GitHub / o iniciador `npx`.
+**1.1.0** — narração em streaming, finais graduados, eventos que podem ferir, prova de reconciliação no registro, artefatos da partida.
 
-## Início Rápido
+Os binários anexados aos v1.1.0 e v1.1.1 GitHub Releases não são iniciados (uma importação relativa no ponto de entrada congelado). Use `pip install escape-the-valley` ou o binário v1.2.0+ GitHub / lançador `npx`.
+
+## Início rápido
 
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (GitHub v1.3.1 binary; v1.1.0 and v1.1.1
+# Zero-prerequisite npm launcher (GitHub v1.3.2 binary; v1.1.0 and v1.1.1
 # artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
@@ -64,14 +66,14 @@ trail tui --seed 42 --voice
 # With voice pacing control
 trail tui --seed 42 --voice --voice-pace slow
 
-# Without AI narration (deterministic mode)
+# Without AI narration (deterministic mode; same seed and choices give the same run in this version)
 trail tui --seed 42 --gm-off
 
 # Use a specific Ollama model
 trail tui --seed 42 --model mistral
 ```
 
-## Como Jogar
+## Como jogar
 
 A cada turno, você escolhe uma ação no acampamento:
 
@@ -84,21 +86,21 @@ A cada turno, você escolhe uma ação no acampamento:
 
 **Eventos** interrompem a viagem com escolhas (A/B/C). Escolhas cautelosas são mais seguras, mas custam tempo. Escolhas ousadas são mais rápidas, mas arriscadas. Não há uma resposta sempre correta.
 
-**A carroça é tudo.** Se ela quebrar e não houver peças, a jornada termina. Mantenha-a acima da metade da condição e faça manutenções (descanse e repare) para obter resistência temporária a avarias.
+**A carroça é tudo.** Se ela quebrar e não houver peças, a partida termina. Mantenha-a acima de metade da condição e faça janelas de manutenção (descanse e, em seguida, repare) para obter resistência temporária à avaria.
 
-**Ritmo** controla a velocidade em relação à segurança. O ritmo normal é o padrão. O ritmo acelerado cobre mais terreno, mas consome mais suprimentos e danifica as carroças mais rapidamente.
+**Ritmo** controla a velocidade em relação à segurança. O ritmo constante é o padrão. O ritmo acelerado cobre mais terreno, mas consome mais suprimentos e quebra as carroças mais rapidamente.
 
-**Válvulas de escape** (ração forçada, reparo desesperado, abandono de carga) existem para emergências. Elas têm efeitos colaterais e tempos de recarga — são o último recurso, não estratégias.
+**Válvulas de escape** (ração forçada, reparo desesperado, abandono de carga) existem para emergências. Elas têm efeitos colaterais e tempos de espera — são o último recurso, não estratégias.
 
-Para dicas mais detalhadas, consulte o [Guia de Sobrevivência](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/).
+Para dicas mais detalhadas, consulte o [Guia de sobrevivência](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/survival-guide/).
 
 ## Perfis do GM
 
 O narrador de IA molda o tom, não a mecânica. Todos os três perfis jogam o mesmo jogo.
 
-- **Cronista** — Objetivo, prático, conciso. Mínimo de folclore. Relata o que aconteceu.
-- **Contador de Histórias** — Narrador de fogueira sério. Momentos sutis e estranhos. É o padrão.
-- **Portador da Lanterna** — Estranho e liminar, mas ainda fundamentado em consequências. É o mais peculiar.
+- **Chronicler** — Prático, realista, simples. Mínimo de folclore. Relata o que aconteceu.
+- **Fireside** — Narrador de fogueira sério. Momentos sutis e estranhos. O padrão.
+- **Lantern-Bearer** — Estranho e liminar, mas ainda fundamentado em consequências. O mais peculiar.
 
 Defina com `--gm-profile`: `trail tui --gm-profile lantern`
 
@@ -112,11 +114,11 @@ O jogo rastreia 12 tipos de recursos em duas categorias:
 
 Os 5 suprimentos principais (comida, água, medicamentos, munição, peças) são os mais críticos. Suprimentos estendidos, como lenha, sal, óleo de lanterna e tecido, adicionam profundidade: a lenha alimenta os acampamentos noturnos, o sal evita a deterioração dos alimentos, o óleo de lanterna permite viagens noturnas mais seguras e o tecido remenda equipamentos e a cobertura da carroça.
 
-## Mochila do Livro-Razão (Opcional)
+## Ledger Backpack (Opcional)
 
-A Mochila do Livro-Razão rastreia seus 5 suprimentos principais (comida, água, medicamentos, munição, peças) como tokens na XRPL Testnet. Cada ponto de verificação da cidade registra um recibo de assentamento na cadeia de blocos. No final da sua jornada, seu livro-razão incluirá IDs de transação que qualquer pessoa pode verificar.
+O Ledger Backpack rastreia seus 5 suprimentos principais (comida, água, medicamentos, munição, peças) como tokens no XRPL Testnet. Cada ponto de verificação da cidade registra um recibo de assentamento na blockchain. No final da sua partida, seu registro trail inclui IDs de transação que qualquer pessoa pode verificar.
 
-Completamente opcional. O jogo é jogado da mesma forma com ele desativado (o padrão). Ative-o no menu L na TUI ou via CLI:
+Completamente opcional. O jogo é jogado da mesma forma com ele desativado (o padrão). Ative-o a partir do menu L na TUI ou via CLI:
 
 ```bash
 trail ledger enable
@@ -125,39 +127,39 @@ trail ledger reconcile  # retry failed settlements
 trail ledger proof      # PASS / FAIL / INCONCLUSIVE on this save
 ```
 
-Na TUI, **L** abre o menu do livro-razão; com a mochila ativada, **R** comprova este arquivo salvo (os mesmos resultados). Não descansa.
+Na TUI, **L** abre o menu do registro; com a mochila ativada, **R** comprova este salvamento (os mesmos resultados). Não descansa.
 
-Incluído no binário de lançamento `npx` / GitHub; para instalações `pip`, execute `pip install "escape-the-valley[xrpl]"` (ou `pip install -e ".[xrpl]"`) para a dependência `xrpl-py`.
+Incluído no binário da versão `npx` / GitHub; para instalações `pip`, execute `pip install "escape-the-valley[xrpl]"` (ou `pip install -e ".[xrpl]"`) para a dependência `xrpl-py`.
 
 ## Comandos
 
 | Comando | Descrição |
 |---------|-------------|
-| `trail tui` | Inicie a interface textual de tela cheia |
-| `trail new` | Comece uma nova jornada (modo CLI clássico) |
-| `trail play` | Continue uma jornada salva (modo CLI clássico) |
-| `trail status` | Mostre o grupo, a carroça e os suprimentos |
-| `trail journal` | Mostre as entradas recentes do diário |
-| `trail self-check` | Verifique a saúde do ambiente do jogo |
-| `trail version` | Mostre a versão |
-| `trail licenses` | Mostre a licença e os avisos de terceiros (ou `trail --licenses`) |
-| `trail ledger status` | Mostre o status da mochila |
-| `trail ledger enable` | Ative a mochila da XRPL |
-| `trail ledger disable` | Desative a mochila da XRPL |
-| `trail ledger settle` | Assente manualmente um ponto de verificação |
-| `trail ledger reconcile` | Tentar novamente os pagamentos falhados |
-| `trail ledger proof` | Verificar o arquivo de salvamento carregado (APROVADO/REPROVADO/INCONCLUSIVO) |
-| `trail ledger wallet` | Mostrar detalhes da carteira |
-| `trail stats` | Mostrar estatísticas da execução e cartões de memória (suporta `--json`) |
-| `trail parcel send <addr> <supply> <amount>` | Enviar suprimentos para outro jogador |
-| `trail parcel list` | Listar pacotes recebidos |
+| `trail tui` | Iniciar a interface Textual em tela cheia |
+| `trail new` | Iniciar uma nova sessão (modo CLI clássico) |
+| `trail play` | Continuar uma sessão salva (modo CLI clássico) |
+| `trail status` | Mostrar o grupo, a carroça e os suprimentos |
+| `trail journal` | Mostrar as entradas recentes do diário |
+| `trail self-check` | Verificar o estado do ambiente do jogo |
+| `trail version` | Mostrar a versão |
+| `trail licenses` | Mostrar a licença e os avisos de terceiros (ou `trail --licenses`) |
+| `trail ledger status` | Mostrar o estado da mochila |
+| `trail ledger enable` | Ativar a mochila XRPL |
+| `trail ledger disable` | Desativar a mochila XRPL |
+| `trail ledger settle` | Confirmar manualmente um ponto de controle |
+| `trail ledger reconcile` | Tentar novamente as confirmações com falha |
+| `trail ledger proof` | Verificar o arquivo de salvamento carregado (PASS/FAIL/INCONCLUSIVE) |
+| `trail ledger wallet` | Mostrar os detalhes da carteira |
+| `trail stats` | Mostrar as estatísticas da sessão e os cartões de memória (suporta `--json`) |
+| `trail parcel send <addr> <supply> <amount>` | Enviar suprimentos para outro viajante |
+| `trail parcel list` | Listar os pacotes recebidos |
 | `trail parcel accept <id>` | Aceitar um pacote pendente |
-| `trail parcel sent` | Listar pacotes que você enviou |
+| `trail parcel sent` | Listar os pacotes que você enviou |
 | `trail wallet share` | Imprimir o endereço da sua carteira para negociação |
 
-## Alertas de aviso
+## Alertas
 
-Por padrão, o jogo exibe avisos detalhados para ajudar os novos jogadores a identificar os perigos mais cedo. Jogadores experientes podem mudar para o modo mínimo, que exibe apenas avisos de perigo iminente (ameaças críticas de última hora):
+Por padrão, o jogo exibe alertas detalhados para ajudar os novos jogadores a identificar os perigos mais cedo. Os jogadores experientes podem alternar para o modo mínimo, que exibe apenas alertas de perigo iminente (ameaças críticas de última hora):
 
 ```bash
 trail tui --callouts minimal
@@ -166,28 +168,28 @@ trail new --callouts minimal
 
 ## Solução de problemas
 
-**Se algo parecer errado, execute `trail self-check` primeiro.** Ele informa se o Ollama está acessível, se o seu arquivo de salvamento é carregado e qual modelo está instalado. As três coisas que podem dar errado são:
+**Se algo parecer errado, execute `trail self-check` primeiro.** Ele informa se Ollama está acessível, se o seu arquivo de salvamento é carregado e qual modelo está instalado. As três coisas que podem dar errado são:
 
 | Sintoma | Causa | Solução |
 |---------|-------|-----|
-| **Generic / no narration** | O Ollama não está em execução (o GM é opcional e faz o fallback, nunca causa problemas) | Inicie o Ollama (`ollama serve`) ou jogue de forma determinística com `--gm-off`. Execute `trail self-check` para confirmar. |
-| **Pagamento pendente/pagamento falhou** | A XRPL Testnet é uma rede de teste pública e, às vezes, apresenta instabilidade | `trail ledger reconcile` tenta novamente os pagamentos falhados; execute-o novamente quando a rede se recuperar. Os suprimentos estão corretos localmente, de qualquer forma. |
-| **Save won't resume** | `run.json` foi truncado ou corrompido durante a gravação | O motor o coloca em quarentena como `run.json.corrupt-<timestamp>` antes de rejeitá-lo, para que seu próximo arquivo de salvamento não possa corromper as evidências. Recupere-se desse backup ou inicie uma nova execução a partir de uma semente. |
+| **Generic / no narration** | Ollama não está em execução (o GM é opcional e, se não estiver, não causa problemas) | Inicie Ollama (`ollama serve`) ou jogue de forma determinística com `--gm-off`. Execute `trail self-check` para confirmar. |
+| **Registro pendente / confirmação com falha** | XRPL Testnet é uma rede de teste pública e, às vezes, é instável | `trail ledger reconcile` tenta novamente as confirmações com falha; execute-o novamente quando a rede se recuperar. Os suprimentos estarão corretos localmente, de qualquer forma. |
+| **Save won't resume** | `run.json` foi truncado ou corrompido durante a gravação | O mecanismo o coloca em quarentena como `run.json.corrupt-<timestamp>` antes de recusá-lo, para que o seu próximo arquivo de salvamento não possa corromper as evidências. Recupere-se desse backup ou inicie uma nova sessão a partir de uma semente. |
 
-A primeira rodada narrada carrega o modelo e pode levar de 10 a 30 segundos — isso é normal, não é uma falha. Detalhes completos: [Manual de solução de problemas](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
+A primeira sessão narrada carrega o modelo e pode levar de 10 a 30 segundos — isso é normal, não é uma falha. Detalhes completos: [Manual de solução de problemas](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).
 
 ## Requisitos
 
 - Python 3.11+
-- Ollama (opcional, para narração por IA)
-- xrpl-py (opcional, para o inventário da carteira no `pip`; incluído no binário `npx` / GitHub)
+- Ollama (opcional, para narração de IA)
+- xrpl-py (opcional, para a mochila de registro em instalações `pip`; incluído no binário da versão `npx` / GitHub)
 
 ## Segurança
 
-Sem telemetria. Sem contas. A narração do GM está ativada por padrão (HTTP para o Ollama local); passe `--gm-off` para desativar. A XRPL está desativada até `trail ledger enable` (somente Testnet). A voz é opcional (`--voice`). Consulte [SECURITY.md](SECURITY.md) para obter o modelo completo de ameaças.
+Sem telemetria. Sem contas. A narração do GM está ativada por padrão (HTTP para Ollama local); passe `--gm-off` para desativar. XRPL está desativado até `trail ledger enable` (somente Testnet). A voz é opcional (`--voice`). Consulte [SECURITY.md](SECURITY.md) para obter o modelo de ameaças completo.
 
 ## Licença
 
-MIT — execute `trail licenses` (ou `trail --licenses`) para visualizar a licença do jogo e os avisos de dependências de terceiros (também anexados a cada GitHub, um arquivo por plataforma: `THIRD_PARTY_NOTICES-<os>-<arch>.txt`).
+MIT — execute `trail licenses` (ou `trail --licenses`) para visualizar a licença do jogo e os avisos de dependências de terceiros (também anexados a cada GitHub Release, um arquivo por plataforma: `THIRD_PARTY_NOTICES-<os>-<arch>.txt`).
 
 Criado por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
