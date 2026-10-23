@@ -40,6 +40,10 @@ distributions are right. There are two findings:
   gate reports it.
 - **N1 (minor):** the game LICENSE header hash depends on line endings.
 
+**G1 is open.** The unpacked Linux check found the build machine's (on CI, the runner's) Python install prefix in
+`_sysconfigdata`, and the PASS above doesn't cover it. It is being fixed on `release/1.3.1` before release: the
+Publisher ruled to fix it, with no exception.
+
 `trail licenses` works from a pip install on Python 3.13.
 
 ## Item 1: the classic CLI (H-1, M-1) — PASS (`1-cli/`)
@@ -238,7 +242,7 @@ and 0 under `site-packages` in `Analysis-00.toc`. For comparison, rich, xrpl and
 (`10-toc-modules.txt`). The generator lists what is installed, and the check fails only on a bundled distribution
 with no entry, so listing too many does no harm.
 
-## Item 9: the final candidate, a Linux build on `7481d88` — PASS on the brief, one notices defect, one gate hit (`9-final-7481d88/`)
+## Item 9: the final candidate, a Linux build on `7481d88` — PASS on the brief, one notices defect, one gate hit (G1, open) (`9-final-7481d88/`)
 
 The Editor asked for this on **`7481d88`** (PR #25 head, fixup 4 plus its atlas map). It ran in WSL (Ubuntu 26.04,
 uv 0.11.18, uv's concurrency capped at 12 of 24 cores, CPU only) in a fresh clone at that commit.
@@ -282,7 +286,8 @@ RESULT HIT 9
 its `splitroot()` docstring (in the stdlib zip and again in libpython), the pygments and rich author lines, and an
 httpx docstring example.
 
-**G1, the hit that isn't third party: `_sysconfigdata` carries the builder's home path.** uv writes the
+**G1 (open, being fixed before release), the hit that isn't third party: `_sysconfigdata` carries the builder's
+home path.** uv writes the
 interpreter's install prefix into `_sysconfigdata__linux_x86_64-linux-gnu.py` when it installs Python, and
 PyInstaller bundles that module. Here it is 20 strings under `<home>/.local/share/uv/python/cpython-3.12.13-…`, the
 WSL account on this rig. The released xrpl-camp 1.5.0 Linux asset, built on CI, has the same 20 strings under
