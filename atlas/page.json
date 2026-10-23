@@ -68,78 +68,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 98,
-      "changed": 56,
+      "added": 0,
+      "changed": 11,
       "moved": 0,
-      "parts": 8,
+      "parts": 4,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also runs scripts/gen_third_party_notices.py.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "scripts/gen_third_party_notices.py"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI now also checks scripts/.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "scripts/"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also runs scripts/gen_third_party_notices.py.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "scripts/gen_third_party_notices.py"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "And 1 more change to a door.",
-        "subjects": []
-      },
-      {
-        "kind": "landing",
-        "sentence": "scripts/gen_third_party_notices.py is now also read by docs/receipts/1.3.1-live-check/harness/_run_g1.sh, docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh and docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh.",
-        "subjects": [
-          "scripts/gen_third_party_notices.py",
-          "docs/receipts/1.3.1-live-check/harness/_run_g1.sh",
-          "docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh",
-          "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "scripts/smoke_test_binary.py is now also read by docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh.",
-        "subjects": [
-          "scripts/smoke_test_binary.py",
-          "docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In scripts/gen_third_party_notices.py, `main` gained a step, `verify_pbs_archive_accounting`, before `prune_notices_to_toc`.",
-        "subjects": [
-          "scripts/gen_third_party_notices.py"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "98 files added and 56 changed content, across 8 parts.",
+        "sentence": "Nothing structural changed since 2026-10-23; 11 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
-      "generatedAt": "2026-10-23T03:49:37.424Z"
+      "commit": "119458a7d6298392cacdef115d90461b11f068e5",
+      "generatedAt": "2026-10-23T10:58:13.385Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -160,7 +106,7 @@
     {
       "a": "src/escape_the_valley/cli.py",
       "b": "tests/test_cli_stats.py",
-      "either": 8,
+      "either": 9,
       "partLabels": [
         "src",
         "tests"
@@ -170,7 +116,7 @@
         "tests"
       ],
       "relation": "b-imports-a",
-      "shared": 7
+      "shared": 8
     },
     {
       "a": "src/escape_the_valley/engine.py",
@@ -224,7 +170,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 9,
-  "commit": "119458a7d6298392cacdef115d90461b11f068e5",
+  "commit": "28704e6800493a3cd41a2d44ec352573c9b1fa63",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (63 files), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -544,7 +490,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T10:58:13.385Z",
+  "generatedAt": "2026-10-23T13:13:50.166Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

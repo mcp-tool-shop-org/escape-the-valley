@@ -1,21 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 119458a by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit 28704e6 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (63 files), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (f4d5581)
+## What changed since 2026-10-23 (119458a)
 
-- CI now also runs scripts/gen_third_party_notices.py.
-- CI now also checks scripts/.
-- Release now also runs scripts/gen_third_party_notices.py.
-- And 1 more change to a door.
-- scripts/gen_third_party_notices.py is now also read by docs/receipts/1.3.1-live-check/harness/_run_g1.sh, docs/receipts/1.3.1-live-check/harness/_run_npm131_linux.sh and docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh.
-- scripts/smoke_test_binary.py is now also read by docs/receipts/1.3.1-live-check/harness/linux_build_g1.sh.
-- In scripts/gen_third_party_notices.py, `main` gained a step, `verify_pbs_archive_accounting`, before `prune_notices_to_toc`.
-- 98 files added and 56 changed content, across 8 parts.
+Nothing structural changed since 2026-10-23; 11 files changed content.
 
 ## What comes in
 
@@ -65,7 +58,7 @@ CI writes nothing this map can see.
 ## What tends to change together
 
 - **src/escape_the_valley/tui_app.py** and **tests/test_tui_smoke.py** changed together in 13 of 14 commits, and the tests part imports the src part.
-- **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 7 of 8 commits, and the tests part imports the src part.
+- **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 8 of 9 commits, and the tests part imports the src part.
 - **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 13 of 17 commits, inside the src part.
 - **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 13 of 18 commits, and the tests part imports the src part.
 - **src/escape_the_valley/ui.py** and **tests/test_adapter.py** changed together in 7 of 10 commits, and the tests part imports the src part.
