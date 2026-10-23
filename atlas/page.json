@@ -71,100 +71,46 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 7,
-      "changed": 10,
+      "added": 1,
+      "changed": 11,
       "moved": 0,
-      "parts": 1,
-      "removed": 16
+      "parts": 0,
+      "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also runs rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs and 1 more.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/engine.rs",
-          "rust/etv-core/src/events.rs",
-          "rust/etv-core/src/memory.rs",
-          "rust/etv-core/src/physics.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also runs rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs and 1 more.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/engine.rs",
-          "rust/etv-core/src/events.rs",
-          "rust/etv-core/src/memory.rs",
-          "rust/etv-core/src/physics.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Rust Spike Release (S4) (.github/workflows/rust-spike-release.yml) is no longer a door.",
-        "subjects": [
-          ".github/workflows/rust-spike-release.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "And 3 more changes to doors.",
-        "subjects": []
-      },
-      {
         "kind": "landing",
-        "sentence": "rust/oracle/vectors/resume_120_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.",
+        "sentence": "rust/oracle/vectors/turns_long_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.",
         "subjects": [
-          "rust/oracle/vectors/resume_120_seeds.json.gz",
+          "rust/oracle/vectors/turns_long_seeds.json.gz",
           "rust/etv-core/tests/oracle_parity.rs",
           "rust/oracle/generate_vectors.py"
         ]
       },
       {
         "kind": "landing",
-        "sentence": "rust/oracle/vectors/turns_1000_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.",
+        "sentence": "src/escape_the_valley/ is now also read by rust/oracle/generate_vectors.py.",
         "subjects": [
-          "rust/oracle/vectors/turns_1000_seeds.json.gz",
-          "rust/etv-core/tests/oracle_parity.rs",
+          "src/escape_the_valley/",
           "rust/oracle/generate_vectors.py"
         ]
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/src/engine.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/oracle/vectors/turns_long_seeds.json.gz is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/src/engine.rs"
+          "rust/oracle/vectors/turns_long_seeds.json.gz"
         ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/events.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/events.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/events_builtin.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/events_builtin.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 4 more new files that belong to no part.",
-        "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "7 files added, 16 removed and 10 changed content, across 1 part.",
+        "sentence": "1 file added and 11 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "da680ff86deca189ce226d1bee47d715c9cb942f",
-      "generatedAt": "2026-10-23T08:17:04.995Z"
+      "commit": "ad611e5c580cddc83e7b66a3df42f0f9ac88c799",
+      "generatedAt": "2026-10-23T09:43:51.955Z"
     },
     "unchanged": false
   },
@@ -251,7 +197,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ad611e5c580cddc83e7b66a3df42f0f9ac88c799",
+  "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -567,13 +513,13 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T09:43:51.955Z",
+  "generatedAt": "2026-10-23T12:47:40.454Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
     "4 writes and 18 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "22 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 19 more.",
+    "23 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 20 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",

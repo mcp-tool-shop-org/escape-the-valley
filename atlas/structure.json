@@ -9146,8 +9146,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "ad611e5c580cddc83e7b66a3df42f0f9ac88c799",
-    "tracked": 649
+    "commit": "ef9a702e8a1a5dbc51f39b07f1d9af5a4427f44d",
+    "tracked": 650
   },
   "landings": [
     {
@@ -9316,6 +9316,23 @@
           "confidence": "ast"
         }
       ],
+      "target": "rust/oracle/vectors/turns_long_seeds.json.gz",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
       "target": "rust/oracle/vectors/worldgen_200.json.gz",
       "writers": []
     },
@@ -9415,6 +9432,11 @@
           "by": "pyproject.toml",
           "call": "configuration",
           "confidence": "config"
+        },
+        {
+          "by": "rust/oracle/generate_vectors.py",
+          "call": "literal",
+          "confidence": "ast"
         }
       ],
       "target": "src/escape_the_valley",
@@ -9589,7 +9611,7 @@
         "taboo_kept",
         "template_choice_letters"
       ],
-      "hash": "af7bd3fccbc9ac728c7b55cd44050cb073845e141d92db952da7230eee2fbff8",
+      "hash": "46c1ef1c3f8c7ce953b2cc480979e199adaf897b2d8402c7a998e8699f1a6652",
       "importsFiles": [
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -9672,7 +9694,7 @@
         "tag_to_theme",
         "validate_gm_cards"
       ],
-      "hash": "1324717451d5edd2f92fa1a9755b7e3ac0db330f4c502d7c862d2b040526fe7b",
+      "hash": "4da4e41f5350deb5f9f42e90d4d80cf3c879dd65f6b7bafbd1937294e6bab2f7",
       "importOrder": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/physics.rs",
@@ -9732,7 +9754,7 @@
         "rest_day",
         "update_morale"
       ],
-      "hash": "d39dc5402298608ae7de6cb5d59f8a03272b9727211f2d1f367de241acd987ad",
+      "hash": "3291f75627d3270ce28b3ba754ee2cdaafddde4b8b5aadf085a040cc0ca168e7",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
@@ -9809,57 +9831,37 @@
           "line": 233
         },
         {
-          "in": "parse_secrets_store",
-          "kind": "err",
-          "line": 272
-        },
-        {
-          "in": "parse_secrets_store",
-          "kind": "err",
-          "line": 279
+          "in": "write_secrets_sidecar",
+          "kind": "match-err",
+          "line": 289
         },
         {
           "in": "write_secrets_sidecar",
           "kind": "match-err",
-          "line": 316
-        },
-        {
-          "in": "write_secrets_sidecar",
-          "kind": "match-err",
-          "line": 321
-        },
-        {
-          "in": "read_secrets_sidecar",
-          "kind": "match-err",
-          "line": 357
-        },
-        {
-          "in": "read_secrets_sidecar",
-          "kind": "match-err",
-          "line": 364
+          "line": 294
         },
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 574
+          "line": 550
         },
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 599
+          "line": 575
         },
         {
           "in": "value_to_state",
           "kind": "err",
-          "line": 616
+          "line": 592
         },
         {
           "in": "load_backpack",
           "kind": "err",
-          "line": 974
+          "line": 950
         }
       ],
-      "hash": "98650171aae66cdf4168d2e7e7e667181eb18ce1b49dee6107e8ab2b5b991dbb",
+      "hash": "eb2eaf38e6c2739087cd3be7fa76d5847e14c356cf07e3a1206c7f198b3dd67a",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
@@ -9891,7 +9893,7 @@
       "testsInside": true
     },
     {
-      "hash": "bb9193f967b8558ef3f3f77ceae9e01f372ce99877537c83332b554647299e5a",
+      "hash": "16510bbfe2d7e40f0ff508bb9e580dd20eb624ad2ffcdf3bbecaeff62ffb232d",
       "importsFiles": [
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
@@ -9936,10 +9938,10 @@
         {
           "in": "next_100_draws_from_save",
           "kind": "except",
-          "line": 493
+          "line": 546
         }
       ],
-      "hash": "9eb2eb4f920f0b7d7a2295dd459bfc0addd81b48a6183de0bb98688edaa1b1a7",
+      "hash": "908376e69747f3c776b90a504ebd0b9b74d270b909b7269b03ea00165d026567",
       "importOrder": [
         "src/escape_the_valley/__init__.py",
         "src/escape_the_valley/backpack_models.py",
@@ -9971,23 +9973,27 @@
       "path": "rust/oracle/generate_vectors.py"
     },
     {
-      "hash": "0ed1bb61cfeaab8e7727282a12fc51ba37a7fcc7f6ef726bb3094e12bf93f359",
+      "hash": "6a5c41827723b693f04bb2ee0cfa7f6408970324d5e7134e9d43d64d821d2f22",
       "path": "rust/oracle/vectors/resume_120_seeds.json.gz"
     },
     {
-      "hash": "bd16db17c18ceb428b392400d182d0c0f09b69ffcbb098047604c1a640bedae1",
+      "hash": "2c69a504f2ea29b606add45a5035afe2813a22f7ea5a73c13192d0edba70a99d",
       "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
     },
     {
-      "hash": "08fffa53e05154cf483f810421c773a2142d4775fc390d6df21f88f817d99915",
+      "hash": "0d09052a1d021b119a33105cceb64b71539bf382fbd2541654be8801080816f9",
       "path": "rust/oracle/vectors/saves_20.json.gz"
     },
     {
-      "hash": "16aa7e9c097f73c55b9132df23d06d2ad7caafa2c30faf1d0cb8d5ce27e914d5",
+      "hash": "5e475a9118015fbfe2d2983be8f55f551e5098ebe7fe4a71b3df19e558836e8a",
       "path": "rust/oracle/vectors/turns_1000_seeds.json.gz"
     },
     {
-      "hash": "6b604336b15026e827947eb0bffdd669f17cfdc9cb782643e902f3ed390d7c40",
+      "hash": "d3a2f062844a6004d2421021a12658794a1884df4da1ec2909807a2e8c3ef745",
+      "path": "rust/oracle/vectors/turns_long_seeds.json.gz"
+    },
+    {
+      "hash": "fd9d79787e8818a31af88d75ad419e01473509bc8d5b14973fb83f34a80dab59",
       "path": "rust/oracle/vectors/worldgen_200.json.gz"
     },
     {

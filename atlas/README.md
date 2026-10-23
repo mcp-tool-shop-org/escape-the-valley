@@ -1,24 +1,17 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit ad611e5 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit ef9a702 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (64 files), Rust (11), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (da680ff)
+## What changed since 2026-10-23 (ad611e5)
 
-- CI now also runs rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs and 1 more.
-- Release now also runs rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs and 1 more.
-- Rust Spike Release (S4) (.github/workflows/rust-spike-release.yml) is no longer a door.
-- And 3 more changes to doors.
-- rust/oracle/vectors/resume_120_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
-- rust/oracle/vectors/turns_1000_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
-- rust/etv-core/src/engine.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/events.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/events_builtin.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 4 more new files that belong to no part.
-- 7 files added, 16 removed and 10 changed content, across 1 part.
+- rust/oracle/vectors/turns_long_seeds.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
+- src/escape_the_valley/ is now also read by rust/oracle/generate_vectors.py.
+- rust/oracle/vectors/turns_long_seeds.json.gz is new and belongs to no part, so atlas check fails on it against the previous map.
+- 1 file added and 11 changed content.
 
 ## What comes in
 
@@ -113,7 +106,7 @@ Read those in order to follow one run of trail end to end. This path follows tra
 - 1 write and 7 reads use paths built at run time and are not named here.
 - 4 writes and 18 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 22 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 19 more.
+- 23 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 20 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.
