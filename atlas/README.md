@@ -1,35 +1,25 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-22 from commit 6b50d57 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit 1347332 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (62 files), Rust (4), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).
 
-## What changed since 2026-10-22 (053fdcf)
+## What changed since 2026-10-22 (6b50d57)
 
-- Rust Spike Release (S4) (.github/workflows/rust-spike-release.yml) is a new door. It starts on a pull request to rust-2.0; or by hand. It checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
-- s2-xrpl (rust-spikes/s2-xrpl/Cargo.toml) is a new command. It runs rust-spikes/s2-xrpl/src/main.rs.
-- s3-voice (rust-spikes/s3-voice/Cargo.toml) is a new command. It runs rust-spikes/s3-voice/src/main.rs.
-- And 1 more change to a door.
-- rust-spikes/s1-rng/vectors.json is now written by rust-spikes/s1-rng/gen_vectors.py.
-- rust-spikes/s1-rng/ is now read by rust-spikes/Cargo.toml.
-- rust-spikes/s1-rng/vectors.json is now read by rust-spikes/s1-rng/src/lib.rs.
-- And 6 more new writers and readers of places.
-- rust-spikes/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust-spikes/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust-spikes/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 12 more new files that belong to no part.
-- 16 files added, across 1 part.
+- CI's push trigger now also names `rust/**`.
+- Rust Spike Release (S4) no longer starts on a pull request to rust-2.0.
+- 8 files changed content, across 1 part.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 9 paths; on a `workflow_call` event; or by hand. Checks src/ and tests/.
+1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Checks src/ and tests/.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Checks src/ and tests/.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
-6. **Rust Spike Release (S4).** On a pull request to rust-2.0; or by hand. Checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
+6. **Rust Spike Release (S4).** By hand. Checks rust-spikes/s4-hello/Cargo.toml and rust-spikes/s4-hello/src/main.rs.
 7. **escape-the-valley** (a command people run). Runs bin/escape-the-valley.js.
 8. **trail** (a command people run, from package.json). Runs bin/escape-the-valley.js.
 9. **trail** (a command people run, from pyproject.toml). Runs src/escape_the_valley/cli.py.

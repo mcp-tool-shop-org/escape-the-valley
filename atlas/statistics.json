@@ -210,7 +210,7 @@
       },
       {
         "commits": 1,
-        "lines": 228,
+        "lines": 319,
         "path": ".github/workflows/rust-spike-release.yml"
       },
       {
@@ -280,7 +280,7 @@
       },
       {
         "commits": 6,
-        "lines": 263,
+        "lines": 298,
         "path": "atlas/README.md"
       },
       {
@@ -290,17 +290,17 @@
       },
       {
         "commits": 6,
-        "lines": 986,
+        "lines": 1160,
         "path": "atlas/page.json"
       },
       {
         "commits": 6,
-        "lines": 1563,
+        "lines": 1651,
         "path": "atlas/statistics.json"
       },
       {
         "commits": 6,
-        "lines": 8803,
+        "lines": 9438,
         "path": "atlas/structure.json"
       },
       {
@@ -335,12 +335,12 @@
       },
       {
         "commits": 1,
-        "lines": 4308,
+        "lines": 4061,
         "path": "rust-spikes/Cargo.lock"
       },
       {
         "commits": 1,
-        "lines": 11,
+        "lines": 14,
         "path": "rust-spikes/Cargo.toml"
       },
       {
@@ -395,7 +395,7 @@
       },
       {
         "commits": 1,
-        "lines": 14,
+        "lines": 13,
         "path": "rust-spikes/s4-hello/Cargo.toml"
       },
       {
@@ -1004,9 +1004,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-10-22T20:33:01.845Z",
+  "generatedAt": "2026-10-23T05:28:26.845Z",
   "generatedFrom": {
-    "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9"
+    "commit": "1347332994e88f617c0fce96ca31eeb8f30ad9bf"
   },
   "pairs": [
     {
@@ -1146,7 +1146,7 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-10-22T16:32:12-04:00",
+    "headDate": "2026-10-22T17:19:26-04:00",
     "inScopeFiles": 176,
     "pinnedStart": null,
     "priorFloor": "fallen",
@@ -1155,7 +1155,7 @@
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-04-25T20:32:12.000Z",
+    "since": "2026-04-25T21:19:26.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

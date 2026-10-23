@@ -76,7 +76,7 @@ SAMPLE_CASES: list[tuple[str, int, int]] = [
     ("set_n50_k3", 50, 3),       # setsize=21, 50 > 21 (set)
     ("pool_n100_k10", 100, 10),  # k=10 -> setsize=21+256=277, 100 <= 277 (pool)
     ("set_n300_k10", 300, 10),   # setsize=277, 300 > 277 (set)
-    ("set_n1000_k20", 1000, 20), # setsize=1045, 1000 <= 1045 (large pool)
+    ("pool_n1000_k20", 1000, 20), # setsize=1045, 1000 <= 1045 (large pool)
 ]
 
 WEIGHTED_CASES: list[tuple[str, list[str], list[float]]] = [

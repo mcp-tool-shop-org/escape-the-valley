@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "dc28b88bb8b7ded2c0d78bd0c6e527a36e59d93ab327fabbf9b1564fc2d1e38b",
+          "hash": "dd760d7648773a4c4ea113c57d92e400a2f41715ff017ff6da25be485be50eeb",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -29,7 +29,7 @@
           "path": ".github/workflows/release.yml"
         },
         {
-          "hash": "a260db8d7a084fc175121473c21e32531da4dbc9a0875aa1fcb92598ce5ce1e9",
+          "hash": "6111ca747ef3b7364d6c8c3abb49c87971e442c5988c172fa9d68f08623d5249",
           "path": ".github/workflows/rust-spike-release.yml"
         }
       ],
@@ -5429,6 +5429,43 @@
             "pytest"
           ],
           "step": "Test"
+        },
+        {
+          "job": "rust",
+          "programs": [
+            "curl",
+            "rustup",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
         }
       ],
       "elsewhere": [],
@@ -5485,6 +5522,22 @@
         {
           "basis": "declared",
           "name": "codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "rust",
           "runsOn": [
             {
               "labels": [
@@ -5564,6 +5617,13 @@
           "junit": true,
           "runner": "pytest",
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "files": 0,
+          "job": "rust",
+          "runner": "cargo test",
+          "step": "Test"
         }
       ],
       "triggers": [
@@ -5577,6 +5637,7 @@
             "atlas/**",
             "codecov.yml",
             "pyproject.toml",
+            "rust/**",
             "site/astro.config.mjs",
             "site/package-lock.json",
             "site/package.json",
@@ -6113,6 +6174,43 @@
           "step": "Test"
         },
         {
+          "job": "gate/rust",
+          "programs": [
+            "curl",
+            "rustup",
+            "tar"
+          ],
+          "step": "Install Rust 1.98.1 and cargo-deny"
+        },
+        {
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Format check"
+        },
+        {
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Clippy"
+        },
+        {
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "Test"
+        },
+        {
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check"
+        },
+        {
           "dir": "",
           "job": "release",
           "programs": [
@@ -6233,6 +6331,22 @@
         {
           "basis": "declared",
           "name": "gate/codecov",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-latest"
+              ],
+              "platform": {
+                "cpu": "x64",
+                "libc": "glibc",
+                "os": "linux"
+              }
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "gate/rust",
           "runsOn": [
             {
               "labels": [
@@ -6380,6 +6494,16 @@
           "through": [
             ".github/workflows/ci.yml"
           ]
+        },
+        {
+          "dir": "rust",
+          "files": 0,
+          "job": "gate/rust",
+          "runner": "cargo test",
+          "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
         }
       ],
       "triggers": [
@@ -6431,7 +6555,10 @@
             "cp",
             "ls",
             "maturin",
-            "mkdir"
+            "mkdir",
+            "python3",
+            "strip",
+            "x86_64-w64-mingw32-strip"
           ],
           "step": "Build linux-x64 and win-x64 binaries + wheels"
         },
@@ -6459,7 +6586,9 @@
             "cp",
             "ls",
             "maturin",
-            "mkdir"
+            "mkdir",
+            "python3",
+            "strip"
           ],
           "step": "Build darwin-arm64 and darwin-x64 binaries + wheels"
         },
@@ -6514,6 +6643,19 @@
                 "os": "linux"
               }
             }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
+            }
           ]
         },
         {
@@ -6528,6 +6670,19 @@
                 "cpu": "arm64",
                 "os": "darwin"
               }
+            }
+          ],
+          "setup": [
+            {
+              "ranges": [
+                {
+                  "from": "3.12",
+                  "range": ">=3.12.0 <3.13.0-0"
+                }
+              ],
+              "step": "1",
+              "uses": "actions/setup-python",
+              "version": "3.12"
             }
           ]
         },
@@ -6661,18 +6816,13 @@
       ],
       "triggers": [
         {
-          "branches": [
-            "rust-2.0"
-          ],
-          "event": "pull_request"
-        },
-        {
           "event": "workflow_dispatch"
         }
       ],
       "uses": [
         "actions/checkout",
         "actions/download-artifact",
+        "actions/setup-python",
         "actions/upload-artifact"
       ],
       "usesWorkflowToken": false
@@ -6945,7 +7095,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "6b50d5742456ed0c9aae70fa085ca2ada28400a9",
+    "commit": "1347332994e88f617c0fce96ca31eeb8f30ad9bf",
     "tracked": 171
   },
   "landings": [
@@ -7204,15 +7354,15 @@
   ],
   "unassigned": [
     {
-      "hash": "df166f4abeb38a0a665123266acebe87a55746db8bcc1aae35cdabc00db7ee38",
+      "hash": "b190c788aebdc4f4cc1be6f65210ff16db8a300634a53c1d52c5945c29867023",
       "path": "rust-spikes/Cargo.lock"
     },
     {
-      "hash": "5f5b9b1d7a486d20a1701a240754f6ccc595de8fc4e70b64331816d143b95a36",
+      "hash": "9be285d21c2251967079e4b3224711c1463fd245736e20ac7b21f51a22658ad2",
       "path": "rust-spikes/Cargo.toml"
     },
     {
-      "hash": "a589c4537d421121d2df15c930d2176ae48b5e5910ee042f9d8ed5af414af662",
+      "hash": "614cb01f6ebf3c177ec42f5abdd82bba8640549a0ca837e3cd07c75676dbe248",
       "path": "rust-spikes/deny.toml"
     },
     {
@@ -7232,7 +7382,7 @@
         "serialize_state",
         "weighted_choice"
       ],
-      "hash": "632500301e63a32e3117f4aa708430685a9bce538ba095edb8dad3f338f65f21",
+      "hash": "38bf034a7281854f6c6634a7dea14eecbf756664098858597751322ce07e510a",
       "path": "rust-spikes/s1-rng/gen_vectors.py"
     },
     {
@@ -7258,7 +7408,7 @@
       "testsInside": true
     },
     {
-      "hash": "953c8e5ea8ac454deeb36af9680619d38f0d5407241226906fc5c98c321ec914",
+      "hash": "c73e383215f56c5065370d136430b9697572d3b52d3c4e745ec1fbe1be295f2e",
       "path": "rust-spikes/s1-rng/vectors.json"
     },
     {
@@ -7325,7 +7475,7 @@
       "testsInside": true
     },
     {
-      "hash": "59e7b71093b82d1f1501dfe5530840d738b08860946d84dc155575254aa2b701",
+      "hash": "d3426689d18e777312ff04a10ea1caa0a6b4f45eadb1300aef3db9a5fa271cea",
       "path": "rust-spikes/s4-hello/Cargo.toml"
     },
     {

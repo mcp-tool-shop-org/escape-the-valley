@@ -1,0 +1,16 @@
+[package]
+name = "etv-core"
+version = "2.0.0-alpha.1"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+getrandom = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[dev-dependencies]
+flate2 = "1.1"
+tempfile = "3.19"
