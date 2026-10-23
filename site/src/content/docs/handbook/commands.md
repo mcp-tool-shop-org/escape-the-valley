@@ -33,6 +33,7 @@ sidebar:
 | `trail stats --json` | Output run statistics as JSON |
 | `trail version` | Show version |
 | `trail self-check` | Check game environment health |
+| `trail licenses` | Show the game's license and third-party notices (also `trail --licenses`) |
 
 ## Ledger commands
 
