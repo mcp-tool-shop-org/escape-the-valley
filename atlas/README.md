@@ -1,18 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 6af2410 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit 5b69405 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (63 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-22 (0d112bc)
+## What changed since 2026-10-23 (6af2410)
 
-- LICENSE is now also read by src/escape_the_valley/_licenses/SOURCES.json.
-- src/escape_the_valley/_licenses/ is now read by src/escape_the_valley/notices.py.
-- src/escape_the_valley/_licenses/LICENSE is now read by src/escape_the_valley/notices.py.
-- And 4 more new writers and readers of places.
-- 36 files added and 5 changed content, across 5 parts.
+Nothing structural changed since 2026-10-23; 3 files added and 6 changed content.
 
 ## What comes in
 
@@ -63,8 +59,8 @@ CI writes nothing this map can see.
 - **src/escape_the_valley/tui_app.py** and **tests/test_tui_smoke.py** changed together in 13 of 14 commits, and the tests part imports the src part.
 - **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 14 of 18 commits, and the tests part imports the src part.
 - **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 13 of 17 commits, inside the src part.
-- **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 8 of 11 commits, and the tests part imports the src part.
 - **src/escape_the_valley/ui.py** and **tests/test_adapter.py** changed together in 7 of 10 commits, and the tests part imports the src part.
+- **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 8 of 12 commits, and the tests part imports the src part.
 
 8 files changed together with their own tests, as expected.
 
@@ -102,8 +98,9 @@ Read those in order to follow one run of trail end to end. This path follows tra
 
 ## What this map cannot see
 
-- 1 write and 6 reads use paths built at run time and are not named here.
-- 4 writes and 16 reads go to a path their caller passes, not to this repository.
+- 1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.
+- 1 write and 7 reads use paths built at run time and are not named here.
+- 4 writes and 18 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 

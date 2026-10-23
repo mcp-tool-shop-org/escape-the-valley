@@ -21,7 +21,7 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "5296f9ed41ec2cea4c53a02b05fcf0326ed3f7d6d7c1c15d2f3a39586275db15",
+          "hash": "ee11b5cf8bda91804d84ed20632b096df897b448b8c1dcd591296565ea913a43",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
@@ -255,19 +255,24 @@
             {
               "in": "main",
               "kind": "except",
-              "line": 36
+              "line": 50
             },
             {
               "in": "main",
               "kind": "except",
-              "line": 58
+              "line": 72
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 92
             },
             {
               "kind": "raise",
-              "line": 74
+              "line": 108
             }
           ],
-          "hash": "b49c978d55f4e45035a16ca2055735d29e0634fcf947a235d1b7f6bf04b8c5a3",
+          "hash": "ad86f575c34e13ac5c78bc91f68013298c7b330c6bae17951ea70d27aa50168a",
           "importsFiles": [
             "src/escape_the_valley/notices.py"
           ],
@@ -276,23 +281,31 @@
             {
               "calls": [
                 {
-                  "branch": "len(sys.argv) >= 2 and sys.argv[1] == \"--prune-toc\"",
-                  "line": 35,
+                  "branch": "args and args[0] == \"--prune-toc\"",
+                  "line": 47,
                   "name": "prune_notices_to_toc",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
                   }
                 },
                 {
-                  "branch": "len(sys.argv) >= 2 and sys.argv[1] == \"--verify-toc\"",
-                  "line": 57,
+                  "branch": "args and args[0] == \"--verify-toc\"",
+                  "line": 71,
                   "name": "verify_toc_against_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
                   }
                 },
                 {
-                  "line": 68,
+                  "branch": "args and args[0] == \"--verify-bundle\"",
+                  "line": 91,
+                  "name": "verify_bundle_no_direct_url",
+                  "target": {
+                    "file": "src/escape_the_valley/notices.py"
+                  }
+                },
+                {
+                  "line": 102,
                   "name": "write_third_party_notices",
                   "target": {
                     "file": "src/escape_the_valley/notices.py"
@@ -768,7 +781,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 6,
+      "dynamicReads": 7,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -856,7 +869,7 @@
           "path": "src/escape_the_valley/_licenses/LICENSE"
         },
         {
-          "hash": "a1c32284a907ce4db2788423f92df3ee56a493d062b94ef7d4ac32714fbd464a",
+          "hash": "fdababb2e2459a82dca2c6b96e19c413aa604cdb091d063a56578b3c873e7f34",
           "path": "src/escape_the_valley/_licenses/SOURCES.json"
         },
         {
@@ -886,6 +899,10 @@
         {
           "hash": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
           "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.mpdecimal.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/aarch64-apple-darwin/LICENSE.openssl-1.1.txt"
         },
         {
           "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
@@ -936,6 +953,10 @@
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt"
         },
         {
+          "hash": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt"
+        },
+        {
           "hash": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
           "path": "src/escape_the_valley/_licenses/x86_64-pc-windows-msvc/LICENSE.openssl-3.txt"
         },
@@ -982,6 +1003,10 @@
         {
           "hash": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
           "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.ncurses.txt"
+        },
+        {
+          "hash": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "path": "src/escape_the_valley/_licenses/x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt"
         },
         {
           "hash": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
@@ -3508,10 +3533,12 @@
         {
           "exports": [
             "collect_toc_bundled_distributions",
+            "collect_toc_bundled_excluded_extensions",
             "generate_third_party_notices",
             "get_third_party_notices_text",
             "prune_notices_to_toc",
             "resolve_bundled_notices_path",
+            "verify_bundle_no_direct_url",
             "verify_toc_against_notices",
             "verify_vendored_licenses_integrity",
             "write_third_party_notices"
@@ -3530,42 +3557,42 @@
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 170
+              "line": 172
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 178
+              "line": 180
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 186
+              "line": 189
+            },
+            {
+              "in": "_verify_vendored_licenses_match",
+              "kind": "raise",
+              "line": 194
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 201
+              "line": 209
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 204
+              "line": 212
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 214
+              "line": 222
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 221
-            },
-            {
-              "in": "verify_vendored_licenses_integrity",
-              "kind": "raise",
-              "line": 226
+              "line": 229
             },
             {
               "in": "verify_vendored_licenses_integrity",
@@ -3575,95 +3602,125 @@
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 243
+              "line": 242
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 248
+              "line": 252
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 257
+            },
+            {
+              "in": "verify_vendored_licenses_integrity",
+              "kind": "raise",
+              "line": 277
             },
             {
               "in": "_locate_cpython_license_file",
               "kind": "except",
-              "line": 333
+              "line": 362
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 345
+              "line": 374
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 353
+              "line": 382
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 379
+              "line": 408
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 385
+              "line": 414
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 399
+              "line": 428
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 405
+              "line": 434
             },
             {
               "in": "_extract_dist_license_files",
               "kind": "except",
-              "line": 487
+              "line": 516
             },
             {
               "in": "_read_game_license_block",
               "kind": "raise",
-              "line": 617
+              "line": 646
             },
             {
               "in": "_build_top_level_to_dist_map",
               "kind": "except",
-              "line": 782
+              "line": 851
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "raise",
-              "line": 820
+              "line": 889
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "except",
-              "line": 850
+              "line": 919
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "raise",
+              "line": 964
+            },
+            {
+              "in": "collect_toc_bundled_excluded_extensions",
+              "kind": "except",
+              "line": 996
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 922
+              "line": 1081
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 940
+              "line": 1093
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 947
+              "line": 1111
+            },
+            {
+              "in": "verify_toc_against_notices",
+              "kind": "raise",
+              "line": 1118
+            },
+            {
+              "in": "verify_bundle_no_direct_url",
+              "kind": "raise",
+              "line": 1155
             },
             {
               "in": "get_third_party_notices_text",
               "kind": "raise",
-              "line": 1005
+              "line": 1215
             }
           ],
-          "hash": "32b02496b1eab3ea06efd55d9ffc235ce185d992527e6bf50d19b460c5ef0860",
+          "hash": "67b605866bda5a4e7f2a03dc90b799bec1732bb86246be4e1d9161ce2665efc1",
           "importsFiles": [
             "src/escape_the_valley/__init__.py"
           ],
@@ -5204,18 +5261,25 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 15,
+          "reads": 17,
           "where": [
             "caller"
           ],
           "writes": 4
         }
       ],
-      "outsideReads": 15,
+      "outsideReads": 17,
       "outsideWrites": 4,
       "role": "code",
       "testedBy": 23,
-      "unresolvedSites": 0
+      "unresolvedNamed": [
+        {
+          "path": "src/escape_the_valley/notices.py",
+          "specifier": null,
+          "why": "dynamic"
+        }
+      ],
+      "unresolvedSites": 1
     },
     {
       "dynamicReads": 0,
@@ -5331,7 +5395,7 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "5273ccc23643ac3c10447f5ad1937518aa227712a5ab764740ff8c1225aa41b9",
+          "hash": "3af468c9dde501dae43941af374a3d6ebd8288df134d8739d82ed541965367b2",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
@@ -5355,6 +5419,9 @@
             "src/escape_the_valley/notices.py",
             "src/escape_the_valley/save.py",
             "src/escape_the_valley/worldgen.py"
+          ],
+          "names": [
+            "scripts/gen_third_party_notices.py"
           ],
           "path": "tests/test_cli_stats.py",
           "spawns": [
@@ -5522,7 +5589,7 @@
           "testFramework": "pytest"
         },
         {
-          "hash": "9ead7f145e83c989914360c9357eb812461b980721f6fd3c84b3bc49d23043e9",
+          "hash": "5b2b946c11148cda7ed24d0e16fa3caffe49c9dc079240829fdd255cf7acbd4f",
           "importsFiles": [
             "src/escape_the_valley/narration.py",
             "src/escape_the_valley/step_engine.py"
@@ -6351,6 +6418,14 @@
           "programs": [
             "uv"
           ],
+          "step": "Remove PEP 610 direct_url.json build record from venv"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
           "step": "Generate third-party notices"
         },
         {
@@ -6370,7 +6445,7 @@
           "programs": [
             "uv"
           ],
-          "step": "Verify third-party notices against PyInstaller TOC"
+          "step": "Verify third-party notices against PyInstaller TOC and check bundle archive"
         },
         {
           "dir": "",
@@ -7044,8 +7119,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "6af24104463f9639e0546308f79c9c562dfd8fa6",
-    "tracked": 193
+    "commit": "5b69405a065570f1f71b8bc739c86b47b0469eef",
+    "tracked": 196
   },
   "landings": [
     {
