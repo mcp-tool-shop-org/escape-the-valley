@@ -1576,6 +1576,404 @@ class TestThirdPartyNotices:
                 target="x86_64-unknown-linux-gnu",
             )
 
+        # Preservation test (#31.3): Windows (.pyd) and darwin (.so) excluded-extension
+        # vectors are also rejected by verify_toc_against_notices:
+        win_pyd = "_tkinter.pyd"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', 'C:\\\\v\\\\site-packages\\\\rich\\\\console.py', 'PYMODULE'),\n"
+            f"  ('{win_pyd}', 'C:\\\\uv-python\\\\DLLs\\\\{win_pyd}', 'EXTENSION'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(RuntimeError, match="_tkinter"):
+            verify_toc_against_notices(
+                build_dir,
+                notices_path,
+                distributions=dists,
+                target="x86_64-pc-windows-msvc",
+            )
+
+        darwin_so = "_tkinter.cpython-312-darwin.so"
+        toc_file.write_text(
+            "[\n"
+            "  ('rich.console', '/v/site-packages/rich/console.py', 'PYMODULE'),\n"
+            f"  ('lib-dynload/{darwin_so}', "
+            f"'/opt/uv-python/lib/python3.12/lib-dynload/{darwin_so}', 'EXTENSION'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(RuntimeError, match="_tkinter"):
+            verify_toc_against_notices(
+                build_dir,
+                notices_path,
+                distributions=dists,
+                target="aarch64-apple-darwin",
+            )
+
+    def test_n1_n2_lf_normalization_no_cr_and_byte_for_byte_trail_licenses(
+        self, tmp_path, monkeypatch
+    ):
+        """N1 & N2: every license text is normalised to LF before hashing and
+        writing; THIRD_PARTY_NOTICES*.txt is written with newline='\\n' (0 '\\r'
+        bytes); and `trail licenses` / `trail --licenses` output equals the
+        bundled file byte for byte even on Windows."""
+        import hashlib
+        import json
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        from escape_the_valley.notices import (
+            prune_notices_to_toc,
+            write_third_party_notices,
+        )
+
+        repo_root = Path(__file__).resolve().parents[1]
+        self._pin_matching_interpreter(monkeypatch)
+
+        # 1. Craft a distribution whose license file on disk has CRLF line endings:
+        crlf_lic_bytes = (
+            b"MIT License\r\n\r\nCopyright (c) 2026 CRLF Test\r\n"
+            b"Permission is hereby granted.\r\n"
+        )
+        lf_lic_bytes = crlf_lic_bytes.replace(b"\r\n", b"\n")
+        expected_lf_sha = hashlib.sha256(lf_lic_bytes).hexdigest()
+        unexpected_crlf_sha = hashlib.sha256(crlf_lic_bytes).hexdigest()
+        assert expected_lf_sha != unexpected_crlf_sha
+
+        disk_lic = tmp_path / "site-packages" / "crlf_pkg-1.0.0.dist-info" / "LICENSE.txt"
+        disk_lic.parent.mkdir(parents=True, exist_ok=True)
+        disk_lic.write_bytes(crlf_lic_bytes)
+        assert b"\r\n" in disk_lic.read_bytes()
+
+        class _FakePkgPath:
+            def __init__(self, rel: str, target_file: Path):
+                self._rel = rel
+                self._target_file = target_file
+
+            def __str__(self) -> str:
+                return self._rel
+
+            def locate(self) -> Path:
+                return self._target_file
+
+        dist = _FakeDist(
+            name="crlf-pkg",
+            version="1.0.0",
+            license_expr="MIT",
+            top_level="crlf_pkg\n",
+            files=[_FakePkgPath("crlf_pkg-1.0.0.dist-info/LICENSE.txt", disk_lic)],
+        )
+
+        # 2. Write THIRD_PARTY_NOTICES.txt and check LF hash + zero '\r' bytes:
+        out_path = tmp_path / "THIRD_PARTY_NOTICES.txt"
+        write_third_party_notices(
+            out_path,
+            distributions=[dist],
+            release=True,
+            target="x86_64-pc-windows-msvc",
+        )
+        raw_written = out_path.read_bytes()
+        assert b"\r" not in raw_written, "Generated notices must contain zero '\\r' bytes"
+        written_text = raw_written.decode("utf-8")
+        assert f"SHA256: {expected_lf_sha}" in written_text
+        assert unexpected_crlf_sha not in written_text
+
+        # Game LICENSE header SHA256 must match SOURCES.json game_license.sha256 (LF):
+        sources = json.loads(
+            (repo_root / "src" / "escape_the_valley" / "_licenses" / "SOURCES.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        lf_game_lic_sha = hashlib.sha256(
+            (repo_root / "LICENSE").read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        ).hexdigest()
+        assert sources["game_license"]["sha256"] == lf_game_lic_sha
+        assert f"SHA256: {lf_game_lic_sha}" in written_text
+
+        # Every SHA256: <hex> line in THIRD_PARTY_NOTICES.txt across all 3 targets
+        # must equal sha256((text_block + "\n").encode("utf-8")):
+        import re
+
+        sep = "=" * 80
+        for tname in (
+            "x86_64-unknown-linux-gnu",
+            "aarch64-apple-darwin",
+            "x86_64-pc-windows-msvc",
+        ):
+            t_path = tmp_path / f"THIRD_PARTY_NOTICES-{tname}.txt"
+            write_third_party_notices(
+                t_path, distributions=[dist], release=True, target=tname
+            )
+            t_raw = t_path.read_bytes()
+            assert b"\r" not in t_raw
+            t_lines = t_raw.decode("utf-8").split("\n")
+            # Check game LICENSE header block:
+            assert t_lines[3] == f"SHA256: {lf_game_lic_sha}"
+            hdr_end = t_lines.index(sep, 5)
+            hdr_text = "\n".join(t_lines[5:hdr_end]).strip()
+            assert (
+                hashlib.sha256((hdr_text + "\n").encode("utf-8")).hexdigest()
+                == lf_game_lic_sha
+            )
+            # Check every '--- ... ---' block:
+            heads = [
+                idx
+                for idx in range(len(t_lines) - 2)
+                if re.fullmatch(r"--- (.+) ---", t_lines[idx])
+                and t_lines[idx + 1].startswith("Source: ")
+                and re.fullmatch(r"SHA256: [0-9a-f]{64}", t_lines[idx + 2])
+            ]
+            assert len(heads) >= 13
+            for h_idx, start_line in enumerate(heads):
+                limit = heads[h_idx + 1] if h_idx + 1 < len(heads) else len(t_lines)
+                end_line = start_line + 3
+                while end_line < limit and t_lines[end_line] != sep:
+                    end_line += 1
+                line_sha = t_lines[start_line + 2][8:]
+                block_text = "\n".join(t_lines[start_line + 3 : end_line]).strip()
+                computed_sha = hashlib.sha256(
+                    (block_text + "\n").encode("utf-8")
+                ).hexdigest()
+                assert line_sha == computed_sha, (
+                    f"{tname} block {t_lines[start_line]}: "
+                    f"SHA256 line {line_sha} != sha256(text_block + '\\n') {computed_sha}"
+                )
+
+        # 3. prune_notices_to_toc also writes with newline='\n' and zero '\r' bytes:
+        build_dir = tmp_path / "build"
+        build_dir.mkdir()
+        (build_dir / "Analysis-00.toc").write_text(
+            "[('crlf_pkg', '/sp/site-packages/crlf_pkg/__init__.py', 'PYMODULE')]\n",
+            encoding="utf-8",
+        )
+        prune_notices_to_toc(
+            build_dir,
+            out_path,
+            distributions=[dist],
+            release=True,
+            target="x86_64-pc-windows-msvc",
+        )
+        pruned_bytes = out_path.read_bytes()
+        assert b"\r" not in pruned_bytes
+
+        # 4. Subprocess `trail licenses` and `trail --licenses` with bundled file
+        #    must match `pruned_bytes` byte-for-byte (no Windows CRLF translation):
+        for flag in ("licenses", "--licenses"):
+            code = (
+                "import pathlib, escape_the_valley.notices as n, escape_the_valley.cli as c; "
+                f"n.resolve_bundled_notices_path = lambda: pathlib.Path({str(out_path)!r}); "
+                f"c.app(args=[{flag!r}], prog_name='trail')"
+            )
+            proc = subprocess.run(
+                [sys.executable, "-c", code],
+                capture_output=True,
+                timeout=30,
+            )
+            assert proc.returncode == 0, proc.stderr.decode("utf-8", errors="replace")
+            assert b"\r" not in proc.stdout
+            assert proc.stdout == pruned_bytes
+
+    def test_gen_third_party_notices_prune_toc_honours_release_flag(
+        self, tmp_path, monkeypatch
+    ):
+        """#31.1: `gen_third_party_notices.py --prune-toc` without `--release`
+        must pass `release=False` (not hardcoded `release=True`)."""
+        import runpy
+        import sys
+        from pathlib import Path
+
+        import pytest
+
+        import escape_the_valley.notices as notices_mod
+
+        recorded: list[tuple[bool]] = []
+
+        def _spy_prune(toc_dir, notices_path, *, release=False, **kwargs):
+            recorded.append((release,))
+            Path(notices_path).write_text("pruned\n", encoding="utf-8")
+            return ["rich"]
+
+        monkeypatch.setattr(notices_mod, "prune_notices_to_toc", _spy_prune)
+        script_path = (
+            Path(__file__).resolve().parents[1] / "scripts" / "gen_third_party_notices.py"
+        )
+
+        # Without --release -> release=False:
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                str(script_path),
+                "--prune-toc",
+                str(tmp_path / "build"),
+                str(tmp_path / "THIRD_PARTY_NOTICES.txt"),
+            ],
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_path(str(script_path), run_name="__main__")
+        assert exc_info.value.code == 0
+        assert recorded == [(False,)]
+
+        # With --release -> release=True:
+        recorded.clear()
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                str(script_path),
+                "--release",
+                "--prune-toc",
+                str(tmp_path / "build"),
+                str(tmp_path / "THIRD_PARTY_NOTICES.txt"),
+            ],
+        )
+        with pytest.raises(SystemExit) as exc_info2:
+            runpy.run_path(str(script_path), run_name="__main__")
+        assert exc_info2.value.code == 0
+        assert recorded == [(True,)]
+
+    def test_verify_pbs_archive_accounting_pass_and_fail(self, tmp_path):
+        """#31.2: verify_pbs_archive_accounting inspects the archive's
+        python/licenses/ and python/PYTHON.json and fails if SOURCES.json does
+        not account for every license file in files ∪ system_libraries ∪
+        excluded_unbundled_extensions; also runnable via
+        `scripts/gen_third_party_notices.py --verify-pbs-archive`."""
+        import io
+        import json
+        import subprocess
+        import sys
+        import tarfile
+        from pathlib import Path
+
+        import pytest
+
+        import escape_the_valley.notices as notices_mod
+
+        repo_root = Path(__file__).resolve().parents[1]
+        sources = json.loads(
+            (repo_root / "src" / "escape_the_valley" / "_licenses" / "SOURCES.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        target = "x86_64-unknown-linux-gnu"
+        tinfo = sources["targets"][target]
+        lic_dir = repo_root / "src" / "escape_the_valley" / "_licenses"
+
+        def _build_tar(
+            extra_files: dict[str, bytes] | None = None,
+            python_json_obj: dict | None = None,
+        ) -> Path:
+            tar_path = tmp_path / f"pbs-{len(list(tmp_path.iterdir()))}.tar"
+            with tarfile.open(tar_path, "w") as tf:
+                # Populate all accounted archive_license_files:
+                vendored_by_archive = {
+                    e["archive_path"]: e["vendored_path"] for e in tinfo["files"]
+                }
+                for arch_path in tinfo["archive_license_files"]:
+                    if arch_path in vendored_by_archive:
+                        data = (lic_dir / vendored_by_archive[arch_path]).read_bytes()
+                    else:
+                        data = b"dummy license text\n"
+                    info = tarfile.TarInfo(name=arch_path)
+                    info.size = len(data)
+                    tf.addfile(info, io.BytesIO(data))
+                if extra_files:
+                    for name, data in extra_files.items():
+                        info = tarfile.TarInfo(name=name)
+                        info.size = len(data)
+                        tf.addfile(info, io.BytesIO(data))
+                pj = python_json_obj or {
+                    "python_license_path": "licenses/LICENSE.cpython.txt",
+                    "build_info": {
+                        "core": {"license_path": "licenses/LICENSE.cpython.txt"},
+                        "extensions": {
+                            "_bz2": [{"license_path": "licenses/LICENSE.bzip2.txt"}],
+                        },
+                    },
+                }
+                pj_bytes = json.dumps(pj).encode("utf-8")
+                info = tarfile.TarInfo(name="python/PYTHON.json")
+                info.size = len(pj_bytes)
+                tf.addfile(info, io.BytesIO(pj_bytes))
+            return tar_path
+
+        good_tar = _build_tar()
+        bad_tar = _build_tar(extra_files={"python/licenses/LICENSE.unaccounted_foo.txt": b"foo\n"})
+
+        # 1. Runnable by hand via scripts/gen_third_party_notices.py --verify-pbs-archive:
+        script_path = repo_root / "scripts" / "gen_third_party_notices.py"
+        proc_ok = subprocess.run(
+            [
+                sys.executable,
+                str(script_path),
+                "--verify-pbs-archive",
+                "--target",
+                target,
+                "--archive-path",
+                str(good_tar),
+                "--no-verify-archive-sha256",
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert proc_ok.returncode == 0, proc_ok.stderr
+        assert "pbs-archive-check" in proc_ok.stdout
+
+        proc_fail = subprocess.run(
+            [
+                sys.executable,
+                str(script_path),
+                "--verify-pbs-archive",
+                "--target",
+                target,
+                "--archive-path",
+                str(bad_tar),
+                "--no-verify-archive-sha256",
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert proc_fail.returncode != 0
+        assert "LICENSE.unaccounted_foo.txt" in (proc_fail.stderr + proc_fail.stdout)
+
+        # 2. Direct function checks:
+        verify_pbs_archive_accounting = getattr(
+            notices_mod, "verify_pbs_archive_accounting", None
+        )
+        assert verify_pbs_archive_accounting is not None
+        verified = verify_pbs_archive_accounting(
+            target=target, archive_path=good_tar, verify_archive_sha256=False
+        )
+        assert target in verified
+
+        with pytest.raises(RuntimeError, match="LICENSE.unaccounted_foo.txt"):
+            verify_pbs_archive_accounting(
+                target=target, archive_path=bad_tar, verify_archive_sha256=False
+            )
+
+        bad_pj_tar = _build_tar(
+            python_json_obj={
+                "build_info": {
+                    "extensions": {
+                        "_mystery": [{"license_path": "licenses/LICENSE.mystery_ext.txt"}]
+                    }
+                }
+            }
+        )
+        with pytest.raises(RuntimeError, match="LICENSE.mystery_ext.txt"):
+            verify_pbs_archive_accounting(
+                target=target, archive_path=bad_pj_tar, verify_archive_sha256=False
+            )
+
+
     def test_verify_bundle_no_direct_url_pass_and_fail(self, tmp_path):
         """G3: --verify-bundle fails when *.dist-info/direct_url.json is present."""
         import pytest

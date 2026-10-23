@@ -37,7 +37,7 @@ Launch the full-screen TUI (recommended):
 trail tui --seed 42
 ```
 
-The `--seed 42` flag gives you a reproducible world. You can use any number. Without `--seed`, the game picks a random seed based on the current time.
+The `--seed 42` flag gives you a reproducible world within the same version. You can use any number. Without `--seed`, the game picks a random seed based on the current time.
 
 When the game starts, you will see:
 

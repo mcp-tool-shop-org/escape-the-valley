@@ -46,7 +46,7 @@ Twelve resource types govern your survival, split into consumables and gear:
 
 ## Physics Engine
 
-The game uses deterministic physics with seeded RNG. Given the same seed and same choices, the outcome is identical every time.
+The game uses deterministic physics with seeded RNG. Within the same version, given the same seed and same choices, the outcome is identical every time (event-selection or physics changes between versions may shift downstream event draws).
 
 - **Scarcity curve** -- consumption scales up to 1.12x as you approach the end of the trail (journey pressure)
 - **Breakdown probability** -- scales with wagon condition: well-maintained (>60%) gets 0.3x chance, damaged (<30%) gets 1.8x. Hard pace adds +3% on top

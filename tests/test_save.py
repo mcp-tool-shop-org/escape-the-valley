@@ -517,17 +517,88 @@ class TestSecretsSidecar:
 
     def test_old_save_loads_with_stored_run_id_intact(self):
         """M-5: an existing save keeps its stored legacy run_id and never regenerates on load."""
-        state = create_new_run(seed=42)
-        state.run_id = "73475cb4"  # pre-1.3.1 unsalted 8-char sha256 prefix
-        self._enable_backpack(state)
+        state_b = create_new_run(seed=42)
+        state_b.run_id = "73475cb4"  # pre-1.3.1 unsalted 8-char sha256 prefix
+        self._enable_backpack(state_b)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir)
-            save_game(state, base)
+            save_game(state_b, base)
             loaded = load_game(base)
             assert loaded is not None
             assert loaded.run_id == "73475cb4"
-            assert loaded.backpack.wallet_secret == state.backpack.wallet_secret
+            assert loaded.backpack.wallet_secret == state_b.backpack.wallet_secret
+
+    def test_corrupt_secrets_sidecar_quarantined_and_never_leaked(
+        self, tmp_path, caplog, capsys
+    ):
+        """#31.7: when .trail/secrets.json is corrupt, _write_secrets_sidecar
+        must quarantine it to secrets.json.corrupt-<timestamp> (not overwrite or
+        delete it), log a warning naming only the file (never its seed contents),
+        write a fresh secrets.json with only the current run's entry, and never
+        read the quarantined file into a bundle, log, or output."""
+        import logging
+
+        save_dir = tmp_path / SAVE_DIR
+        save_dir.mkdir(parents=True, exist_ok=True)
+        sidecar = save_dir / "secrets.json"
+
+        canary_wallet_seed = "sCanaryCorruptWalletSeed999999"
+        canary_issuer_seed = "sCanaryCorruptIssuerSeed888888"
+        corrupt_payload = (
+            '{"prior_run": {"wallet_secret": "'
+            + canary_wallet_seed
+            + '", "issuer_secret": "'
+            + canary_issuer_seed
+            + '"}\n<<<TRUNCATED CORRUPT JSON'
+        )
+        sidecar.write_text(corrupt_payload, encoding="utf-8")
+
+        state = create_new_run(seed=42)
+        self._enable_backpack(state)
+        state.backpack.wallet_secret = "sCurrentRunWalletSecret111111"
+        state.backpack.issuer_secret = "sCurrentRunIssuerSecret222222"
+
+        with caplog.at_level(logging.WARNING, logger="escape_the_valley.save"):
+            save_game(state, tmp_path)
+
+        # 1. Corrupt file is renamed to secrets.json.corrupt-<timestamp>, not deleted:
+        quarantined = sorted(save_dir.glob("secrets.json.corrupt-*"))
+        assert len(quarantined) == 1
+        assert quarantined[0].read_text(encoding="utf-8") == corrupt_payload
+
+        # 2. New secrets.json holds only the current run's entry:
+        assert sidecar.exists()
+        new_store = json.loads(sidecar.read_text(encoding="utf-8"))
+        assert list(new_store.keys()) == [state.run_id]
+        assert new_store[state.run_id] == {
+            "wallet_secret": "sCurrentRunWalletSecret111111",
+            "issuer_secret": "sCurrentRunIssuerSecret222222",
+        }
+
+        # 3. Warning logged naming the file, and canary seeds never appear in
+        #    logs, stdout/stderr, loaded state, or run.json:
+        assert any("secrets.json" in rec.message for rec in caplog.records)
+        assert canary_wallet_seed not in caplog.text
+        assert canary_issuer_seed not in caplog.text
+
+        loaded = load_game(tmp_path)
+        assert loaded is not None
+        assert loaded.backpack.wallet_secret == "sCurrentRunWalletSecret111111"
+        assert loaded.backpack.issuer_secret == "sCurrentRunIssuerSecret222222"
+
+        run_json_text = (save_dir / SAVE_FILE).read_text(encoding="utf-8")
+        captured = capsys.readouterr()
+        for text_sink in (
+            run_json_text,
+            sidecar.read_text(encoding="utf-8"),
+            caplog.text,
+            captured.out,
+            captured.err,
+        ):
+            assert canary_wallet_seed not in text_sink
+            assert canary_issuer_seed not in text_sink
+
 
 
 class TestSaveVersion:
