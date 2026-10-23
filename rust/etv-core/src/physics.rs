@@ -666,8 +666,7 @@ mod tests {
     use super::*;
     use crate::worldgen::create_new_run;
 
-    // Fails on 02532e17 because `physics` module did not exist on 02532e17:
-    // tests truncation toward zero in `halve_consumption` and first-seen
+    // preservation: truncation toward zero in `halve_consumption` and first-seen
     // tie-breaking in `determine_cause_of_death`.
     #[test]
     fn test_halve_consumption_and_determine_cause_of_death_ties() {
@@ -695,8 +694,7 @@ mod tests {
         assert_eq!(determine_cause_of_death(&st), "Wagon failure");
     }
 
-    // Fails on 02532e17 because `physics` module did not exist on 02532e17:
-    // tests escape valve eligibility, `abandon_cargo` item drop order, and `hard_ration`.
+    // preservation: escape valve eligibility, `abandon_cargo` item drop order, and `hard_ration`.
     #[test]
     fn test_escape_valves_and_abandon_cargo_order() {
         let mut st = create_new_run(42);

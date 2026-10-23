@@ -1,14 +1,14 @@
 //! Oracle parity test suite for Escape the Valley 2.0 Phase 1a & Phase 1b (`etv-core`).
 //!
 //! Verifies all Phase 1a and Phase 1b oracle checks against CPython 3.12.13 / v1.3.1 (47b01a3):
-//! 1. S1 & gameplay RNG call-shape vectors (6,459 assertions across 10 seeds, both `sample` branches)
+//! 1. S1 & gameplay RNG call-shape vectors (8,725 assertions across 10 seeds, all 18 engine `randint` ranges, all 9 `shuffle` lengths, both `sample` branches)
 //! 2. Worldgen (200 seeds: byte-for-byte canonical RunState JSON + RNG state SHA-256 + weather + 200 JSON events)
 //! 3. Save round trip (20 real Python saves: load, re-save, canonical JSON match, reload equality)
 //! 4. Migration (v1 and v2 saves migrate to identical v3 state + audit L-2 `last_settle_failed`/`minted_initial`)
 //! 5. RNG restore (20 saves × 100 draws with `rng_state`, 20 saves × 100 draws with `None` counter-replay, and malformed `rng_state` fallback)
-//! 6. Secrets sidecar & corrupt quarantine (`run.json.corrupt-<timestamp>` and `secrets.json.corrupt-<timestamp>`)
-//! 7. Golden harness: 1,000 seeds × 60 turns (59,653 turns) + full 260-event library + 8 ending/finalization vectors
-//! 8. Golden harness save-and-resume: 120 seeds saved at fixed turn 20, loaded in Rust, and continued through turn 60
+//! 6. Secrets sidecar & corrupt quarantine (`run.json.corrupt-<timestamp>` and write-only `secrets.json.corrupt-<timestamp>` matching Python 1.3.2)
+//! 7. Golden harness: 1,000 seeds × 60 turns (59,522 turns) + 80 long seeds × 250 turns (10,970 turns) + full 260-event library + 8 ending/finalization vectors
+//! 8. Golden harness save-and-resume: 120 seeds saved at fixed turn 20 (`camp`, `camp_at_fork`, `route`), loaded in Rust, and compared against Python's reloaded trace (4,736 turns)
 //! 9. Negative harness checks: corrupting a recorded hash or truncating a turn list fails with `seed`, `turn`, `rng_hash`, then `state_diff`
 
 use etv_core::engine::{compute_ending, StepEngine, StepMessages};
@@ -144,8 +144,9 @@ struct S1SaveRestoreVector {
     post_final_state: RngState,
 }
 
-// Fails on 02532e17 because `rng_s1_vectors.json.gz` on 02532e17 only had 6 seeds,
-// 15 randint ranges, 5 choice lengths, 12 sample cases, and 3 weighted cases (2,645 checks vs 6,459).
+// Fails on b86fbe4 because `rng_s1_vectors.json.gz` on b86fbe4 only had 24 `randint` ranges
+// (missing 14 engine `randint` ranges) and 6 `shuffle` lengths (missing worldgen's 15, 18, 20),
+// totaling 6,455 checks instead of 8,725.
 #[test]
 fn check_01_s1_rng_vectors_and_pool_label() {
     let raw = include_bytes!("../../oracle/vectors/rng_s1_vectors.json.gz");
@@ -160,6 +161,27 @@ fn check_01_s1_rng_vectors_and_pool_label() {
     let mut pool_branch_cases = 0usize;
     let mut set_branch_cases = 0usize;
     assert_eq!(vf.seed_vectors.len(), 10);
+
+    let required_engine_randint_ranges: [(i128, i128); 18] = [
+        (1, 2),
+        (1, 8),
+        (2, 4),
+        (3, 8),
+        (3, 9),
+        (3, 10),
+        (4, 6),
+        (5, 12),
+        (5, 15),
+        (7, 16),
+        (8, 16),
+        (8, 18),
+        (8, 20),
+        (8, 25),
+        (15, 35),
+        (80, 100),
+        (-3, 3),
+        (-5, 5),
+    ];
 
     for sv in &vf.seed_vectors {
         let seed: i128 = sv.seed.parse().expect("valid i128 seed");
@@ -184,10 +206,12 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             total_checks += 1;
         }
 
-        assert_eq!(sv.randint_draws.len(), 24);
+        assert_eq!(sv.randint_draws.len(), 38);
+        let mut seen_randint_ranges = HashSet::new();
         for rd in &sv.randint_draws {
             let a: i128 = rd.a.parse().unwrap();
             let b: i128 = rd.b.parse().unwrap();
+            seen_randint_ranges.insert((a, b));
             assert_eq!(rd.values.len(), 16);
             for exp_str in &rd.values {
                 let got = rng.randint(a, b);
@@ -195,6 +219,14 @@ fn check_01_s1_rng_vectors_and_pool_label() {
                 assert_eq!(got, exp);
                 total_checks += 1;
             }
+        }
+        for req_range in required_engine_randint_ranges {
+            assert!(
+                seen_randint_ranges.contains(&req_range),
+                "missing engine randint range {:?} on {}",
+                req_range,
+                sv.label
+            );
         }
 
         assert_eq!(sv.choice_draws.len(), 8);
@@ -208,7 +240,9 @@ fn check_01_s1_rng_vectors_and_pool_label() {
             }
         }
 
-        assert_eq!(sv.shuffle_draws.len(), 6);
+        assert_eq!(sv.shuffle_draws.len(), 9);
+        let shuffle_lens: Vec<usize> = sv.shuffle_draws.iter().map(|s| s.len).collect();
+        assert_eq!(shuffle_lens, vec![0, 1, 2, 5, 12, 15, 18, 20, 25]);
         for sd in &sv.shuffle_draws {
             let mut seq: Vec<usize> = (0..sd.len).collect();
             let prev_counter = rng.counter;
@@ -321,7 +355,7 @@ fn check_01_s1_rng_vectors_and_pool_label() {
     assert_eq!(restored.getstate(), srv.post_final_state);
     total_checks += 1;
 
-    assert_eq!(total_checks, 6455);
+    assert_eq!(total_checks, 8725);
 }
 
 // ── 2. Worldgen (200 seeds) + Event Loader (200 events) ─────────────────────
@@ -930,8 +964,10 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
 
 // ── 6. Secrets Sidecar (Audit M-5) & Corrupt Save + Corrupt Secrets Quarantine ──
 
-// Fails on 02532e17 because corrupt `secrets.json` was silently overwritten instead of
-// being quarantined as `secrets.json.corrupt-<timestamp>`.
+// Fails on b86fbe4 because on b86fbe4 `load_game` / `read_secrets_sidecar` quarantined `secrets.json`
+// on read and `save_game` / `write_secrets_sidecar` quarantined the whole file on a malformed sibling
+// entry, instead of matching Python 1.3.2 (`119458a`, `save.py:138-181`): quarantine on write only when
+// unreadable or top-level JSON is not an object; on read, return empty/None without touching `secrets.json`.
 #[test]
 fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -991,9 +1027,21 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
         "sTestnetDummyIssuerB11111111"
     );
 
-    // Corrupt secrets.json -> quarantined as secrets.json.corrupt-<timestamp> before starting fresh
+    // 1. Corrupt secrets.json on READ (`load_game` / `read_secrets_sidecar`) leaves `secrets.json`
+    // in place without quarantining and loads the run with empty secrets (Python 1.3.2 `save.py:165-181`).
     let secrets_path = save_dir.join(SECRETS_FILE);
     std::fs::write(&secrets_path, "{corrupt secrets json!!!").unwrap();
+    let loaded_with_corrupt_sidecar =
+        load_game(base).expect("load_game succeeds with corrupt secrets.json");
+    assert_eq!(loaded_with_corrupt_sidecar.backpack.wallet_secret, "");
+    assert_eq!(loaded_with_corrupt_sidecar.backpack.issuer_secret, "");
+    assert!(
+        secrets_path.exists(),
+        "load_game / read_secrets_sidecar must not quarantine secrets.json on read"
+    );
+
+    // 2. Corrupt secrets.json on WRITE (`save_game` / `write_secrets_sidecar`) quarantines to
+    // `secrets.json.corrupt-<timestamp>` before rewriting (Python 1.3.2 `save.py:138-163`).
     save_game(&run_b, base).expect("save run_b after corrupt secrets.json");
     let secrets_backups: Vec<_> = std::fs::read_dir(&save_dir)
         .unwrap()
@@ -1012,7 +1060,49 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     let sec_b_fresh = read_secrets_sidecar(&save_dir, &run_b.run_id).expect("fresh run_b secrets");
     assert_eq!(sec_b_fresh.wallet_secret, "sTestnetDummySecretB11111111");
 
-    // Corrupt run.json -> quarantined as run.json.corrupt-<timestamp>
+    // 3. Top-level non-object JSON in secrets.json (`["not", "an", "object"]`) is left alone on read
+    // and quarantined on write; malformed sibling entries inside a valid top-level object are preserved on write.
+    std::fs::write(&secrets_path, "[\"not\", \"an\", \"object\"]").unwrap();
+    assert!(read_secrets_sidecar(&save_dir, &run_b.run_id).is_none());
+    assert!(secrets_path.exists());
+    save_game(&run_b, base).expect("save run_b after non-object secrets.json");
+    let secrets_backups_2: Vec<_> = std::fs::read_dir(&save_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("secrets.json.corrupt-")
+        })
+        .collect();
+    assert_eq!(secrets_backups_2.len(), 2);
+
+    std::fs::write(&secrets_path, "{\"run-sibling-bad\": 42}").unwrap();
+    assert!(read_secrets_sidecar(&save_dir, "run-sibling-bad").is_none());
+    save_game(&run_b, base).expect("save run_b preserving sibling entry");
+    let secrets_backups_3: Vec<_> = std::fs::read_dir(&save_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("secrets.json.corrupt-")
+        })
+        .collect();
+    assert_eq!(
+        secrets_backups_3.len(),
+        2,
+        "valid top-level object with non-object sibling entry must not be quarantined"
+    );
+    let sidecar_val: Value =
+        serde_json::from_str(&std::fs::read_to_string(&secrets_path).unwrap()).unwrap();
+    assert_eq!(sidecar_val["run-sibling-bad"], json!(42));
+    assert_eq!(
+        sidecar_val[&run_b.run_id]["wallet_secret"],
+        json!("sTestnetDummySecretB11111111")
+    );
+
+    // 4. Corrupt run.json -> quarantined as run.json.corrupt-<timestamp>
     let save_path = save_dir.join(SAVE_FILE);
     std::fs::write(&save_path, "{corrupt json!!!").unwrap();
     let bad_res = load_game_result(base);
@@ -1146,7 +1236,10 @@ struct ResumeRunVector {
     seed: String,
     seed_index: usize,
     save_turn: usize,
+    phase_at_save: String,
+    differs_from_uninterrupted: bool,
     raw_save_json: String,
+    reloaded_turns: Vec<TurnRecord>,
 }
 
 fn compute_state_hash_and_digest(state: &RunState) -> (String, StateDigest) {
@@ -1343,9 +1436,9 @@ fn verify_turn_step(
     Ok(())
 }
 
-/// Replay and verify an entire seed run (`60` turns, or until game over).
+/// Replay and verify an entire seed run (`max_turns` turns, or until game over).
 /// Stops at the first mismatch and reports `seed`, `turn`, `rng_hash`, then `state_diff`.
-fn verify_seed_run(run: &SeedRunVector) -> Result<usize, String> {
+fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, String> {
     if run.turns.is_empty() {
         return Err(format!(
             "golden harness mismatch:\n  seed: {}\n  turn: 0\n  rng_hash: none\n  state_diff: empty turn list",
@@ -1353,9 +1446,11 @@ fn verify_seed_run(run: &SeedRunVector) -> Result<usize, String> {
         ));
     }
     let last_turn = run.turns.last().unwrap();
-    if run.turns.len() != 60 && !(run.turns.len() < 60 && last_turn.ev.phase == "over") {
+    if run.turns.len() != max_turns
+        && !(run.turns.len() < max_turns && last_turn.ev.phase == "over")
+    {
         return Err(format!(
-            "golden harness mismatch:\n  seed: {}\n  turn: {}\n  rng_hash: {}\n  state_diff: expected 60 turns or game_over on final turn, got {} turns with final phase {:?}",
+            "golden harness mismatch:\n  seed: {}\n  turn: {}\n  rng_hash: {}\n  state_diff: expected {max_turns} turns or game_over on final turn, got {} turns with final phase {:?}",
             run.seed,
             last_turn.t,
             last_turn.rng_h,
@@ -1387,8 +1482,9 @@ fn verify_seed_run(run: &SeedRunVector) -> Result<usize, String> {
     Ok(run.turns.len())
 }
 
-// Fails on 02532e17 because the Phase 1b turn engine (`StepEngine`, `physics`, `memory`, `events`)
-// and `turns_1000_seeds.json.gz` did not exist on 02532e17.
+// Fails on b86fbe4 because `turns_1000_seeds.json.gz` on b86fbe4 had 0 `"Dehydration"` deaths
+// (vs 18), 0 active `ABANDON_CARGO` (vs 16), 0 active `DESPERATE_REPAIR` (vs 9 succeeded + 4 failed),
+// 80 game-overs (vs 91), 256 distinct events (vs 258), and 59,653 turns (vs 59,522).
 #[test]
 fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
@@ -1439,17 +1535,26 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
         );
     }
 
-    // 3. Verify required special seeds and coverage across the 1,000 seeds
+    // 3. Verify required special seeds and exact counts across the 1,000 seeds
     let mut seeds_seen = HashSet::with_capacity(1000);
     let mut has_seed_0 = false;
     let mut has_seed_1 = false;
     let mut has_seed_42 = false;
     let mut has_negative_seed = false;
     let mut has_seed_above_u64_max = false;
-    let mut actions_seen = HashSet::new();
-    let mut phases_seen = HashSet::new();
+    let mut action_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut phase_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut death_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut ending_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut events_seen: HashSet<String> = HashSet::new();
     let mut full_60_runs = 0usize;
     let mut game_over_runs = 0usize;
+    let mut victory_runs = 0usize;
+    let mut active_abandon_cargo = 0usize;
+    let mut active_desperate_repair_ok = 0usize;
+    let mut active_desperate_repair_fail = 0usize;
+    let mut active_hard_ration = 0usize;
+    let mut active_no_ammo_hunt = 0usize;
 
     for run in &tf.runs {
         assert!(
@@ -1475,14 +1580,53 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
         }
         if run.turns.len() == 60 {
             full_60_runs += 1;
+            let last_tr = run.turns.last().unwrap();
+            if last_tr.ev.phase == "over" {
+                game_over_runs += 1;
+                if last_tr.st_d.vic {
+                    victory_runs += 1;
+                }
+                if !last_tr.st_d.cod.is_empty() {
+                    *death_counts.entry(last_tr.st_d.cod.clone()).or_insert(0) += 1;
+                }
+                if let Some(ref end) = last_tr.ev.ending {
+                    *ending_counts.entry(end.tier.clone()).or_insert(0) += 1;
+                }
+            }
         } else {
             assert!(run.turns.len() < 60 && !run.turns.is_empty());
-            assert_eq!(run.turns.last().unwrap().ev.phase, "over");
+            let last_tr = run.turns.last().unwrap();
+            assert_eq!(last_tr.ev.phase, "over");
             game_over_runs += 1;
+            if last_tr.st_d.vic {
+                victory_runs += 1;
+            }
+            if !last_tr.st_d.cod.is_empty() {
+                *death_counts.entry(last_tr.st_d.cod.clone()).or_insert(0) += 1;
+            }
+            if let Some(ref end) = last_tr.ev.ending {
+                *ending_counts.entry(end.tier.clone()).or_insert(0) += 1;
+            }
         }
         for tr in &run.turns {
-            actions_seen.insert(tr.act.clone());
-            phases_seen.insert(tr.ev.phase.clone());
+            *action_counts.entry(tr.act.clone()).or_insert(0) += 1;
+            *phase_counts.entry(tr.ev.phase.clone()).or_insert(0) += 1;
+            if !tr.ev.event_id.is_empty() {
+                events_seen.insert(tr.ev.event_id.clone());
+            }
+            for line in &tr.ev.lines {
+                if line.starts_with("Abandoned cargo to lighten the wagon. Wagon +25. Dropped: ") {
+                    active_abandon_cargo += 1;
+                } else if line.starts_with("Desperate repair succeeded! Wagon +") {
+                    active_desperate_repair_ok += 1;
+                } else if line.starts_with("Desperate repair failed! Wagon ") {
+                    active_desperate_repair_fail += 1;
+                } else if line == "Hard rationing imposed for 2 days. Food and water consumption halved. Morale -10, everyone weakened." {
+                    active_hard_ration += 1;
+                } else if line == "No ammunition for hunting." {
+                    active_no_ammo_hunt += 1;
+                }
+            }
         }
     }
     assert_eq!(seeds_seen.len(), 1000);
@@ -1491,30 +1635,63 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     assert!(has_seed_42, "must include seed 42");
     assert!(has_negative_seed, "must include a negative seed");
     assert!(has_seed_above_u64_max, "must include a seed > u64::MAX");
-    assert!(full_60_runs > 900);
-    assert!(game_over_runs >= 50);
-    for expected_action in [
-        "TRAVEL",
-        "REST",
-        "HUNT",
-        "REPAIR",
-        "CHANGE_PACE",
-        "ABANDON_CARGO",
-        "DESPERATE_REPAIR",
-        "HARD_RATION",
-        "CHOOSE",
-    ] {
-        assert!(
-            actions_seen.contains(expected_action),
-            "policy must exercise {expected_action}"
-        );
-    }
-    for expected_phase in ["camp", "event", "route", "over"] {
-        assert!(
-            phases_seen.contains(expected_phase),
-            "policy must reach phase {expected_phase}"
-        );
-    }
+
+    // Exact active-path, death-cause, ending, run, game-over, victory, action, phase, and event counts
+    assert_eq!(active_abandon_cargo, 16);
+    assert_eq!(active_desperate_repair_ok, 9);
+    assert_eq!(active_desperate_repair_fail, 4);
+    assert_eq!(active_hard_ration, 611);
+    assert_eq!(active_no_ammo_hunt, 82);
+    assert_eq!(
+        death_counts,
+        BTreeMap::from([
+            ("Dehydration".to_string(), 18usize),
+            ("Disease".to_string(), 22usize),
+            ("Starvation".to_string(), 50usize),
+            ("Wagon failure".to_string(), 1usize),
+        ])
+    );
+    assert_eq!(full_60_runs, 921);
+    assert_eq!(game_over_runs, 91);
+    assert_eq!(victory_runs, 0);
+    assert_eq!(
+        ending_counts,
+        BTreeMap::from([("lost".to_string(), 91usize)])
+    );
+    assert_eq!(
+        action_counts,
+        BTreeMap::from([
+            ("ABANDON_CARGO".to_string(), 304usize),
+            ("CHANGE_PACE".to_string(), 1331usize),
+            ("CHOOSE".to_string(), 18470usize),
+            ("DESPERATE_REPAIR".to_string(), 151usize),
+            ("HARD_RATION".to_string(), 757usize),
+            ("HUNT".to_string(), 3251usize),
+            ("REPAIR".to_string(), 1275usize),
+            ("REST".to_string(), 3841usize),
+            ("TRAVEL".to_string(), 30142usize),
+        ])
+    );
+    assert_eq!(
+        phase_counts,
+        BTreeMap::from([
+            ("camp".to_string(), 40318usize),
+            ("event".to_string(), 17785usize),
+            ("over".to_string(), 91usize),
+            ("route".to_string(), 1328usize),
+        ])
+    );
+    assert_eq!(events_seen.len(), 258);
+    let mut missing_events: Vec<String> = rust_lib
+        .iter()
+        .map(|e| e.event_id.clone())
+        .filter(|id| !events_seen.contains(id))
+        .collect();
+    missing_events.sort();
+    assert_eq!(
+        missing_events,
+        vec!["drought".to_string(), "water_hole".to_string()]
+    );
 
     // 4. Replay all 1,000 seeds in parallel worker chunks, checking results in deterministic
     // seed-index order (0..1000) so the first mismatch is always reported first.
@@ -1529,7 +1706,7 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
             handles.push(s.spawn(move || {
                 let mut out = Vec::with_capacity(chunk.len());
                 for run in chunk {
-                    out.push(verify_seed_run(run));
+                    out.push(verify_seed_run(run, 60));
                 }
                 out
             }));
@@ -1545,10 +1722,215 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
         }
     }
     assert_eq!(verified_turns, tf.total_turns);
-    assert_eq!(verified_turns, 59653);
+    assert_eq!(verified_turns, 59522);
 }
 
-// Fails on 02532e17 because `StepEngine` and `resume_120_seeds.json.gz` did not exist on 02532e17.
+// Fails on b86fbe4 because the new long-run vector file `rust/oracle/vectors/turns_long_seeds.json.gz`
+// (80 seeds × up to 250 turns reaching all 4 `EndingResult` tiers, all 6 reachable `cause_of_death`
+// values in 1.3.1 play, and active `check_spoilage` after salt is exhausted via `ABANDON_CARGO`)
+// is absent on b86fbe4.
+#[test]
+fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
+    let raw = include_bytes!("../../oracle/vectors/turns_long_seeds.json.gz");
+    let tf: TurnsHarnessFile = read_gzip_json(raw);
+    assert_eq!(tf.schema, "etv-phase1b-turns-long-v1");
+    assert_eq!(tf.metadata.python_version, "3.12.13");
+    assert!(tf.metadata.oracle_commit.starts_with("47b01a3"));
+
+    assert_eq!(tf.seed_count, 80);
+    assert_eq!(tf.max_turns_per_seed, 250);
+    assert_eq!(tf.runs.len(), 80);
+    assert_eq!(tf.event_library_count, 260);
+    assert_eq!(tf.event_library.len(), 260);
+    assert_eq!(tf.ending_vectors.len(), 8);
+
+    let rust_lib = build_event_library();
+    assert_eq!(rust_lib.len(), 260);
+
+    let mut seeds_seen = HashSet::with_capacity(80);
+    let mut action_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut phase_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut death_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut ending_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut events_seen: HashSet<String> = HashSet::new();
+    let mut full_250_runs = 0usize;
+    let mut game_over_runs = 0usize;
+    let mut victory_runs = 0usize;
+    let mut active_abandon_cargo = 0usize;
+    let mut active_desperate_repair_ok = 0usize;
+    let mut active_desperate_repair_fail = 0usize;
+    let mut active_hard_ration = 0usize;
+    let mut active_no_ammo_hunt = 0usize;
+    let mut active_spoilage = 0usize;
+
+    for run in &tf.runs {
+        assert!(
+            seeds_seen.insert(run.seed.clone()),
+            "duplicate seed {}",
+            run.seed
+        );
+        if run.turns.len() == 250 {
+            full_250_runs += 1;
+            let last_tr = run.turns.last().unwrap();
+            if last_tr.ev.phase == "over" {
+                game_over_runs += 1;
+                if last_tr.st_d.vic {
+                    victory_runs += 1;
+                }
+                if !last_tr.st_d.cod.is_empty() {
+                    *death_counts.entry(last_tr.st_d.cod.clone()).or_insert(0) += 1;
+                }
+                if let Some(ref end) = last_tr.ev.ending {
+                    *ending_counts.entry(end.tier.clone()).or_insert(0) += 1;
+                }
+            }
+        } else {
+            assert!(run.turns.len() < 250 && !run.turns.is_empty());
+            let last_tr = run.turns.last().unwrap();
+            assert_eq!(last_tr.ev.phase, "over");
+            game_over_runs += 1;
+            if last_tr.st_d.vic {
+                victory_runs += 1;
+            }
+            if !last_tr.st_d.cod.is_empty() {
+                *death_counts.entry(last_tr.st_d.cod.clone()).or_insert(0) += 1;
+            }
+            if let Some(ref end) = last_tr.ev.ending {
+                *ending_counts.entry(end.tier.clone()).or_insert(0) += 1;
+            }
+        }
+        for tr in &run.turns {
+            *action_counts.entry(tr.act.clone()).or_insert(0) += 1;
+            *phase_counts.entry(tr.ev.phase.clone()).or_insert(0) += 1;
+            if !tr.ev.event_id.is_empty() {
+                events_seen.insert(tr.ev.event_id.clone());
+            }
+            for line in &tr.ev.lines {
+                if line.starts_with("Abandoned cargo to lighten the wagon. Wagon +25. Dropped: ") {
+                    active_abandon_cargo += 1;
+                } else if line.starts_with("Desperate repair succeeded! Wagon +") {
+                    active_desperate_repair_ok += 1;
+                } else if line.starts_with("Desperate repair failed! Wagon ") {
+                    active_desperate_repair_fail += 1;
+                } else if line == "Hard rationing imposed for 2 days. Food and water consumption halved. Morale -10, everyone weakened." {
+                    active_hard_ration += 1;
+                } else if line.starts_with("Food spoiled! Lost ") && line.ends_with(" food (no salt).") {
+                    active_spoilage += 1;
+                } else if line == "No ammunition for hunting." {
+                    active_no_ammo_hunt += 1;
+                }
+            }
+        }
+    }
+
+    assert_eq!(seeds_seen.len(), 80);
+    assert_eq!(full_250_runs, 6);
+    assert_eq!(game_over_runs, 74);
+    assert_eq!(victory_runs, 21);
+    assert_eq!(
+        ending_counts,
+        BTreeMap::from([
+            ("lost".to_string(), 53usize),
+            ("pyrrhic".to_string(), 11usize),
+            ("triumphant".to_string(), 7usize),
+            ("weathered".to_string(), 3usize),
+        ])
+    );
+    assert_eq!(
+        death_counts,
+        BTreeMap::from([
+            ("Dehydration".to_string(), 5usize),
+            ("Disease".to_string(), 14usize),
+            ("Exhaustion".to_string(), 2usize),
+            ("Injury".to_string(), 1usize),
+            ("Starvation".to_string(), 18usize),
+            ("Wagon failure".to_string(), 13usize),
+        ])
+    );
+    assert_eq!(
+        action_counts,
+        BTreeMap::from([
+            ("ABANDON_CARGO".to_string(), 108usize),
+            ("CHANGE_PACE".to_string(), 180usize),
+            ("CHOOSE".to_string(), 3183usize),
+            ("DESPERATE_REPAIR".to_string(), 90usize),
+            ("HARD_RATION".to_string(), 170usize),
+            ("HUNT".to_string(), 680usize),
+            ("REPAIR".to_string(), 251usize),
+            ("REST".to_string(), 1065usize),
+            ("TRAVEL".to_string(), 5243usize),
+        ])
+    );
+    assert_eq!(
+        phase_counts,
+        BTreeMap::from([
+            ("camp".to_string(), 7625usize),
+            ("event".to_string(), 3046usize),
+            ("over".to_string(), 74usize),
+            ("route".to_string(), 225usize),
+        ])
+    );
+    assert_eq!(active_abandon_cargo, 38);
+    assert_eq!(active_desperate_repair_ok, 37);
+    assert_eq!(active_desperate_repair_fail, 21);
+    assert_eq!(active_hard_ration, 135);
+    assert_eq!(active_no_ammo_hunt, 37);
+    assert_eq!(active_spoilage, 5);
+    assert_eq!(events_seen.len(), 252);
+    let mut missing_events: Vec<String> = rust_lib
+        .iter()
+        .map(|e| e.event_id.clone())
+        .filter(|id| !events_seen.contains(id))
+        .collect();
+    missing_events.sort();
+    assert_eq!(
+        missing_events,
+        vec![
+            "cliff_path".to_string(),
+            "drought".to_string(),
+            "f2_009".to_string(),
+            "f4_047".to_string(),
+            "f4_050".to_string(),
+            "f5_109".to_string(),
+            "quiet_mile".to_string(),
+            "water_hole".to_string(),
+        ]
+    );
+
+    let worker_count = std::thread::available_parallelism()
+        .map(|n| n.get().clamp(1, 16))
+        .unwrap_or(4);
+    let chunk_size = tf.runs.len().div_ceil(worker_count);
+
+    let chunk_results: Vec<Vec<Result<usize, String>>> = std::thread::scope(|s| {
+        let mut handles = Vec::new();
+        for chunk in tf.runs.chunks(chunk_size) {
+            handles.push(s.spawn(move || {
+                let mut out = Vec::with_capacity(chunk.len());
+                for run in chunk {
+                    out.push(verify_seed_run(run, 250));
+                }
+                out
+            }));
+        }
+        handles.into_iter().map(|h| h.join().unwrap()).collect()
+    });
+
+    let mut verified_turns = 0usize;
+    for res in chunk_results.into_iter().flatten() {
+        match res {
+            Ok(n) => verified_turns += n,
+            Err(diag) => panic!("{diag}"),
+        }
+    }
+    assert_eq!(verified_turns, tf.total_turns);
+    assert_eq!(verified_turns, 10970);
+}
+
+// Fails on b86fbe4 because `resume_120_seeds.json.gz` on b86fbe4 omitted `phase_at_save`,
+// `differs_from_uninterrupted`, and `reloaded_turns`, and excluded all `camp_at_fork` saves
+// instead of comparing Rust's resumed run against Python's reloaded trace across `camp`,
+// `camp_at_fork` (`escape-the-valley#41`), and `route` turn-20 saves.
 #[test]
 fn check_08_golden_harness_120_save_and_resume_runs() {
     let raw_turns = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
@@ -1556,12 +1938,47 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
     let raw_resume = include_bytes!("../../oracle/vectors/resume_120_seeds.json.gz");
     let rf: ResumeHarnessFile = read_gzip_json(raw_resume);
 
-    assert_eq!(rf.schema, "etv-phase1b-resume-v1");
+    assert_eq!(rf.schema, "etv-phase1b-resume-v2");
     assert_eq!(rf.metadata.python_version, "3.12.13");
     assert!(rf.metadata.oracle_commit.starts_with("47b01a3"));
     assert_eq!(rf.count, 120);
     assert_eq!(rf.save_turn, 20);
     assert_eq!(rf.resume_runs.len(), 120);
+
+    let mut phase_at_save_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut diff_counts_by_phase: BTreeMap<String, usize> = BTreeMap::new();
+    for rr in &rf.resume_runs {
+        *phase_at_save_counts
+            .entry(rr.phase_at_save.clone())
+            .or_insert(0) += 1;
+        let uninterrupted = &tf.runs[rr.seed_index];
+        let actual_differs = rr.reloaded_turns != uninterrupted.turns[rr.save_turn..];
+        assert_eq!(
+            actual_differs, rr.differs_from_uninterrupted,
+            "differs_from_uninterrupted flag mismatch on seed {}",
+            rr.seed
+        );
+        if rr.differs_from_uninterrupted {
+            *diff_counts_by_phase
+                .entry(rr.phase_at_save.clone())
+                .or_insert(0) += 1;
+        }
+    }
+    assert_eq!(
+        phase_at_save_counts,
+        BTreeMap::from([
+            ("camp".to_string(), 109usize),
+            ("camp_at_fork".to_string(), 6usize),
+            ("route".to_string(), 5usize),
+        ])
+    );
+    // All 6 `camp_at_fork` saves differ from the uninterrupted trace due to escape-the-valley#41
+    // (`StepEngine._check_initial_phase()` immediately entering `GamePhase.ROUTE` on reload),
+    // while all 109 `camp` (`distance_remaining > 0`) and 5 `route` saves match the uninterrupted trace.
+    assert_eq!(
+        diff_counts_by_phase,
+        BTreeMap::from([("camp_at_fork".to_string(), 6usize)])
+    );
 
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get().clamp(1, 16))
@@ -1578,9 +1995,9 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
                     let uninterrupted = &all_runs[rr.seed_index];
                     assert_eq!(uninterrupted.seed, rr.seed);
                     assert_eq!(rr.save_turn, 20);
-                    assert!(uninterrupted.turns.len() > rr.save_turn);
+                    assert!(!rr.reloaded_turns.is_empty());
 
-                    // Path A: Load Python's turn-20 save in Rust and continue turns 21..=60
+                    // Path A: Load Python's turn-20 save in Rust and verify against Python's reloaded trace
                     let tmp_py = tempfile::tempdir().expect("tempdir py save");
                     let save_dir_py = tmp_py.path().join(SAVE_DIR);
                     std::fs::create_dir_all(&save_dir_py).unwrap();
@@ -1591,7 +2008,7 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
 
                     let mut count_turns = 0usize;
                     let mut err_opt: Option<String> = None;
-                    for tr in &uninterrupted.turns[rr.save_turn..] {
+                    for tr in &rr.reloaded_turns {
                         if let Err(diag) = verify_turn_step(&rr.seed, &mut eng_from_py, tr) {
                             err_opt = Some(format!("[resume-from-python-save] {diag}"));
                             break;
@@ -1603,7 +2020,7 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
                         continue;
                     }
 
-                    // Path B: Run turns 1..=20 in Rust, save at turn 20, load in Rust, and continue turns 21..=60
+                    // Path B: Run turns 1..=20 in Rust, save at turn 20, load in Rust, and verify against Python's reloaded trace
                     let seed_val: i128 = rr.seed.parse().unwrap();
                     let mut eng_rust = StepEngine::new(create_new_run(seed_val));
                     for tr in &uninterrupted.turns[..rr.save_turn] {
@@ -1622,7 +2039,7 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
                     let loaded_rs = load_game(tmp_rs.path()).expect("load Rust turn-20 save");
                     let mut eng_from_rs = StepEngine::new(loaded_rs);
 
-                    for tr in &uninterrupted.turns[rr.save_turn..] {
+                    for tr in &rr.reloaded_turns {
                         if let Err(diag) = verify_turn_step(&rr.seed, &mut eng_from_rs, tr) {
                             err_opt = Some(format!("[resume-from-rust-save] {diag}"));
                             break;
@@ -1647,10 +2064,10 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
             Err(diag) => panic!("{diag}"),
         }
     }
-    assert!(resumed_turns_verified >= 120 * 30);
+    assert_eq!(resumed_turns_verified, 4736);
 }
 
-// Fails on 02532e17 because `verify_seed_run` and the Phase 1b golden harness did not exist on 02532e17.
+// preservation: negative check that corrupted state_hash/rng_hash or truncated turn lists fail with seed, turn, rng_hash, then state_diff
 #[test]
 fn check_09_negative_corrupted_hash_and_truncated_lists_must_fail() {
     let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
@@ -1672,7 +2089,7 @@ fn check_09_negative_corrupted_hash_and_truncated_lists_must_fail() {
         "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_string();
 
     let err_state =
-        verify_seed_run(&corrupted_state).expect_err("corrupted state_hash must fail check");
+        verify_seed_run(&corrupted_state, 60).expect_err("corrupted state_hash must fail check");
     let pos_seed = err_state.find("seed: 42").expect("reports seed: 42");
     let pos_turn = err_state
         .find("turn: 7")
@@ -1687,7 +2104,8 @@ fn check_09_negative_corrupted_hash_and_truncated_lists_must_fail() {
     assert_eq!(corrupted_rng.seed, "0");
     corrupted_rng.turns[2].rng_h =
         "1111111111111111111111111111111111111111111111111111111111111111".to_string();
-    let err_rng = verify_seed_run(&corrupted_rng).expect_err("corrupted rng_hash must fail check");
+    let err_rng =
+        verify_seed_run(&corrupted_rng, 60).expect_err("corrupted rng_hash must fail check");
     let r_seed = err_rng.find("seed: 0").expect("reports seed: 0");
     let r_turn = err_rng.find("turn: 3").expect("stops at turn: 3");
     let r_rng = err_rng.find("rng_hash:").expect("reports rng_hash:");
@@ -1699,6 +2117,6 @@ fn check_09_negative_corrupted_hash_and_truncated_lists_must_fail() {
     truncated_turns.turns.truncate(10);
     assert_ne!(truncated_turns.turns.last().unwrap().ev.phase, "over");
     let err_trunc =
-        verify_seed_run(&truncated_turns).expect_err("truncated turn list must fail check");
+        verify_seed_run(&truncated_turns, 60).expect_err("truncated turn list must fail check");
     assert!(err_trunc.contains("expected 60 turns or game_over on final turn"));
 }

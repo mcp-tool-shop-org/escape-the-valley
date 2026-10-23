@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Oracle vector generator for Escape the Valley 2.0 (Phase 1a + Phase 1b).
 
-Run against the pinned CPython 3.12.13 venv in the detached v1.3.1 (47b01a3)
-oracle worktree:
+Run against the pinned CPython 3.12.13 venv in the v1.3.1 (47b01a3) worktree:
 
-    uv run --project E:/AI/_worktrees/etv-oracle-131 --python 3.12.13 python rust/oracle/generate_vectors.py
+    uv run --no-sync python rust/oracle/generate_vectors.py
 
 Produces gzip-compressed vector files in `rust/oracle/vectors/`:
-1. `rng_s1_vectors.json.gz`    — S1 & gameplay RNG call-shape vectors (both `sample` branches, large/negative seeds)
-2. `worldgen_200.json.gz`      — 200 seeds: canonical RunState JSON + RNG state SHA-256 + weather + 200 JSON events
-3. `saves_20.json.gz`          — 20 real Python saves across play stages + 5 migrations + next 100 RNG draws
-4. `turns_1000_seeds.json.gz`  — 1,000 seeds × 60 turns golden harness + 260 full event library + 8 ending vectors
-5. `resume_120_seeds.json.gz`  — 120 save-and-resume runs saved at fixed turn 20
+1. `rng_s1_vectors.json.gz` — S1 & gameplay RNG call-shape vectors
+2. `worldgen_200.json.gz` — 200 seeds: RunState JSON + RNG SHA-256 + weather + 200 JSON events
+3. `saves_20.json.gz` — 20 real Python saves + 5 migrations + next 100 RNG draws
+4. `turns_1000_seeds.json.gz` — 1,000 seeds × 60 turns golden harness + 260 events + 8 endings
+5. `turns_long_seeds.json.gz` — 80 seeds × 250 turns reaching all endings, death causes, spoilage
+6. `resume_120_seeds.json.gz` — 120 turn-20 save/resume runs with Python's `reloaded_turns`
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import logging
 import random
 import struct
 import subprocess
@@ -55,6 +56,7 @@ from escape_the_valley.physics import (
     can_abandon_cargo,
     can_desperate_repair,
     can_hard_ration,
+    compute_travel_distance,
 )
 from escape_the_valley.save import (
     SAVE_DIR,
@@ -107,19 +109,20 @@ def rng_state_sha256_hex(state: tuple[Any, ...]) -> str:
 
 def get_oracle_metadata() -> dict[str, str]:
     repo_dir = Path(escape_the_valley.__file__).resolve().parents[2]
-    commit = subprocess.check_output(
-        ["git", "-C", str(repo_dir), "rev-parse", "HEAD"],
+    oracle_commit = subprocess.check_output(
+        ["git", "-C", str(repo_dir), "rev-parse", "v1.3.1^{commit}"],
         text=True,
     ).strip()
-    describe = subprocess.check_output(
-        ["git", "-C", str(repo_dir), "describe", "--tags", "--always"],
+    diff = subprocess.check_output(
+        ["git", "-C", str(repo_dir), "diff", oracle_commit, "--", "src/escape_the_valley"],
         text=True,
     ).strip()
+    assert diff == "", f"src/escape_the_valley differs from v1.3.1 ({oracle_commit}):\n{diff}"
     return {
         "python_version": sys.version.split()[0],
         "python_full": sys.version,
-        "oracle_commit": commit,
-        "oracle_tag": describe,
+        "oracle_commit": oracle_commit,
+        "oracle_tag": "v1.3.1",
     }
 
 
@@ -139,26 +142,59 @@ S1_SEEDS: list[tuple[str, int]] = [
 ]
 
 GETRANDBITS_WIDTHS: list[int] = [
-    1, 2, 7, 16, 31, 32, 33, 48, 53, 63, 64, 65, 96, 100, 128,
+    1,
+    2,
+    7,
+    16,
+    31,
+    32,
+    33,
+    48,
+    53,
+    63,
+    64,
+    65,
+    96,
+    100,
+    128,
 ]
 
-# Includes general bit-width ranges and every gameplay `randint(a, b)` call shape
+# Includes general bit-width ranges and all 18 `randint(a, b)` ranges used in the 1.3.1 engine:
+# (1, 2) worldgen.py:204,220; (1, 8) worldgen.py:98; (2, 4) physics.py:130; (3, 8) physics.py:224;
+# (3, 9) step_engine.py:1244; (3, 10) physics.py:394; (4, 6) worldgen.py:76; (5, 12) physics.py:381;
+# (5, 15) physics.py:166,220,400,518; (7, 16) physics.py:422; (8, 16) physics.py:424;
+# (8, 18) physics.py:193; (8, 20) physics.py:198; (8, 25) worldgen.py:114;
+# (15, 35) physics.py:133; (80, 100) worldgen.py:208; (-3, 3) events.py:2136; (-5, 5) worldgen:92.
 RANDINT_RANGES: list[tuple[int, int]] = [
     (0, 0),
     (0, 1),
     (0, 2),
+    (1, 2),  # worldgen.py:204,220 num_traits / pick_twists count
     (1, 6),
-    (2, 6),       # physics.py:224 spoilage
-    (3, 9),       # step_engine.py:1349 town trade food offer
-    (4, 5),       # worldgen.py:303 party size
-    (4, 12),      # physics.py:395 hunt food gain
-    (5, 15),      # physics.py:296,345,372,402 night/sickness/heal/hunt-injury
-    (8, 25),      # worldgen.py:259 leg distance & physics.py:257 breakdown damage
-    (10, 20),     # physics.py:319,495 starvation & desperate repair injury
-    (12, 16),     # worldgen.py:216 node count
-    (15, 25),     # physics.py:331,486 dehydration & desperate repair wagon gain
-    (70, 100),    # worldgen.py:310 initial member health
-    (-5, 5),
+    (1, 8),  # worldgen.py:98 node hazard
+    (2, 4),  # physics.py:130 check_spoilage loss
+    (2, 6),
+    (3, 8),  # physics.py:224 sickness damage
+    (3, 9),  # step_engine.py:1244 town trade food offer
+    (3, 10),  # physics.py:394 hunt injury damage
+    (4, 5),
+    (4, 6),  # worldgen.py:76 town spacing
+    (4, 12),
+    (5, 12),  # physics.py:381 night travel mishap wagon damage
+    (5, 15),  # physics.py:166,220,400,518 breakdown/heal/rest/desperate_repair injury
+    (7, 16),  # physics.py:422 hunt food yield (healer)
+    (8, 16),  # physics.py:424 hunt food yield (normal)
+    (8, 18),  # physics.py:193 starvation damage
+    (8, 20),  # physics.py:198 dehydration damage
+    (8, 25),  # worldgen.py:114 leg distance
+    (10, 20),
+    (12, 16),
+    (15, 25),
+    (15, 35),  # physics.py:133 repair_wagon gain
+    (70, 100),
+    (80, 100),  # worldgen.py:208 initial member health
+    (-3, 3),  # events.py:2136 resolve_event health_delta jitter
+    (-5, 5),  # worldgen.py:92 node temperature jitter
     (0, 32),
     (0, 255),
     (0, 256),
@@ -172,12 +208,13 @@ RANDINT_RANGES: list[tuple[int, int]] = [
 
 # Includes all gameplay `choice` sequence lengths (2, 3, 4, 5, 7) plus 1, 18, 60
 CHOICE_LENGTHS: list[int] = [1, 2, 3, 4, 5, 7, 18, 60]
-SHUFFLE_LENGTHS: list[int] = [0, 1, 2, 5, 12, 25]
+# Includes worldgen `shuffle` lengths 15 (TOWN_NAMES), 18 (FIRST_NAMES), 20 (LANDMARK_NAMES)
+SHUFFLE_LENGTHS: list[int] = [0, 1, 2, 5, 12, 15, 18, 20, 25]
 
 # Covers both CPython `sample` branches:
 # - pool branch (`n <= setsize`, where `setsize = 21 + (4 ** ceil(log(k*3, 4)) if k > 5 else 0)`)
 # - set branch (`n > setsize`)
-# Includes gameplay `sample` shapes: (5, 1), (5, 2) in `pick_twists`, and (8, 1), (8, 2) in `generate_party`.
+# Includes gameplay `sample` shapes: (5, 1), (5, 2) in `pick_twists`, and (8, 1), (8, 2) in party.
 SAMPLE_CASES: list[tuple[str, int, int]] = [
     ("pool_k0", 5, 0),
     ("pool_k1", 5, 1),
@@ -220,68 +257,82 @@ def generate_s1_seed_vector(label: str, seed: int) -> dict[str, Any]:
     random_draws = []
     for _ in range(20):
         val = rng.random()
-        random_draws.append({
-            "float": val,
-            "bits": str(f64_bits(val)),
-            "hex": val.hex(),
-        })
+        random_draws.append(
+            {
+                "float": val,
+                "bits": str(f64_bits(val)),
+                "hex": val.hex(),
+            }
+        )
 
     getrandbits_draws = []
     for k in GETRANDBITS_WIDTHS:
         for _ in range(4):
             val = rng.getrandbits(k)
-            getrandbits_draws.append({
-                "k": k,
-                "value": str(val),
-            })
+            getrandbits_draws.append(
+                {
+                    "k": k,
+                    "value": str(val),
+                }
+            )
 
     randint_draws = []
     for a, b in RANDINT_RANGES:
         vals = [str(rng.randint(a, b)) for _ in range(16)]
-        randint_draws.append({
-            "a": str(a),
-            "b": str(b),
-            "values": vals,
-        })
+        randint_draws.append(
+            {
+                "a": str(a),
+                "b": str(b),
+                "values": vals,
+            }
+        )
 
     choice_draws = []
     for length in CHOICE_LENGTHS:
         seq = [f"item_{i}" for i in range(length)]
         picks = [rng.choice(seq) for _ in range(10)]
-        choice_draws.append({
-            "len": length,
-            "picks": picks,
-        })
+        choice_draws.append(
+            {
+                "len": length,
+                "picks": picks,
+            }
+        )
 
     shuffle_draws = []
     for length in SHUFFLE_LENGTHS:
         seq = list(range(length))
         rng.shuffle(seq)
-        shuffle_draws.append({
-            "len": length,
-            "result": seq,
-        })
+        shuffle_draws.append(
+            {
+                "len": length,
+                "result": seq,
+            }
+        )
 
     sample_draws = []
     for case_name, n, k in SAMPLE_CASES:
         pop = list(range(n))
         picked = rng.sample(pop, k)
-        sample_draws.append({
-            "name": case_name,
-            "n": n,
-            "k": k,
-            "result": picked,
-        })
+        sample_draws.append(
+            {
+                "name": case_name,
+                "n": n,
+                "k": k,
+                "result": picked,
+            }
+        )
 
     weighted_draws = []
     for case_name, items, weights in WEIGHTED_CASES:
         picks = [weighted_choice(rng, items, weights) for _ in range(15)]
-        weighted_draws.append({
-            "name": case_name,
-            "items": items,
-            "weights": weights,
-            "picks": picks,
-        })
+        weighted_draws.append(
+            {
+                "name": case_name,
+                "items": items,
+                "weights": weights,
+                "picks": picks,
+            }
+        )
 
     final_state = serialize_rng_state(rng.getstate())
     return {
@@ -341,6 +392,7 @@ def generate_s1_save_restore_vector() -> dict[str, Any]:
 
 # ── 2. Worldgen 200 seeds + event_loader check ──────────────────────────────
 
+
 def build_worldgen_seeds() -> list[int]:
     """200 seeds including 0, 1, 42, large ints, negative ints, and sequential/varied seeds."""
     special = [
@@ -368,7 +420,7 @@ def build_worldgen_seeds() -> list[int]:
 
 
 def canonical_run_state_json(state: RunState) -> tuple[str, str]:
-    """Return (run_id_prefix, canonical_json_str) with `run_id` normalized to its 8-hex seed prefix."""
+    """Return (run_id_prefix, canonical_json_str) with `run_id` normalized to its 8-hex prefix."""
     d = _state_to_dict(state)
     prefix = str(d["run_id"]).split("-")[0]
     d["run_id"] = prefix
@@ -430,23 +482,23 @@ def generate_worldgen_vectors(meta: dict[str, str]) -> dict[str, Any]:
         rng_hash = rng_state_sha256_hex(rng.getstate())
 
         weather_picks = [
-            generate_weather(rng, biome, day).value
-            for day in (1, 25)
-            for biome in Biome
+            generate_weather(rng, biome, day).value for day in (1, 25) for biome in Biome
         ]
 
         state = create_new_run(seed=seed, gm_profile=GMProfile.FIRESIDE, weirdness_level=2)
         assert state.rng_counter == rng.counter - 10
         prefix, canonical_json = canonical_run_state_json(state)
 
-        vectors.append({
-            "seed": str(seed),
-            "run_id_prefix": prefix,
-            "rng_counter": state.rng_counter,
-            "rng_state_sha256": rng_hash,
-            "weather_picks": weather_picks,
-            "canonical_json": canonical_json,
-        })
+        vectors.append(
+            {
+                "seed": str(seed),
+                "run_id_prefix": prefix,
+                "rng_counter": state.rng_counter,
+                "rng_state_sha256": rng_hash,
+                "weather_picks": weather_picks,
+                "canonical_json": canonical_json,
+            }
+        )
 
     json_events = load_json_events()
     event_records = [serialize_event_skeleton(ev) for ev in json_events]
@@ -462,6 +514,7 @@ def generate_worldgen_vectors(meta: dict[str, str]) -> dict[str, Any]:
 
 
 # ── 3. Save Round Trip (20 saves), Migration (v1/v2 -> v3), RNG Restore ─────
+
 
 def drive_steps(engine: StepEngine, actions: list[IntentAction], choice_seq: str = "ABCD") -> None:
     choice_idx = 0
@@ -519,10 +572,10 @@ def next_100_draws_from_save(seed: int, counter: int, rng_state: Any) -> list[di
 
 
 def make_20_real_saves() -> list[dict[str, Any]]:
-    T = IntentAction.TRAVEL
-    R = IntentAction.REST
-    H = IntentAction.HUNT
-    P = IntentAction.REPAIR
+    T = IntentAction.TRAVEL  # noqa: N806
+    R = IntentAction.REST  # noqa: N806
+    H = IntentAction.HUNT  # noqa: N806
+    P = IntentAction.REPAIR  # noqa: N806
 
     scenarios: list[tuple[str, int, GMProfile, list[IntentAction], str]] = [
         ("01_fresh_seed_0", 0, GMProfile.FIRESIDE, [], "fresh"),
@@ -535,8 +588,20 @@ def make_20_real_saves() -> list[dict[str, Any]]:
         ("08_mid_events_seed_33", 33, GMProfile.LANTERN, [T, T, R, T, H, T, T, P, T], "events"),
         ("09_memory_cards_seed_42", 42, GMProfile.FIRESIDE, [T] * 14, "memories"),
         ("10_memory_cards_seed_55", 55, GMProfile.FIRESIDE, [T, H, T, R] * 4, "memories"),
-        ("11_escape_valve_ration_seed_64", 64, GMProfile.FIRESIDE, [T, T, IntentAction.HARD_RATION, T, T], "valve"),
-        ("12_escape_valve_cargo_seed_77", 77, GMProfile.FIRESIDE, [T, IntentAction.ABANDON_CARGO, T, R, T], "valve"),
+        (
+            "11_escape_valve_ration_seed_64",
+            64,
+            GMProfile.FIRESIDE,
+            [T, T, IntentAction.HARD_RATION, T, T],
+            "valve",
+        ),
+        (
+            "12_escape_valve_cargo_seed_77",
+            77,
+            GMProfile.FIRESIDE,
+            [T, IntentAction.ABANDON_CARGO, T, R, T],
+            "valve",
+        ),
         ("13_pace_hard_seed_88", 88, GMProfile.FIRESIDE, [T] * 12, "pace_hard"),
         ("14_pace_slow_seed_99", 99, GMProfile.FIRESIDE, [T, R, T, H] * 3, "pace_slow"),
         ("15_backpack_settled_seed_105", 105, GMProfile.FIRESIDE, [T] * 6, "backpack"),
@@ -573,55 +638,70 @@ def make_20_real_saves() -> list[dict[str, Any]]:
                 bp.wallet_address = "rTestPlayerWallet111111111111"
                 bp.issuer_address = "rTestIssuerWallet222222222222"
                 bp.trust_lines_ready = True
-                bp.last_settled_supplies = {"food": 40, "water": 38, "meds": 5, "ammo": 18, "parts": 4}
+                bp.last_settled_supplies = {
+                    "food": 40,
+                    "water": 38,
+                    "meds": 5,
+                    "ammo": 18,
+                    "parts": 4,
+                }
                 bp.last_settlement_day = engine.state.day
                 bp.nudge_shown = True
                 stamp_minted_snapshot(
                     bp,
                     {"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 4},
                 )
-                bp.settlements.append(SettlementRecord(
-                    day=engine.state.day,
-                    location=engine.state.location_id,
-                    deltas={"food": -10, "water": -12},
-                    txids=["ABCDEF0123456789ABCDEF0123456789"],
-                    status="settled",
-                    memo=f"TRAIL|RUN:{engine.state.run_id}|DAY:{engine.state.day}|V:v1",
-                    timestamp="2026-10-23T00:00:00+00:00",
-                ))
+                bp.settlements.append(
+                    SettlementRecord(
+                        day=engine.state.day,
+                        location=engine.state.location_id,
+                        deltas={"food": -10, "water": -12},
+                        txids=["ABCDEF0123456789ABCDEF0123456789"],
+                        status="settled",
+                        memo=f"TRAIL|RUN:{engine.state.run_id}|DAY:{engine.state.day}|V:v1",
+                        timestamp="2026-10-23T00:00:00+00:00",
+                    )
+                )
             elif tag == "backpack_parcels":
                 bp = engine.state.backpack
                 bp.enabled = True
                 bp.wallet_address = "rParcelPlayerWallet3333333333"
                 bp.issuer_address = "rParcelIssuerWallet4444444444"
                 bp.trust_lines_ready = True
-                bp.parcels.append(ParcelRecord(
-                    parcel_id="rSender999:FOD:6",
-                    sender="rSender999",
-                    contents={"food": 6},
-                    txid="11223344556677889900AABBCCDDEEFF",
-                    accepted=True,
-                    day_received=engine.state.day,
-                ))
-                bp.sent_parcels.append(SentParcelRecord(
-                    recipient="rFriend888",
-                    supply="water",
-                    amount=5,
-                    txid="FFEEDDCCBBAA00998877665544332211",
-                    day_sent=engine.state.day,
-                    memo=f"PARCEL|RUN:{engine.state.run_id}|DAY:{engine.state.day}|water:5",
-                ))
-                bp.permits.append(PermitRecord(
-                    permit_id="permit_rope_bridge",
-                    txid="99887766554433221100FFEEDDCCBBAA",
-                    used=False,
-                    day_earned=engine.state.day,
-                    day_used=0,
-                ))
+                bp.parcels.append(
+                    ParcelRecord(
+                        parcel_id="rSender999:FOD:6",
+                        sender="rSender999",
+                        contents={"food": 6},
+                        txid="11223344556677889900AABBCCDDEEFF",
+                        accepted=True,
+                        day_received=engine.state.day,
+                    )
+                )
+                bp.sent_parcels.append(
+                    SentParcelRecord(
+                        recipient="rFriend888",
+                        supply="water",
+                        amount=5,
+                        txid="FFEEDDCCBBAA00998877665544332211",
+                        day_sent=engine.state.day,
+                        memo=f"PARCEL|RUN:{engine.state.run_id}|DAY:{engine.state.day}|water:5",
+                    )
+                )
+                bp.permits.append(
+                    PermitRecord(
+                        permit_id="permit_rope_bridge",
+                        txid="99887766554433221100FFEEDDCCBBAA",
+                        used=False,
+                        day_earned=engine.state.day,
+                        day_used=0,
+                    )
+                )
             elif tag == "crisis":
                 engine.state.supplies.set("food", 0)
                 engine.state.supplies.set("water", 0)
                 from escape_the_valley.memory_emitters import check_resource_crises
+
                 check_resource_crises(engine.state)
             elif tag == "game_over_death":
                 engine.state.supplies.set("food", 0)
@@ -645,7 +725,9 @@ def make_20_real_saves() -> list[dict[str, Any]]:
             save_path = save_game(engine.state, run_dir)
             raw_json = save_path.read_text(encoding="utf-8")
             parsed_dict = json.loads(raw_json)
-            canonical_json = json.dumps(parsed_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            canonical_json = json.dumps(
+                parsed_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            )
             reloaded_for_snap = load_game(run_dir)
             assert reloaded_for_snap is not None
             minted_snapshot = minted_snapshot_of(reloaded_for_snap.backpack)
@@ -661,14 +743,16 @@ def make_20_real_saves() -> list[dict[str, Any]]:
                 None,
             )
 
-            saves_out.append({
-                "label": label,
-                "raw_save_json": raw_json,
-                "canonical_save_json": canonical_json,
-                "minted_snapshot": minted_snapshot,
-                "next_100_draws_with_state": draws_with_state,
-                "next_100_draws_counter_only": draws_counter_only,
-            })
+            saves_out.append(
+                {
+                    "label": label,
+                    "raw_save_json": raw_json,
+                    "canonical_save_json": canonical_json,
+                    "minted_snapshot": minted_snapshot,
+                    "next_100_draws_with_state": draws_with_state,
+                    "next_100_draws_counter_only": draws_counter_only,
+                }
+            )
 
     return saves_out
 
@@ -733,11 +817,13 @@ def make_migration_vectors() -> list[dict[str, Any]]:
         d5["rng_state"] = "nope"
         for m in d5["party"]["members"]:
             m.pop("death_cause", None)
-        d5["journal"] = [{
-            "day": 2,
-            "location": "Millford",
-            "event_id": "legacy_ev",
-        }]
+        d5["journal"] = [
+            {
+                "day": 2,
+                "location": "Millford",
+                "event_id": "legacy_ev",
+            }
+        ]
 
         raw_fixtures = [
             ("v1_minimal_five_supplies", d1),
@@ -757,25 +843,30 @@ def make_migration_vectors() -> list[dict[str, Any]]:
             loaded = load_game(case_dir)
             assert loaded is not None, f"Failed to load migration fixture {label}"
             migrated_dict = _state_to_dict(loaded)
-            canonical_migrated = json.dumps(migrated_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            canonical_migrated = json.dumps(
+                migrated_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            )
             minted_snapshot = minted_snapshot_of(loaded.backpack)
             draws = next_100_draws_from_save(loaded.seed, loaded.rng_counter, loaded.rng_state)
 
-            cases.append({
-                "label": label,
-                "input_json": input_json,
-                "canonical_migrated_json": canonical_migrated,
-                "minted_snapshot": minted_snapshot,
-                "next_100_draws": draws,
-            })
+            cases.append(
+                {
+                    "label": label,
+                    "input_json": input_json,
+                    "canonical_migrated_json": canonical_migrated,
+                    "minted_snapshot": minted_snapshot,
+                    "next_100_draws": draws,
+                }
+            )
 
     return cases
 
 
 # ── 4 & 5. Phase 1b Golden Harness: 1,000 Seeds × 60 Turns + 120 Save/Resume ─
 
+
 def build_1000_seeds() -> list[int]:
-    """1,000 distinct seeds including 0, 1, 42, negative ints, and ints above u32::MAX and u64::MAX."""
+    """1,000 distinct seeds including 0, 1, 42, negative ints, and ints above u32/u64::MAX."""
     special = [
         0,
         1,
@@ -884,6 +975,64 @@ def pick_intent(engine: StepEngine, prng: random.Random, seed_idx: int, turn: in
             return PlayerIntent(IntentAction.TRAVEL)
         if r < 0.04:
             return PlayerIntent(IntentAction.CHOOSE, choice_id="Z")
+        if engine._pending_event is not None:
+            templates = engine._pending_event.outcome_templates
+            # On weathered-victory seeds (seed_idx % 24 == 13), prefer safe time_cost > 0 choices
+            if seed_idx % 24 == 13:
+                best_tc = max(
+                    offered,
+                    key=lambda c: (
+                        templates[c].time_cost
+                        if templates[c].health_delta >= 0 and templates[c].wagon_delta >= -5
+                        else -1
+                    ),
+                )
+                if templates[best_tc].time_cost > 0 and templates[best_tc].health_delta >= 0:
+                    return PlayerIntent(IntentAction.CHOOSE, choice_id=best_tc)
+            # On spoilage seeds (seed_idx % 6 == 5), pick the most negative wagon_delta choice
+            if seed_idx % 6 == 5:
+                best_wag = min(
+                    offered,
+                    key=lambda c: (
+                        templates[c].wagon_delta if templates[c].health_delta >= -10 else 99
+                    ),
+                )
+                if templates[best_wag].wagon_delta < 0:
+                    return PlayerIntent(IntentAction.CHOOSE, choice_id=best_wag)
+            # On low-wagon / desperate_repair seeds (seed_idx % 6 == 0), prefer wagon/parts < 0
+            if seed_idx % 6 == 0:
+                for cid in offered:
+                    out = templates.get(cid)
+                    if out and (out.wagon_delta < 0 or out.supplies_delta.get("parts", 0) < 0):
+                        return PlayerIntent(IntentAction.CHOOSE, choice_id=cid)
+            # On dehydration seeds (seed_idx % 24 == 3), prefer water_delta < 0 and health_delta < 0
+            if seed_idx % 24 == 3:
+                best_w = min(
+                    offered,
+                    key=lambda c: (
+                        templates[c].supplies_delta.get("water", 0),
+                        templates[c].health_delta,
+                    ),
+                )
+                return PlayerIntent(IntentAction.CHOOSE, choice_id=best_w)
+            # On event-death / exhaustion / injury seeds (seed_idx % 24 in (9, 15)), prefer
+            # health_delta < 0 while keeping food > 2 and water > 2
+            if seed_idx % 24 in (9, 15):
+                best_h = min(
+                    offered,
+                    key=lambda c: (
+                        templates[c].health_delta
+                        if (
+                            engine.state.supplies.food + templates[c].supplies_delta.get("food", 0)
+                            > 2
+                            and engine.state.supplies.water
+                            + templates[c].supplies_delta.get("water", 0)
+                            > 2
+                        )
+                        else 99
+                    ),
+                )
+                return PlayerIntent(IntentAction.CHOOSE, choice_id=best_h)
         return PlayerIntent(IntentAction.CHOOSE, choice_id=prng.choice(offered))
     if engine.phase == GamePhase.ROUTE:
         offered = ["A", "B", "C", "D"][: len(engine._pending_routes)]
@@ -894,13 +1043,103 @@ def pick_intent(engine: StepEngine, prng: random.Random, seed_idx: int, turn: in
             return PlayerIntent(IntentAction.CHOOSE, choice_id="D")
         return PlayerIntent(IntentAction.CHOOSE, choice_id=prng.choice(offered))
 
-    # Every 6th seed pushes hard to exercise breakdowns, starvation, dehydration, and deaths
+    # Dehydration branch (seed_idx % 24 == 3):
+    # Sets slow pace, drains water via REST on non-arrival legs until water <= alive_count,
+    # then steps TRAVEL so daily consumption drops water to 0 before check_health_effects runs.
+    if seed_idx % 24 == 3:
+        if turn == 1:
+            return PlayerIntent(IntentAction.CHANGE_PACE, pace="slow")
+        alive = engine.state.party.alive_count
+        if (
+            engine.state.supplies.water > alive
+            and engine.state.distance_remaining > compute_travel_distance(engine.state)
+        ):
+            return PlayerIntent(IntentAction.REST)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    # Out-of-ammo hunt refusal & ammo crisis branch (seed_idx % 24 == 21):
+    # Hunts in camp until ammo == 0, then triggers one out-of-ammo HUNT refusal before traveling.
+    if seed_idx % 24 == 21:
+        if engine.state.supplies.ammo > 0:
+            return PlayerIntent(IntentAction.HUNT)
+        if engine.state.last_action == "HUNT" and turn <= 22:
+            return PlayerIntent(IntentAction.HUNT)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    # Event-wound / Exhaustion / Injury branch (seed_idx % 24 in (9, 15)):
+    # Travels on slow pace while keeping food > 0, water > 0, and wagon repaired so event
+    # health_delta < 0 kills members with Condition.EXHAUSTED or Condition.HEALTHY/INJURED.
+    if seed_idx % 24 in (9, 15):
+        if turn == 1:
+            return PlayerIntent(IntentAction.CHANGE_PACE, pace="slow")
+        if engine.state.supplies.food < 16 and engine.state.supplies.ammo > 0:
+            return PlayerIntent(IntentAction.HUNT)
+        if engine.state.wagon.condition < 50 and engine.state.supplies.parts > 0:
+            return PlayerIntent(IntentAction.REPAIR)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    # Spoilage & Repeated ABANDON_CARGO branch (seed_idx % 6 == 5):
+    # Pushes hard without repairing so wagon drops < 30, then repeatedly calls ABANDON_CARGO
+    # (never DESPERATE_REPAIR) so salt drops 8->4->2->1->0 and check_spoilage fires on day % 3 == 0.
+    if seed_idx % 6 == 5:
+        if turn == 1:
+            return PlayerIntent(IntentAction.CHANGE_PACE, pace="hard")
+        if can_abandon_cargo(engine.state):
+            return PlayerIntent(IntentAction.ABANDON_CARGO)
+        if (
+            engine.state.supplies.get("salt") == 0
+            and engine.state.supplies.food <= 8
+            and engine.state.supplies.ammo > 0
+        ):
+            return PlayerIntent(IntentAction.HUNT)
+        if engine.state.supplies.food < 6 and engine.state.supplies.ammo > 0:
+            return PlayerIntent(IntentAction.HUNT)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    # Low-wagon / DESPERATE_REPAIR / ABANDON_CARGO branch (seed_idx % 6 == 0):
     if seed_idx % 6 == 0:
         if turn == 1:
             return PlayerIntent(IntentAction.CHANGE_PACE, pace="hard")
-        # Subset of hard-push seeds hunts repeatedly at camp first so food stays at 50 while water drains -> Dehydration deaths
-        if seed_idx % 24 == 6 and turn <= 12 and engine.state.supplies.ammo > 0:
+        if can_desperate_repair(engine.state):
+            return PlayerIntent(IntentAction.DESPERATE_REPAIR)
+        if can_abandon_cargo(engine.state):
+            return PlayerIntent(IntentAction.ABANDON_CARGO)
+        if can_hard_ration(engine.state) and prng.random() < 0.5:
+            return PlayerIntent(IntentAction.HARD_RATION)
+        return PlayerIntent(IntentAction.TRAVEL)
+
+    # Skilled / valley-bound branch (seed_idx % 6 == 1):
+    # Travels briskly while maintaining food, wagon, and health so long runs reach the valley
+    # across triumphant, weathered (seed_idx % 24 == 13), and pyrrhic endings.
+    if seed_idx % 6 == 1:
+        if turn == 1:
+            pace = "hard" if (seed_idx % 12 == 1) else "steady"
+            return PlayerIntent(IntentAction.CHANGE_PACE, pace=pace)
+        if can_desperate_repair(engine.state):
+            return PlayerIntent(IntentAction.DESPERATE_REPAIR)
+        if can_abandon_cargo(engine.state):
+            return PlayerIntent(IntentAction.ABANDON_CARGO)
+        if engine.state.wagon.condition < 65 and engine.state.supplies.parts > 0:
+            return PlayerIntent(IntentAction.REPAIR)
+        # On seed_idx % 24 == 13, once on the final approach with all members alive, rest in camp
+        # past par_days before the final step so the run grades as a `weathered` victory.
+        if (
+            seed_idx % 24 == 13
+            and engine.state.map_nodes
+            and engine.state.destination_id == engine.state.map_nodes[-1].node_id
+            and engine.state.distance_remaining <= compute_travel_distance(engine.state)
+            and all(m.is_alive() for m in engine.state.party.members)
+        ):
+            par_days = max(8, -(-engine.state.total_distance // 8))
+            if engine.state.day <= par_days:
+                return PlayerIntent(IntentAction.REST)
+            return PlayerIntent(IntentAction.TRAVEL)
+        if can_hard_ration(engine.state):
+            return PlayerIntent(IntentAction.HARD_RATION)
+        if engine.state.supplies.food < 16 and engine.state.supplies.ammo > 0:
             return PlayerIntent(IntentAction.HUNT)
+        if any(m.is_alive() and m.health < 50 for m in engine.state.party.members):
+            return PlayerIntent(IntentAction.REST)
         return PlayerIntent(IntentAction.TRAVEL)
 
     if can_desperate_repair(engine.state) and prng.random() < 0.6:
@@ -939,7 +1178,7 @@ def pick_intent(engine: StepEngine, prng: random.Random, seed_idx: int, turn: in
 
 
 def generate_ending_vectors() -> list[dict[str, Any]]:
-    """Generate 8 ending/finalization vectors covering all `compute_ending` tiers and `finalize_run`."""
+    """Generate 8 ending/finalization vectors covering all `compute_ending` tiers."""
     cases = []
 
     # 1. Triumphant (vow kept)
@@ -958,17 +1197,19 @@ def generate_ending_vectors() -> list[dict[str, Any]]:
     s2.day = 15
     s2.distance_traveled = s2.total_distance
     s2.taboo = "never_river"
-    s2.journal.append(JournalEntry(
-        day=5,
-        location="Crossing",
-        event_id="river_crossing",
-        scene_title="Deep River",
-        narration="",
-        choice_made="A: Ford carefully",
-        outcome="",
-        deltas={},
-        tags=["river", "ford"],
-    ))
+    s2.journal.append(
+        JournalEntry(
+            day=5,
+            location="Crossing",
+            event_id="river_crossing",
+            scene_title="Deep River",
+            narration="",
+            choice_made="A: Ford carefully",
+            outcome="",
+            deltas={},
+            tags=["river", "ford"],
+        )
+    )
     cases.append(("triumphant_vow_broken_river", s2, False))
 
     # 3. Triumphant (vow broken: never_night + night tag)
@@ -978,17 +1219,19 @@ def generate_ending_vectors() -> list[dict[str, Any]]:
     s3.day = 12
     s3.distance_traveled = s3.total_distance
     s3.taboo = "never_night"
-    s3.journal.append(JournalEntry(
-        day=4,
-        location="Camp",
-        event_id="wolf_pack",
-        scene_title="Wolves",
-        narration="",
-        choice_made="A: Stand guard",
-        outcome="",
-        deltas={},
-        tags=["danger", "night"],
-    ))
+    s3.journal.append(
+        JournalEntry(
+            day=4,
+            location="Camp",
+            event_id="wolf_pack",
+            scene_title="Wolves",
+            narration="",
+            choice_made="A: Stand guard",
+            outcome="",
+            deltas={},
+            tags=["danger", "night"],
+        )
+    )
     cases.append(("triumphant_vow_broken_night", s3, False))
 
     # 4. Weathered (all alive, days > par_days)
@@ -1039,7 +1282,9 @@ def generate_ending_vectors() -> list[dict[str, Any]]:
 
     out = []
     for label, st, use_finalize in cases:
-        raw_input = json.dumps(_state_to_dict(st), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        raw_input = json.dumps(
+            _state_to_dict(st), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
         if use_finalize:
             eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
             ending = eng.finalize_run("stalled")
@@ -1049,22 +1294,26 @@ def generate_ending_vectors() -> list[dict[str, Any]]:
             ending = compute_ending(st)
             final_cod = st.cause_of_death
             final_over = st.game_over
-        out.append({
-            "label": label,
-            "use_finalize": use_finalize,
-            "input_state_json": raw_input,
-            "expected_cause_of_death": final_cod,
-            "expected_game_over": final_over,
-            "expected_ending": {
-                "tier": ending.tier,
-                "headline": ending.headline,
-                "facts": ending.facts,
-            },
-        })
+        out.append(
+            {
+                "label": label,
+                "use_finalize": use_finalize,
+                "input_state_json": raw_input,
+                "expected_cause_of_death": final_cod,
+                "expected_game_over": final_over,
+                "expected_ending": {
+                    "tier": ending.tier,
+                    "headline": ending.headline,
+                    "facts": ending.facts,
+                },
+            }
+        )
     return out
 
 
-def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def generate_golden_harness_vectors(
+    meta: dict[str, str],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     seeds = build_1000_seeds()
     runs: list[dict[str, Any]] = []
     resume_runs: list[dict[str, Any]] = []
@@ -1085,7 +1334,7 @@ def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any
             eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
             prng = make_policy_rng(seed)
             turns: list[dict[str, Any]] = []
-            saved_at_20_raw: str | None = None
+            saved_at_20_info: tuple[Path, str, str, tuple[Any, ...]] | None = None
 
             for t in range(1, 61):
                 intent = pick_intent(eng, prng, idx, t)
@@ -1100,7 +1349,131 @@ def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any
                 state_hash, state_digest = hash_run_state_and_digest(eng.state)
                 ev_dict = serialize_events_emitted(eng, msgs)
 
-                turns.append({
+                turns.append(
+                    {
+                        "t": t,
+                        "act": intent.action.value,
+                        "cid": intent.choice_id,
+                        "pace": intent.pace,
+                        "cnt": eng.state.rng_counter,
+                        "rng_h": rng_state_sha256_hex(eng.state.rng_state),
+                        "st_h": state_hash,
+                        "st_d": state_digest,
+                        "ev": ev_dict,
+                    }
+                )
+
+                # Why GamePhase.EVENT is excluded at turn 20:
+                # In Python 1.3.1 (`step_engine.py:224-228` and `save.py:288-358`),
+                # `StepEngine._pending_event` and `_pending_event_choices` are transient
+                # engine fields not serialized into `RunState` (`run.json`). Reloading a save
+                # taken during `GamePhase.EVENT` resets `StepEngine.phase` to `GamePhase.CAMP`.
+                #
+                # All `GamePhase.CAMP` (both `distance_remaining > 0` and `distance_remaining <= 0`
+                # at a fork) and `GamePhase.ROUTE` saves at turn 20 are included. When a save is
+                # taken in `GamePhase.CAMP` at a fork (`distance_remaining <= 0`), reloading in
+                # Python 1.3.1 calls `StepEngine._check_initial_phase()` (`step_engine.py:238-245`),
+                # which transitions to `GamePhase.ROUTE` on load (`escape-the-valley#41`),
+                # diverging from the uninterrupted trace (which stays in `GamePhase.CAMP` until the
+                # next `TRAVEL` step). We therefore reload the turn-20 save in Python, step turns
+                # 21..=60 with the restored policy RNG state, and record `reloaded_turns`.
+                if (
+                    t == 20
+                    and len(resume_runs) < 120
+                    and eng.phase in (GamePhase.CAMP, GamePhase.ROUTE)
+                ):
+                    if eng.phase == GamePhase.ROUTE:
+                        phase_at_save = "route"
+                    elif eng.state.distance_remaining > 0:
+                        phase_at_save = "camp"
+                    else:
+                        phase_at_save = "camp_at_fork"
+                    save_dir = base / f"resume_{len(resume_runs):03d}"
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    sp = save_game(eng.state, save_dir)
+                    saved_at_20_raw = sp.read_text(encoding="utf-8")
+                    saved_at_20_info = (save_dir, saved_at_20_raw, phase_at_save, prng.getstate())
+
+                if eng.phase == GamePhase.GAME_OVER:
+                    if eng.state.cause_of_death:
+                        death_causes[eng.state.cause_of_death] += 1
+                    break
+
+            runs.append(
+                {
+                    "seed": str(seed),
+                    "turns": turns,
+                }
+            )
+
+            if saved_at_20_info is not None and len(turns) > 20:
+                save_dir, saved_at_20_raw, phase_at_save, prng_state_at_20 = saved_at_20_info
+                loaded_st = load_game(save_dir)
+                assert loaded_st is not None
+                eng_rel = StepEngine(loaded_st, GMConfig(enabled=False), autosave=False)
+                prng_rel = make_policy_rng(seed)
+                prng_rel.setstate(prng_state_at_20)
+                reloaded_turns: list[dict[str, Any]] = []
+                for t_rel in range(21, 61):
+                    intent_rel = pick_intent(eng_rel, prng_rel, idx, t_rel)
+                    msgs_rel = eng_rel.step(intent_rel)
+                    st_h_rel, st_d_rel = hash_run_state_and_digest(eng_rel.state)
+                    ev_rel = serialize_events_emitted(eng_rel, msgs_rel)
+                    reloaded_turns.append(
+                        {
+                            "t": t_rel,
+                            "act": intent_rel.action.value,
+                            "cid": intent_rel.choice_id,
+                            "pace": intent_rel.pace,
+                            "cnt": eng_rel.state.rng_counter,
+                            "rng_h": rng_state_sha256_hex(eng_rel.state.rng_state),
+                            "st_h": st_h_rel,
+                            "st_d": st_d_rel,
+                            "ev": ev_rel,
+                        }
+                    )
+                    if eng_rel.phase == GamePhase.GAME_OVER:
+                        break
+                differs = reloaded_turns != turns[20:]
+                resume_runs.append(
+                    {
+                        "seed": str(seed),
+                        "seed_index": idx,
+                        "save_turn": 20,
+                        "phase_at_save": phase_at_save,
+                        "differs_from_uninterrupted": differs,
+                        "raw_save_json": saved_at_20_raw,
+                        "reloaded_turns": reloaded_turns,
+                    }
+                )
+
+    # Second long-run set: first 80 seeds × up to 250 turns so valley-bound seeds finish the trail
+    # across all 4 `EndingResult` tiers (`triumphant`, `weathered`, `pyrrhic`, `lost`), all 6
+    # reachable `cause_of_death` values in 1.3.1 play (`Starvation`, `Dehydration`, `Disease`,
+    # `Wagon failure`, `Exhaustion`, `Injury`), and active `check_spoilage` after `ABANDON_CARGO`.
+    long_seeds = seeds[:80]
+    long_runs: list[dict[str, Any]] = []
+    long_total_turns = 0
+    long_endings: Counter[str] = Counter()
+    long_deaths: Counter[str] = Counter()
+
+    for idx, seed in enumerate(long_seeds):
+        st = create_new_run(seed=seed)
+        det_suffix = hashlib.sha256(f"etv-phase1b-long-seed-{seed}".encode()).hexdigest()[:8]
+        st.run_id = f"{st.run_id.split('-')[0]}-{det_suffix}"
+
+        eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
+        prng = make_policy_rng(seed)
+        turns_long: list[dict[str, Any]] = []
+
+        for t in range(1, 251):
+            intent = pick_intent(eng, prng, idx, t)
+            msgs = eng.step(intent)
+            long_total_turns += 1
+            state_hash, state_digest = hash_run_state_and_digest(eng.state)
+            ev_dict = serialize_events_emitted(eng, msgs)
+            turns_long.append(
+                {
                     "t": t,
                     "act": intent.action.value,
                     "cid": intent.choice_id,
@@ -1110,53 +1483,41 @@ def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any
                     "st_h": state_hash,
                     "st_d": state_digest,
                     "ev": ev_dict,
-                })
+                }
+            )
+            if eng.phase == GamePhase.GAME_OVER:
+                if eng.state.cause_of_death:
+                    long_deaths[eng.state.cause_of_death] += 1
+                if msgs.ending is not None:
+                    long_endings[msgs.ending.tier] += 1
+                break
 
-                if (
-                    t == 20
-                    and len(resume_runs) < 120
-                    and (
-                        (eng.phase == GamePhase.CAMP and eng.state.distance_remaining > 0)
-                        or eng.phase == GamePhase.ROUTE
-                    )
-                ):
-                    save_dir = base / f"resume_{len(resume_runs):03d}"
-                    save_dir.mkdir(parents=True, exist_ok=True)
-                    sp = save_game(eng.state, save_dir)
-                    saved_at_20_raw = sp.read_text(encoding="utf-8")
-
-                if eng.phase == GamePhase.GAME_OVER:
-                    if eng.state.cause_of_death:
-                        death_causes[eng.state.cause_of_death] += 1
-                    break
-
-            runs.append({
+        long_runs.append(
+            {
                 "seed": str(seed),
-                "turns": turns,
-            })
-
-            if saved_at_20_raw is not None and len(turns) > 20:
-                resume_runs.append({
-                    "seed": str(seed),
-                    "seed_index": idx,
-                    "save_turn": 20,
-                    "raw_save_json": saved_at_20_raw,
-                })
+                "turns": turns_long,
+            }
+        )
 
     full_library = [serialize_event_skeleton(ev) for ev in build_event_library()]
     assert len(full_library) == 260
     assert len(runs) == 1000
     assert len(resume_runs) == 120
+    assert len(long_runs) == 80
 
     ending_vectors = generate_ending_vectors()
 
     print(
-        f"Golden harness summary: seeds={len(runs)}, total_turns={total_turns}, "
+        f"Golden harness summary (1000x60): seeds={len(runs)}, total_turns={total_turns}, "
         f"resume_runs={len(resume_runs)}, distinct_events={len(distinct_events)}/260"
     )
     print(f"  Actions: {dict(action_counts)}")
     print(f"  Phases:  {dict(phase_counts)}")
     print(f"  Deaths:  {dict(death_causes)}")
+    print(
+        f"Golden harness summary (80x250): seeds={len(long_runs)}, total_turns={long_total_turns}, "
+        f"endings={dict(long_endings)}, deaths={dict(long_deaths)}"
+    )
 
     turns_payload = {
         "schema": "etv-phase1b-turns-v1",
@@ -1169,23 +1530,37 @@ def generate_golden_harness_vectors(meta: dict[str, str]) -> tuple[dict[str, Any
         "ending_vectors": ending_vectors,
         "runs": runs,
     }
+    long_turns_payload = {
+        "schema": "etv-phase1b-turns-long-v1",
+        "metadata": meta,
+        "seed_count": len(long_runs),
+        "max_turns_per_seed": 250,
+        "total_turns": long_total_turns,
+        "event_library_count": len(full_library),
+        "event_library": full_library,
+        "ending_vectors": ending_vectors,
+        "runs": long_runs,
+    }
     resume_payload = {
-        "schema": "etv-phase1b-resume-v1",
+        "schema": "etv-phase1b-resume-v2",
         "metadata": meta,
         "count": len(resume_runs),
         "save_turn": 20,
         "resume_runs": resume_runs,
     }
-    return turns_payload, resume_payload
+    return turns_payload, long_turns_payload, resume_payload
 
 
 def main() -> None:
+    logging.disable(logging.CRITICAL)
     t0 = time.time()
     out_dir = Path(__file__).resolve().parent / "vectors"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     meta = get_oracle_metadata()
-    print(f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']} ({meta['oracle_tag']})")
+    print(
+        f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']} ({meta['oracle_tag']})"
+    )
 
     # 1. S1 & Gameplay RNG vectors
     s1_payload = {
@@ -1221,13 +1596,19 @@ def main() -> None:
         f.write("\n")
     print(f"Wrote {saves_path} ({saves_path.stat().st_size} bytes)")
 
-    # 4 & 5. Golden harness: 1,000 seeds × 60 turns + 120 save-and-resume runs at turn 20
-    turns_payload, resume_payload = generate_golden_harness_vectors(meta)
+    # 4 & 5. Golden harness: 1,000x60 + 80x250 + 120 save-and-resume runs at turn 20
+    turns_payload, long_turns_payload, resume_payload = generate_golden_harness_vectors(meta)
     turns_path = out_dir / "turns_1000_seeds.json.gz"
     with gzip.open(turns_path, "wt", encoding="utf-8", compresslevel=9) as f:
         json.dump(turns_payload, f, separators=(",", ":"), ensure_ascii=False)
         f.write("\n")
     print(f"Wrote {turns_path} ({turns_path.stat().st_size} bytes)")
+
+    long_turns_path = out_dir / "turns_long_seeds.json.gz"
+    with gzip.open(long_turns_path, "wt", encoding="utf-8", compresslevel=9) as f:
+        json.dump(long_turns_payload, f, separators=(",", ":"), ensure_ascii=False)
+        f.write("\n")
+    print(f"Wrote {long_turns_path} ({long_turns_path.stat().st_size} bytes)")
 
     resume_path = out_dir / "resume_120_seeds.json.gz"
     with gzip.open(resume_path, "wt", encoding="utf-8", compresslevel=9) as f:
@@ -1236,7 +1617,9 @@ def main() -> None:
     print(f"Wrote {resume_path} ({resume_path.stat().st_size} bytes)")
 
     total_bytes = sum(p.stat().st_size for p in out_dir.glob("*.json.gz"))
-    print(f"Total committed vector size: {total_bytes} bytes ({total_bytes / (1024 * 1024):.2f} MB) in {time.time() - t0:.1f}s")
+    mb = total_bytes / (1024 * 1024)
+    elapsed = time.time() - t0
+    print(f"Total committed vector size: {total_bytes} bytes ({mb:.2f} MB) in {elapsed:.1f}s")
 
 
 if __name__ == "__main__":

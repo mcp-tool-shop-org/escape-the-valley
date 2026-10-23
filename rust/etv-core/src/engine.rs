@@ -1192,9 +1192,8 @@ mod tests {
     use super::*;
     use crate::worldgen::create_new_run;
 
-    // Fails on 02532e17 because `engine` module did not exist on 02532e17:
-    // tests H-3 (fork prompt does not burn `maintained_turns_remaining` or `escape_valve_cooldown`),
-    // H-2 (`do_abandon_cargo` formats dropped supplies from the flat delta list), and broken route refusal.
+    // preservation: H-3 (fork prompt does not burn `maintained_turns_remaining` or `escape_valve_cooldown`)
+    // and H-2 (`do_abandon_cargo` formats dropped supplies from the flat delta list).
     #[test]
     fn test_fork_does_not_burn_maintenance_or_cooldown_and_broken_route_refuses() {
         let mut st = create_new_run(42);
@@ -1266,8 +1265,7 @@ mod tests {
             .contains("-2 salt, -1 rope"));
     }
 
-    // Fails on 02532e17 because `engine` module did not exist on 02532e17:
-    // tests `compute_ending` tiers (`triumphant`, `weathered`, `pyrrhic`, `lost`) and `finalize_run`.
+    // preservation: `compute_ending` tiers (`triumphant`, `weathered`, `pyrrhic`, `lost`) and `finalize_run`.
     #[test]
     fn test_compute_ending_tiers_and_finalize_run() {
         let mut st = create_new_run(42);

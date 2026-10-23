@@ -811,9 +811,9 @@ mod tests {
     use crate::worldgen::create_new_run;
     use serde_json::json;
 
-    // Fails on 02532e17 because `memory` module did not exist on 02532e17:
-    // tests duplicate ID rejection, MAX_CARDS eviction protecting crisis cards,
-    // retrieval cooldown stamping, and `validate_gm_cards` guardrails.
+    // preservation: duplicate ID rejection, `MEMORY_BUDGET` (`50`) eviction via `drop_lowest`
+    // (evicting expired-cooldown lowest-salience cards while keeping active-cooldown and higher-salience cards),
+    // retrieval cooldown stamping, and `validate_gm_cards` guardrails (including missing or non-list `"tags"`).
     #[test]
     fn test_memory_store_dedup_eviction_and_validate_gm_cards() {
         let mut st = create_new_run(42);
@@ -844,11 +844,97 @@ mod tests {
         assert_eq!(st.memory_cards.len(), 1);
         assert_eq!(st.memory_cards[0].title, "Strange Fog");
 
-        // Retrieval stamps cooldown_until = day + 3
+        // Retrieval stamps cooldown_until = day + 3 (= 8)
         st.recent_event_tags.push("fog".to_string());
         let retrieved = retrieve_memories(&mut st, 3, true);
         assert_eq!(retrieved.len(), 1);
         assert_eq!(st.memory_cards[0].cooldown_until, 8);
+
+        // Fill store past MEMORY_BUDGET (50) and verify drop_lowest evicts expired-cooldown
+        // lowest-salience cards first while keeping active-cooldown cards (like dup_id_1 with
+        // cooldown_until == 8 > st.day == 5, and low_sal_active with salience 0.1 but cooldown_until == 9)
+        add_card(
+            &mut st,
+            MemoryCard {
+                id: "low_sal_active".to_string(),
+                kind: "rumor".to_string(),
+                title: "Protected by Cooldown".to_string(),
+                text: "Low salience but active cooldown.".to_string(),
+                tags: Vec::new(),
+                day_created: 5,
+                day_last_seen: 5,
+                entities: Vec::new(),
+                salience: 0.1,
+                cooldown_until: 9,
+                source: "engine".to_string(),
+            },
+        );
+        add_card(
+            &mut st,
+            MemoryCard {
+                id: "low_sal_expired_1".to_string(),
+                kind: "rumor".to_string(),
+                title: "Evict First".to_string(),
+                text: "Lowest salience with expired cooldown.".to_string(),
+                tags: Vec::new(),
+                day_created: 1,
+                day_last_seen: 1,
+                entities: Vec::new(),
+                salience: 0.15,
+                cooldown_until: 2,
+                source: "engine".to_string(),
+            },
+        );
+        add_card(
+            &mut st,
+            MemoryCard {
+                id: "low_sal_expired_2".to_string(),
+                kind: "rumor".to_string(),
+                title: "Evict Second".to_string(),
+                text: "Second-lowest salience with expired cooldown.".to_string(),
+                tags: Vec::new(),
+                day_created: 1,
+                day_last_seen: 1,
+                entities: Vec::new(),
+                salience: 0.20,
+                cooldown_until: 0,
+                source: "engine".to_string(),
+            },
+        );
+        for i in 0..48 {
+            add_card(
+                &mut st,
+                MemoryCard {
+                    id: format!("filler_{i}"),
+                    kind: "place".to_string(),
+                    title: format!("Place {i}"),
+                    text: "A landmark along the trail.".to_string(),
+                    tags: Vec::new(),
+                    day_created: 5,
+                    day_last_seen: 5,
+                    entities: Vec::new(),
+                    salience: 0.6 + (i as f64) * 0.001,
+                    cooldown_until: 0,
+                    source: "engine".to_string(),
+                },
+            );
+        }
+        // 4 + 48 = 52 cards inserted; budget is enforced at MEMORY_BUDGET (50)
+        assert_eq!(st.memory_cards.len(), MEMORY_BUDGET);
+        let remaining_ids: Vec<&str> = st.memory_cards.iter().map(|c| c.id.as_str()).collect();
+        assert!(
+            !remaining_ids.contains(&"low_sal_expired_1"),
+            "lowest-salience expired-cooldown card must be evicted first"
+        );
+        assert!(
+            !remaining_ids.contains(&"low_sal_expired_2"),
+            "second-lowest-salience expired-cooldown card must be evicted second"
+        );
+        assert!(
+            remaining_ids.contains(&"low_sal_active"),
+            "active-cooldown card (cooldown_until > day) must be protected over expired-cooldown cards"
+        );
+        assert!(remaining_ids.contains(&"dup_id_1"));
 
         // validate_gm_cards rejects invalid kinds, supply numbers, and accepts valid cards with engine-assigned IDs
         let proposals = json!([
@@ -857,7 +943,7 @@ mod tests {
                 "kind": "rumor",
                 "title": "Whisper at the Well",
                 "text": "A traveler spoke of a flooded pass ahead.",
-                "tags": ["river", "rumor"],
+                "tags": ["river", "rumor", null, "", 42],
                 "entities": ["Millford"]
             },
             {
@@ -876,5 +962,32 @@ mod tests {
         assert!(validated[0].id.starts_with("gm_rumor_5_"));
         assert_eq!(validated[0].source, "gm");
         assert_eq!(validated[0].salience, 0.5);
+        assert_eq!(
+            validated[0].tags,
+            vec!["river".to_string(), "rumor".to_string()]
+        );
+
+        // Proposals with omitted `"tags"` or non-list `"tags"` are accepted with `tags == []`
+        // matching Python `memory_emitters.py:337-369`.
+        let proposals_missing_or_nonlist_tags = json!([
+            {
+                "kind": "omen",
+                "title": "Silent Crow",
+                "text": "A crow watched from the dead cedar."
+            },
+            {
+                "kind": "place",
+                "title": "Split Stone",
+                "text": "A boulder cleft in two by frost.",
+                "tags": "not-a-list",
+                "entities": 123
+            }
+        ]);
+        let validated_tags = validate_gm_cards(&st, &proposals_missing_or_nonlist_tags);
+        assert_eq!(validated_tags.len(), 2);
+        assert!(validated_tags[0].tags.is_empty());
+        assert!(validated_tags[0].entities.is_empty());
+        assert!(validated_tags[1].tags.is_empty());
+        assert!(validated_tags[1].entities.is_empty());
     }
 }
