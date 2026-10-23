@@ -1,0 +1,39 @@
+"""Unpack a PyInstaller onefile binary into a folder, so a byte scanner can see what the
+binary carries. The bundled files and the PYZ are zlib-compressed inside the .exe, so a raw
+scan of the .exe alone cannot see them.
+
+Writes every CArchive entry decompressed under <out>/carchive/<name>, and every module in
+each embedded PYZ as its marshalled code object under <out>/pyz/<pyz-name>/<module>.pyc-body
+(the strings in a code object are stored as plain bytes, so a byte scan reads them).
+Usage: python unpack_pyinstaller.py <binary> <out-dir>   (run with the build venv's python)
+"""
+import pathlib
+import sys
+
+from PyInstaller.archive.readers import CArchiveReader
+
+binary, out = sys.argv[1], pathlib.Path(sys.argv[2])
+car = CArchiveReader(binary)
+n_files = n_mods = 0
+for name, entry in car.toc.items():
+    typecode = entry[-1]
+    if typecode == "z":  # an embedded PYZ
+        pyz = car.open_embedded_archive(name)
+        base = out / "pyz" / name
+        for mod in pyz.toc:
+            data = pyz.extract(mod, raw=True)
+            if data is None:
+                continue
+            p = base / (mod.replace(".", "/") + ".pyc-body")
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(data)
+            n_mods += 1
+        continue
+    data = car.extract(name)
+    if data is None:
+        continue
+    p = out / "carchive" / name.replace("\\", "/").lstrip("/")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(data)
+    n_files += 1
+print(f"{len(car.toc)} archive entries; {n_files} files and {n_mods} PYZ modules written")

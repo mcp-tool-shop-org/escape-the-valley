@@ -1,0 +1,20 @@
+"""Print the bytes around each identity-scan HIT whose path is <binary>!carchive/... or <binary>!pyz/<pyz>/...,
+reading the files unpack_pyinstaller.py wrote. Usage: python -I hit_context_scan.py <scan-output> <unpack-dir>"""
+import pathlib, re, sys, zipfile
+root = pathlib.Path(sys.argv[2])
+for line in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"HIT (\S+) (.+?)!(carchive|pyz)/(.+?)(?::@(0x[0-9a-f]+))?$", line.strip())
+    if not m:
+        continue
+    label, _, kind, inner, off = m.groups()
+    if off is None:
+        print(f"{label:12} {kind}/{inner}\n             (whole file)")
+        continue
+    off = int(off, 16)
+    if ".zip/" in inner:
+        z, member = inner.split(".zip/", 1)
+        data = zipfile.ZipFile(root / kind / (z + ".zip")).read(member)
+    else:
+        data = (root / kind / inner).read_bytes()
+    s = re.sub(rb"[^\x20-\x7e]", b".", data[max(0, off - 50):off + 70]).decode()
+    print(f"{label:12} {kind}/{inner}\n             {s}")

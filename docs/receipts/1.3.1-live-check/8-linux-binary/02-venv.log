@@ -1,0 +1,4 @@
++ uv venv -p 3.12
+Using CPython 3.12.13
+Creating virtual environment at: .venv
+Activate with: source .venv/bin/activate

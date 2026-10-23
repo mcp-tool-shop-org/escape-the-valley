@@ -1,0 +1,32 @@
+"""Independent of notices.py: which installed distributions does an unpacked PyInstaller bundle carry?
+Run with the BUILD venv's python: python -I bundled_dists.py <unpack-dir> <notices.txt>
+A distribution counts as bundled when any module or file it installed (from its RECORD) is in the unpacked bundle:
+a PYZ module (pyz/PYZ.pyz/<mod>.pyc-body) or a CArchive file (carchive/<path>). Prints both lists and the difference."""
+import importlib.metadata as md, pathlib, re, sys
+root = pathlib.Path(sys.argv[1]); notices = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8")
+pyz = {p.relative_to(root / "pyz/PYZ.pyz").as_posix()[:-len(".pyc-body")] for p in (root / "pyz/PYZ.pyz").rglob("*.pyc-body")}
+car = {p.relative_to(root / "carchive").as_posix() for p in (root / "carchive").rglob("*") if p.is_file()}
+norm = lambda n: re.sub(r"[-_.]+", "-", n).lower()
+bundled = {}
+for d in md.distributions():
+    name = d.metadata["Name"]
+    ev = []
+    for f in d.files or []:
+        s = f.as_posix()
+        if s.startswith("..") or ".dist-info/" in s or s.endswith(".pyc"):
+            continue
+        if s.endswith(".py"):
+            mod = s[:-3]
+            mod = mod[:-len("/__init__")] if mod.endswith("/__init__") else mod
+            if mod in pyz:
+                ev.append(f"pyz:{mod}")
+        elif s in car:
+            ev.append(f"carchive:{s}")
+    if ev:
+        bundled[norm(name)] = (name, len(ev), ev[0])
+listed = {norm(n) for n in re.findall(r"^Name: (.+)$", notices, re.M) if not n.startswith(("Python (", "PyInstaller ("))}
+for k in sorted(bundled):
+    print(f"bundled  {bundled[k][0]:22} {bundled[k][1]:5} files, e.g. {bundled[k][2]}")
+print("in bundle, not listed:", sorted(set(bundled) - listed - {"escape-the-valley", "pyinstaller"}))
+print("listed, not in bundle:", sorted(listed - set(bundled)))
+print("pyinstaller files in bundle:", bundled.get("pyinstaller", (0, 0, "-"))[1:], " escape-the-valley:", bundled.get("escape-the-valley", (0, 0, "-"))[1:])

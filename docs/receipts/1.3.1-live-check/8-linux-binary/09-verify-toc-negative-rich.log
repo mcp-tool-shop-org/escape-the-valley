@@ -1,0 +1,5 @@
++ sed '/^Name: rich$/d' THIRD_PARTY_NOTICES.txt > /tmp/notices-no-rich.txt
+  (Name: rich lines before: 1, after: 0)
++ uv run --no-sync python scripts/gen_third_party_notices.py --verify-toc build/escape-the-valley /tmp/notices-no-rich.txt
+TOC VERIFICATION FAILED: Bundled site-packages distributions in PyInstaller TOC missing from /tmp/notices-no-rich.txt: rich
+exit 1

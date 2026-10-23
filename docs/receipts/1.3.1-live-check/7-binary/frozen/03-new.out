@@ -1,0 +1,50 @@
+╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ESCAPE THE VALLEY                                                                               ║
+║ Ledger Trail                                                                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+  Run ID: 7902699b-68895840
+  Seed: 7
+  Profile: fireside
+  Weirdness: 2
+  Twists: sick_season, flood_year
+  Doctrine: travel_light
+  Taboo: leave_nothing
+  Party: Agnes, Ruth, Josiah, Silas
+
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 1  |  Morning                 Location: Ashwell            Biome: forest                  │
+│   Pace: steady                      Distance to next: 23 mi      Traveled: 0 mi                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 70/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Agnes             96           healthy        mechanic                                        │
+│   Ruth              97           healthy        tracker, anxious                                │
+│   Josiah            100          healthy        lucky                                           │
+│   Silas             96           healthy        lucky                                           │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             50  │      │ Condition: ████████████████░░░░ │   
+   │  Water            50  │      │ 80%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> Q>>
+  Game saved.
+
+<<exit 0; camp actions 1; answers 1>>

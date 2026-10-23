@@ -1,0 +1,2 @@
++ uv run --no-sync python scripts/gen_third_party_notices.py --verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
+[toc-check] Verified 22 bundled site-packages distributions against THIRD_PARTY_NOTICES.txt: annotated-doc, anyio, base58, certifi, ecpy, h11, httpcore, httpx, idna, linkify-it-py, markdown-it-py, mdurl, platformdirs, pycryptodome, pygments, rich, shellingham, textual, typer, typing-extensions, websockets, xrpl-py

@@ -1,0 +1,6 @@
+overlay open before the valve key: False | key: e
+before {'salt': 8, 'cloth': 1, 'rope': 2, 'boots': 2} wagon 22
+after  {'salt': 4, 'cloth': 0, 'rope': 1, 'boots': 1} wagon 47
+narration: Abandoned cargo to lighten the wagon. Wagon +25. Dropped: -4 salt, -1 cloth, -1 rope, -1 boots. Morale fell.
+cards: ['Day 15: Abandoned cargo to save the wagon (dropped: -4 salt, -1 cloth, -1 rope, -1 boots).']
+65 snapshots; run_id 4a44dc15-2623381c

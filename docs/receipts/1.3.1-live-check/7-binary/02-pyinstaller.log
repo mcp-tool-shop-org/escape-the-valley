@@ -1,0 +1,135 @@
++ pyinstaller (release-binaries.yml 'Build binary', windows leg, DATA_SEP=';')
+448 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+448 INFO: Python: 3.12.13
+475 INFO: Platform: Windows-11-10.0.26340-SP0
+475 INFO: Python environment: <worktree>/.venv
+477 INFO: wrote <worktree>/escape-the-valley.spec
+3796 INFO: Module search paths (PYTHONPATH):
+['<worktree>/.venv\\Scripts\\pyinstaller.exe',
+ '<home>/AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\python312.zip',
+ '<home>/AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\DLLs',
+ '<home>/AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\Lib',
+ '<home>/AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none',
+ '<worktree>/.venv',
+ '<worktree>/.venv\\Lib\\site-packages',
+ '<worktree>/src']
+4239 INFO: Appending 'datas' from .spec
+4241 INFO: checking Analysis
+4241 INFO: Building Analysis because Analysis-00.toc is non existent
+4241 INFO: Looking for Python shared library...
+4241 INFO: Using Python shared library: <home>/AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python312.dll
+4241 INFO: Running Analysis Analysis-00.toc
+4241 INFO: Target bytecode optimization level: 0
+4241 INFO: Initializing module dependency graph...
+4244 INFO: Initializing module graph hook caches...
+4256 INFO: Analyzing modules for base_library.zip ...
+5659 INFO: Processing standard module hook 'hook-encodings.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6136 INFO: Processing standard module hook 'hook-math.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6735 INFO: Processing standard module hook 'hook-pickle.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+7349 INFO: Processing standard module hook 'hook-heapq.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+7575 INFO: Caching module dependency graph...
+7594 INFO: Analyzing <worktree>/src\escape_the_valley\__main__.py
+7664 INFO: Processing standard module hook 'hook-rich.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+8332 INFO: Processing standard module hook 'hook-pygments.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10158 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+10175 INFO: SetuptoolsInfo: initializing cached setuptools info...
+11587 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+11681 INFO: Processing standard module hook 'hook-xml.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+11799 INFO: Processing standard module hook 'hook-_ctypes.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+12254 INFO: Processing standard module hook 'hook-platform.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+12268 INFO: Processing standard module hook 'hook-sysconfig.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+12322 INFO: Processing standard module hook 'hook-webbrowser.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+12541 INFO: Processing pre-safe-import-module hook 'hook-platformdirs.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12548 INFO: Processing standard module hook 'hook-platformdirs.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12841 INFO: Processing standard module hook 'hook-difflib.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+14557 INFO: Processing standard module hook 'hook-certifi.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14640 INFO: Processing standard module hook 'hook-anyio.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15706 INFO: Processing standard module hook 'hook-Crypto.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16507 INFO: Processing standard module hook 'hook-websockets.py' from '<worktree>/.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+17424 INFO: Analyzing hidden import 'rich._unicode_data.unicode10-0-0'
+17435 INFO: Analyzing hidden import 'rich._unicode_data.unicode11-0-0'
+17446 INFO: Analyzing hidden import 'rich._unicode_data.unicode12-0-0'
+17456 INFO: Analyzing hidden import 'rich._unicode_data.unicode12-1-0'
+17465 INFO: Analyzing hidden import 'rich._unicode_data.unicode13-0-0'
+17473 INFO: Analyzing hidden import 'rich._unicode_data.unicode14-0-0'
+17483 INFO: Analyzing hidden import 'rich._unicode_data.unicode15-0-0'
+17492 INFO: Analyzing hidden import 'rich._unicode_data.unicode15-1-0'
+17501 INFO: Analyzing hidden import 'rich._unicode_data.unicode16-0-0'
+17510 INFO: Analyzing hidden import 'rich._unicode_data.unicode17-0-0'
+17518 INFO: Analyzing hidden import 'rich._unicode_data.unicode4-1-0'
+17528 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-0-0'
+17536 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-1-0'
+17545 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-2-0'
+17554 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-0-0'
+17562 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-1-0'
+17569 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-2-0'
+17578 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-3-0'
+17585 INFO: Analyzing hidden import 'rich._unicode_data.unicode7-0-0'
+17594 INFO: Analyzing hidden import 'rich._unicode_data.unicode8-0-0'
+17603 INFO: Analyzing hidden import 'rich._unicode_data.unicode9-0-0'
+17611 INFO: Analyzing hidden import 'rich.bar'
+17612 INFO: Analyzing hidden import 'rich.diagnose'
+17614 INFO: Analyzing hidden import 'rich.layout'
+17620 INFO: Analyzing hidden import 'rich.logging'
+17624 INFO: Analyzing hidden import 'rich.prompt'
+17636 INFO: Analyzing hidden import 'textual.__main__'
+17723 INFO: Analyzing hidden import 'textual._binary_encode'
+17736 INFO: Analyzing hidden import 'textual._doc'
+17748 INFO: Analyzing hidden import 'textual._layout_resolve'
+17750 INFO: Analyzing hidden import 'textual._sleep'
+17752 INFO: Analyzing hidden import 'textual.drivers._byte_stream'
+17755 INFO: Analyzing hidden import 'textual.drivers._input_reader'
+17765 INFO: Analyzing hidden import 'textual.drivers.web_driver'
+17778 INFO: Analyzing hidden import 'textual.logging'
+17785 INFO: Analyzing hidden import 'textual.pad'
+17787 INFO: Analyzing hidden import 'textual.renderables.gradient'
+17791 INFO: Analyzing hidden import 'textual.widgets._markdown_viewer'
+17798 INFO: Analyzing hidden import 'textual.widgets._tab'
+17803 INFO: Analyzing hidden import 'textual.widgets._tab_pane'
+17804 INFO: Analyzing hidden import 'textual.widgets.button'
+17806 INFO: Analyzing hidden import 'textual.widgets.collapsible'
+17807 INFO: Analyzing hidden import 'textual.widgets.data_table'
+17813 INFO: Analyzing hidden import 'textual.widgets.directory_tree'
+17817 INFO: Analyzing hidden import 'textual.widgets.input'
+17823 INFO: Analyzing hidden import 'textual.widgets.markdown'
+17828 INFO: Analyzing hidden import 'textual.widgets.rule'
+17833 INFO: Analyzing hidden import 'textual.widgets.select'
+17838 INFO: Analyzing hidden import 'textual.widgets.selection_list'
+17839 INFO: Analyzing hidden import 'textual.widgets.tabbed_content'
+17845 INFO: Analyzing hidden import 'textual.widgets.text_area'
+17846 INFO: Analyzing hidden import 'textual.widgets.tree'
+17851 INFO: Analyzing hidden import 'xrpl.core.binarycodec.field_id_codec'
+17861 INFO: Processing module hooks (post-graph stage)...
+20919 INFO: Performing binary vs. data reclassification (88 entries)
+21518 INFO: Looking for ctypes DLLs
+21537 INFO: Analyzing run-time hooks ...
+21543 INFO: Including run-time hook 'pyi_rth_inspect.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+21553 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+21562 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from '<worktree>/.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+21580 INFO: Creating base_library.zip...
+21598 INFO: Looking for dynamic libraries
+22676 INFO: Extra DLL search directories (AddDllDirectory): []
+22676 INFO: Extra DLL search directories (PATH): []
+23180 INFO: Warnings written to <worktree>/build\escape-the-valley\warn-escape-the-valley.txt
+23240 INFO: Graph cross-reference written to <worktree>/build\escape-the-valley\xref-escape-the-valley.html
+23298 INFO: checking PYZ
+23298 INFO: Building PYZ because PYZ-00.toc is non existent
+23298 INFO: Building PYZ (ZlibArchive) <worktree>/build\escape-the-valley\PYZ-00.pyz
+23866 INFO: Building PYZ (ZlibArchive) <worktree>/build\escape-the-valley\PYZ-00.pyz completed successfully.
+23884 INFO: checking PKG
+23884 INFO: Building PKG because PKG-00.toc is non existent
+23884 INFO: Building PKG (CArchive) escape-the-valley.pkg
+25806 INFO: Building PKG (CArchive) escape-the-valley.pkg completed successfully.
+25808 INFO: Bootloader <worktree>/.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+25808 INFO: checking EXE
+25809 INFO: Building EXE because EXE-00.toc is non existent
+25809 INFO: Building EXE from EXE-00.toc
+25809 INFO: Copying bootloader EXE to <worktree>/dist\escape-the-valley.exe
+25844 INFO: Copying icon to EXE
+25876 INFO: Copying 0 resources to EXE
+25876 INFO: Embedding manifest in EXE
+25909 INFO: Appending PKG archive to EXE
+26022 INFO: Fixing EXE headers
+26266 INFO: Building EXE from EXE-00.toc completed successfully.
+26268 INFO: Build complete! The results are available in: <worktree>/dist
+exit 0

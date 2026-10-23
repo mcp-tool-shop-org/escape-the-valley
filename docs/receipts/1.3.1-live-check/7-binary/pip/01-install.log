@@ -1,0 +1,39 @@
++ uv venv -p 3.12 <scratch>/_venvpip ; uv pip install '<0d112bc checkout>[xrpl]'  (non-editable: builds and installs a wheel)
+Using Python 3.12.13 environment at: <scratch>/_venvpip
+Resolved 28 packages in 21ms
+   Building escape-the-valley @ file:///<worktree>
+      Built escape-the-valley @ file:///<worktree>
+Prepared 1 package in 764ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 28 packages in 2.32s
+ + annotated-doc==0.0.5
+ + anyio==4.15.1
+ + base58==2.1.1
+ + certifi==2026.10.19
+ + colorama==0.4.6
+ + deprecated==1.3.1
+ + ecpy==1.2.5
+ + escape-the-valley==1.3.1 (from file:///<worktree>)
+ + h11==0.16.0
+ + httpcore==1.0.9
+ + httpx==0.28.1
+ + idna==3.20
+ + linkify-it-py==2.2.0
+ + markdown-it-py==4.2.0
+ + mdit-py-plugins==0.6.1
+ + mdurl==0.1.2
+ + platformdirs==4.13.5
+ + pycryptodome==3.24.1
+ + pygments==2.21.0
+ + rich==15.0.0
+ + shellingham==1.5.4
+ + textual==8.2.8
+ + typer==0.27.3
+ + types-deprecated==1.3.1.20260928
+ + typing-extensions==4.16.0
+ + websockets==15.0.1
+ + wrapt==2.5.1
+ + xrpl-py==5.2.0
+exit 0
