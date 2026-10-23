@@ -61,10 +61,12 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref }}
 
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
 
-      - run: uv python install 3.12
+      - run: uv python install 3.12.13
 
-      - run: uv venv
+      - run: uv venv --python 3.12.13
 
       - name: Install dependencies + PyInstaller
         run: uv pip install ".[xrpl]" "pyinstaller>=6.9.0"
@@ -114,6 +116,17 @@ jobs:
           # Issue #28: THIRD_PARTY_NOTICES.txt travels inside the binary beside
           # tui.tcss and is also attached to the GitHub Release below.
           uv run --no-sync pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
+            --collect-submodules rich \
+            --collect-submodules textual \
+            --collect-submodules xrpl \
+            --collect-data textual \
+            --collect-data xrpl \
+            --add-data "src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley" \
+            --add-data "THIRD_PARTY_NOTICES.txt${DATA_SEP}escape_the_valley" \
+            --add-data "src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data" \
+            "${{ env.ENTRYPOINT }}"
+          uv run --no-sync python scripts/gen_third_party_notices.py --prune-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
+          uv run --no-sync pyinstaller --noconfirm --onefile --name "${{ env.TOOL_NAME }}" --console \
             --collect-submodules rich \
             --collect-submodules textual \
             --collect-submodules xrpl \
