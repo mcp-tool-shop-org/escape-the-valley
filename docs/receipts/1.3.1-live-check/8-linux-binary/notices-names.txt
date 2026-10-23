@@ -1,0 +1,27 @@
+Name: Python (CPython Runtime and Standard Library)
+Name: PyInstaller (Bootloader and Runtime Hooks)
+Name: annotated-doc
+Name: anyio
+Name: base58
+Name: certifi
+Name: Deprecated
+Name: ECPy
+Name: h11
+Name: httpcore
+Name: httpx
+Name: idna
+Name: linkify-it-py
+Name: markdown-it-py
+Name: mdit-py-plugins
+Name: mdurl
+Name: platformdirs
+Name: pycryptodome
+Name: Pygments
+Name: rich
+Name: shellingham
+Name: textual
+Name: typer
+Name: typing_extensions
+Name: websockets
+Name: wrapt
+Name: xrpl-py

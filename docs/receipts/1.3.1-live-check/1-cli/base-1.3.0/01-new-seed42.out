@@ -1,0 +1,1822 @@
+╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ESCAPE THE VALLEY                                                                               ║
+║ Ledger Trail                                                                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+  Run ID: 73475cb4
+  Seed: 42
+  Profile: fireside
+  Weirdness: 2
+  Twists: good_hunting
+  Doctrine: travel_light
+  Taboo: never_night
+  Party: Ruth, Josiah, Elias, Agnes
+
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 1  |  Morning                 Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 21 mi      Traveled: 0 mi                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 70/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             50  │      │ Condition: ████████████████░░░░ │   
+   │  Water            50  │      │ 80%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>>
+  Traveled 5 miles. 16 miles remaining.
+
+╔════════════════════════════════════════ Persistent Rain ════════════════════════════════════════╗
+║ Rain falls steady as judgment, soaking every seam and hope alike.                               ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Continue despite the wet
+  B. Wait under canvas
+
+Your choice: 
+<<event -> A>>
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ wagon -2, morale -2, 1 time lost                                                                │
+│                                                                                                 │
+│ wagon -2, morale -2, 1 time lost                                                                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 1  |  Evening                 Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 20 mi      Traveled: 5 mi                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 69/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             49  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=1 maint=0)
+  Traveled 5 miles. 15 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 1  |  Night                   Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 15 mi      Traveled: 10 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 70/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             48  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=1 maint=0)
+  Traveled 5 miles. 10 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 2  |  Morning                 Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 10 mi      Traveled: 15 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 71/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             47  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            47  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=2 maint=0)
+  Traveled 5 miles. 5 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 2  |  Afternoon               Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 5 mi       Traveled: 20 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 72/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             46  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            46  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=2 maint=0)
+  Arrived at The Switchback!
+  Found water. +5 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 2  |  Evening                 Location: The Switchback     Biome: plains                  │
+│   Pace: steady                      Distance to next: 20 mi      Traveled: 25 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 73/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             45  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=2 maint=0)
+  Traveled 5 miles. 15 miles remaining.
+
+╔═════════════════════════════════════ Lightning Strike Near ═════════════════════════════════════╗
+║ Lightning splits the sky nearby, the thunder a warning best heeded.                             ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Press on after the strike
+  B. Wait for the storm to pass
+
+Your choice: 
+<<event -> A>> save(day=2 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale -2, 1 time lost                                                                          │
+│                                                                                                 │
+│ morale -2, 1 time lost                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 3  |  Morning                 Location: The Switchback     Biome: plains                  │
+│   Pace: steady                      Distance to next: 18 mi      Traveled: 30 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 72/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             44  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=3 maint=0)
+  Traveled 5 miles. 13 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 3  |  Afternoon               Location: The Switchback     Biome: plains                  │
+│   Pace: steady                      Distance to next: 13 mi      Traveled: 35 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 73/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             43  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=3 maint=0)
+  Traveled 5 miles. 8 miles remaining.
+
+╔═══════════════════════════════════════ Masked Road Guard ═══════════════════════════════════════╗
+║ They step out quiet as smoke.                                                                   ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Pay their price
+  B. Slip into the woods
+
+Your choice: 
+<<event -> A>> save(day=3 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 ammo, -2 cloth                                                                               │
+│                                                                                                 │
+│ -2 ammo, -2 cloth                                                                               │
+│                                                                                                 │
+│ -2 ammo | -2 cloth                                                                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 3  |  Evening                 Location: The Switchback     Biome: plains                  │
+│   Pace: steady                      Distance to next: 8 mi       Traveled: 40 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 74/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             42  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            47  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             18  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=3 maint=0)
+  Traveled 5 miles. 3 miles remaining.
+
+╔═══════════════════════════════════════ Rifleman Trapper ════════════════════════════════════════╗
+║ His eyes measure the wagon before he speaks.                                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Trade powder for meat
+  B. Ask about the ridges
+  C. Pass without word
+
+Your choice: 
+<<event -> A>> save(day=3 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -3 ammo, +6 food, morale +2                                                                     │
+│                                                                                                 │
+│ -3 ammo, +6 food, morale +2                                                                     │
+│                                                                                                 │
+│ -3 ammo | +6 food                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 3  |  Night                   Location: The Switchback     Biome: plains                  │
+│   Pace: steady                      Distance to next: 3 mi       Traveled: 45 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 77/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             47  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            46  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=3 maint=0)
+  Arrived at The Gulch!
+  Found water. +5 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 4  |  Morning                 Location: The Gulch          Biome: plains                  │
+│   Pace: steady                      Distance to next: 12 mi      Traveled: 50 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 78/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             46  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=4 maint=0)
+  Traveled 5 miles. 7 miles remaining.
+  Elias has fallen ill.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 4  |  Afternoon               Location: The Gulch          Biome: plains                  │
+│   Pace: steady                      Distance to next: 7 mi       Traveled: 55 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 79/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             80           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             45  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 78%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=4 maint=0)
+  Traveled 5 miles. 2 miles remaining.
+
+╔═════════════════════════════════════════ Narrow Bridge ═════════════════════════════════════════╗
+║ The bridge sways in the breeze, planks missing like teeth in an old grin.                       ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Cross the rickety bridge
+  B. Ford below the bridge
+  C. Repair the bridge planks
+
+Your choice: 
+<<event -> A>> save(day=4 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ wagon -2, morale -1, 1 time lost                                                                │
+│                                                                                                 │
+│ wagon -2, morale -1, 1 time lost                                                                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 4  |  Night                   Location: The Gulch          Biome: plains                  │
+│   Pace: steady                      Distance to next: 2 mi       Traveled: 60 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 79/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             77           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             44  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=4 maint=0)
+  Arrived at Blind Canyon!
+  Found water. +3 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 5  |  Morning                 Location: Blind Canyon       Biome: plains                  │
+│   Pace: steady                      Distance to next: 10 mi      Traveled: 65 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 80/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             70           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             43  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=5 maint=0)
+  Traveled 5 miles. 5 miles remaining.
+
+╔═════════════════════════════════════════ Still Shadow ══════════════════════════════════════════╗
+║ A shape waits just inside the treeline.                                                         ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Turn to face it
+  B. Walk faster
+
+Your choice: 
+<<event -> A>> save(day=5 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale -4, 1 time lost                                                                          │
+│                                                                                                 │
+│ morale -4, 1 time lost                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 5  |  Evening                 Location: Blind Canyon       Biome: plains                  │
+│   Pace: steady                      Distance to next: 5 mi       Traveled: 70 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 77/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             65           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             42  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=5 maint=0)
+  Arrived at Sunken Meadow!
+  Found water. +2 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 5  |  Night                   Location: Sunken Meadow      Biome: plains                  │
+│   Pace: steady                      Distance to next: 0 mi       Traveled: 75 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 78/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             62           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             41  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=5 maint=0)
+
+  The trail forks.
+  A. Ashen Bluffs (11 miles)
+  B. Devil's Bend (20 miles)
+
+Which way? 
+<<fork -> A>> save(day=5 maint=0)
+  Traveled 5 miles. 6 miles remaining.
+
+╔══════════════════════════════════════════ Worn Boots ═══════════════════════════════════════════╗
+║ The soles thin with every mile, each step a reminder of the miles yet to come.                  ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Repair the boots with cloth
+  B. Press on despite the wear
+
+Your choice: 
+<<event -> A>> save(day=5 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 cloth, morale +1, 1 time lost                                                                │
+│                                                                                                 │
+│ -2 cloth, morale +1, 1 time lost                                                                │
+│                                                                                                 │
+│ -2 cloth                                                                                        │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 6  |  Afternoon               Location: Sunken Meadow      Biome: plains                  │
+│   Pace: steady                      Distance to next: 6 mi       Traveled: 80 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 80/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             55           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             40  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             15  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=6 maint=0)
+  Traveled 5 miles. 1 miles remaining.
+
+╔═══════════════════════════════════════ Tangled Root Jam ════════════════════════════════════════╗
+║ Roots twist through the water like fingers reaching up.                                         ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Ford around the roots
+  B. Clear the obstruction
+
+Your choice: 
+<<event -> A>> save(day=6 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ 1 time lost                                                                                     │
+│                                                                                                 │
+│ 1 time lost                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 6  |  Night                   Location: Sunken Meadow      Biome: plains                  │
+│   Pace: steady                      Distance to next: 1 mi       Traveled: 85 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 81/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             47           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             39  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   █████████████████░░░ │   
+   │  Ammo             15  │      │ 88%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=6 maint=0)
+  Arrived at Ashen Bluffs!
+  Found water. +3 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 7  |  Morning                 Location: Ashen Bluffs       Biome: plains                  │
+│   Pace: steady                      Distance to next: 21 mi      Traveled: 90 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 82/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             43           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             38  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   █████████████████░░░ │   
+   │  Ammo             15  │      │ 88%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=7 maint=0)
+  Traveled 5 miles. 16 miles remaining.
+  Josiah has fallen ill.
+
+╔══════════════════════════════════════ Heavy Frost at Dawn ══════════════════════════════════════╗
+║ Every blade of grass is edged in white.                                                         ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Travel through the cold
+  B. Warm by fire
+
+Your choice: 
+<<event -> A>> save(day=7 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ 1 time lost                                                                                     │
+│                                                                                                 │
+│ 1 time lost                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 7  |  Evening                 Location: Ashen Bluffs       Biome: plains                  │
+│   Pace: steady                      Distance to next: 20 mi      Traveled: 95 mi                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 83/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            86           sick           sharp_eye, lucky                                │
+│   Elias             38           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             37  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   █████████████████░░░ │   
+   │  Ammo             15  │      │ 86%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=7 maint=0)
+  Traveled 5 miles. 15 miles remaining.
+
+╔═════════════════════════════════════════ Driftwood Jam ═════════════════════════════════════════╗
+║ Branches and trunks choke the ford like a barricade of the drowned.                             ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Ford past the piled wood
+  B. Clear a path with tools
+
+Your choice: 
+<<event -> A>> save(day=7 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ 1 time lost                                                                                     │
+│                                                                                                 │
+│ 1 time lost                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 8  |  Morning                 Location: Ashen Bluffs       Biome: plains                  │
+│   Pace: steady                      Distance to next: 15 mi      Traveled: 100 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 84/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            80           sick           sharp_eye, lucky                                │
+│   Elias             35           sick           mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             36  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             15  │      │ 84%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=8 maint=0)
+  Traveled 5 miles. 10 miles remaining.
+  Agnes has fallen ill.
+
+╔══════════════════════════════════════════ Lame Animal ══════════════════════════════════════════╗
+║ One of the draft animals is favoring its left foreleg badly.                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Rest the animal for a day. (Time cost, animal recovers.; A day.)
+  B. Slow the pace and keep moving. (Slower progress.; Speed.)
+  C. Push on at normal pace. (Animal may worsen.; Animal health.)
+
+Your choice: 
+<<event -> A>> save(day=8 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 food, -2 water, 1 time lost                                                                  │
+│                                                                                                 │
+│ -2 food, -2 water, 1 time lost                                                                  │
+│                                                                                                 │
+│ -2 food | -2 water                                                                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 8  |  Evening                 Location: Ashen Bluffs       Biome: plains                  │
+│   Pace: steady                      Distance to next: 10 mi      Traveled: 105 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 85/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            76           sick           sharp_eye, lucky                                │
+│   Elias             31           sick           mechanic                                        │
+│   Agnes             76           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             33  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            45  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             15  │      │ 84%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=8 maint=0)
+  Traveled 5 miles. 5 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 8  |  Night                   Location: Ashen Bluffs       Biome: plains                  │
+│   Pace: steady                      Distance to next: 5 mi       Traveled: 110 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 86/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            68           sick           sharp_eye, lucky                                │
+│   Elias             24 (!)       sick           mechanic                                        │
+│   Agnes             71           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             32  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            44  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             15  │      │ 84%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=8 maint=0)
+  Arrived at Devil's Bend!
+  Found water. +7 water.
+
+╔═══════════════════════════════════════ Wandering Trapper ═══════════════════════════════════════╗
+║ A bearded trapper emerges from the woods, pelts draped over his shoulder, eyes wary.            ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Trade for furs and news
+  B. Ignore and continue
+  C. Ask about the path ahead
+
+Your choice: 
+<<event -> A>> save(day=8 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 ammo, +4 food, morale +2                                                                     │
+│                                                                                                 │
+│ -2 ammo, +4 food, morale +2                                                                     │
+│                                                                                                 │
+│ -2 ammo | +4 food                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 9  |  Morning                 Location: Devil's Bend       Biome: forest                  │
+│   Pace: steady                      Distance to next: 20 mi      Traveled: 115 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 89/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            64           sick           sharp_eye, lucky                                │
+│   Elias             17 (!)       sick           mechanic                                        │
+│   Agnes             66           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             35  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=9 maint=0)
+  Traveled 5 miles. 15 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 9  |  Afternoon               Location: Devil's Bend       Biome: forest                  │
+│   Pace: steady                      Distance to next: 15 mi      Traveled: 120 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 90/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            57           sick           sharp_eye, lucky                                │
+│   Elias             14 (!)       sick           mechanic                                        │
+│   Agnes             60           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             34  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=9 maint=0)
+  Traveled 5 miles. 10 miles remaining.
+  Dark travel mishap! Wagon damage: 11
+  Ruth has fallen ill.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 9  |  Evening                 Location: Devil's Bend       Biome: forest                  │
+│   Pace: steady                      Distance to next: 10 mi      Traveled: 125 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 91/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              93           sick           steady, anxious                                 │
+│   Josiah            49           sick           sharp_eye, lucky                                │
+│   Elias             6 (!)        sick           mechanic                                        │
+│   Agnes             52           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             33  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=9 maint=0)
+  Traveled 5 miles. 5 miles remaining.
+  Elias has died (Disease).
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 9  |  Night                   Location: Devil's Bend       Biome: forest                  │
+│   Pace: steady                      Distance to next: 5 mi       Traveled: 130 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 84/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              85           sick           steady, anxious                                 │
+│   Josiah            44           sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             47           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             32  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            47  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=9 maint=0)
+  Arrived at Stillwater Crossing!
+  Found water. +4 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 10  |  Morning                Location: Stillwater         Biome: forest                  │
+│                                     Crossing                                                    │
+│   Pace: steady                      Distance to next: 22 mi      Traveled: 135 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 77/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              80           sick           steady, anxious                                 │
+│   Josiah            37           sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             42           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             31  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            50  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=10 maint=0)
+  Traveled 5 miles. 17 miles remaining.
+
+╔════════════════════════════════════ Frayed Harness Leather ═════════════════════════════════════╗
+║ The leather whispers with every step.                                                           ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Mend the straps
+  B. Push onward
+
+Your choice: 
+<<event -> A>> save(day=10 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 cloth, morale +1, 1 time lost                                                                │
+│                                                                                                 │
+│ -2 cloth, morale +1, 1 time lost                                                                │
+│                                                                                                 │
+│ -2 cloth                                                                                        │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 10  |  Evening                Location: Stillwater         Biome: forest                  │
+│                                     Crossing                                                    │
+│   Pace: steady                      Distance to next: 17 mi      Traveled: 140 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 71/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              72           sick           steady, anxious                                 │
+│   Josiah            32           sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             35           sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             30  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            49  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=10 maint=0)
+  Traveled 5 miles. 12 miles remaining.
+
+╔══════════════════════════════════════ The Whispering Tree ══════════════════════════════════════╗
+║ A great oak at the trail fork. Wind through its branches sounds like speech.                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Listen carefully. (Curiosity.; Morale.)
+  B. Keep moving, don't look back. (Safe.; Morale.)
+
+Your choice: 
+<<event -> A>> save(day=10 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale -5                                                                                       │
+│                                                                                                 │
+│ morale -5                                                                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 10  |  Night                  Location: Stillwater         Biome: forest                  │
+│                                     Crossing                                                    │
+│   Pace: steady                      Distance to next: 12 mi      Traveled: 145 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 59/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              65           sick           steady, anxious                                 │
+│   Josiah            25 (!)       sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             30 (!)       sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             29  │      │ Condition: ███████████████░░░░░ │   
+   │  Water            48  │      │ 76%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=10 maint=0)
+  Traveled 5 miles. 7 miles remaining.
+
+╔═══════════════════════════════════════ Broken Stone Span ═══════════════════════════════════════╗
+║ The stones lie where they fell years ago.                                                       ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Attempt the broken arch
+  B. Ford downstream
+  C. Study the old break
+
+Your choice: 
+<<event -> A>> save(day=10 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ health -4, wagon -3, morale -2, 1 time lost                                                     │
+│                                                                                                 │
+│ health -4, wagon -3, morale -2, 1 time lost                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 11  |  Afternoon              Location: Stillwater         Biome: forest                  │
+│                                     Crossing                                                    │
+│   Pace: steady                      Distance to next: 7 mi       Traveled: 150 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 50/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              54           sick           steady, anxious                                 │
+│   Josiah            14 (!)       sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             18 (!)       sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             28  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            47  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             3  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=11 maint=0)
+  Traveled 5 miles. 2 miles remaining.
+
+╔═════════════════════════════════════ Itinerant Blacksmith ══════════════════════════════════════╗
+║ The ring of hammer on anvil carries far through the trees.                                      ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Hire him for repairs
+  B. Decline
+
+Your choice: 
+<<event -> A>> save(day=11 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ +3 parts, -1 tools, 1 time lost                                                                 │
+│                                                                                                 │
+│ +3 parts, -1 tools, 1 time lost                                                                 │
+│                                                                                                 │
+│ +3 parts | -1 tools                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 11  |  Night                  Location: Stillwater         Biome: forest                  │
+│                                     Crossing                                                    │
+│   Pace: steady                      Distance to next: 2 mi       Traveled: 155 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 43/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              46           sick           steady, anxious                                 │
+│   Josiah            10 (!)       sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             10 (!)       sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             27  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            46  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             6  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=11 maint=0)
+  Arrived at Fellgate!
+  Found water. +5 water.
+  This is a settlement. Supplies may be available.
+
+╔═════════════════════════════════════════ Sudden Storm ══════════════════════════════════════════╗
+║ Dark clouds mass without warning. The wind picks up sharply.                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Make camp and wait it out. (Safe but slow.; Time and supplies.)
+  B. Push through the storm. (Wagon damage and injury risk.; Speed at a cost.)
+  C. Find shelter nearby. (Depends on terrain.; Time to search.)
+
+Your choice: 
+<<event -> A>> save(day=11 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -2 food, -2 water, morale -3, 1 time lost                                                       │
+│                                                                                                 │
+│ -2 food, -2 water, morale -3, 1 time lost                                                       │
+│                                                                                                 │
+│ -2 food | -2 water                                                                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 12  |  Afternoon              Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 25 mi      Traveled: 160 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────── Party  Morale: 33/100 (LOW) ──────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              42           sick           steady, anxious                                 │
+│   Josiah            2 (!)        sick           sharp_eye, lucky                                │
+│   Elias             dead                                                                        │
+│   Agnes             5 (!)        sick           anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             24  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            48  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             6  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=12 maint=0)
+  Traveled 5 miles. 20 miles remaining.
+  Josiah has died (Disease).
+  Agnes has died (Disease).
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 12  |  Evening                Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 20 mi      Traveled: 165 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────── Party  Morale: 10/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              39           sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             23  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            47  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             6  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=12 maint=0)
+  Traveled 5 miles. 15 miles remaining.
+
+╔═══════════════════════════════════════ Floating Lantern ════════════════════════════════════════╗
+║ A lantern drifts between the trees with no hand to guide it.                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Follow the light
+  B. Keep to the path
+
+Your choice: 
+<<event -> A>> save(day=12 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ -1 lantern_oil, morale -3, 1 time lost                                                          │
+│                                                                                                 │
+│ -1 lantern_oil, morale -3, 1 time lost                                                          │
+│                                                                                                 │
+│ -1 lantern_oil                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 13  |  Morning                Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 15 mi      Traveled: 170 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              33           sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             22  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            46  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 84%                             │   
+   │  Parts             6  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=13 maint=0)
+  Traveled 5 miles. 10 miles remaining.
+  Wagon breakdown! Repaired. Damage: 9
+
+╔══════════════════════════════════════════ Final Pass ═══════════════════════════════════════════╗
+║ The last high ridge stands between you and the open lands beyond.                               ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Climb the pass
+  B. Rest the team
+
+Your choice: 
+<<event -> A>> save(day=13 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale +3, 1 time lost                                                                          │
+│                                                                                                 │
+│ morale +3, 1 time lost                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 13  |  Evening                Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 18 mi      Traveled: 175 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              27 (!)       sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             21  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            45  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             5  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=13 maint=0)
+  Traveled 5 miles. 13 miles remaining.
+
+╔═════════════════════════════════════ Itinerant Blacksmith ══════════════════════════════════════╗
+║ The ring of hammer on anvil carries far through the trees.                                      ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Hire him for repairs
+  B. Decline
+
+Your choice: 
+<<event -> A>> save(day=13 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ +3 parts, -1 tools, 1 time lost                                                                 │
+│                                                                                                 │
+│ +3 parts, -1 tools, 1 time lost                                                                 │
+│                                                                                                 │
+│ +3 parts | -1 tools                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 14  |  Morning                Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 13 mi      Traveled: 180 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              24 (!)       sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             20  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            44  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=14 maint=0)
+  Traveled 5 miles. 8 miles remaining.
+
+╔════════════════════════════════════════ Heavy Wet Snow ═════════════════════════════════════════╗
+║ Snow piles on the canvas like unpaid debts.                                                     ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Continue despite the fall
+  B. Camp and kindle fire
+
+Your choice: 
+<<event -> A>> save(day=14 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale -3, 1 time lost                                                                          │
+│                                                                                                 │
+│ morale -3, 1 time lost                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 14  |  Evening                Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 10 mi      Traveled: 185 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              17 (!)       sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             19  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            43  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=14 maint=0)
+  Traveled 5 miles. 5 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 14  |  Night                  Location: Fellgate           Biome: forest                  │
+│   Pace: steady                      Distance to next: 5 mi       Traveled: 190 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              11 (!)       sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             18  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            42  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=14 maint=0)
+  Arrived at Bone Ridge!
+  Found water. +9 water.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 15  |  Morning                Location: Bone Ridge         Biome: forest                  │
+│   Pace: steady                      Distance to next: 8 mi       Traveled: 195 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              7 (!)        sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             17  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            50  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=15 maint=0)
+  Traveled 5 miles. 3 miles remaining.
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 15  |  Afternoon              Location: Bone Ridge         Biome: forest                  │
+│   Pace: steady                      Distance to next: 3 mi       Traveled: 200 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              2 (!)        sick           steady, anxious                                 │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             16  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            49  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> 1>> save(day=15 maint=0)
+  Arrived at Shepherd's Rest!
+  Found water. +2 water.
+  Ruth has died (Disease).
+
+╔══════════════════════════════════════ Rope Bridge Remains ══════════════════════════════════════╗
+║ Frayed lines sway in the breeze, the planks long gone.                                          ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+  A. Cross what hangs
+  B. Ford the shallows beneath
+  C. Repair the ropes
+
+Your choice: 
+<<event -> A>> save(day=15 maint=0)
+┌──────────────────────────────────────────── Outcome ────────────────────────────────────────────┐
+│ morale -2, 1 time lost                                                                          │
+│                                                                                                 │
+│ morale -2, 1 time lost                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 15  |  Night                  Location: Shepherd's Rest    Biome: forest                  │
+│   Pace: steady                      Distance to next: 17 mi      Traveled: 205 mi               │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Party  Morale: 0/100 (CRITICAL) ────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              dead                                                                        │
+│   Josiah            dead                                                                        │
+│   Elias             dead                                                                        │
+│   Agnes             dead                                                                        │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             15  │      │ Condition: ██████████████░░░░░░ │   
+   │  Water            50  │      │ 73%                             │   
+   │  Medicine          5  │      │ Animals:   ████████████████░░░░ │   
+   │  Ammo             13  │      │ 82%                             │   
+   │  Parts             8  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+  lost: None of them reached the valley.
+
+╔═══════════════════════════════════ THE TRAIL CLAIMS ANOTHER ════════════════════════════════════╗
+║ Days traveled: 15                                                                               ║
+║ Distance covered: 205 miles                                                                     ║
+║ Survivors: 0/4                                                                                  ║
+║                                                                                                 ║
+║ None of them reached the valley.                                                                ║
+║                                                                                                 ║
+║ None of them reached the valley. Of the 4 who set out, 4 did not finish; the trail took them    ║
+║ mostly to Disease.                                                                              ║
+║                                                                                                 ║
+║ The fallen:                                                                                     ║
+║   Ruth (Disease)                                                                                ║
+║   Josiah (Disease)                                                                              ║
+║   Elias (Disease)                                                                               ║
+║   Agnes (Disease)                                                                               ║
+║                                                                                                 ║
+║ Seed: 42  |  Run ID: 73475cb4                                                                   ║
+║ Profile: fireside                                                                               ║
+║                                                                                                 ║
+║ Most notable event: Masked Road Guard                                                           ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+<<exit 0; camp actions 41; answers 64>>

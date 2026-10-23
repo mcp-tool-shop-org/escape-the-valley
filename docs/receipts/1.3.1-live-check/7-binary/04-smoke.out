@@ -1,0 +1,11 @@
+[smoke] running: <worktree>/dist\escape-the-valley-1.3.1-win-x64.exe --help
+[smoke] --help OK
+[smoke] running event-count self-test (ESCAPE_THE_VALLEY_SMOKE_EVENT_COUNT=1)
+[smoke] event library reports 260 events (floor: 200)
+[smoke] running TUI stylesheet self-test (ESCAPE_THE_VALLEY_SMOKE_TUI_CHECK=1)
+[smoke] tui.tcss loads OK
+[smoke] running self-check for xrpl extra
+[smoke] xrpl extra present OK
+[smoke] running: licenses
+[smoke] third-party licenses present OK
+[smoke] PASS

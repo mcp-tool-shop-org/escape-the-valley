@@ -1,0 +1,2 @@
++ uv run --no-sync python scripts/gen_third_party_notices.py THIRD_PARTY_NOTICES.txt
+Wrote THIRD_PARTY_NOTICES.txt (138905 bytes)

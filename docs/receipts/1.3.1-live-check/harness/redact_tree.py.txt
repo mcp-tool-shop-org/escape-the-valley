@@ -1,0 +1,36 @@
+"""Replace local paths with <scratch> in every text file under a directory, before files go into a receipt.
+
+Two kinds of path are replaced:
+- the session scratchpad (a Windows home path, which is identity), and
+- the rig's run folders under AI/xrpl-lab-runs, AI/xrpl-camp-runs and AI/etv-runs (any slash style, plain or JSON-escaped), which receipts write as
+  <scratch> by the team's convention.
+
+Usage: python redact_tree.py <dir>
+"""
+import pathlib
+import re
+import sys
+
+SEP = r"(?:\\\\|\\|/)"  # a JSON-escaped backslash, a backslash, or a forward slash
+# The home part is a drive path or `~` (xrpl-lab's support bundle writes paths home-relative).
+SCRATCH = re.compile(
+    r"(?:[A-Za-z]:" + SEP + r"Users" + SEP + r"[^\\/\s\"]+|~)" + SEP + r"AppData" + SEP + r"Local" + SEP + r"Temp"
+    + SEP + r"claude" + SEP + r"[^\\/\s\"]+" + SEP + r"[^\\/\s\"]+" + SEP + r"scratchpad" + SEP)
+RUNS = re.compile(r"(?:[A-Za-z]:|/[a-z])" + SEP + r"AI" + SEP + r"(?:xrpl-(?:lab|camp)|etv)-runs" + SEP, re.I)
+# A traceback can also carry the test checkout and any other home path (e.g. uv's managed Python).
+WORKTREE = re.compile(r"(?:[A-Za-z]:|/[a-z])" + SEP + r"AI" + SEP + r"_worktrees" + SEP + r"[^\\/\s\"]+" + SEP, re.I)
+HOME = re.compile(r"[A-Za-z]:" + SEP + r"Users" + SEP + r"[^\\/\s\"]+" + SEP, re.I)
+# WSL: the run folders through /mnt/<drive>, and a Linux home (/home/<account>/). GitHub's /home/runner/ is kept,
+# since it names the CI runner, not a person.
+MNT_RUNS = re.compile(r"/mnt/[a-z]/AI/(?:xrpl-(?:lab|camp)|etv)-runs/", re.I)
+LINUX_HOME = re.compile(r"(?<![\w/])/home/(?!runner/)[\w.-]+/")
+
+for p in pathlib.Path(sys.argv[1]).rglob("*"):
+    if p.is_file() and p.suffix in {".txt", ".md", ".json", ".log", ".err", ".out", ".cmd", ".trace", ".before", ".after", ".sh", ".py", ".jsonl", ".svg", ".exit"}:
+        t = p.read_text(encoding="utf-8")
+        n = RUNS.sub("<scratch>/", SCRATCH.sub("<scratch>/", MNT_RUNS.sub("<scratch>/", t)))
+        n = LINUX_HOME.sub("<home>/", n)
+        n = HOME.sub("<home>/", WORKTREE.sub("<worktree>/", n))
+        if n != t:
+            p.write_text(n, encoding="utf-8", newline="\n")
+            print("redacted", p)

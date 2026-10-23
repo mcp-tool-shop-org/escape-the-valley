@@ -1,0 +1,127 @@
++ pyi
+105 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+105 INFO: Python: 3.12.13
+108 INFO: Platform: Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43
+108 INFO: Python environment: <home>/etv-131-g1/.venv
+109 INFO: wrote <home>/etv-131-g1/escape-the-valley.spec
+1098 INFO: Module search paths (PYTHONPATH):
+['/opt/uv-python/cpython-3.12.13-linux-x86_64-gnu/lib/python312.zip',
+ '/opt/uv-python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12',
+ '/opt/uv-python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload',
+ '<home>/etv-131-g1/.venv/lib/python3.12/site-packages',
+ '<home>/etv-131-g1/src']
+1175 INFO: Appending 'datas' from .spec
+1177 INFO: checking Analysis
+1177 INFO: Building Analysis because Analysis-00.toc is non existent
+1178 INFO: Looking for Python shared library...
+1184 INFO: Using Python shared library: /opt/uv-python/cpython-3.12.13-linux-x86_64-gnu/lib/libpython3.12.so.1.0
+1184 INFO: Running Analysis Analysis-00.toc
+1184 INFO: Target bytecode optimization level: 0
+1184 INFO: Initializing module dependency graph...
+1186 INFO: Initializing module graph hook caches...
+1190 INFO: Analyzing modules for base_library.zip ...
+1429 INFO: Processing standard module hook 'hook-encodings.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+1715 INFO: Processing standard module hook 'hook-math.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+2167 INFO: Processing standard module hook 'hook-pickle.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+2568 INFO: Processing standard module hook 'hook-heapq.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+2775 INFO: Caching module dependency graph...
+2790 INFO: Analyzing <home>/etv-131-g1/src/escape_the_valley/__main__.py
+2849 INFO: Processing standard module hook 'hook-rich.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+3060 INFO: Processing standard module hook 'hook-pygments.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+3583 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks/pre_safe_import_module'
+3586 INFO: SetuptoolsInfo: initializing cached setuptools info...
+3960 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4018 INFO: Processing standard module hook 'hook-xml.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4114 INFO: Processing standard module hook 'hook-_ctypes.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4399 INFO: Processing standard module hook 'hook-platform.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4408 INFO: Processing standard module hook 'hook-sysconfig.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4450 INFO: Processing standard module hook 'hook-webbrowser.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+4591 INFO: Processing pre-safe-import-module hook 'hook-platformdirs.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks/pre_safe_import_module'
+4596 INFO: Processing standard module hook 'hook-platformdirs.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+4800 INFO: Processing standard module hook 'hook-difflib.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks'
+5766 INFO: Processing standard module hook 'hook-certifi.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+5810 INFO: Processing standard module hook 'hook-anyio.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+6387 INFO: Processing standard module hook 'hook-Crypto.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+6658 INFO: Processing standard module hook 'hook-websockets.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+7191 INFO: Analyzing hidden import 'rich._unicode_data.unicode10-0-0'
+7195 INFO: Analyzing hidden import 'rich._unicode_data.unicode11-0-0'
+7197 INFO: Analyzing hidden import 'rich._unicode_data.unicode12-0-0'
+7200 INFO: Analyzing hidden import 'rich._unicode_data.unicode12-1-0'
+7203 INFO: Analyzing hidden import 'rich._unicode_data.unicode13-0-0'
+7206 INFO: Analyzing hidden import 'rich._unicode_data.unicode14-0-0'
+7209 INFO: Analyzing hidden import 'rich._unicode_data.unicode15-0-0'
+7211 INFO: Analyzing hidden import 'rich._unicode_data.unicode15-1-0'
+7214 INFO: Analyzing hidden import 'rich._unicode_data.unicode16-0-0'
+7216 INFO: Analyzing hidden import 'rich._unicode_data.unicode17-0-0'
+7220 INFO: Analyzing hidden import 'rich._unicode_data.unicode4-1-0'
+7223 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-0-0'
+7225 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-1-0'
+7227 INFO: Analyzing hidden import 'rich._unicode_data.unicode5-2-0'
+7228 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-0-0'
+7230 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-1-0'
+7232 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-2-0'
+7235 INFO: Analyzing hidden import 'rich._unicode_data.unicode6-3-0'
+7238 INFO: Analyzing hidden import 'rich._unicode_data.unicode7-0-0'
+7240 INFO: Analyzing hidden import 'rich._unicode_data.unicode8-0-0'
+7242 INFO: Analyzing hidden import 'rich._unicode_data.unicode9-0-0'
+7245 INFO: Analyzing hidden import 'rich.bar'
+7247 INFO: Analyzing hidden import 'rich.diagnose'
+7248 INFO: Analyzing hidden import 'rich.layout'
+7254 INFO: Analyzing hidden import 'rich.logging'
+7258 INFO: Analyzing hidden import 'rich.prompt'
+7261 INFO: Analyzing hidden import 'textual.__main__'
+7288 INFO: Analyzing hidden import 'textual._binary_encode'
+7291 INFO: Analyzing hidden import 'textual._doc'
+7296 INFO: Analyzing hidden import 'textual._layout_resolve'
+7297 INFO: Analyzing hidden import 'textual._sleep'
+7299 INFO: Analyzing hidden import 'textual.drivers._byte_stream'
+7302 INFO: Analyzing hidden import 'textual.drivers._input_reader'
+7306 INFO: Analyzing hidden import 'textual.drivers.web_driver'
+7310 INFO: Analyzing hidden import 'textual.logging'
+7311 INFO: Analyzing hidden import 'textual.pad'
+7313 INFO: Analyzing hidden import 'textual.renderables.gradient'
+7315 INFO: Analyzing hidden import 'textual.widgets._markdown_viewer'
+7316 INFO: Analyzing hidden import 'textual.widgets._tab'
+7317 INFO: Analyzing hidden import 'textual.widgets._tab_pane'
+7318 INFO: Analyzing hidden import 'textual.widgets.button'
+7319 INFO: Analyzing hidden import 'textual.widgets.collapsible'
+7320 INFO: Analyzing hidden import 'textual.widgets.data_table'
+7321 INFO: Analyzing hidden import 'textual.widgets.directory_tree'
+7321 INFO: Analyzing hidden import 'textual.widgets.input'
+7322 INFO: Analyzing hidden import 'textual.widgets.markdown'
+7323 INFO: Analyzing hidden import 'textual.widgets.rule'
+7324 INFO: Analyzing hidden import 'textual.widgets.select'
+7324 INFO: Analyzing hidden import 'textual.widgets.selection_list'
+7325 INFO: Analyzing hidden import 'textual.widgets.tabbed_content'
+7326 INFO: Analyzing hidden import 'textual.widgets.text_area'
+7327 INFO: Analyzing hidden import 'textual.widgets.tree'
+7327 INFO: Analyzing hidden import 'xrpl.core.binarycodec.field_id_codec'
+7329 INFO: Processing module hooks (post-graph stage)...
+8455 INFO: Performing binary vs. data reclassification (88 entries)
+8576 INFO: Looking for ctypes DLLs
+8973 WARNING: Library shell32 required via ctypes not found
+9158 WARNING: Library ole32 required via ctypes not found
+9572 INFO: Analyzing run-time hooks ...
+9576 INFO: Including run-time hook 'pyi_rth_inspect.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks/rthooks'
+9578 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks/rthooks'
+9580 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from '<home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/hooks/rthooks'
+9588 INFO: Creating base_library.zip...
+9597 INFO: Looking for dynamic libraries
+9777 INFO: Warnings written to <home>/etv-131-g1/build/escape-the-valley/warn-escape-the-valley.txt
+9804 INFO: Graph cross-reference written to <home>/etv-131-g1/build/escape-the-valley/xref-escape-the-valley.html
+9818 INFO: checking PYZ
+9819 INFO: Building PYZ because PYZ-00.toc is non existent
+9819 INFO: Building PYZ (ZlibArchive) <home>/etv-131-g1/build/escape-the-valley/PYZ-00.pyz
+10293 INFO: Building PYZ (ZlibArchive) <home>/etv-131-g1/build/escape-the-valley/PYZ-00.pyz completed successfully.
+10307 INFO: checking PKG
+10307 INFO: Building PKG because PKG-00.toc is non existent
+10307 INFO: Building PKG (CArchive) escape-the-valley.pkg
+14883 INFO: Building PKG (CArchive) escape-the-valley.pkg completed successfully.
+14884 INFO: Bootloader <home>/etv-131-g1/.venv/lib/python3.12/site-packages/PyInstaller/bootloader/Linux-64bit-intel/run
+14885 INFO: checking EXE
+14885 INFO: Building EXE because EXE-00.toc is non existent
+14886 INFO: Building EXE from EXE-00.toc
+14886 INFO: Copying bootloader EXE to <home>/etv-131-g1/dist/escape-the-valley
+14888 INFO: Appending PKG archive to custom ELF section in EXE
+14925 INFO: Building EXE from EXE-00.toc completed successfully.
+14927 INFO: Build complete! The results are available in: <home>/etv-131-g1/dist

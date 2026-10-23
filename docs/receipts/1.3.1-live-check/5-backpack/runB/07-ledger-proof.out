@@ -1,0 +1,25 @@
+# Ledger Reconciliation Proof — PASS
+
+- **Run:** `73475cb4-93d7d481`  (seed `42`)
+- **Player:** `rwmL1CmjeA71ALAJWjKtizTJTgBCJdMaok`
+- **Issuer (Trail Authority):** `rwT6p51QWft9UrCL6bQn1qXDY8svz7T7aQ`
+- **Settlements:** 1  (**pending:** 0)
+- **Memo integrity (on-chain):** ok
+- **Memo local consistency:** ok
+
+| Resource | Code | Minted | Σ Deltas | Engine | Ledger | Balance | Conserv. |
+|----------|------|-------:|---------:|-------:|-------:|:-------:|:--------:|
+| ammo | AMO | 20 | -7 | 13 | 13 | ✓ | ✓ |
+| food | FOD | 50 | -24 | 26 | 26 | ✓ | ✓ |
+| meds | MED | 5 | +0 | 5 | 5 | ✓ | ✓ |
+| parts | PRT | 4 | +2 | 6 | 6 | ✓ | ✓ |
+| water | WTR | 50 | +0 | 50 | 50 | ✓ | ✓ |
+
+## Settlement receipts (txids)
+- `3F4155283483BE4052015837AE73DD4363673CEE6E313C977313330568CFB1CD`
+- `C0EA63DFD72A5DA54682C0D1E88132E57E194DBA6C56140EA1AB41AAF6DBEE16`
+- `556ACFE8BAA75A594313FBB12F580CCBC9D2C79624F4F43487D2A97481010686`
+
+> The ledger is an external verifier: a different system family than the engine. A PASS means 
+on-ledger token balances independently confirm the engine's economy deltas — the engine cannot fake
+the ledger.

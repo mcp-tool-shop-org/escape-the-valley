@@ -1,0 +1,145 @@
++--------------------- Traceback (most recent call last) ---------------------+
+| <worktree>/src\escape_the_valley\cli.py:205 in new       |
+|                                                                             |
+|    202     )                                                                |
+|    203                                                                      |
+|    204     engine = GameEngine(state, gm_config)                            |
+| >  205     engine.run()                                                     |
+|    206                                                                      |
+|    207                                                                      |
+|    208 @app.command()                                                       |
+|                                                                             |
+| <worktree>/src\escape_the_valley\engine.py:103 in run    |
+|                                                                             |
+|    100                                                                      |
+|    101     def run(self) -> None:                                           |
+|    102         """Main game loop."""                                        |
+| >  103         show_status(self.state)                                      |
+|    104                                                                      |
+|    105         while not self.state.game_over:                              |
+|    106             action = self._prompt_camp_action()                      |
+|                                                                             |
+| <worktree>/src\escape_the_valley\ui.py:198 in            |
+| show_status                                                                 |
+|                                                                             |
+|   195         Panel(supplies_table, title="[bold]Supplies[/bold]",          |
+|       box=box.ROUNDED, border_style="cyan"),                                |
+|   196         Panel(wagon_text, title="[bold]Wagon[/bold]",                 |
+|       box=box.ROUNDED, border_style="cyan"),                                |
+|   197     )                                                                 |
+| > 198     console.print(cols)                                               |
+|   199                                                                       |
+|   200                                                                       |
+|   201 def show_event_scene(title: str, narration: str, choices: list[dict]) |
+|       -> str:                                                               |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\console.py:1704 in print     |
+|                                                                             |
+|   1701                 overflow = "ignore"                                  |
+|   1702             crop = False                                             |
+|   1703         render_hooks = self._render_hooks[:]                         |
+| > 1704         with self:                                                   |
+|   1705             renderables = self._collect_renderables(                 |
+|   1706                 objects,                                             |
+|   1707                 sep,                                                 |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\console.py:864 in __exit__   |
+|                                                                             |
+|    861                                                                      |
+|    862     def __exit__(self, exc_type: Any, exc_value: Any, traceback:     |
+|        Any) -> None:                                                        |
+|    863         """Exit buffer context."""                                   |
+| >  864         self._exit_buffer()                                          |
+|    865                                                                      |
+|    866     def begin_capture(self) -> None:                                 |
+|    867         """Begin capturing console output. Call :meth:`end_capture`  |
+|        to exit capture mode and return output."""                           |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\console.py:820 in            |
+| _exit_buffer                                                                |
+|                                                                             |
+|    817     def _exit_buffer(self) -> None:                                  |
+|    818         """Leave buffer context, and render content if required."""  |
+|    819         self._buffer_index -= 1                                      |
+| >  820         self._check_buffer()                                         |
+|    821                                                                      |
+|    822     def set_live(self, live: "Live") -> bool:                        |
+|    823         """Set Live instance. Used by Live context manager (no need  |
+|        to call directly).                                                   |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\console.py:2055 in           |
+| _check_buffer                                                               |
+|                                                                             |
+|   2052             return                                                   |
+|   2053                                                                      |
+|   2054         try:                                                         |
+| > 2055             self._write_buffer()                                     |
+|   2056         except BrokenPipeError:                                      |
+|   2057             self.on_broken_pipe()                                    |
+|   2058                                                                      |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\console.py:2091 in           |
+| _write_buffer                                                               |
+|                                                                             |
+|   2088                             if self.no_color and self._color_system: |
+|   2089                                 buffer =                             |
+|        list(Segment.remove_color(buffer))                                   |
+|   2090                                                                      |
+| > 2091                             legacy_windows_render(buffer,            |
+|        LegacyWindowsTerm(self.file))                                        |
+|   2092                         else:                                        |
+|   2093                             # Either a non-std stream on legacy      |
+|        Windows, or modern Windows.                                          |
+|   2094                             text =                                   |
+|        self._render_buffer(self._buffer[:])                                 |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\_windows_renderer.py:17 in   |
+| legacy_windows_render                                                       |
+|                                                                             |
+|   14     for text, style, control in buffer:                                |
+|   15         if not control:                                                |
+|   16             if style:                                                  |
+| > 17                 term.write_styled(text, style)                         |
+|   18             else:                                                      |
+|   19                 term.write_text(text)                                  |
+|   20         else:                                                          |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\_win32_console.py:441 in     |
+| write_styled                                                                |
+|                                                                             |
+|   438         SetConsoleTextAttribute(                                      |
+|   439             self._handle, attributes=ctypes.c_ushort(fore | (back <<  |
+|       4))                                                                   |
+|   440         )                                                             |
+| > 441         self.write_text(text)                                         |
+|   442         SetConsoleTextAttribute(self._handle,                         |
+|       attributes=self._default_text)                                        |
+|   443                                                                       |
+|   444     def move_cursor_to(self, new_position: WindowsCoordinates) ->     |
+|       None:                                                                 |
+|                                                                             |
+| <scratch>/_venv130\Lib\site-packages\rich\_win32_console.py:402 in     |
+| write_text                                                                  |
+|                                                                             |
+|   399         Args:                                                         |
+|   400             text (str): The text to write to the console              |
+|   401         """                                                           |
+| > 402         self.write(text)                                              |
+|   403         self.flush()                                                  |
+|   404                                                                       |
+|   405     def write_styled(self, text: str, style: Style) -> None:          |
+|                                                                             |
+| <home>/AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\L |
+| ib\encodings\cp1252.py:19 in encode                                         |
+|                                                                             |
+|    16                                                                       |
+|    17 class IncrementalEncoder(codecs.IncrementalEncoder):                  |
+|    18     def encode(self, input, final=False):                             |
+| >  19         return                                                        |
+|       codecs.charmap_encode(input,self.errors,encoding_table)[0]            |
+|    20                                                                       |
+|    21 class IncrementalDecoder(codecs.IncrementalDecoder):                  |
+|    22     def decode(self, input, final=False):                             |
++-----------------------------------------------------------------------------+
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-19: 
+character maps to <undefined>

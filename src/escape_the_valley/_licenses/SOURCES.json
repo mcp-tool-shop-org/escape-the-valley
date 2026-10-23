@@ -1,0 +1,714 @@
+{
+  "schema_version": 1,
+  "uv_version": "0.11.18",
+  "python_version": "3.12.13",
+  "cpython_tag": "v3.12.13",
+  "pbs_build_tag": "20260510",
+  "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+  "pbs_sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
+  "game_license": {
+    "vendored_path": "LICENSE",
+    "source_url": "https://github.com/mcp-tool-shop-org/escape-the-valley/blob/v1.3.1/LICENSE",
+    "sha256": "5ae6b3c8f446f0a7cb95176e4dadb91b68aaffb16b3be09f64f5de248b6a973a"
+  },
+  "cpython_incorporated_software": {
+    "cpython_tag": "v3.12.13",
+    "source_url": "https://raw.githubusercontent.com/python/cpython/v3.12.13/Doc/license.rst",
+    "doc_license_rst_vendored_path": "cpython/Doc-license.rst",
+    "doc_license_rst_sha256": "341832873fd316a37927e79385093fbbfd40a467428480835fe435a80cadf4e5",
+    "section_heading": "Licenses and Acknowledgements for Incorporated Software",
+    "vendored_path": "cpython/LICENSE.incorporated-software.rst",
+    "sha256": "d4f3b2147ce2d4b6a4671b208523669923778b9a3f609aab753c41d34540698a"
+  },
+  "targets": {
+    "x86_64-unknown-linux-gnu": {
+      "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+      "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+      "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+      "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+      "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
+      "install_license_archive_path": "python/install/lib/python3.12/LICENSE.txt",
+      "install_license_sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
+      "files": [
+        {
+          "filename": "LICENSE.cpython.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.cpython.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.cpython.txt",
+          "sha256": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "CPython distribution (PYTHON.json license_path)",
+          "licenses": [
+            "Python-2.0",
+            "CNRI-Python"
+          ]
+        },
+        {
+          "filename": "LICENSE.bzip2.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.bzip2.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.bzip2.txt",
+          "sha256": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_bz2 extension (libbz2.a)",
+          "licenses": [
+            "bzip2-1.0.6"
+          ]
+        },
+        {
+          "filename": "LICENSE.expat.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.expat.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.expat.txt",
+          "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_elementtree and pyexpat extensions (libexpat.a)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.libedit.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.libedit.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.libedit.txt",
+          "sha256": "29cea33c32bbc9785142386377915612a2fa786482c46843383384aded2e09b1",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "readline extension (libedit.a)",
+          "licenses": [
+            "BSD-3-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.libffi.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.libffi.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.libffi.txt",
+          "sha256": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_ctypes extension (libffi.a)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.liblzma.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.liblzma.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.liblzma.txt",
+          "sha256": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_lzma / XZ Utils extension (liblzma.a)",
+          "licenses": [
+            "0BSD"
+          ]
+        },
+        {
+          "filename": "LICENSE.libuuid.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.libuuid.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.libuuid.txt",
+          "sha256": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_uuid extension (libuuid.a)",
+          "licenses": [
+            "BSD-3-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.mpdecimal.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.mpdecimal.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.mpdecimal.txt",
+          "sha256": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_decimal extension (libmpdec.a)",
+          "licenses": [
+            "BSD-2-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.ncurses.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.ncurses.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.ncurses.txt",
+          "sha256": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_curses, _curses_panel, and readline extensions (libncursesw.a, libpanelw.a)",
+          "licenses": [
+            "X11"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (PYTHON.json license_paths entry alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-3.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.openssl-3.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.openssl-3.txt",
+          "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (OpenSSL 3.5.6: libssl.a, libcrypto.a)",
+          "licenses": [
+            "Apache-2.0"
+          ]
+        },
+        {
+          "filename": "LICENSE.sqlite.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.sqlite.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.sqlite.txt",
+          "sha256": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "_sqlite3 extension (libsqlite3.a)",
+          "licenses": [
+            "Public-Domain"
+          ]
+        },
+        {
+          "filename": "LICENSE.zlib.txt",
+          "vendored_path": "x86_64-unknown-linux-gnu/LICENSE.zlib.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+          "archive_sha256": "3d59ae1636c3f74ea3bfff631205292359371f1a63ae7975bd81da5ffce846d6",
+          "archive_path": "python/licenses/LICENSE.zlib.txt",
+          "sha256": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+          "component": "zlib extension (libz.a)",
+          "licenses": [
+            "Zlib"
+          ]
+        }
+      ],
+      "system_libraries": [],
+      "excluded_unbundled_extensions": [
+        {
+          "extension": "_dbm",
+          "archive_paths": [
+            "python/licenses/LICENSE.bdb.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; _dbm.cpython-312-x86_64-linux-gnu.so is not bundled."
+        },
+        {
+          "extension": "_tkinter",
+          "archive_paths": [
+            "python/licenses/LICENSE.libX11.txt",
+            "python/licenses/LICENSE.libXau.txt",
+            "python/licenses/LICENSE.libxcb.txt",
+            "python/licenses/LICENSE.tcl.txt",
+            "python/licenses/LICENSE.tix.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.cpython-312-x86_64-linux-gnu.so is not bundled."
+        }
+      ]
+    },
+    "aarch64-apple-darwin": {
+      "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+      "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+      "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+      "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+      "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
+      "install_license_archive_path": "python/install/lib/python3.12/LICENSE.txt",
+      "install_license_sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
+      "files": [
+        {
+          "filename": "LICENSE.cpython.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.cpython.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.cpython.txt",
+          "sha256": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "CPython distribution (PYTHON.json license_path)",
+          "licenses": [
+            "Python-2.0",
+            "CNRI-Python"
+          ]
+        },
+        {
+          "filename": "LICENSE.bzip2.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.bzip2.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.bzip2.txt",
+          "sha256": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_bz2 extension (libbz2.a)",
+          "licenses": [
+            "bzip2-1.0.6"
+          ]
+        },
+        {
+          "filename": "LICENSE.expat.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.expat.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.expat.txt",
+          "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_elementtree and pyexpat extensions (libexpat.a)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.libffi.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.libffi.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.libffi.txt",
+          "sha256": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_ctypes extension (libffi.a)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.liblzma.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.liblzma.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.liblzma.txt",
+          "sha256": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_lzma / XZ Utils extension (liblzma.a)",
+          "licenses": [
+            "0BSD"
+          ]
+        },
+        {
+          "filename": "LICENSE.libuuid.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.libuuid.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.libuuid.txt",
+          "sha256": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_uuid extension (libuuid.a)",
+          "licenses": [
+            "BSD-3-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.mpdecimal.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.mpdecimal.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.mpdecimal.txt",
+          "sha256": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_decimal extension (libmpdec.a)",
+          "licenses": [
+            "BSD-2-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (PYTHON.json license_paths entry alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-3.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.openssl-3.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.openssl-3.txt",
+          "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (OpenSSL 3.5.6: libssl.a, libcrypto.a)",
+          "licenses": [
+            "Apache-2.0"
+          ]
+        },
+        {
+          "filename": "LICENSE.sqlite.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.sqlite.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.sqlite.txt",
+          "sha256": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "_sqlite3 extension (libsqlite3.a)",
+          "licenses": [
+            "Public-Domain"
+          ]
+        },
+        {
+          "filename": "LICENSE.zlib.txt",
+          "vendored_path": "aarch64-apple-darwin/LICENSE.zlib.txt",
+          "archive_name": "cpython-3.12.13+20260510-aarch64-apple-darwin-pgo+lto-full.tar.zst",
+          "archive_sha256": "0750a735a09181ce203fb357df7221eab78d8ff4372d5cb6d58a2053765befdb",
+          "archive_path": "python/licenses/LICENSE.zlib.txt",
+          "sha256": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+          "component": "zlib extension",
+          "licenses": [
+            "Zlib"
+          ]
+        }
+      ],
+      "system_libraries": [
+        {
+          "name": "libedit",
+          "extensions": [
+            "readline"
+          ],
+          "archive_paths": [
+            "python/licenses/LICENSE.libedit.txt"
+          ],
+          "reason": "python-build-standalone links macOS system libedit from libSystem (links: {'name': 'edit', 'system': true}); not redistributed in the bundle."
+        },
+        {
+          "name": "ncurses",
+          "extensions": [
+            "_curses",
+            "_curses_panel",
+            "readline"
+          ],
+          "archive_paths": [
+            "python/licenses/LICENSE.ncurses.txt"
+          ],
+          "reason": "python-build-standalone links macOS system ncurses/panel from libSystem (links: {'name': 'ncurses', 'system': true}); not redistributed in the bundle."
+        }
+      ],
+      "excluded_unbundled_extensions": [
+        {
+          "extension": "_dbm",
+          "archive_paths": [
+            "python/licenses/LICENSE.bdb.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; Berkeley DB (_dbm) is not built or bundled in the aarch64-apple-darwin distribution."
+        },
+        {
+          "extension": "_tkinter",
+          "archive_paths": [
+            "python/licenses/LICENSE.libX11.txt",
+            "python/licenses/LICENSE.libXau.txt",
+            "python/licenses/LICENSE.libxcb.txt",
+            "python/licenses/LICENSE.tcl.txt",
+            "python/licenses/LICENSE.tix.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.cpython-312-darwin.so is not bundled (and X11/Tix are not linked on macOS)."
+        }
+      ]
+    },
+    "x86_64-pc-windows-msvc": {
+      "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+      "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+      "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+      "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+      "sha256sums_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/SHA256SUMS",
+      "install_license_archive_path": "python/install/LICENSE.txt",
+      "install_license_sha256": "886a0ead2d89030ee62dbff52b04e47ab91998341295bb9c56fb952b4e081c7a",
+      "archive_license_files": [
+        "python/licenses/LICENSE.bdb.txt",
+        "python/licenses/LICENSE.bzip2.txt",
+        "python/licenses/LICENSE.cpython.txt",
+        "python/licenses/LICENSE.expat.txt",
+        "python/licenses/LICENSE.libX11.txt",
+        "python/licenses/LICENSE.libXau.txt",
+        "python/licenses/LICENSE.libedit.txt",
+        "python/licenses/LICENSE.libffi.txt",
+        "python/licenses/LICENSE.liblzma.txt",
+        "python/licenses/LICENSE.libuuid.txt",
+        "python/licenses/LICENSE.libxcb.txt",
+        "python/licenses/LICENSE.mpdecimal.txt",
+        "python/licenses/LICENSE.ncurses.txt",
+        "python/licenses/LICENSE.openssl-1.1.txt",
+        "python/licenses/LICENSE.openssl-3.txt",
+        "python/licenses/LICENSE.sqlite.txt",
+        "python/licenses/LICENSE.tcl.txt",
+        "python/licenses/LICENSE.tix.txt",
+        "python/licenses/LICENSE.zlib.txt"
+      ],
+      "files": [
+        {
+          "filename": "LICENSE.cpython.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.cpython.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.cpython.txt",
+          "sha256": "8fe98bf9822926d854f56ffd8d97877d8b942617aa44eb7ea77fd99e22f2537e",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "CPython distribution (PYTHON.json license_path)",
+          "licenses": [
+            "Python-2.0",
+            "CNRI-Python"
+          ]
+        },
+        {
+          "filename": "LICENSE.bzip2.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.bzip2.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.bzip2.txt",
+          "sha256": "bd5628cc76fb0ebf9c657d1dd4d1a240a1a7b216c31663e7bbf1131c0b70a910",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_bz2 extension (_bz2.pyd)",
+          "licenses": [
+            "bzip2-1.0.6"
+          ]
+        },
+        {
+          "filename": "LICENSE.expat.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.expat.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.expat.txt",
+          "sha256": "8a9cfe4b5924f4b25881aa0c9f5e4561c5f31065d0c4a13cdcdbcf917edf39aa",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_elementtree and pyexpat extensions (pyexpat.pyd, _elementtree.pyd)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.libffi.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.libffi.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.libffi.txt",
+          "sha256": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_ctypes extension (_ctypes.pyd, libffi-8.dll)",
+          "licenses": [
+            "MIT"
+          ]
+        },
+        {
+          "filename": "LICENSE.liblzma.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.liblzma.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.liblzma.txt",
+          "sha256": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_lzma / XZ Utils extension (_lzma.pyd)",
+          "licenses": [
+            "0BSD"
+          ]
+        },
+        {
+          "filename": "LICENSE.libuuid.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.libuuid.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.libuuid.txt",
+          "sha256": "cbccaa3efe07a9a602751375085be572d4410a250b996716fbe8c5255c7ec6f2",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_uuid extension (_uuid.pyd)",
+          "licenses": [
+            "BSD-3-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.mpdecimal.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.mpdecimal.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.mpdecimal.txt",
+          "sha256": "f094277cd46e1f6e4d87916cc4b51e22f613d45eb81f48231c3cb7caf8fc8a6a",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_decimal extension (_decimal.pyd)",
+          "licenses": [
+            "BSD-2-Clause"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-1.1.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.openssl-1.1.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.openssl-1.1.txt",
+          "sha256": "ad89e3fed746413af1d34d5353978ee1520cedd361c853f8022e7bb210ac6b31",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (archive license file alongside OpenSSL 3.5.6)",
+          "licenses": [
+            "OpenSSL"
+          ]
+        },
+        {
+          "filename": "LICENSE.openssl-3.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.openssl-3.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.openssl-3.txt",
+          "sha256": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_ssl and _hashlib extensions (OpenSSL 3.5.6: _ssl.pyd, _hashlib.pyd, libssl-3-x64.dll, libcrypto-3-x64.dll)",
+          "licenses": [
+            "Apache-2.0"
+          ]
+        },
+        {
+          "filename": "LICENSE.sqlite.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.sqlite.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.sqlite.txt",
+          "sha256": "d8eb9aba7ef6b5ed06cb3ec19a7242316af2e5933c638eb67fb781c13884e01d",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "_sqlite3 extension (_sqlite3.pyd, sqlite3.dll)",
+          "licenses": [
+            "Public-Domain"
+          ]
+        },
+        {
+          "filename": "LICENSE.zlib.txt",
+          "vendored_path": "x86_64-pc-windows-msvc/LICENSE.zlib.txt",
+          "archive_name": "cpython-3.12.13+20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "archive_sha256": "e6dd25775677966bde76d1764cabd81be87611cbe5c3ce0a91b69ee1ac686a3d",
+          "archive_path": "python/licenses/LICENSE.zlib.txt",
+          "sha256": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+          "pbs_release_url": "https://github.com/astral-sh/python-build-standalone/releases/tag/20260510",
+          "pbs_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+          "component": "zlib extension (statically linked in python312.dll)",
+          "licenses": [
+            "Zlib"
+          ]
+        }
+      ],
+      "system_libraries": [],
+      "excluded_unbundled_extensions": [
+        {
+          "extension": "_dbm",
+          "archive_paths": [
+            "python/licenses/LICENSE.bdb.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module dbm --exclude-module _dbm; Berkeley DB (_dbm) is not built on Windows."
+        },
+        {
+          "extension": "readline",
+          "archive_paths": [
+            "python/licenses/LICENSE.libedit.txt"
+          ],
+          "reason": "Unix-only extension not built on Windows; libedit is not linked or bundled."
+        },
+        {
+          "extension": "_curses",
+          "archive_paths": [
+            "python/licenses/LICENSE.ncurses.txt"
+          ],
+          "reason": "Unix-only extension (_curses / _curses_panel) not built on Windows; ncurses is not linked or bundled."
+        },
+        {
+          "extension": "_tkinter",
+          "archive_paths": [
+            "python/licenses/LICENSE.libX11.txt",
+            "python/licenses/LICENSE.libXau.txt",
+            "python/licenses/LICENSE.libxcb.txt",
+            "python/licenses/LICENSE.tcl.txt",
+            "python/licenses/LICENSE.tix.txt"
+          ],
+          "reason": "Excluded via PyInstaller --exclude-module tkinter --exclude-module _tkinter; _tkinter.pyd, tcl86t.dll, and tk86t.dll are not bundled (and X11 is not linked on Windows)."
+        }
+      ]
+    }
+  }
+}

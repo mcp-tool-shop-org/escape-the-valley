@@ -1,0 +1,30 @@
+"""Read every transaction on the given Testnet accounts straight from rippled (JSON-RPC,
+account_tx), independent of the game. Prints hash, type, result, validated, ledger,
+destination, amount and the decoded memo text. Usage: python -I etv_ledger_probe.py <addr>..."""
+import json, sys, urllib.request
+URL = "https://s.altnet.rippletest.net:51234/"
+
+def rpc(method, **params):
+    req = urllib.request.Request(URL, json.dumps({"method": method, "params": [params]}).encode(),
+                                 {"content-type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=30))["result"]
+
+for addr in sys.argv[1:]:
+    print(f"## {addr}")
+    r = rpc("account_tx", account=addr, ledger_index_min=-1, ledger_index_max=-1, forward=True, limit=200)
+    for t in r["transactions"]:
+        tx, meta = t.get("tx_json") or t.get("tx"), t["meta"]
+        h = t.get("hash") or tx.get("hash")
+        memos = []
+        for m in tx.get("Memos", []):
+            d = m["Memo"].get("MemoData")
+            memos.append(bytes.fromhex(d).decode("utf-8", "replace") if d else "")
+        amt = tx.get("DeliverMax") or tx.get("Amount") or tx.get("LimitAmount")
+        if isinstance(amt, dict):
+            amt = f"{amt['value']} {amt['currency']}"
+        print(f"{h} {tx['TransactionType']:<9} {meta['TransactionResult']:<11} validated={t.get('validated')} "
+              f"ledger={t.get('ledger_index') or tx.get('ledger_index')} {tx['Account'][:6]}->{tx.get('Destination', '-')[:6]} {amt} "
+              f"memo={memos}")
+    info = rpc("account_lines", account=addr)
+    print("trust lines:", {l["currency"]: l["balance"] for l in info.get("lines", [])})
+    print()

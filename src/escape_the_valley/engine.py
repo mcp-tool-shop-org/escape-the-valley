@@ -13,6 +13,15 @@ from .events import (
 )
 from .gm import GMClient, GMConfig
 from .memory import build_gm_brief
+from .memory_emitters import (
+    check_resource_crises,
+    emit_arrival_card,
+    emit_escape_valve_card,
+    emit_event_card,
+    emit_health_cards,
+    emit_wagon_card,
+    validate_gm_cards,
+)
 from .models import (
     DOCTRINE_MODIFIERS,
     JournalEntry,
@@ -36,6 +45,7 @@ from .physics import (
     compute_daily_consumption,
     compute_travel_distance,
     desperate_repair,
+    determine_cause_of_death,
     halve_consumption,
     hard_ration,
     rest_day,
@@ -148,14 +158,6 @@ class GameEngine:
         """Process a travel action — move, consume, events, advance time."""
         self.state.last_action = "TRAVEL"
 
-        if self.state.maintained_turns_remaining > 0:
-            self.state.maintained_turns_remaining -= 1
-
-        if self.state.escape_valve_cooldown > 0:
-            self.state.escape_valve_cooldown -= 1
-
-        distance = compute_travel_distance(self.state)
-
         # Check for route choice at branching nodes. False means the fork
         # has no legitimate route to advance along this action
         # (F-dd6869ca/F-0877c51a: every raw connection is dangling, a
@@ -167,6 +169,14 @@ class GameEngine:
         # happen against a fabricated destination.
         if not self._check_route_choice():
             return
+
+        if self.state.maintained_turns_remaining > 0:
+            self.state.maintained_turns_remaining -= 1
+
+        if self.state.escape_valve_cooldown > 0:
+            self.state.escape_valve_cooldown -= 1
+
+        distance = compute_travel_distance(self.state)
 
         # Move
         self.state.distance_remaining -= distance
@@ -205,6 +215,7 @@ class GameEngine:
         breakdown = check_breakdown(self.state, self.rng)
         if breakdown:
             damage = breakdown["wagon_damage"]
+            had_parts = self.state.supplies.parts > 0
             deltas = apply_breakdown(self.state, damage)
             if deltas:
                 show_message(
@@ -213,6 +224,14 @@ class GameEngine:
                 )
             else:
                 show_message(f"Wagon breakdown! No parts for repair. Damage: {damage}", "red bold")
+            emit_wagon_card(self.state, damage, had_parts)
+            self._record_milestone(
+                "wagon:breakdown",
+                "Wagon Breakdown",
+                f"The wagon broke down. Damage: {damage}."
+                + ("" if had_parts else " No spare parts on hand."),
+                tags=["wagon", "breakdown"],
+            )
 
         # F-6e017443: night travel without lantern oil, matching
         # StepEngine._do_travel (after breakdown, after _advance_time).
@@ -239,6 +258,11 @@ class GameEngine:
                 show_message(f"{eff['member']} has fallen ill.", "yellow")
             elif eff["type"] == "healed":
                 show_message(f"{eff['member']} was treated and is recovering.", "green")
+        self._record_death_milestones(effects)
+        emit_health_cards(self.state, effects)
+
+        # Resource crisis check after consumption
+        check_resource_crises(self.state)
 
         # Random event
         self._trigger_event()
@@ -402,12 +426,17 @@ class GameEngine:
         dropped_items = [
             f"-{abs(v)} {k}" for k, v in result.items() if v < 0
         ]
+        dropped_summary = ", ".join(dropped_items) or "nothing"
         show_message(
             "Abandoned cargo to lighten the wagon. "
             f"Wagon +25. "
-            f"Dropped: {', '.join(dropped_items) or 'nothing'}. "
+            f"Dropped: {dropped_summary}. "
             "Morale fell.",
             "yellow",
+        )
+        emit_escape_valve_card(
+            self.state, "abandon_cargo",
+            f"Abandoned cargo to save the wagon (dropped: {dropped_summary}).",
         )
 
     def _do_desperate_repair(self) -> None:
@@ -436,6 +465,11 @@ class GameEngine:
                 f"{injured} was injured in the attempt.",
                 "red",
             )
+        detail = (
+            "Repair succeeded." if result.get("success")
+            else f"Repair failed. {result.get('injured', 'Someone')} injured."
+        )
+        emit_escape_valve_card(self.state, "desperate_repair", detail)
 
     def _hard_ration_refusal_line(self) -> str:
         """Name the closed gate. Same three sentences as StepEngine."""
@@ -466,6 +500,69 @@ class GameEngine:
             "Morale -10, everyone weakened.",
             "yellow",
         )
+        emit_escape_valve_card(
+            self.state, "hard_ration",
+            "Hard rationing imposed — half rations for 2 days.",
+        )
+
+    def _record_milestone(
+        self,
+        event_id: str,
+        scene_title: str,
+        outcome: str,
+        *,
+        tags: list[str] | None = None,
+    ) -> None:
+        """Append a non-event milestone to the journal (matches StepEngine)."""
+        node = _find_node(self.state)
+        self.state.journal.append(JournalEntry(
+            day=self.state.day,
+            location=node.name if node else "unknown",
+            event_id=event_id,
+            scene_title=scene_title,
+            narration="",
+            choice_made="",
+            outcome=outcome[:300],
+            deltas={},
+            tags=tags or [],
+        ))
+
+    def _record_death_milestones(self, effects: list[dict]) -> None:
+        """Write a journal milestone for each death in this batch of health effects."""
+        node = _find_node(self.state)
+        location = node.name if node else "unknown"
+        for eff in effects:
+            if eff.get("type") != "died":
+                continue
+            member = eff.get("member", "Someone")
+            cause = eff.get("cause", "the trail")
+            self._record_milestone(
+                f"death:{cause.lower()}",
+                f"Death: {member}",
+                f"{member} died of {cause.lower()} "
+                f"on day {self.state.day} near {location}.",
+                tags=["death", cause.lower()],
+            )
+
+    def _apply_memory_proposals(self, proposals, source: str) -> None:
+        """Validate and commit one batch of GM-proposed memory cards."""
+        from .memory import add_card
+
+        try:
+            cards = validate_gm_cards(self.state, proposals)
+        except Exception as e:  # graceful degradation -- game continues
+            log.warning("%s memory-card validation failed: %s", source, e)
+            return
+
+        for i, card in enumerate(cards):
+            try:
+                add_card(self.state, card)
+            except Exception as e:  # graceful degradation -- game continues
+                log.warning(
+                    "%s memory-card %d/%d add failed (any earlier cards "
+                    "in this batch remain committed): %s",
+                    source, i + 1, len(cards), e,
+                )
 
     def _check_game_over(self) -> None:
         result = check_game_over(self.state)
@@ -475,7 +572,7 @@ class GameEngine:
             self.state.victory = True
             self.state.game_over = True
         else:
-            self.state.cause_of_death = result
+            self.state.cause_of_death = determine_cause_of_death(self.state)
             self.state.game_over = True
         # F-20fa3769: grade once on the terminal transition (pure, no RNG).
         ending = compute_ending(self.state)
@@ -664,6 +761,7 @@ class GameEngine:
         outcome_narration = ""
         outcome_title = ""
         callout = ""
+        gm_outcome = None
 
         if self.gm.config.enabled and scene:
             outcome_facts = {
@@ -710,6 +808,18 @@ class GameEngine:
             deltas=outcome.supplies_delta,
             tags=event.tags,
         ))
+
+        # Memory emitters — engine cards from event
+        emit_event_card(self.state, event)
+
+        # Validate GM-proposed memory cards
+        if scene and hasattr(scene, "memory_proposals"):
+            self._apply_memory_proposals(scene.memory_proposals, "Scene")
+        if gm_outcome and hasattr(gm_outcome, "memory_proposals"):
+            self._apply_memory_proposals(gm_outcome.memory_proposals, "Outcome")
+
+        # Check resource crises after outcome applied
+        check_resource_crises(self.state)
 
         # Update RNG counter for determinism
         self.state.rng_counter = self.rng.counter
@@ -796,7 +906,16 @@ class GameEngine:
             show_message(f"Found a supply cache! {cache_items}", "green")
             dest_node.cache_supplies = None  # consumed
 
+        # Emit arrival memory card for towns
+        emit_arrival_card(self.state, dest_node)
+
         if dest_node.is_town:
+            self._record_milestone(
+                "town:arrival",
+                f"Arrived at {dest_node.name}",
+                f"The party reached {dest_node.name} on day {self.state.day}.",
+                tags=["town", "arrival"],
+            )
             # Town trade: morale-gated + doctrine-boosted (mirrors StepEngine)
             doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
             trade_chance = 0.30 + doc_mods.get("trade_bonus", 0)

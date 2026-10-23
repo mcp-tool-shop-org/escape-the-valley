@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 
 from rich import box
 from rich.console import Console
@@ -12,6 +13,18 @@ from rich.text import Text
 
 from .models import Condition, JournalEntry, Pace, RunState
 from .resources import RESOURCE_CATALOG
+
+
+def _ensure_utf8_stdio() -> None:
+    """Reconfigure stdout/stderr to UTF-8 with replacement on non-UTF-8 pipes (#19)."""
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
 
 def _no_color() -> bool:
@@ -24,6 +37,7 @@ def _no_color() -> bool:
     return os.environ.get("NO_COLOR") is not None
 
 
+_ensure_utf8_stdio()
 # Rich already auto-detects NO_COLOR, but we pin it explicitly so the behavior
 # is deterministic and testable regardless of Rich version.
 console = Console(no_color=_no_color())

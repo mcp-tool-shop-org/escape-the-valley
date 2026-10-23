@@ -29,10 +29,11 @@ sidebar:
 | `trail status` | Show party, wagon, and supplies |
 | `trail journal` | Show recent journal entries |
 | `trail journal -n <count>` | Show last N journal entries |
-| `trail stats` | Show run statistics |
+| `trail stats` | Show run statistics and memory cards |
 | `trail stats --json` | Output run statistics as JSON |
 | `trail version` | Show version |
 | `trail self-check` | Check game environment health |
+| `trail licenses` | Show the game's license and third-party notices (also `trail --licenses`) |
 
 ## Ledger commands
 

@@ -1,0 +1,21 @@
+sha256 and size of each licenses output. The .out files are not committed: the notices content check waits for the final head (R&D's second fixup).
+
+built THIRD_PARTY_NOTICES.txt (3.12 build env):
+850fac2e2e43e5cd662db79c4ecb4464e63f7035cf8eb978f6f019998e1cdad9 *THIRD_PARTY_NOTICES.txt
+134519 bytes
+
+850fac2e2e43e5cd662db79c4ecb4464e63f7035cf8eb978f6f019998e1cdad9 *frozen/07-licenses.out
+  134519 bytes
+850fac2e2e43e5cd662db79c4ecb4464e63f7035cf8eb978f6f019998e1cdad9 *frozen/08-dash-licenses.out
+  134519 bytes
+733ca3bb3f456c51e8b59cf748f211d798bf2fcc2ac5697f71a58c8133a79509 *pip/04-licenses.out
+  100748 bytes
+733ca3bb3f456c51e8b59cf748f211d798bf2fcc2ac5697f71a58c8133a79509 *pip/05-dash-licenses.out
+  100748 bytes
+
+frozen 07 and 08 are byte-identical to the built file (cmp).
+pip 04 and 05 are byte-identical to each other, generated at run time (no bundled file), from the pip venv's distributions.
+Header of every output:
+================================================================================
+Escape the Valley (escape-the-valley 1.3.1) — License & Third-Party Notices
+================================================================================

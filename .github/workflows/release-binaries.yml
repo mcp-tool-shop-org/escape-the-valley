@@ -1,6 +1,7 @@
 # Build platform binaries for npm distribution via @mcptoolshop/npm-launcher.
 # Asset naming convention (locked):
 #   escape-the-valley-<version>-<os>-<arch>[.exe]
+#   THIRD_PARTY_NOTICES-<os>-<arch>.txt
 #   checksums-<version>.txt
 #
 # linux-x64 + win-x64 + darwin-arm64. macOS parity restored at the director's
@@ -60,13 +61,53 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref }}
 
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
 
-      - run: uv python install 3.12
+      - name: Set neutral UV_PYTHON_INSTALL_DIR outside user homes (G1)
+        shell: bash
+        run: |
+          # G1: astral-sh/setup-uv sets UV_PYTHON_INSTALL_DIR under runner.temp
+          # (/home/<x>/... on Linux and /Users/<x>/... on macOS), and local uv
+          # defaults to ~/.local/share/uv/python or %APPDATA%\uv\python. uv
+          # writes that install prefix into CPython's _sysconfigdata__*.py,
+          # which PyInstaller bundles into the PYZ archive. Use /opt/uv-python
+          # on Linux/macOS and C:\uv-python on Windows so no home path enters
+          # _sysconfigdata.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            mkdir -p /c/uv-python
+            echo "UV_PYTHON_INSTALL_DIR=C:\\uv-python" >> "$GITHUB_ENV"
+          else
+            if [ ! -w /opt/uv-python ]; then
+              sudo mkdir -p /opt/uv-python
+              sudo chown "$(id -u):$(id -g)" /opt/uv-python
+            fi
+            echo "UV_PYTHON_INSTALL_DIR=/opt/uv-python" >> "$GITHUB_ENV"
+          fi
 
-      - run: uv venv
+      - run: uv python install 3.12.13
+
+      - run: uv venv --python 3.12.13
 
       - name: Install dependencies + PyInstaller
-        run: uv pip install . "pyinstaller>=6.9.0"
+        run: uv pip install ".[xrpl]" "pyinstaller>=6.9.0"
+
+      - name: Remove PEP 610 direct_url.json build record from venv
+        shell: bash
+        run: |
+          uv run --no-sync python -c '
+          import pathlib, sysconfig
+          purelib = pathlib.Path(sysconfig.get_path("purelib"))
+          for p in purelib.glob("*.dist-info/direct_url.json"):
+              p.unlink()
+          remaining = list(purelib.glob("*.dist-info/direct_url.json"))
+          if remaining:
+              raise SystemExit(f"direct_url.json still present in venv: {remaining}")
+          print("Removed direct_url.json from build venv.")
+          '
+
+      - name: Generate third-party notices
+        run: uv run --no-sync python scripts/gen_third_party_notices.py --release THIRD_PARTY_NOTICES.txt
 
       - name: Build binary
         shell: bash
@@ -94,11 +135,12 @@ jobs:
           else
             DATA_SEP=":"
           fi
-          # --no-sync: build from the base env created by `uv pip install .`
-          # above; do NOT re-resolve the project (which would drag in optional
-          # extras like [voice] -> voice-soundboard[kokoro] -> onnxruntime and
-          # bloat the binary). The binary ships the base game only; voice is
-          # pip-install-only via `escape-the-valley[voice]`.
+          # --no-sync: build from the env created by `uv pip install ".[xrpl]"`
+          # above; do NOT re-resolve the project (which would drag in heavy
+          # optional extras like [voice] -> voice-soundboard[kokoro] ->
+          # onnxruntime and bloat the binary). The binary ships the base game
+          # plus [xrpl] so the Ledger Backpack works in standalone/npx builds;
+          # voice remains pip-install-only via `escape-the-valley[voice]`.
           #
           # F-a4d8291c: --add-data bundles the two non-Python files the game
           # needs at runtime that PyInstaller cannot discover on its own:
@@ -106,16 +148,47 @@ jobs:
           # of the game's ~260 events -- event_loader.load_json_events()
           # silently returns [] if this is missing, so an unbundled JSON
           # ships a binary that starts cleanly and plays a quarter-game).
+          # Issue #28: THIRD_PARTY_NOTICES.txt travels inside the binary beside
+          # tui.tcss and is also attached to the GitHub Release below.
           uv run --no-sync pyinstaller --onefile --name "${{ env.TOOL_NAME }}" --console \
+            --exclude-module tkinter \
+            --exclude-module _tkinter \
+            --exclude-module dbm \
+            --exclude-module _dbm \
             --collect-submodules rich \
             --collect-submodules textual \
+            --collect-submodules xrpl \
             --collect-data textual \
+            --collect-data xrpl \
             --add-data "src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley" \
+            --add-data "THIRD_PARTY_NOTICES.txt${DATA_SEP}escape_the_valley" \
+            --add-data "src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data" \
+            "${{ env.ENTRYPOINT }}"
+          uv run --no-sync python scripts/gen_third_party_notices.py --release --prune-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
+          uv run --no-sync pyinstaller --noconfirm --onefile --name "${{ env.TOOL_NAME }}" --console \
+            --exclude-module tkinter \
+            --exclude-module _tkinter \
+            --exclude-module dbm \
+            --exclude-module _dbm \
+            --collect-submodules rich \
+            --collect-submodules textual \
+            --collect-submodules xrpl \
+            --collect-data textual \
+            --collect-data xrpl \
+            --add-data "src/escape_the_valley/tui.tcss${DATA_SEP}escape_the_valley" \
+            --add-data "THIRD_PARTY_NOTICES.txt${DATA_SEP}escape_the_valley" \
             --add-data "src/escape_the_valley/data/event_skeletons.json${DATA_SEP}escape_the_valley/data" \
             "${{ env.ENTRYPOINT }}"
           OUTNAME="${{ env.TOOL_NAME }}-${VERSION}-${{ matrix.target }}${{ matrix.ext }}"
           mv "dist/${{ env.TOOL_NAME }}${{ matrix.ext }}" "dist/${OUTNAME}"
+          cp "THIRD_PARTY_NOTICES.txt" "dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt"
           echo "ASSET_NAME=${OUTNAME}" >> "$GITHUB_ENV"
+
+      - name: Verify third-party notices against PyInstaller TOC and check bundle archive
+        shell: bash
+        run: |
+          uv run --no-sync python scripts/gen_third_party_notices.py --verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
+          uv run --no-sync python scripts/gen_third_party_notices.py --verify-bundle "dist/$ASSET_NAME"
 
       - name: Smoke test binary
         # F-a6fa29e0: the build succeeding is not the same as the binary
@@ -145,7 +218,9 @@ jobs:
         if: always()
         with:
           name: binary-${{ matrix.target }}
-          path: dist/${{ env.ASSET_NAME }}
+          path: |
+            dist/${{ env.ASSET_NAME }}
+            dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt
           if-no-files-found: ignore
 
   release:

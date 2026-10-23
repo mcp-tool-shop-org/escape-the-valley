@@ -1,0 +1,2 @@
+event dysentery: choice_id 'A' advertised costs {'meds': 2} cannot be paid (missing ['meds']); denying advertised success
+event friendly_travelers: choice_id 'A' advertised costs {'food': 3} cannot be paid (missing ['food']); denying advertised success

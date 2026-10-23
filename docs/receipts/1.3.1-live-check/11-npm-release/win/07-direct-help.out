@@ -1,0 +1,29 @@
+                                                                               
+ Usage: escape-the-valley-1.3.1-win-x64.exe [OPTIONS] COMMAND [ARGS]...        
+                                                                               
+ Escape the Valley: Ledger Trail — Oregon Trail-style survival game            
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --version             -V        Show version and exit.                      │
+│ --licenses                      Show third-party license notices and exit.  │
+│ --install-completion            Install completion for the current shell.   │
+│ --show-completion               Show completion for the current shell, to   │
+│                                 copy it or customize the installation.      │
+│ --help                          Show this message and exit.                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Commands ──────────────────────────────────────────────────────────────────┐
+│ new         Start a new run.                                                │
+│ play        Continue a saved run.                                           │
+│ status      Show current party, wagon, and supplies.                        │
+│ journal     Show recent journal entries.                                    │
+│ self-check  Check game environment health.                                  │
+│ tui         Launch the full-screen Textual UI.                              │
+│ version     Show version.                                                   │
+│ licenses    Show license and third-party notices.                           │
+│ stats       Show run statistics from the current save.                      │
+│ postcard    Print the end-of-run postcard (trail ledger / XRPL receipts).   │
+│ ledger      Ledger Backpack commands                                        │
+│ parcel      Parcel commands                                                 │
+│ wallet      Wallet commands                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+

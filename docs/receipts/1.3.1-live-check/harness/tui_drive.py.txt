@@ -1,0 +1,118 @@
+"""Drive the real `trail tui` app (LedgerTrailApp + StepEngine, GM off) headless
+with Textual's Pilot, pressing the same keys a player would.
+
+Usage: python -I tui_drive.py <scenario> <seed> <out-dir>
+  abandon: travel (t; 1 at an event or a fork; n to the first-town ledger nudge) until
+           Abandon Cargo opens, then press the valve key (argv[4], default e).
+  fork:    travel until the party stands at the first fork (node_04) in camp, press r then p
+           (rest then repair opens the maintenance window), then t (route prompt), 1 (route A),
+           t (the travel that follows). State is read after every key.
+The app is built the way cli.tui() builds it for `trail tui --seed <seed> --gm-off`.
+Run with cwd set to a fresh folder (the engine autosaves to ./.trail/).
+"""
+import asyncio
+import json
+import os
+import pathlib
+import sys
+
+from escape_the_valley.gm import GMConfig
+from escape_the_valley.models import GMProfile
+from escape_the_valley.physics import can_abandon_cargo
+from escape_the_valley.step_engine import StepEngine
+from escape_the_valley.tui_app import LedgerTrailApp
+from escape_the_valley.worldgen import create_new_run
+
+scenario, seed, out = sys.argv[1], int(sys.argv[2]), pathlib.Path(sys.argv[3])
+KEY = sys.argv[4] if len(sys.argv) > 4 else "e"
+DISMISS = os.environ.get("KEEP_NUDGE") != "1"
+out.mkdir(parents=True, exist_ok=True)
+state = create_new_run(seed=seed, gm_profile=GMProfile("fireside"), weirdness_level=2)
+engine = StepEngine(state, GMConfig(host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
+                                    model="llama3.2", enabled=False))
+app = LedgerTrailApp(engine=engine, voice_config=None, resumed=False)
+log = []
+
+
+def snap(key):
+    s = engine.state
+    row = {"key": key, "phase": engine.phase.value, "day": s.day, "time": s.time_of_day.value,
+           "location": s.location_id, "dest": s.destination_id, "dist_remaining": s.distance_remaining,
+           "maint": s.maintained_turns_remaining, "cooldown": s.escape_valve_cooldown,
+           "wagon": s.wagon.condition, "last_action": s.last_action,
+           "droppable": {k: s.supplies.get(k) for k in ("salt", "cloth", "rope", "boots")}}
+    log.append(row)
+    return row
+
+
+async def press(pilot, key):
+    await pilot.press(key)
+    await app.workers.wait_for_complete()
+    await pilot.pause()
+    await pilot.pause()
+    return snap(key)
+
+
+def dump(name):
+    (out / f"{name}.svg").write_text(app.export_screenshot(), encoding="utf-8")
+    (out / f"{name}.narration.txt").write_text(app._frame.narration + "\n", encoding="utf-8")
+
+
+async def travel_one(pilot):
+    if app.show_nudge:
+        # The once-per-run "Ledger Backpack available" nudge (first town). A player
+        # answers it: N) Not now. Recorded in steps.jsonl as key "n".
+        if DISMISS:
+            return await press(pilot, "n")
+    if engine.phase.value in ("event", "route"):
+        return await press(pilot, "1")
+    return await press(pilot, "t")
+
+
+async def main():
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        snap("start")
+        if scenario == "abandon":
+            for _ in range(400):
+                if engine.phase.value == "camp" and can_abandon_cargo(engine.state):
+                    break
+                if engine.phase.value == "over":
+                    raise SystemExit("run ended before Abandon Cargo opened")
+                await travel_one(pilot)
+            dump("before-e")
+            before = dict(log[-1])
+            print("overlay open before the valve key:", app.show_nudge, "| key:", KEY)
+            r = await press(pilot, KEY)
+            dump("after-e")
+            cards = [c for c in engine.state.memory_cards if "abandon" in c.id.lower()
+                     or "abandon" in c.text.lower()]
+            (out / "abandon-card.json").write_text(json.dumps(
+                [{"id": c.id, "kind": c.kind, "day": c.day_created, "text": c.text} for c in cards],
+                indent=2) + "\n", encoding="utf-8")
+            print("before", before["droppable"], "wagon", before["wagon"])
+            print("after ", r["droppable"], "wagon", r["wagon"])
+            print("narration:", app._frame.narration.strip()[:400])
+            print("cards:", [c.text for c in cards])
+        elif scenario == "fork":
+            for _ in range(400):
+                s = engine.state
+                if (engine.phase.value == "camp" and s.location_id == "node_04"
+                        and s.distance_remaining <= 0):
+                    break
+                if engine.phase.value == "over":
+                    raise SystemExit("run ended before the fork")
+                await travel_one(pilot)
+            dump("at-fork")
+            for k in ("r", "p", "t", "1", "t"):
+                row = await press(pilot, k)
+                dump(f"after-{len(log):03d}-{k}")
+                print(k, {x: row[x] for x in ("phase", "day", "time", "location", "dest",
+                                               "dist_remaining", "maint", "last_action")})
+                print("   narration:", " | ".join(app._frame.narration.strip().splitlines())[:300])
+        await pilot.press("q")
+    (out / "steps.jsonl").write_text("".join(json.dumps(r) + "\n" for r in log), encoding="utf-8")
+    print(f"{len(log)} snapshots; run_id {engine.state.run_id}")
+
+
+asyncio.run(main())

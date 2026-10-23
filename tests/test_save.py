@@ -344,6 +344,7 @@ class TestSaveLoadDeterminism:
 
             # Engine B — never saved, same seed, same intents end to end.
             engine_b = StepEngine(create_new_run(seed=seed), GMConfig(enabled=False))
+            engine_b.state.run_id = engine_a.state.run_id
             for intent in self.INTENTS:
                 _drive(engine_b, intent)
             self._sync_rng_state(engine_b)
@@ -477,6 +478,56 @@ class TestSecretsSidecar:
             assert state_b.run_id in store
             assert store[state_a.run_id]["wallet_secret"] == state_a.backpack.wallet_secret
             assert store[state_b.run_id]["wallet_secret"] == state_b.backpack.wallet_secret
+
+    def test_same_seed_runs_get_distinct_run_ids_and_preserve_secrets(self):
+        """M-5: two runs with the same seed get different run_ids and keep separate secrets."""
+        state_a = create_new_run(seed=42)
+        self._enable_backpack(state_a)
+        state_a.backpack.wallet_secret = "sRunAWalletSecret000000000000"
+        state_a.backpack.issuer_secret = "sRunAIssuerSecret000000000000"
+
+        state_b = create_new_run(seed=42)
+        assert state_a.run_id != state_b.run_id
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state_a, base)
+            # Saving state_b before enabling its backpack must not drop state_a's secrets.
+            save_game(state_b, base)
+
+            store_mid = json.loads(
+                (base / SAVE_DIR / "secrets.json").read_text(encoding="utf-8")
+            )
+            assert state_a.run_id in store_mid
+            assert store_mid[state_a.run_id]["wallet_secret"] == "sRunAWalletSecret000000000000"
+
+            # Enabling backpack on state_b keeps both entries separate in secrets.json.
+            self._enable_backpack(state_b)
+            state_b.backpack.wallet_secret = "sRunBWalletSecret111111111111"
+            state_b.backpack.issuer_secret = "sRunBIssuerSecret111111111111"
+            save_game(state_b, base)
+
+            store = json.loads(
+                (base / SAVE_DIR / "secrets.json").read_text(encoding="utf-8")
+            )
+            assert state_a.run_id in store
+            assert state_b.run_id in store
+            assert store[state_a.run_id]["wallet_secret"] == "sRunAWalletSecret000000000000"
+            assert store[state_b.run_id]["wallet_secret"] == "sRunBWalletSecret111111111111"
+
+    def test_old_save_loads_with_stored_run_id_intact(self):
+        """M-5: an existing save keeps its stored legacy run_id and never regenerates on load."""
+        state = create_new_run(seed=42)
+        state.run_id = "73475cb4"  # pre-1.3.1 unsalted 8-char sha256 prefix
+        self._enable_backpack(state)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            save_game(state, base)
+            loaded = load_game(base)
+            assert loaded is not None
+            assert loaded.run_id == "73475cb4"
+            assert loaded.backpack.wallet_secret == state.backpack.wallet_secret
 
 
 class TestSaveVersion:

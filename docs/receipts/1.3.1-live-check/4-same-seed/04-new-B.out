@@ -1,0 +1,52 @@
+╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ESCAPE THE VALLEY                                                                               ║
+║ Ledger Trail                                                                                    ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+A saved game exists. Start a new one? (old save will be lost) [y/N]: 
+<<confirm -> y>> save(day=1 maint=0)
+  Run ID: 73475cb4-93d7d481
+  Seed: 42
+  Profile: fireside
+  Weirdness: 2
+  Twists: good_hunting
+  Doctrine: travel_light
+  Taboo: never_night
+  Party: Ruth, Josiah, Elias, Agnes
+
+┌───────────────────────────────────────── Trail Status ──────────────────────────────────────────┐
+│   Day 1  |  Morning                 Location: Coldspring         Biome: plains                  │
+│   Pace: steady                      Distance to next: 21 mi      Traveled: 0 mi                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────── Party  Morale: 70/100 ─────────────────────────────────────┐
+│                                                                                                 │
+│   Name              Health       Condition      Traits                                          │
+│  ────────────────────────────────────────────────────────────────────                           │
+│   Ruth              100          healthy        steady, anxious                                 │
+│   Josiah            94           healthy        sharp_eye, lucky                                │
+│   Elias             87           healthy        mechanic                                        │
+│   Agnes             80           healthy        anxious                                         │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ┌────── Supplies ───────┐      ┌───────────── Wagon ─────────────┐   
+   │  Food             50  │      │ Condition: ████████████████░░░░ │   
+   │  Water            50  │      │ 80%                             │   
+   │  Medicine          5  │      │ Animals:   ██████████████████░░ │   
+   │  Ammo             20  │      │ 90%                             │   
+   │  Parts             4  │      └─────────────────────────────────┘   
+   └───────────────────────┘                                            
+
+  1. Travel
+  2. Rest
+  3. Hunt
+  4. Repair wagon
+  5. Check supplies
+  6. Change pace
+  7. View journal
+  Q. Quit and save
+
+What do you do? 
+<<camp -> Q>> save(day=1 maint=0)
+  Game saved.
+
+<<exit 0; camp actions 1; answers 2>>

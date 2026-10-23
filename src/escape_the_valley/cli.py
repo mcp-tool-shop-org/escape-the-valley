@@ -14,7 +14,7 @@ from .engine import GameEngine
 from .gm import GMConfig
 from .models import GMProfile
 from .save import has_save, load_game
-from .ui import show_journal, show_status, show_title_screen
+from .ui import _ensure_utf8_stdio, show_journal, show_status, show_title_screen
 from .worldgen import create_new_run
 
 
@@ -30,6 +30,14 @@ def _version_string() -> str:
 def _version_callback(value: bool) -> None:
     if value:
         typer.echo(_version_string())
+        raise typer.Exit()
+
+
+def _licenses_callback(value: bool) -> None:
+    if value:
+        from .notices import get_third_party_notices_text
+
+        typer.echo(get_third_party_notices_text(), nl=False)
         raise typer.Exit()
 
 
@@ -100,6 +108,7 @@ app = typer.Typer(
     help="Escape the Valley: Ledger Trail — Oregon Trail-style survival game",
     no_args_is_help=True,
 )
+_ensure_utf8_stdio()
 console = Console()
 
 
@@ -135,8 +144,13 @@ def main_callback(
         False, "--version", "-V", callback=_version_callback, is_eager=True,
         help="Show version and exit.",
     ),
+    _licenses: bool = typer.Option(
+        False, "--licenses", callback=_licenses_callback, is_eager=True,
+        help="Show third-party license notices and exit.",
+    ),
 ) -> None:
     """Escape the Valley: Ledger Trail — Oregon Trail-style survival game."""
+    _ensure_utf8_stdio()
 
 
 @app.command()
@@ -534,6 +548,14 @@ def version() -> None:
     # Human-friendly title, but the parseable token comes from the shared
     # helper so all three version surfaces agree (cli-tui-006).
     console.print(f"Escape the Valley: Ledger Trail ({_version_string()})")
+
+
+@app.command()
+def licenses() -> None:
+    """Show license and third-party notices."""
+    from .notices import get_third_party_notices_text
+
+    typer.echo(get_third_party_notices_text(), nl=False)
 
 
 def _gm_diagnostics(model: str) -> dict:
