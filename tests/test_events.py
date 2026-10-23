@@ -938,11 +938,11 @@ class TestIssue20And21Fixes:
     def test_save_and_reload_mid_cooldown_suppresses_same_repeat(
         self, tmp_path, monkeypatch
     ):
-        """PR #40 fix-up 1 (#21): saving and reloading mid-cooldown (after
-        Travel 35 on seed 42, while f3_028 from Travel 32 is inside the N=4
-        cooldown window) rebuilds the cooldown history from state.journal and
-        suppresses the f3_028 repeat at Travel 37 identically to an
-        uninterrupted run."""
+        """Preservation test: PR #40 fix-up 1 (#21): saving and reloading
+        mid-cooldown (after Travel 35 on seed 42, while f3_028 from Travel 32
+        is inside the N=4 cooldown window) rebuilds the cooldown history from
+        state.journal and suppresses the f3_028 repeat at Travel 37 identically
+        to an uninterrupted run."""
         import escape_the_valley.step_engine as step_engine_mod
         from escape_the_valley.events import _recent_event_id_history
         from escape_the_valley.gm import GMConfig

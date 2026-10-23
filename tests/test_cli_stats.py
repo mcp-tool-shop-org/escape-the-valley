@@ -2173,9 +2173,10 @@ class TestThirdPartyNotices:
         assert "/home/runner/work/_temp/uv-python-dir/cpython-3.12.15-linux-x86_64-gnu/bin" in msg
 
     def test_seed_help_and_changelog_132_reproducibility_wording(self):
-        """PR #40 fix-up 1 (#21, #41): `trail new --help` (`--seed` help) and the
-        1.3.2 CHANGELOG section carry the qualified reproducibility wording, and
-        the 1.3.2 CHANGELOG section states plainly that a run saved in 1.3.1
+        """PR #40 fix-up 1 & 2 (#21, #41): `trail new --help` (`--seed` help),
+        the 1.3.2 CHANGELOG section, and the landing page (`site/public/index.html`,
+        `site/src/site-config.ts`) carry the qualified reproducibility wording,
+        and the 1.3.2 CHANGELOG section states plainly that a run saved in 1.3.1
         continues differently after upgrading to 1.3.2."""
         import re
         from pathlib import Path
@@ -2214,5 +2215,29 @@ class TestThirdPartyNotices:
         assert (
             "Seed reproducibility is guaranteed within the same version"
             not in section_132
+        )
+
+        # 3. Served landing page (site/public/index.html) and site config (site/src/site-config.ts):
+        index_html = (repo_root / "site" / "public" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        assert "yields the same run, every time" not in index_html
+        assert "reproducible." not in index_html
+        assert (
+            "Seeded and deterministic. The GM tells the story; the engine is the "
+            "rules-lawyer. Within one version, the same seed and the same choices "
+            "play the same run."
+            in index_html
+        )
+
+        site_config = (repo_root / "site" / "src" / "site-config.ts").read_text(
+            encoding="utf-8"
+        )
+        assert "Every run is reproducible" not in site_config
+        assert (
+            "Seeded RNG, scarcity curves, and doctrine modifiers. Within one version, "
+            "the same seed and the same choices play the same run. The engine is the "
+            "rules-lawyer; the GM just tells the story."
+            in site_config
         )
 
