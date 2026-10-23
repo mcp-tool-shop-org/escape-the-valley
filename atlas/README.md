@@ -1,14 +1,16 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 5b69405 by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit f4d5581 by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (63 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
+10 parts, mostly Python (63 files), shell (6), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (6af2410)
+## What changed since 2026-10-23 (5b69405)
 
-Nothing structural changed since 2026-10-23; 3 files added and 6 changed content.
+- scripts/gen_third_party_notices.py is now read by docs/receipts/1.3.1-live-check/harness/linux_build.sh, docs/receipts/1.3.1-live-check/harness/linux_build_final.sh and docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh.
+- scripts/smoke_test_binary.py is now read by docs/receipts/1.3.1-live-check/harness/linux_build.sh and docs/receipts/1.3.1-live-check/harness/linux_build_final.sh.
+- 334 files added and 4 changed content, across 5 parts.
 
 ## What comes in
 
@@ -56,11 +58,11 @@ CI writes nothing this map can see.
 
 ## What tends to change together
 
+- **scripts/gen_third_party_notices.py** and **src/escape_the_valley/notices.py** changed together in 5 of 5 commits, and the scripts part imports the src part.
 - **src/escape_the_valley/tui_app.py** and **tests/test_tui_smoke.py** changed together in 13 of 14 commits, and the tests part imports the src part.
 - **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 14 of 18 commits, and the tests part imports the src part.
 - **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 13 of 17 commits, inside the src part.
 - **src/escape_the_valley/ui.py** and **tests/test_adapter.py** changed together in 7 of 10 commits, and the tests part imports the src part.
-- **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 8 of 12 commits, and the tests part imports the src part.
 
 8 files changed together with their own tests, as expected.
 

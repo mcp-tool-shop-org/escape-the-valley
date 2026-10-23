@@ -21,7 +21,7 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "ee11b5cf8bda91804d84ed20632b096df897b448b8c1dcd591296565ea913a43",
+          "hash": "735528d31aee481fc727eb62cf3d8e35c841273317884e60c004777f418441de",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
@@ -130,6 +130,1342 @@
         {
           "hash": "e226752a0d785525913750cd291a43d3c31c6d8af6c07e9948a3a7f3aee22308",
           "path": "docs/landing-design-brief.md"
+        },
+        {
+          "hash": "be8bbde0c41d1db922481ad625821609045fc5c64045b42e87bb67343ca34b57",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.cmd"
+        },
+        {
+          "hash": "8d5adbce433fe2d2559a25b10cd46b44326509c454ba8f21fd03849f7797e1e1",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/01-new-seed42.out"
+        },
+        {
+          "hash": "2822068b3458fb364b9ac31dd9187036db1ca8eae5ede65d7447ea8a4003f0ba",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.exit"
+        },
+        {
+          "hash": "72dc84b8bcac44b1ee7ede5bd1edf98435a2cbb6646723a3171bdef1e463e66a",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/02-stats.out"
+        },
+        {
+          "hash": "6252daf3871461682bdc3a6da953f3f2226aa44d4d8906dbbe1ae73350adfc52",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.exit"
+        },
+        {
+          "hash": "7844e7ac48b331ef093960aba7ce8141ae291b507222dd01a47a8985d4431bb5",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/03-stats-json.out"
+        },
+        {
+          "hash": "f5646ff3f6ce9f11c850585e1ee5d9795f05463de13b57ec2fca7cb133aece1c",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.exit"
+        },
+        {
+          "hash": "2b7c68b6a615251f9c5c0023bf1bfcc2f6a8e546eef74bb2d98fa6668b0a0d76",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/04-postcard.out"
+        },
+        {
+          "hash": "4c23970d62965a2af2cb3ff5d24fc56790587d0778cae870bc8b710d62a737da",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.cmd"
+        },
+        {
+          "hash": "22fdae1dbc8f74be5aae5b473fb44618a2328842b1b654dd7984b87637dd7484",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/00-new-seed42-piped-cp1252-default.out"
+        },
+        {
+          "hash": "642a5a6e3c628f0f6edf6b58bdd06c9e0b3351b8b0499af7cbb164a02e5b3353",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.cmd"
+        },
+        {
+          "hash": "aaa91e45197dfa224cb03c1860d5242918ae9aaa3ca8b1b75553ae5335c021a4",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/01-new-seed42.out"
+        },
+        {
+          "hash": "2822068b3458fb364b9ac31dd9187036db1ca8eae5ede65d7447ea8a4003f0ba",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.exit"
+        },
+        {
+          "hash": "5a66205a50014e82e8cc6fb1316a789f425f4ff025cef4cfb719ee204eec29de",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/02-stats.out"
+        },
+        {
+          "hash": "6252daf3871461682bdc3a6da953f3f2226aa44d4d8906dbbe1ae73350adfc52",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.exit"
+        },
+        {
+          "hash": "d044e74583ac7f5f5da946f9537e351beae5da3940abd6f9ddf16d2ec8b2c3a8",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/03-stats-json.out"
+        },
+        {
+          "hash": "f5646ff3f6ce9f11c850585e1ee5d9795f05463de13b57ec2fca7cb133aece1c",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.exit"
+        },
+        {
+          "hash": "e6d1e1b84a1ce96a0be4f3cb9f3cbcf6e7b3f00dd83d3b5a56272d60923e9be6",
+          "path": "docs/receipts/1.3.1-live-check/1-cli/base-1.3.0/04-postcard.out"
+        },
+        {
+          "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/abandon-card.json"
+        },
+        {
+          "hash": "9efe20295835b715d4bc14ccabc3f1b56ab689848cb19fe9a852715d2fe07158",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/after-e.narration.txt"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/before-e.narration.txt"
+        },
+        {
+          "hash": "ca95b8875a168eda30e7a2c5a4ac1b65b3b57aa0da5f4042fbebb65ee1687c16",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.exit"
+        },
+        {
+          "hash": "103c8d1d0e19a5154da1d6f07293d467771f15cd0d4a845bd0a19bf5aa335b0d",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/drive.out"
+        },
+        {
+          "hash": "36983abc8b99cb9e929f895109c479d10f6435613a1feaffd4106cd0092ceab3",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-5-nudge-open/steps.jsonl"
+        },
+        {
+          "hash": "4c2fd0088ae7953826eb3ca0b8dd72b8e9775f741f381d6b488cb4307a6f2d01",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/abandon-card.json"
+        },
+        {
+          "hash": "9efe20295835b715d4bc14ccabc3f1b56ab689848cb19fe9a852715d2fe07158",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.narration.txt"
+        },
+        {
+          "hash": "500a4be161ddcf74567c9f0d0db657dabb9630afb9fbbc836e5d8f0b69d91620",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/after-e.svg"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.narration.txt"
+        },
+        {
+          "hash": "f4e6eb6bb87c9e2b5e9ad1b25d41e54f969464e5b6605de0684085bfc85a6e6c",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/before-e.svg"
+        },
+        {
+          "hash": "22811ece206530a10d450066a9e3558b431edb27f18bf1739597cc8a5b5245ca",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.exit"
+        },
+        {
+          "hash": "fa69cc01d6b8ada7bea9fdb07358bc878397c902ba12be8a7717e0743e1d742b",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/drive.out"
+        },
+        {
+          "hash": "9afc1e5d6ec6ae27493eed6b67bd4edb09dae5d47a3b6a26c0b719924605f958",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/base-1.3.0/press-e/steps.jsonl"
+        },
+        {
+          "hash": "a7fb176c90a6abfa367128ddef654454a84c4c58475faceb76679cf97a4e8b76",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/abandon-card.json"
+        },
+        {
+          "hash": "aec7f0a606af7cd2a07f149c73106578475b49f5d4ca46196b49542de9cf2e06",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/after-e.narration.txt"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/before-e.narration.txt"
+        },
+        {
+          "hash": "ca95b8875a168eda30e7a2c5a4ac1b65b3b57aa0da5f4042fbebb65ee1687c16",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.exit"
+        },
+        {
+          "hash": "453097c97a6f93ca00d0334c33fb1c1e4afaf503013b3122d81b945b4f8fa4d2",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/drive.out"
+        },
+        {
+          "hash": "36983abc8b99cb9e929f895109c479d10f6435613a1feaffd4106cd0092ceab3",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-5-nudge-open/steps.jsonl"
+        },
+        {
+          "hash": "001f7ed43d7afd2bb4b198092cfc6efee1cdc6c10cf34b7ea98e4a9a96976b64",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/after-e.svg"
+        },
+        {
+          "hash": "758deb00606115350cebab6ca63a357b820b9ee1d7d472fa6b672d63b31aff4f",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.cmd"
+        },
+        {
+          "hash": "cf57833caf92dc17c8d5df4ef3969779d224aa4de5937d414d613e568ca52312",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.exit"
+        },
+        {
+          "hash": "6a6a8693c50b628e0b8b33edb8e12eceb8d9e4d9c3a1ac566da81411fa9c496e",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e-nudge-open/probe.out"
+        },
+        {
+          "hash": "a7fb176c90a6abfa367128ddef654454a84c4c58475faceb76679cf97a4e8b76",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/abandon-card.json"
+        },
+        {
+          "hash": "aec7f0a606af7cd2a07f149c73106578475b49f5d4ca46196b49542de9cf2e06",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.narration.txt"
+        },
+        {
+          "hash": "f2e2b2237a2b884db7c3c4c45fdebbc7dc00007fd405a3f9cb9c6680bc97a586",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/after-e.svg"
+        },
+        {
+          "hash": "645db45a0b4ff982fe17560ca8bff2cb888f8c1d555cf3db49c884050464b5af",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.narration.txt"
+        },
+        {
+          "hash": "3895e87d03f21542c750537bf4d46a164d539fd41a887828a84aff3542b64577",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/before-e.svg"
+        },
+        {
+          "hash": "22811ece206530a10d450066a9e3558b431edb27f18bf1739597cc8a5b5245ca",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.cmd"
+        },
+        {
+          "hash": "f1b24cae5e86dcb41bee649f8ec693781398b8abcd87cd19148600a544a09dbc",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.err"
+        },
+        {
+          "hash": "28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.exit"
+        },
+        {
+          "hash": "ccce3facde7bfa42aeb5bced3ae7881846a7fedf89457f29b98a068e8222fb13",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/drive.out"
+        },
+        {
+          "hash": "9afc1e5d6ec6ae27493eed6b67bd4edb09dae5d47a3b6a26c0b719924605f958",
+          "path": "docs/receipts/1.3.1-live-check/2-tui-abandon/press-e/steps.jsonl"
+        },
+        {
+          "hash": "5ebaab30fb4cc2f556df8875e500417af95c713621bf3c3a222c9b1b4b49c43f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-024-r.narration.txt"
+        },
+        {
+          "hash": "cfaf509838aabf1ac5ff90e25aee83f88706231962dc10f8f902cc5be5d78d3f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-025-p.narration.txt"
+        },
+        {
+          "hash": "052a5f268ef16773d12b839fab3b93b5cadcbb4d538f27f20ce4a5b5d06b028a",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.narration.txt"
+        },
+        {
+          "hash": "e984bf0277a9c316eb04b9a07118faed147411eef5433bd93769b9704fd725c7",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-026-t.svg"
+        },
+        {
+          "hash": "83308c47efb67d631eaecd54a76758b019357cfdfc268fcc1787e957c3e03e7d",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-027-1.narration.txt"
+        },
+        {
+          "hash": "0dc775ad1516ad86b86700f3c54449f8abcdb77ff881533b4d79e7c45efd22aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.narration.txt"
+        },
+        {
+          "hash": "6967c604ebe945304acd2fa06cc4060e21c893ccff394598390cf8581f5010a3",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/after-028-t.svg"
+        },
+        {
+          "hash": "3d414d0dd4b6ea5b642872a128b85cf5d2f91c04dcde3a789159afe8d5048c10",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.narration.txt"
+        },
+        {
+          "hash": "cdc20b5a4b8a2b82e85c4ff12c1db44a5f7e23524df7dc66f7cb0c5ff1a2054c",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/at-fork.svg"
+        },
+        {
+          "hash": "5ebaab30fb4cc2f556df8875e500417af95c713621bf3c3a222c9b1b4b49c43f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-024-r.narration.txt"
+        },
+        {
+          "hash": "cfaf509838aabf1ac5ff90e25aee83f88706231962dc10f8f902cc5be5d78d3f",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-025-p.narration.txt"
+        },
+        {
+          "hash": "052a5f268ef16773d12b839fab3b93b5cadcbb4d538f27f20ce4a5b5d06b028a",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.narration.txt"
+        },
+        {
+          "hash": "09ee279af2e6a457c465a95277b759bbded8ac98a7f406e50f9731b2c7a8ffa5",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-026-t.svg"
+        },
+        {
+          "hash": "83308c47efb67d631eaecd54a76758b019357cfdfc268fcc1787e957c3e03e7d",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-027-1.narration.txt"
+        },
+        {
+          "hash": "0dc775ad1516ad86b86700f3c54449f8abcdb77ff881533b4d79e7c45efd22aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.narration.txt"
+        },
+        {
+          "hash": "82fc13c87c974a6abd05a84106a1d9842a0698aa34e0196a43481d661f8d90f9",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/after-028-t.svg"
+        },
+        {
+          "hash": "3d414d0dd4b6ea5b642872a128b85cf5d2f91c04dcde3a789159afe8d5048c10",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.narration.txt"
+        },
+        {
+          "hash": "88ad48b05ae115cadd607c1b913ec08c13bb33209d84621dde31e99046d16066",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/at-fork.svg"
+        },
+        {
+          "hash": "ed96bbc29e55b94104177c305e8e63902bfb50b3f2840608ed464c379ef2a929",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.exit"
+        },
+        {
+          "hash": "3fa77b0e81d4b2696223e64be18f9574b45b618217bbbf0033492aaf707f3caa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/drive.out"
+        },
+        {
+          "hash": "c060e856dfecd52d8e58fe0e0dca6c8a331a8ff272df62a3cda485ae9c55cad6",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/base-1.3.0/steps.jsonl"
+        },
+        {
+          "hash": "ed96bbc29e55b94104177c305e8e63902bfb50b3f2840608ed464c379ef2a929",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.exit"
+        },
+        {
+          "hash": "f91e6d84d9cd5b732839503d28306477d37e1c45c2f7379dffdc2bff54867200",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/drive.out"
+        },
+        {
+          "hash": "3f26ea022e94ad5cc7ce4f24f7a8b0bcca7bf29c546da465131f25c7a0207c94",
+          "path": "docs/receipts/1.3.1-live-check/3-tui-fork/steps.jsonl"
+        },
+        {
+          "hash": "27115903198f430905af68b5bfadc7859662a91c3630eb9fc4adcbbf235d7b4a",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.cmd"
+        },
+        {
+          "hash": "25dff676ef36a1a0a2b6cc7060c717f5fdf38d3770dc854f247b59166bb6fca8",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/01-new-A.out"
+        },
+        {
+          "hash": "04fe00297679e69a379424936e4573086a2a03fa20c5fec9a41b5759b53a21e7",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.exit"
+        },
+        {
+          "hash": "38d84a6377cfa4886f33b830005828db19e3d51a19d3c2dba5d61469868cf51b",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/02-enable-A.out"
+        },
+        {
+          "hash": "289ba1912708aaa3e98744648156a7294e9570a1c8cf9e887d14214c5ed11cd5",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/03-after-A.txt"
+        },
+        {
+          "hash": "30a539a4a69766d3dd3bcde2bf691c972e74c91c2421a673bbeeb7ba6e688875",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.cmd"
+        },
+        {
+          "hash": "a49a98ff83be311e943512d9d7f23a57ab0c93774b209389c9f693002d73ff44",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/04-new-B.out"
+        },
+        {
+          "hash": "04fe00297679e69a379424936e4573086a2a03fa20c5fec9a41b5759b53a21e7",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.exit"
+        },
+        {
+          "hash": "ed3041cfefce1e116165821692ce671521e57bde128db20498713ad39e235e0a",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/05-enable-B.out"
+        },
+        {
+          "hash": "ef248de93f7f00320e64206fbf7f2c58e64716cd4940d4f07be612f7c9bd3e99",
+          "path": "docs/receipts/1.3.1-live-check/4-same-seed/06-after-B.txt"
+        },
+        {
+          "hash": "13722ccd27a01547d9afff1187a4cf9e019ee23e4ea69cabb8c23d5da0fab3e5",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/account_tx.txt"
+        },
+        {
+          "hash": "2e67abd09d90c61ca28eaa5cf520f7207fc9267686b574e78ccf68956ec3e618",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.cmd"
+        },
+        {
+          "hash": "f50cd998f228f9321335f580d08c656eaa1cc9a55e2c07db8afc9756f32f66ef",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/01-play-to-fellgate.out"
+        },
+        {
+          "hash": "0b37d3fb0e9e88c8bf8710d416409a5e975fba126c23599fdaaeae89c5b73735",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.exit"
+        },
+        {
+          "hash": "4fe1b6874addf221e0d1f57865722d12904fc1325af85e76c53e093749494f0f",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/02-ledger-status.out"
+        },
+        {
+          "hash": "ec6bc46683bdfb043c1193ac11a0b40c5f4de6c159fc7e23bb33b2c36c7db3dc",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.exit"
+        },
+        {
+          "hash": "71b4a3fe4d6dfd0dabd929312cc223dc324e43e992185de9ff9e0cc3cb3dad65",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/03-ledger-proof.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.exit"
+        },
+        {
+          "hash": "eba2a028c31666f4d67c6fbd3187585ff98d04bcf78a65326b3d274528b6bcd7",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/04-ledger-wallet.out"
+        },
+        {
+          "hash": "7a04b2a39111e5212f8246d2353275212677c539c8c83e5e2db47da7d601c324",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.exit"
+        },
+        {
+          "hash": "92a8efaac3bf3d9ea0f3210de0cf40b1eaf2e36eb20ab6066e86986d5739498e",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/05-parcel-send.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "eba2a028c31666f4d67c6fbd3187585ff98d04bcf78a65326b3d274528b6bcd7",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runA/06-ledger-wallet.out"
+        },
+        {
+          "hash": "2e67abd09d90c61ca28eaa5cf520f7207fc9267686b574e78ccf68956ec3e618",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.cmd"
+        },
+        {
+          "hash": "b9e88a9bdc4ade17842361dacb18322ebb708531e6a9675bf5d4c3e391e26589",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/01-play-to-fellgate.out"
+        },
+        {
+          "hash": "37ac8ae4deff0e4d99054ffe7200d06499aafe633865712f57c634136bf57f8c",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.exit"
+        },
+        {
+          "hash": "a2847ae5cb88600297a795e3a02236401aa8d7eb90236e47473b34b45938c710",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/02-parcel-list.out"
+        },
+        {
+          "hash": "c9e9c5da877069ec1805d70eaef4029b2a719f48c96610d47011fbeca18079d2",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.exit"
+        },
+        {
+          "hash": "7e3cb772d151e534622bba692e2ce798bb160165248b94ee65e509cfe6747b9d",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/03-parcel-accept-help.out"
+        },
+        {
+          "hash": "985b52804f1fae132914338c80722da2e67abdbb76953eb4c64f6bc737ca244a",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.err"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.exit"
+        },
+        {
+          "hash": "b09289ebaf810012be48621726e1e81b271fc70306a21f32eb2b1fd214cb1558",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/04-parcel-accept-prefix.out"
+        },
+        {
+          "hash": "f8c5f1839e99a84eaddd5ff9238d6d456ae6cc365839cbc50311848b33e8e4c6",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.exit"
+        },
+        {
+          "hash": "1f3acd98cca48a708c7054932b0b446f2297fd3b7ec4157b7c6736bb74fd4ab0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/05-parcel-accept.out"
+        },
+        {
+          "hash": "37ac8ae4deff0e4d99054ffe7200d06499aafe633865712f57c634136bf57f8c",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.exit"
+        },
+        {
+          "hash": "a2847ae5cb88600297a795e3a02236401aa8d7eb90236e47473b34b45938c710",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/06-parcel-list.out"
+        },
+        {
+          "hash": "ec6bc46683bdfb043c1193ac11a0b40c5f4de6c159fc7e23bb33b2c36c7db3dc",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.exit"
+        },
+        {
+          "hash": "6cfad8f7a78e51ad70cb44d288ebce98eb99707691f11e480b0f511de882bf03",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/07-ledger-proof.out"
+        },
+        {
+          "hash": "f98c937c048ca1a0813a0f78647ae65a1982201d3c2bf32e60c17177726133f0",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.exit"
+        },
+        {
+          "hash": "e8f28ea1e7c5119257a5f42b3c838268e4131f34afcb53ebd748931498dfdc4f",
+          "path": "docs/receipts/1.3.1-live-check/5-backpack/runB/08-ledger-wallet.out"
+        },
+        {
+          "hash": "af823fda24254916974c90eadd5ce0b2b19a10256b39a2d88a7c5c53932bbf09",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.exit"
+        },
+        {
+          "hash": "343bd4d9966531b37e0f17c4070263029b7eac889eb29906f37a5908fca2a6d0",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/01-pipe-Q.out"
+        },
+        {
+          "hash": "af823fda24254916974c90eadd5ce0b2b19a10256b39a2d88a7c5c53932bbf09",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.cmd"
+        },
+        {
+          "hash": "19d586d231652beb11826f5925d988ec91d234c982cf77ff7ff3d9511902afd9",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.err"
+        },
+        {
+          "hash": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.exit"
+        },
+        {
+          "hash": "ea9fecc0ba10d6d60d23ee9a145f5b41fd713b850e48d58a8bbeae07bb022e4c",
+          "path": "docs/receipts/1.3.1-live-check/6-cp1252/base-1.3.0/01-pipe-Q.out"
+        },
+        {
+          "hash": "1d1f0d203b9a47ddbaf5a4888bc69735111854292654a4a28fc6fd601d9fdc19",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/01-install-notices.log"
+        },
+        {
+          "hash": "846997535a6e84285b4912eec9b31682d36ac7512ec52710615b816642fed643",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/02-pyinstaller.log"
+        },
+        {
+          "hash": "e26074fe4bb516149a51620292c01805c89b3787f03397d3d0002847026738c4",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/03-binary-sha256.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.exit"
+        },
+        {
+          "hash": "7e67543e8ae9e0d400f37c0ba49b75f620de8d029f1f36b8a3ce029ec8b161e7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/04-smoke.out"
+        },
+        {
+          "hash": "3c633fb47bccfd1375c53baf144514f22256f1f4682ba3a8e244db008b7e65e0",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/09-identity-scan-binary.txt"
+        },
+        {
+          "hash": "7f59ea29e239967a5f32e987be7c5c54479b6708897fbcb9f20f88a2560e1f2e",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/10-unpack.txt"
+        },
+        {
+          "hash": "71ab6851ff0ec78dd1665221920ff2db1ea81366b55afafdd2fbb767a8a825a3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/11-identity-scan-unpacked.txt"
+        },
+        {
+          "hash": "a56c15f8dce6c42140b1e9ae26c80e75fc98ace8ad9107626b2dee62de97b6d4",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/12-hit-sources.md"
+        },
+        {
+          "hash": "79d4aed8015122cb5befee8653bc52bc6b2a6202ba30b9a2bee99f58e5b64d43",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/13-identity-scan-binary-v2.txt"
+        },
+        {
+          "hash": "648133a986e7291f59eba881a1dd623a550ee4edb82da351a482abaabe7ca2d3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-head.txt"
+        },
+        {
+          "hash": "dfd13e97da6ed14531d24b7df2cf121558d014dc90d1f0a92f497188792a4067",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/03-binary-sha256.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.exit"
+        },
+        {
+          "hash": "7e67543e8ae9e0d400f37c0ba49b75f620de8d029f1f36b8a3ce029ec8b161e7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/04-smoke.out"
+        },
+        {
+          "hash": "759ae868ed1fcdec69ce0d713074a8faeec4035ee53324d6ac4ca5dd4c353097",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/09-identity-scan-binary.txt"
+        },
+        {
+          "hash": "826ed670533f0e2e9d81dd99187c5f6c52df59e3a8d736cf2911090bd6cec080",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/11-identity-scan-unpacked.txt"
+        },
+        {
+          "hash": "f2f26cb0956c03d5ade711505a6daa236160688929749b2af80fb784e8943376",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/01-version.out"
+        },
+        {
+          "hash": "ded22bd60413a6cbcfa72561c8fd94537bb98546ea391ae372c3ec9e50ea60b7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.exit"
+        },
+        {
+          "hash": "f1f9748b8dcc96f7404803ac0943c073c1b55f44192205f9f51446feee82eee3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/02-self-check.out"
+        },
+        {
+          "hash": "cb33549f905592847b0c6d523161027ad983b822edbc3af62572e6f021f04570",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.cmd"
+        },
+        {
+          "hash": "10979105b98491db3e866db2b20377bf6fb24587577a325f95365cde9d16ed91",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/03-new.out"
+        },
+        {
+          "hash": "85de5da7bc9ae025611f12161e253eb174d7522810c119ea0b5ea318a3048ad8",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.exit"
+        },
+        {
+          "hash": "781c373db3b6de232f4ca7a70245adc9ae1add0e82fbe2b96f8a70312be80808",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/04-ledger-enable.out"
+        },
+        {
+          "hash": "a46c4fea7fb990a6e32671c96bb2f991137206cb82fa81bfabcdd79fa8600bca",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.exit"
+        },
+        {
+          "hash": "2e28159817f9cd5a4d835bc52a04af8a36b3777e22528a2f73b02e6c77baad27",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/05-ledger-status.out"
+        },
+        {
+          "hash": "123130430d1bcccff792f64f5e3098b34e9a5964e5c08d929180896fe014ca12",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "f6c75a32b1125a6d99c456ab67a1e3ef79603dd597e56f6a3491641a07d776df",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/frozen/06-ledger-wallet.out"
+        },
+        {
+          "hash": "a05532fce4bbd9ef4937526eb722d26ffefb4d08bf5f5dc3bd49423a818e1cea",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/build-py313/python.txt"
+        },
+        {
+          "hash": "f2f26cb0956c03d5ade711505a6daa236160688929749b2af80fb784e8943376",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/01-version.out"
+        },
+        {
+          "hash": "ded22bd60413a6cbcfa72561c8fd94537bb98546ea391ae372c3ec9e50ea60b7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.exit"
+        },
+        {
+          "hash": "f1f9748b8dcc96f7404803ac0943c073c1b55f44192205f9f51446feee82eee3",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/02-self-check.out"
+        },
+        {
+          "hash": "cb33549f905592847b0c6d523161027ad983b822edbc3af62572e6f021f04570",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.cmd"
+        },
+        {
+          "hash": "0bd0f0efa127844a68810960c5c66cfda051690833a5a617f5ee48e4d00980d9",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/03-new.out"
+        },
+        {
+          "hash": "85de5da7bc9ae025611f12161e253eb174d7522810c119ea0b5ea318a3048ad8",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.exit"
+        },
+        {
+          "hash": "90ee7362490515f25a5bd310236ef1f48127f183c430267703242b2928c4a42f",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/04-ledger-enable.out"
+        },
+        {
+          "hash": "a46c4fea7fb990a6e32671c96bb2f991137206cb82fa81bfabcdd79fa8600bca",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.exit"
+        },
+        {
+          "hash": "fedc4be23262f5f1e3411643fb3c0f908ed52d707862ba6c08bfed0d69e8a61a",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/05-ledger-status.out"
+        },
+        {
+          "hash": "123130430d1bcccff792f64f5e3098b34e9a5964e5c08d929180896fe014ca12",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.exit"
+        },
+        {
+          "hash": "573a24a8d818ba132c55f0c1e0b14bdec4f64fe47c80a154e4fdc1fff8212794",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/06-ledger-wallet.out"
+        },
+        {
+          "hash": "3edffdd62c3ada1de8a849f59becf05d8139a95a19c33f76109af33bc84b941a",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/07-licenses.exit"
+        },
+        {
+          "hash": "7b56217ebc9af18f6c6536b2bef0e8e9df7976ad27460ab8a2f48128b9bb0884",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/frozen/08-dash-licenses.exit"
+        },
+        {
+          "hash": "788684cf799ed24e5e060f16291dacb2cb329a6f7fb07ed9a41525e1a8c4ca86",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/licenses-hashes.txt"
+        },
+        {
+          "hash": "77cc29d2e73376463abaf0fd9efb6361acf1be56126b15fb0f6b688f9ad896a1",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/01-install.log"
+        },
+        {
+          "hash": "2de8c771bb6230b9f50e803a3f2de4b532e21dcf20d56fe71d83b1fc4b9cf2cd",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/02-bundled-path.txt"
+        },
+        {
+          "hash": "f9fba9feecdd4000e33e5f905081b0f20bb3b6d1d2f7232dfef6c96c71765d58",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.exit"
+        },
+        {
+          "hash": "7e5bdbd63265e9b9c3c6e16e44fbb0c6b60ba14d27981567e0bdf0956867d300",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/03-version.out"
+        },
+        {
+          "hash": "73b2d194028dbc0959e2a1f5c25a464fa2e7b7de4994a86dd73f30c6fdeb6bb7",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/04-licenses.exit"
+        },
+        {
+          "hash": "2602fbf8936b6d1e35f1c87efbbaf2b217c16c0001dcd8f3d4e04982e4267371",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/7-binary/pip/05-dash-licenses.exit"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.exit"
+        },
+        {
+          "hash": "12e95439a738cb082571d97c56b3694a0861e83fb430f6315823993371fd795b",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.exit"
+        },
+        {
+          "hash": "85e3055bf573800772749181b0943e57b6be8603543341a3685ead7325b1c315",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.exit"
+        },
+        {
+          "hash": "9afba5ff2c488a565dbb6b8cee9d0390e7da65beb2b219959619c4be327b4950",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.exit"
+        },
+        {
+          "hash": "60bb95b884337f2617482b204af4926fdfb51b4d7fb5a7646fa90e3a22b57292",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/04-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.exit"
+        },
+        {
+          "hash": "b18df07cac992adf2eefba53a96f4df9d8ed6a1022cf19947e4f3cb2b551a529",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/05-pyinstaller.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.exit"
+        },
+        {
+          "hash": "c46fb650b3abbdcef9fc74d4e964660c48a569cb7728e29cd426f15db74a6ffa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/06-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.exit"
+        },
+        {
+          "hash": "54d28bdfb76a76876ad1df8ca762fad56a4de2de4b2d9037af550041a487c0e6",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/07-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.exit"
+        },
+        {
+          "hash": "324448f77ce995f8979bc4b450a292b1393c9022381eaeaed2d71d205d9223bb",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/08-smoke.log"
+        },
+        {
+          "hash": "8e2c9c214c5cda6317a6af9c88939b1370f5d1e0e7c9c73a23ba41e3b02c9566",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/09-verify-toc-negative-rich.log"
+        },
+        {
+          "hash": "7dbe643d8721eff702b1cfa88aaba4e8c0382a9ff305c06a88f76ecbb6737e89",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/10-toc-modules.txt"
+        },
+        {
+          "hash": "cbc416f406ca1fffb5844c98dc17900df42b0807358e720c563481322cd8b232",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/file.txt"
+        },
+        {
+          "hash": "fabd374b081980a2c32b5730181b81d4728d96b3b285ed6362cc30d30c1481e9",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/head.txt"
+        },
+        {
+          "hash": "cc712eef7f5796a047d9629b9aa6f08ff6f848c2e4197e67e5fb54877266d6a9",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/notices-names.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/8-linux-binary/versions.txt"
+        },
+        {
+          "hash": "25ad07374967ff0f11add31fb5b4d881fb5bf8f656489cf7a02ef4e142209211",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/bundled-dists.txt"
+        },
+        {
+          "hash": "81d939c8a653312c0e621e1a8282551fbc1956b40ce49596b5bb7f29d26a62f8",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-hit-sources.md"
+        },
+        {
+          "hash": "e2e3ecadfb0a1ab824bacda67488aca6a964b2dae14050ec462538c398a183e2",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/identity-scan-linux-binary.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.exit"
+        },
+        {
+          "hash": "58e0db7cd88862485b4db7439db365e18a2431dda16812d58b69b31cca409e65",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/01-python-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.exit"
+        },
+        {
+          "hash": "8c3a09fae2efbcc2c59acc84ea4f8c9ae673ecd87dd6b2f824ff10924988cd66",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/02-venv.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.exit"
+        },
+        {
+          "hash": "89dd100dfe56f70f3091ce86fa8286b767b158406a2bbcc831da3dd313ca7021",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/03-install.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.exit"
+        },
+        {
+          "hash": "8cc3fc4704a052f1aa9d50526c8b4f564978cee6a39ca4923fbe4495c69b295e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/04-remove-direct-url.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.exit"
+        },
+        {
+          "hash": "e467b5471484333c37148795176c685815ea4c0d7e2c2366cca471db7eb27342",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/05-gen-notices.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.exit"
+        },
+        {
+          "hash": "c0454c93fe5ce53ff2a5c139e1e16a0e2b157d00e7fa30be53cadec02d53e592",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/06-pyinstaller-1.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.exit"
+        },
+        {
+          "hash": "1e9ec7e4e0aaf57f8062b04207fef2c61ef1533f068722a8b2fda3edc65d1e53",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/07-prune-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.exit"
+        },
+        {
+          "hash": "ab5d479484a07465666562383edb1f730d5dabb1ff7087c8a68caa17d3d39ddd",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/08-pyinstaller-2.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.exit"
+        },
+        {
+          "hash": "e9d48a5b30aa4450d3bb7eef3437a2d9bed69d72880f9e4d3342b278c0f8afd7",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/09-rename-copy.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.exit"
+        },
+        {
+          "hash": "150b1703b8e7321d5cf2b9d251662509ad78d231f83843c68c86f6ba0b99b265",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/10-verify-toc.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.exit"
+        },
+        {
+          "hash": "d16d797798b591472f016d2bcb0483e3a00d9f0a0f75f64cdcca09003718643c",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/11-verify-bundle.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.exit"
+        },
+        {
+          "hash": "40a11bad42dc9190e197c9677ef35de8671ebfcbac9102b4fa7453f397d7a2d5",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/12-smoke.log"
+        },
+        {
+          "hash": "34390db4910c38ee17ac6552cece99663eafdc8a8facada2d12ca45296f25212",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/THIRD_PARTY_NOTICES-linux-x64.txt"
+        },
+        {
+          "hash": "9732dc92c1d507356b8268523bb173a6c3f73fecc41fd325c1e7422e3ad138da",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/dist-sha256.txt"
+        },
+        {
+          "hash": "0b6b131f9edd68c43e47d7a555764207f96e9c8f9fd102e4cd3faa4561e55dba",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/file.txt"
+        },
+        {
+          "hash": "093b72bf48103e82b41125bc956e60d19f0a1f21864374e8f84d45c53690c63e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/head.txt"
+        },
+        {
+          "hash": "ca4857ff68a8930c278aa2c72c4c2b092d6c4cb777612d97d53c8125f99759bd",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/notices-before-prune.txt"
+        },
+        {
+          "hash": "88f304400f025f23d2685cc077bc4f42eb79982be86cb81c5273fb1498601374",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/uv-version.txt"
+        },
+        {
+          "hash": "c35b56d8e792ddfe358abad610c97d61dd2696b8cbcf8a13a5b76881f6b7bea4",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/linux-build/versions.txt"
+        },
+        {
+          "hash": "b99eadd1dcbe0eecf6c2547a3bb54ad5c19c416e74d8846e6af03656b389a0e9",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check-negative.txt"
+        },
+        {
+          "hash": "b526f37bcef411c331cbb32914e62275146b9eea3688d49b7c63332451e66daa",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-check.txt"
+        },
+        {
+          "hash": "6eebeae102a541d90ec172b925f16e4bb86aea34fa641e3211d5b087a808cbd1",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/notices-three-copies-sha256.txt"
+        },
+        {
+          "hash": "2b40b30309e3911853553de30d15a1e9d6f988a327eb58ad95871868e073b64f",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/python-version.txt"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.err"
+        },
+        {
+          "hash": "28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.exit"
+        },
+        {
+          "hash": "28a2f1824a1d016897a4ab872c6976f8a1c04942f265da67070d6392c5f0f24e",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/pip-py313/trail-licenses.out"
+        },
+        {
+          "hash": "b6543c39e3dda6e2e370df730509dec6bffbc5938c1eac8a5166a0bc8cf292e9",
+          "path": "docs/receipts/1.3.1-live-check/9-final-7481d88/sysconfigdata-home-paths.txt"
+        },
+        {
+          "hash": "32d45d84d3f090b8666920bef320492094a7414319c592e754051103e37880b9",
+          "path": "docs/receipts/1.3.1-live-check/README.md"
+        },
+        {
+          "hash": "242ab7d773918fe2654fb5a4218574dc0617f29529e0d62d9d9e9ed8582e47b0",
+          "path": "docs/receipts/1.3.1-live-check/code.txt"
+        },
+        {
+          "hash": "7af5da4e1b3a69477f808b60acc237c9e360bdad1fd7872a9615f8101cc39855",
+          "path": "docs/receipts/1.3.1-live-check/harness/_run_final.sh"
+        },
+        {
+          "hash": "913ec60c9a5ec3e2b0a88e2ebddfb896798613656fbe7b5dc16d6f81c3e8f1a2",
+          "path": "docs/receipts/1.3.1-live-check/harness/bundled_dists.py.txt"
+        },
+        {
+          "hash": "6a6d7ce87fb83b4e142162b6f245b72535f3b58e5c8ced5c36b7b1298abc9e52",
+          "path": "docs/receipts/1.3.1-live-check/harness/cli_drive.py.txt"
+        },
+        {
+          "hash": "7bd034bc945d8461621dc2bf5f540238a4ba017e9c0b7784e1b2e6a9c8402299",
+          "path": "docs/receipts/1.3.1-live-check/harness/etv_ledger_probe.py.txt"
+        },
+        {
+          "hash": "8c5a4de5fc50a13d751831221ba5124d6862b5a93d8284d47051151878056b58",
+          "path": "docs/receipts/1.3.1-live-check/harness/hit_context.py.txt"
+        },
+        {
+          "hash": "e0f9c0ff7e24bab62cc99f69b61e3e7c1d9d2f7ccb60d1f23ce29cffb5c6f75b",
+          "path": "docs/receipts/1.3.1-live-check/harness/hit_context_scan.py.txt"
+        },
+        {
+          "hash": "6783ff0de016e943eb4889ac45b08d94ca9733bdeb72dbeec78bbc336b1e2d87",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build.sh"
+        },
+        {
+          "hash": "6db4f0e088937c38a915977ca0aafa43d38f2cbefb63bfef60f36ebfb5c0159e",
+          "path": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
+        },
+        {
+          "hash": "602da5986f960b92415553792e0bb1d0e547e0de246512ebbbe68282d0a313a7",
+          "path": "docs/receipts/1.3.1-live-check/harness/notices_check.py.txt"
+        },
+        {
+          "hash": "1818f49b649b9adc1a849d8aa67de00555a00bd691b941e2d50293a6af2f24f7",
+          "path": "docs/receipts/1.3.1-live-check/harness/redact_tree.py.txt"
+        },
+        {
+          "hash": "d61bb1b22636d511e21677eb79624acbd7de70ad7b09fb79b3dfe9dc12c7c09d",
+          "path": "docs/receipts/1.3.1-live-check/harness/seed_search.py.txt"
+        },
+        {
+          "hash": "552de51ace43b8d8da5385971ab3600d34c723c68392322b7ff292b9ea76f256",
+          "path": "docs/receipts/1.3.1-live-check/harness/toc_has.sh"
+        },
+        {
+          "hash": "f719211c78bd0a4a5d166a8c4a62a8752cddc3d7d9f3cd1d582ead324dc3e264",
+          "path": "docs/receipts/1.3.1-live-check/harness/tui_drive.py.txt"
+        },
+        {
+          "hash": "79d201f47bb1f90f086e8780562e29be66fbb2586c37339863c1de712daaf3e7",
+          "path": "docs/receipts/1.3.1-live-check/harness/tui_key_probe.py.txt"
+        },
+        {
+          "hash": "654002f7d1ebd468a21e9246bd672fcf1416b5d06e65a71dad6f79076e9b3c4c",
+          "path": "docs/receipts/1.3.1-live-check/harness/unpack_pyinstaller.py.txt"
+        },
+        {
+          "hash": "ef107adbf81895d58e54913900ac0e05503f0bd230b4049068223272edde9c55",
+          "path": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh"
+        },
+        {
+          "hash": "f840c4fec8ad4264ce0b0d035172470b940a6b060f2463b167718571c7b85144",
+          "path": "docs/receipts/1.3.1-live-check/hashes.txt"
         },
         {
           "hash": "8694eee992f51e5e43d1810db9e8050f74b39a84710c199034eb2a8f4cee3542",
@@ -272,7 +1608,7 @@
               "line": 108
             }
           ],
-          "hash": "ad86f575c34e13ac5c78bc91f68013298c7b330c6bae17951ea70d27aa50168a",
+          "hash": "07eab0403253f7dc05d23790b51ac93723994d69de694502e4203d290def67bf",
           "importsFiles": [
             "src/escape_the_valley/notices.py"
           ],
@@ -3547,180 +4883,190 @@
             {
               "in": "_load_sources_manifest",
               "kind": "raise",
-              "line": 110
+              "line": 111
             },
             {
               "in": "_read_interpreter_pbs_build_tag",
               "kind": "except",
-              "line": 149
+              "line": 150
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 172
+              "line": 173
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 180
+              "line": 181
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 189
+              "line": 190
             },
             {
               "in": "_verify_vendored_licenses_match",
               "kind": "raise",
-              "line": 194
+              "line": 195
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 209
+              "line": 210
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 212
+              "line": 213
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 222
+              "line": 223
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 229
+              "line": 230
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 234
+              "line": 235
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 242
+              "line": 243
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 252
+              "line": 253
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 257
+              "line": 258
             },
             {
               "in": "verify_vendored_licenses_integrity",
               "kind": "raise",
-              "line": 277
+              "line": 278
             },
             {
               "in": "_locate_cpython_license_file",
               "kind": "except",
-              "line": 362
+              "line": 363
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 374
+              "line": 375
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 382
+              "line": 383
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 408
+              "line": 409
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 414
+              "line": 415
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 428
+              "line": 429
             },
             {
               "in": "_read_cpython_license_blocks",
               "kind": "raise",
-              "line": 434
+              "line": 435
             },
             {
               "in": "_extract_dist_license_files",
               "kind": "except",
-              "line": 516
+              "line": 517
             },
             {
               "in": "_read_game_license_block",
               "kind": "raise",
-              "line": 646
+              "line": 647
             },
             {
               "in": "_build_top_level_to_dist_map",
               "kind": "except",
-              "line": 851
+              "line": 852
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "raise",
-              "line": 889
+              "line": 890
             },
             {
               "in": "collect_toc_bundled_distributions",
               "kind": "except",
-              "line": 919
+              "line": 920
             },
             {
               "in": "collect_toc_bundled_excluded_extensions",
               "kind": "raise",
-              "line": 964
+              "line": 965
             },
             {
               "in": "collect_toc_bundled_excluded_extensions",
               "kind": "except",
-              "line": 996
+              "line": 997
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1081
+              "line": 1082
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1093
+              "line": 1094
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1111
+              "line": 1112
             },
             {
               "in": "verify_toc_against_notices",
               "kind": "raise",
-              "line": 1118
+              "line": 1119
+            },
+            {
+              "in": "_find_sysconfigdata_home_paths",
+              "kind": "except",
+              "line": 1174
+            },
+            {
+              "in": "verify_bundle_no_direct_url",
+              "kind": "except",
+              "line": 1250
             },
             {
               "in": "verify_bundle_no_direct_url",
               "kind": "raise",
-              "line": 1155
+              "line": 1292
             },
             {
               "in": "get_third_party_notices_text",
               "kind": "raise",
-              "line": 1215
+              "line": 1349
             }
           ],
-          "hash": "67b605866bda5a4e7f2a03dc90b799bec1732bb86246be4e1d9161ce2665efc1",
+          "hash": "8aa2ee4cb15f552f6f0266aa2ffe897e19537d0c7dfb33784a906f3146a8268d",
           "importsFiles": [
             "src/escape_the_valley/__init__.py"
           ],
@@ -5395,7 +6741,7 @@
           "path": "tests/test_backpack_save.py"
         },
         {
-          "hash": "3af468c9dde501dae43941af374a3d6ebd8288df134d8739d82ed541965367b2",
+          "hash": "6b935817cc275209cfeeea5d5014636c3d2a8e724ce971865982fae3fa771093",
           "importOrder": [
             "src/escape_the_valley/cli.py",
             "src/escape_the_valley/models.py",
@@ -6392,9 +7738,12 @@
           "dir": "",
           "job": "build",
           "programs": [
-            "uv"
+            "echo",
+            "id",
+            "mkdir",
+            "sudo"
           ],
-          "step": "2"
+          "step": "Set neutral UV_PYTHON_INSTALL_DIR outside user homes (G1)"
         },
         {
           "dir": "",
@@ -6403,6 +7752,14 @@
             "uv"
           ],
           "step": "3"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
+          "step": "4"
         },
         {
           "dir": "",
@@ -7119,8 +8476,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "5b69405a065570f1f71b8bc739c86b47b0469eef",
-    "tracked": 196
+    "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
+    "tracked": 530
   },
   "landings": [
     {
@@ -7183,6 +8540,43 @@
         }
       ],
       "target": "pyproject.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "scripts/gen_third_party_notices.py",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "scripts/smoke_test_binary.py",
       "writers": []
     },
     {

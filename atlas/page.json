@@ -60,26 +60,60 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 3,
-      "changed": 6,
+      "added": 334,
+      "changed": 4,
       "moved": 0,
-      "parts": 4,
+      "parts": 5,
       "removed": 0
     },
     "items": [
       {
+        "kind": "landing",
+        "sentence": "scripts/gen_third_party_notices.py is now read by docs/receipts/1.3.1-live-check/harness/linux_build.sh, docs/receipts/1.3.1-live-check/harness/linux_build_final.sh and docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh.",
+        "subjects": [
+          "scripts/gen_third_party_notices.py",
+          "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh",
+          "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "scripts/smoke_test_binary.py is now read by docs/receipts/1.3.1-live-check/harness/linux_build.sh and docs/receipts/1.3.1-live-check/harness/linux_build_final.sh.",
+        "subjects": [
+          "scripts/smoke_test_binary.py",
+          "docs/receipts/1.3.1-live-check/harness/linux_build.sh",
+          "docs/receipts/1.3.1-live-check/harness/linux_build_final.sh"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-23; 3 files added and 6 changed content.",
+        "sentence": "334 files added and 4 changed content, across 5 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "6af24104463f9639e0546308f79c9c562dfd8fa6",
-      "generatedAt": "2026-10-23T01:08:38.322Z"
+      "commit": "5b69405a065570f1f71b8bc739c86b47b0469eef",
+      "generatedAt": "2026-10-23T02:46:24.476Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
+    {
+      "a": "scripts/gen_third_party_notices.py",
+      "b": "src/escape_the_valley/notices.py",
+      "either": 5,
+      "partLabels": [
+        "scripts",
+        "src"
+      ],
+      "parts": [
+        "scripts",
+        "src"
+      ],
+      "relation": "a-imports-b",
+      "shared": 5
+    },
     {
       "a": "src/escape_the_valley/tui_app.py",
       "b": "tests/test_tui_smoke.py",
@@ -139,21 +173,6 @@
       ],
       "relation": "b-imports-a",
       "shared": 7
-    },
-    {
-      "a": "src/escape_the_valley/cli.py",
-      "b": "tests/test_cli_stats.py",
-      "either": 12,
-      "partLabels": [
-        "src",
-        "tests"
-      ],
-      "parts": [
-        "src",
-        "tests"
-      ],
-      "relation": "b-imports-a",
-      "shared": 8
     }
   ],
   "changesTogetherNote": [
@@ -162,9 +181,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 9 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "5b69405a065570f1f71b8bc739c86b47b0469eef",
+  "commit": "f4d5581f1c0f20b2e1f83944ffd1b1720e32fa5c",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (63 files), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
+  "derived": "10 parts, mostly Python (63 files), shell (6), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
     {
       "checks": [
@@ -456,7 +475,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T02:46:24.476Z",
+  "generatedAt": "2026-10-23T03:49:37.424Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
