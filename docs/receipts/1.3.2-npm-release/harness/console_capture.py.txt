@@ -1,0 +1,95 @@
+"""Run a command in a real, hidden Windows console and read back what the console shows.
+
+A pipe and a console are different output paths: click writes to a console through the console API, so a
+redirected run says nothing about what a player sees. This starts the command in its own console (cmd.exe,
+CREATE_NEW_CONSOLE, hidden), with a screen buffer wide enough that no line wraps, waits for a marker that cmd
+prints after the command exits, then attaches to that console and reads every row of its screen buffer.
+
+Usage: python -I console_capture.py <out-prefix> <cols> <rows> -- <command...>
+Writes <out-prefix>.rows.txt (one row per line, trailing spaces trimmed, UTF-8, LF) and <out-prefix>.meta.txt.
+"""
+import ctypes
+import ctypes.wintypes as wt
+import subprocess
+import sys
+import time
+
+prefix, cols, rows = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+cmd = sys.argv[sys.argv.index("--") + 1:]
+START, END = "@@CONSOLE-START@@", "@@CONSOLE-END@@"
+
+k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+
+class COORD(ctypes.Structure):
+    _fields_ = [("X", wt.SHORT), ("Y", wt.SHORT)]
+
+
+class SMALL_RECT(ctypes.Structure):
+    _fields_ = [("Left", wt.SHORT), ("Top", wt.SHORT), ("Right", wt.SHORT), ("Bottom", wt.SHORT)]
+
+
+class CSBI(ctypes.Structure):
+    _fields_ = [("dwSize", COORD), ("dwCursorPosition", COORD), ("wAttributes", wt.WORD),
+                ("srWindow", SMALL_RECT), ("dwMaximumWindowSize", COORD)]
+
+
+k32.CreateFileW.restype = wt.HANDLE
+k32.ReadConsoleOutputCharacterW.argtypes = [wt.HANDLE, wt.LPWSTR, wt.DWORD, COORD, ctypes.POINTER(wt.DWORD)]
+k32.SetConsoleScreenBufferSize.argtypes = [wt.HANDLE, COORD]
+k32.GetConsoleScreenBufferInfo.argtypes = [wt.HANDLE, ctypes.POINTER(CSBI)]
+
+line = subprocess.list2cmdline(cmd)
+# The marker lines come from cmd itself, before and after the command, so they bound its output.
+# The pause before the start marker lets this script resize the screen buffer before anything is written.
+script = f"ping -n 3 127.0.0.1 >nul& echo {START}& {line}& echo {END}& ping -n 600 127.0.0.1 >nul"
+si = subprocess.STARTUPINFO()
+si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+si.wShowWindow = 0  # SW_HIDE
+proc = subprocess.Popen(["cmd.exe", "/d", "/c", script], creationflags=subprocess.CREATE_NEW_CONSOLE,
+                        startupinfo=si)
+
+k32.FreeConsole()
+for _ in range(100):
+    if k32.AttachConsole(proc.pid):
+        break
+    time.sleep(0.05)
+else:
+    raise SystemExit(f"AttachConsole failed: {ctypes.get_last_error()}")
+h = k32.CreateFileW("CONOUT$", 0xC0000000, 3, None, 3, 0, None)  # GENERIC_READ|WRITE, share R|W, OPEN_EXISTING
+if not k32.SetConsoleScreenBufferSize(h, COORD(cols, rows)):
+    raise SystemExit(f"SetConsoleScreenBufferSize failed: {ctypes.get_last_error()}")
+
+
+def read_rows():
+    info = CSBI()
+    k32.GetConsoleScreenBufferInfo(h, ctypes.byref(info))
+    w, n = info.dwSize.X, info.dwCursorPosition.Y + 1
+    out = []
+    buf = ctypes.create_unicode_buffer(w)
+    got = wt.DWORD()
+    for y in range(n):
+        k32.ReadConsoleOutputCharacterW(h, buf, w, COORD(0, y), ctypes.byref(got))
+        out.append(buf.value[:got.value].rstrip(" "))
+    return out, (info.dwSize.X, info.dwSize.Y)
+
+
+deadline = time.time() + 600
+while True:
+    got_rows, size = read_rows()
+    end = [r for r in got_rows if r.startswith(END)]
+    if end or time.time() > deadline:
+        break
+    time.sleep(0.5)
+proc.kill()
+k32.FreeConsole()
+
+start_i = next(i for i, r in enumerate(got_rows) if r.startswith(START))
+end_i = next((i for i, r in enumerate(got_rows) if r.startswith(END)), len(got_rows))
+body = got_rows[start_i + 1:end_i]
+with open(prefix + ".rows.txt", "w", encoding="utf-8", newline="\n") as f:
+    f.write("\n".join(body) + "\n")
+with open(prefix + ".meta.txt", "w", encoding="utf-8", newline="\n") as f:
+    f.write(f"command: {line}\nconsole buffer: {size[0]} cols x {size[1]} rows (set before the command ran)\n")
+    f.write(f"rows between the markers: {len(body)}\nend marker: {got_rows[end_i] if end_i < len(got_rows) else 'NOT SEEN (timeout)'}\n")
+print(f"{prefix}: {len(body)} rows; end marker {'seen' if end_i < len(got_rows) else 'NOT seen'}")
