@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "dd760d7648773a4c4ea113c57d92e400a2f41715ff017ff6da25be485be50eeb",
+          "hash": "a6d7bf4cc21c860980dc6a8ec1f6025ac596d477d6ace51c80938b3b12bc9a1c",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -5435,7 +5435,10 @@
           "job": "rust",
           "programs": [
             "curl",
+            "echo",
+            "rm",
             "rustup",
+            "sha256sum",
             "tar"
           ],
           "step": "Install Rust 1.98.1 and cargo-deny"
@@ -5596,6 +5599,34 @@
           "via": "cargo clippy"
         },
         {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "rust",
           "matched": true,
@@ -5616,7 +5647,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 4,
+      "runsCount": 8,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -5640,7 +5671,7 @@
         },
         {
           "dir": "rust",
-          "files": 1,
+          "files": 5,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -6198,7 +6229,10 @@
           "job": "gate/rust",
           "programs": [
             "curl",
+            "echo",
+            "rm",
             "rustup",
+            "sha256sum",
             "tar"
           ],
           "step": "Install Rust 1.98.1 and cargo-deny"
@@ -6479,6 +6513,34 @@
           "via": "cargo clippy"
         },
         {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/model.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/rng.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/save.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
+          "path": "rust/etv-core/src/worldgen.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "gate/rust",
           "matched": true,
@@ -6499,7 +6561,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 4,
+      "runsCount": 8,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -6537,7 +6599,7 @@
         },
         {
           "dir": "rust",
-          "files": 1,
+          "files": 5,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -7135,7 +7197,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "5b985fa5cbc7851ccda96c490c1aa2eac1085bc2",
+    "commit": "fd8b7bbf47baa217f7cf1dcc6cbc6d9c19c38a5b",
     "tracked": 186
   },
   "landings": [
@@ -7633,7 +7695,7 @@
       "path": "rust/deny.toml"
     },
     {
-      "hash": "4b5f347efa7838d448a447e243283f58375840fe987ef6023c33d6b7e046f8a7",
+      "hash": "8cb10221f1532af4284e11cf2bff95b77f93a66aa155d8f8be225ce523cc4726",
       "path": "rust/etv-core/Cargo.toml"
     },
     {
@@ -7653,12 +7715,13 @@
         "is_valid_resource_key",
         "parse_minted_txid"
       ],
-      "hash": "e3265677653cc8fc7235496bb2ecb0396fb4bc6611142dae9f16309df87a334f",
+      "hash": "f22b9733311711474cb7108c8deb3396e2e47ecc97066cedba733be877b1fced",
       "importsFiles": [
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs"
       ],
-      "path": "rust/etv-core/src/model.rs"
+      "path": "rust/etv-core/src/model.rs",
+      "testsInside": true
     },
     {
       "exports": [
@@ -7683,8 +7746,9 @@
           "line": 346
         }
       ],
-      "hash": "f38e1a39027356b32246010068cb75667e4713cc1ba40edeb5294356b9d465b0",
-      "path": "rust/etv-core/src/rng.rs"
+      "hash": "5e457e1485d789ac13765b0bcb2bd9fcc736fea91d4f5dd797daea47da372ae3",
+      "path": "rust/etv-core/src/rng.rs",
+      "testsInside": true
     },
     {
       "exports": [
@@ -7717,27 +7781,44 @@
           "line": 134
         },
         {
+          "in": "load_game_result",
+          "kind": "match-err",
+          "line": 137
+        },
+        {
+          "in": "apply_owner_only_permissions",
+          "kind": "match-err",
+          "line": 233
+        },
+        {
           "in": "parse_seed",
           "kind": "err",
-          "line": 515
+          "line": 540
+        },
+        {
+          "in": "parse_seed",
+          "kind": "err",
+          "line": 565
         },
         {
           "in": "value_to_state",
           "kind": "err",
-          "line": 548
+          "line": 582
         },
         {
           "in": "load_backpack",
           "kind": "err",
-          "line": 906
+          "line": 940
         }
       ],
-      "hash": "cdd92c46361f13061c7ae99477595d50f19b9cb62ae9d54eda61eb102cdf1832",
+      "hash": "a2700c6375deb4446e1949ca19bdb6ae10b8f6ae555d7fd81a0a82c233b461c2",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
-        "rust/etv-core/src/rng.rs"
+        "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/worldgen.rs"
       ],
-      "path": "rust/etv-core/src/save.rs"
+      "path": "rust/etv-core/src/save.rs",
+      "testsInside": true
     },
     {
       "exports": [
@@ -7753,15 +7834,16 @@
         "pick_twists",
         "place_caches"
       ],
-      "hash": "9e872b935bbb0a10344e0d36cffe3314648f6e43434c4aeb4418267fbabe05f6",
+      "hash": "43d1b9d14f3656849a99e8293d7f775ae9c8a06be9c99d400e59a9af7f682852",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs"
       ],
-      "path": "rust/etv-core/src/worldgen.rs"
+      "path": "rust/etv-core/src/worldgen.rs",
+      "testsInside": true
     },
     {
-      "hash": "ed06ce553608c7ff29cac0a1ff1ee154c319c1b58cf80e008def421b8b7372c1",
+      "hash": "7c5375140ee06b61f5dcfc6f54db30d5db7eb4ef05f3d11ea06efff8e15bdac7",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
@@ -7794,10 +7876,10 @@
         {
           "in": "next_100_draws_from_save",
           "kind": "except",
-          "line": 439
+          "line": 440
         }
       ],
-      "hash": "a3351a5131964549473da1eae4328e27fee24f63887e643e16b19a2bd9c980be",
+      "hash": "3613f3fdf643e9d8a1eb90c3ea9ccd7c9bc3aab86aa328b1399d57a8a2e776ba",
       "importOrder": [
         "src/escape_the_valley/__init__.py",
         "src/escape_the_valley/backpack_models.py",
@@ -7829,7 +7911,7 @@
       "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
     },
     {
-      "hash": "81ce34fbfcf3680e880f4580dd363c7792e4b86f6f8906e70f92a99884b0ae61",
+      "hash": "670caba9b3ae5bbfdd815994e048aa02a7b58ab2b7eedb4a941cd65d17e2efcf",
       "path": "rust/oracle/vectors/saves_20.json.gz"
     },
     {

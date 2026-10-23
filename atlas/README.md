@@ -1,31 +1,21 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 5b985fa by Atlas 1.24.0.
+Mapped at 2026-10-23 from commit fd8b7bb by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (63 files), Rust (10), CSS (2), JavaScript (2), TypeScript (2), HTML (1) and shell (1). Work enters through 12 doors; CI and Release each reach 3 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley, s4-hello and trail. s2-xrpl and s3-voice are commands built from rust-spikes/s2-xrpl and rust-spikes/s3-voice (nothing ships them).
 
-## What changed since 2026-10-23 (1347332)
+## What changed since 2026-10-23 (5b985fa)
 
-- CI now also runs rust/etv-core/tests/.
-- CI now also checks rust/etv-core/src/lib.rs.
-- Release now also runs rust/etv-core/tests/.
-- And 1 more change to a door.
-- rust/etv-core/ is now read by rust/Cargo.toml.
-- rust/oracle/vectors/ is now read by rust/oracle/generate_vectors.py.
-- rust/oracle/vectors/rng_s1_vectors.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.
-- And 3 more new writers and readers of places.
-- rust/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 12 more new files that belong to no part.
-- 15 files added.
+- CI now also runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 1 more.
+- Release now also runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 1 more.
+- 9 files changed content, across 1 part.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs rust/etv-core/tests/; checks src/, tests/ and rust/etv-core/src/lib.rs.
-2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs rust/etv-core/tests/; checks src/, tests/ and rust/etv-core/src/lib.rs.
+1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 2 more; checks src/, tests/ and rust/etv-core/src/lib.rs.
+2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 2 more; checks src/, tests/ and rust/etv-core/src/lib.rs.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
@@ -39,7 +29,7 @@ Mapped at 2026-10-23 from commit 5b985fa by Atlas 1.24.0.
 
 ## What happens through CI
 
-1. The workflow runs rust/etv-core/tests/; it checks src/ in src, tests/ in tests and rust/etv-core/src/lib.rs.
+1. The workflow runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs, rust/etv-core/src/worldgen.rs and rust/etv-core/tests/; it checks src/ in src, tests/ in tests and rust/etv-core/src/lib.rs.
 2. That reaches agents (1 file).
 3. It uploads coverage to Codecov.
 
@@ -49,7 +39,7 @@ CI writes nothing this map can see.
 
 ## The other doors
 
-**Release** runs rust/etv-core/tests/, checks src/, tests/ and rust/etv-core/src/lib.rs, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
+**Release** runs rust/etv-core/src/model.rs, rust/etv-core/src/rng.rs, rust/etv-core/src/save.rs and 2 more, checks src/, tests/ and rust/etv-core/src/lib.rs, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
 
 **Release Binaries** runs scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
 
