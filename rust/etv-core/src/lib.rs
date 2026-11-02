@@ -14,11 +14,17 @@ pub mod content;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;
+pub mod ledger;
 pub mod memory;
 pub mod model;
+pub mod narrator;
+pub mod notices;
 pub mod physics;
 pub mod rng;
 pub mod save;
 pub mod snapshot;
 pub mod validator;
 pub mod worldgen;
+
+pub use ledger::trail_ledger;
+pub use narrator::{NarrationContext, Narrator, NullNarrator, TurnMattersFlags};

@@ -7,7 +7,11 @@ use sha2::{Digest, Sha256};
 use crate::content::{hex_encode_32, ContentPack};
 use crate::engine::StepEngine;
 use crate::events::EVENT_ID_COOLDOWN_WINDOW;
+use crate::ledger::trail_ledger;
 use crate::model::{BackpackState, GamePhase, IntentAction, MapNode, PlayerIntent, RunState};
+use crate::narrator::{
+    build_narration_context, evaluate_turn_matters, Narrator, NullNarrator, PreTurnObservation,
+};
 use crate::worldgen::create_new_run_with_content;
 
 /// Mechanical projection of a [`crate::model::JournalEntry`], retaining `day`, `location`,
@@ -109,7 +113,8 @@ pub struct MechanicsStateRecord {
     pub ending_facts: Option<BTreeMap<String, Value>>,
 }
 
-/// Presentation-only per-turn record (title, narration, choice labels, outcome sentence).
+/// Presentation-only per-turn record (title, narration, choice labels, outcome sentence,
+/// narrator seam call count and text, and end-of-run Trail Ledger lines).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationRecord {
     pub event_title: String,
@@ -117,6 +122,10 @@ pub struct PresentationRecord {
     pub choice_labels: Vec<(String, String)>,
     pub outcome_sentence: String,
     pub lines: Vec<String>,
+    pub turn_matters: bool,
+    pub narrator_calls: usize,
+    pub narrator_text: Option<String>,
+    pub trail_ledger_lines: Vec<String>,
 }
 
 /// Combined per-turn Tier 2 snapshot containing `mechanics_state_hash` and `presentation_record`.
@@ -375,21 +384,42 @@ fn pick_tier2_intent(engine: &StepEngine, seed_idx: usize, turn: usize) -> (Play
     }
 }
 
-/// Run a single seed under `content` for up to `max_turns` turns and return its `Tier2SeedTrace`.
+/// Run a single seed under `content` for up to `max_turns` turns using the default [`NullNarrator`]
+/// and return its [`Tier2SeedTrace`].
 pub fn run_tier2_seed_trace(
     seed: i128,
     seed_idx: usize,
     content: &ContentPack,
     max_turns: usize,
 ) -> Tier2SeedTrace {
+    run_tier2_seed_trace_with_narrator(seed, seed_idx, content, max_turns, &NullNarrator)
+}
+
+/// Run a single seed under `content` for up to `max_turns` turns with a plugged-in [`Narrator`]
+/// and return its [`Tier2SeedTrace`].
+///
+/// The narrator is invoked only when `turn_matters` is `true`, receives an owned read-only
+/// [`crate::narrator::NarrationContext`], and its call count and returned text are recorded in
+/// [`PresentationRecord`] only — never in [`MechanicsStateRecord`] or `mechanics_state_hash`.
+/// When the run reaches `GameOver`, the Trail Ledger lines are also recorded in
+/// `presentation_record.trail_ledger_lines` only.
+pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
+    seed: i128,
+    seed_idx: usize,
+    content: &ContentPack,
+    max_turns: usize,
+    narrator: &N,
+) -> Tier2SeedTrace {
     let state = create_new_run_with_content(seed, content);
     let mut engine = StepEngine::with_content(state, content);
     let mut turns = Vec::with_capacity(max_turns);
+    let mut narrator_calls: usize = 0;
 
     for turn in 1..=max_turns {
         if engine.phase == GamePhase::GameOver || engine.state.game_over {
             break;
         }
+        let pre_obs = PreTurnObservation::capture(engine.phase, &engine.state);
         let pre_event_id = engine
             .pending_event()
             .map(|e| e.event_id.clone())
@@ -412,6 +442,28 @@ pub fn run_tier2_seed_trace(
             &msgs.outcome_deltas,
         );
 
+        let flags = evaluate_turn_matters(&pre_obs, &intent, &msgs, &engine.state);
+        let turn_matters = flags.any();
+        let narrator_text = if turn_matters {
+            narrator_calls += 1;
+            let ctx = build_narration_context(
+                &engine.state,
+                &post_event_id,
+                &chosen_choice_id,
+                &msgs,
+                flags,
+            );
+            narrator.narrate(&ctx)
+        } else {
+            None
+        };
+
+        let trail_ledger_lines = if engine.phase == GamePhase::GameOver || engine.state.game_over {
+            trail_ledger(&engine.state)
+        } else {
+            Vec::new()
+        };
+
         let narration = engine
             .pending_event()
             .map(|e| e.fallback_narration.clone())
@@ -428,6 +480,10 @@ pub fn run_tier2_seed_trace(
             choice_labels,
             outcome_sentence: msgs.outcome_narration,
             lines: msgs.lines,
+            turn_matters,
+            narrator_calls,
+            narrator_text,
+            trail_ledger_lines,
         };
 
         turns.push(TurnSnapshot {
@@ -440,17 +496,29 @@ pub fn run_tier2_seed_trace(
     Tier2SeedTrace { seed, turns }
 }
 
-/// Run the Tier 2 snapshot generator across the 1,000-seed matrix under `content`.
+/// Run the Tier 2 snapshot generator across the 1,000-seed matrix under `content` using
+/// [`NullNarrator`].
 pub fn run_tier2_snapshot_matrix(
     content: &ContentPack,
     max_turns_per_seed: usize,
+) -> Tier2SnapshotMatrix {
+    run_tier2_snapshot_matrix_with_narrator(content, max_turns_per_seed, &NullNarrator)
+}
+
+/// Run the Tier 2 snapshot generator across the 1,000-seed matrix under `content` with a
+/// plugged-in [`Narrator`].
+pub fn run_tier2_snapshot_matrix_with_narrator<N: Narrator + ?Sized>(
+    content: &ContentPack,
+    max_turns_per_seed: usize,
+    narrator: &N,
 ) -> Tier2SnapshotMatrix {
     let seeds = build_1000_seeds();
     let mut traces = Vec::with_capacity(seeds.len());
     let mut total_turns = 0usize;
 
     for (idx, &seed) in seeds.iter().enumerate() {
-        let trace = run_tier2_seed_trace(seed, idx, content, max_turns_per_seed);
+        let trace =
+            run_tier2_seed_trace_with_narrator(seed, idx, content, max_turns_per_seed, narrator);
         total_turns += trace.turns.len();
         traces.push(trace);
     }
