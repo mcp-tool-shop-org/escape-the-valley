@@ -28,9 +28,12 @@ pub mod worldgen;
 
 pub use ledger::trail_ledger;
 pub use narrator::{
-    CheckFailure, CheckReasonCode, CheckerContext, ComposedFallbackComposer, EndpointError,
-    FallbackComposerError, FallbackPhraseTable, LiveNarrator, NarrationContext, Narrator,
-    NarratorLength, NarratorSettings, NarratorStats, NarratorTransport, NullNarrator,
-    OutcomeResponse, SceneResponse, StartupCheckStatus, TransportError, TurnMattersFlags,
-    TurnNarration, DEFAULT_OLLAMA_ENDPOINT, RESOURCE_NOUN_TABLE,
+    build_narration_context_from_turn, compute_applied_turn_deltas, CheckFailure, CheckReasonCode,
+    CheckerContext, ComposedFallbackComposer, EndpointError, FallbackComposerError,
+    FallbackPhraseTable, LiveNarrator, NarrationContext, Narrator, NarratorLength,
+    NarratorSettings, NarratorStats, NarratorTransport, NullNarrator, OutcomeResponse,
+    SceneResponse, SourcePhraseEntry, SourcePhraseTable, StartupCheckStatus, TransportError,
+    TurnMattersFlags, TurnNarration, DEFAULT_OLLAMA_ENDPOINT, RESOURCE_NOUN_TABLE,
+    SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256, SHIPPED_FALLBACK_PHRASES_LF_SHA256,
+    SOURCE_PHRASE_TABLE_SHA256,
 };

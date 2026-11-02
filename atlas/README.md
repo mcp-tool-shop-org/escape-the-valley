@@ -1,19 +1,16 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-02 from commit bda1dfb by Atlas 1.24.0.
+Mapped at 2026-11-02 from commit d3819bd by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (67 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
+10 parts, mostly Python (68 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (0b83fd2)
+## What changed since 2026-11-02 (bda1dfb)
 
-- rust/etv-core/content/fallback_phrases.json is now read by rust/etv-core/src/narrator.rs.
-- In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `build_narration_context_with_phase`, before `trail_ledger`.
-- In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` lost a step, `build_narration_context`.
-- rust/etv-core/content/fallback_phrases.json is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/tests/step3_narrator_port.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- 2 files added and 11 changed content.
+- rust/etv-core/content/fallback_phrases.json is now also read by rust/tools/convert_phrase_table.py.
+- rust/tools/convert_phrase_table.py is new and belongs to no part, so atlas check fails on it against the previous map.
+- 1 file added and 4 changed content.
 
 ## What comes in
 
@@ -113,7 +110,7 @@ Read those in order to follow one pull request end to end.
 - 1 write and 7 reads use paths built at run time and are not named here.
 - 4 writes and 19 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 45 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 42 more.
+- 46 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 43 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.
