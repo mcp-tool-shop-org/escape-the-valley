@@ -68,24 +68,105 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 4,
+      "added": 7,
+      "changed": 5,
       "moved": 0,
-      "parts": 0,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
+        "kind": "landing",
+        "sentence": "LICENSE is now also read by rust/etv-core/notices/notices_manifest.json.",
+        "subjects": [
+          "LICENSE",
+          "rust/etv-core/notices/notices_manifest.json"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/content/content_manifest.json is now also read by rust/etv-core/notices/notices_manifest.json.",
+        "subjects": [
+          "rust/etv-core/content/content_manifest.json",
+          "rust/etv-core/notices/notices_manifest.json"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/content/event_skeletons.json is now also read by rust/etv-core/notices/notices_manifest.json.",
+        "subjects": [
+          "rust/etv-core/content/event_skeletons.json",
+          "rust/etv-core/notices/notices_manifest.json"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "And 3 more new writers and readers of places.",
+        "subjects": []
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `third_party_notices_text`, before `load_from_dir`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `capture`, before `new`.",
+        "subjects": [
+          "rust/etv-core/src/snapshot.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `evaluate_turn_matters`, before `build_narration_context`.",
+        "subjects": [
+          "rust/etv-core/src/snapshot.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "And 2 more changes to the order of work.",
+        "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/notices/THIRD_PARTY_NOTICES.txt is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/notices/THIRD_PARTY_NOTICES.txt"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/notices/license_allowlist.json is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/notices/license_allowlist.json"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/notices/notices_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/notices/notices_manifest.json"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 4 more new files that belong to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-02; 4 files changed content.",
+        "sentence": "7 files added and 5 changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "26a0869632cbfadda81f1c334939e2e136cdad0a",
-      "generatedAt": "2026-11-02T03:19:07.066Z"
+      "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
+      "generatedAt": "2026-11-02T03:44:00.015Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -170,9 +251,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
+  "commit": "64173e01760aed8f480ef99efb4995ccf4fb08be",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (66 files), Rust (16), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
+  "derived": "10 parts, mostly Python (66 files), Rust (20), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
     {
       "checks": [
@@ -224,7 +305,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 8,
+      "runsMore": 9,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -286,7 +367,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 8,
+      "runsMore": 9,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -534,13 +615,13 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T03:44:00.015Z",
+  "generatedAt": "2026-11-02T06:06:29.944Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
     "4 writes and 19 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "33 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 30 more.",
+    "40 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 37 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -568,7 +649,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 31,
+  "testFiles": 32,
   "testedBy": {
     "agents": 1,
     "bin": 0,
