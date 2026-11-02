@@ -27,6 +27,8 @@ An optional AI Game Master (powered by Ollama) narrates your journey with three 
 
 ## What's New
 
+**1.3.2** — Per-`event_id` cooldown (`N=4`) prevents the same event skeleton from repeating on consecutive or near-consecutive turns (#21; 1.3.1 → 1.3.2 moves event draws after a repeat would have happened, so a run saved in 1.3.1 continues differently after upgrading to 1.3.2 because event draws move. Within one version, the same seed and the same choices play the same run). GM-off CLI Outcome panel renders the fallback summary once (#20), choice hints strip trailing double punctuation, and `1 mile remaining.` uses singular grammar. Corrupt `.trail/secrets.json` files are quarantined before rewrite (#31.7). `THIRD_PARTY_NOTICES*.txt` and `trail licenses` output are normalised to LF across all platforms, and CI verifies vendored licence integrity against the downloaded python-build-standalone archive (#31.1, #31.2, #31.3, #31.5).
+
 **1.3.1** — CLI runs (`trail new` / `trail continue`) now emit memory cards and canonical cause-of-death like the TUI (`trail stats`, Trail Ledger death days, and GM memory briefs work in both modes). TUI Abandon Cargo reports the actual cargo dropped. Fork route prompts no longer burn a turn of wagon maintenance or escape-valve cooldown. Replay runs on the same seed get distinct `run_id`s for XRPL memos. GitHub Release / `npx` binaries now bundle `xrpl-py`. Windows piped output (`cp1252`) no longer crashes on Rich box-drawing characters (#19).
 
 **1.3.0** — Four endings you can actually hit, including weathered. Wagon is a threat, not the whole game. Early Winter slows a tagged year. Desert fords stay off the sand. Hunt names who got hurt. `npx @mcptoolshop/escape-the-valley` launches the v1.3.0 binary (it had been stuck on the dead v1.1.1 GitHub artifact).
@@ -46,7 +48,7 @@ Binaries attached to the v1.1.0 and v1.1.1 GitHub Releases do not launch (a rela
 ```bash
 pip install escape-the-valley
 
-# Zero-prerequisite npm launcher (GitHub v1.3.1 binary; v1.1.0 and v1.1.1
+# Zero-prerequisite npm launcher (GitHub v1.3.2 binary; v1.1.0 and v1.1.1
 # artifacts do not start):
 #   npx @mcptoolshop/escape-the-valley tui --seed 42
 
@@ -64,7 +66,7 @@ trail tui --seed 42 --voice
 # With voice pacing control
 trail tui --seed 42 --voice --voice-pace slow
 
-# Without AI narration (deterministic mode)
+# Without AI narration (deterministic mode; same seed and choices give the same run in this version)
 trail tui --seed 42 --gm-off
 
 # Use a specific Ollama model

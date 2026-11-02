@@ -42,6 +42,7 @@ from .physics import (
     check_health_effects,
     check_night_travel_danger,
     check_spoilage,
+    collect_new_death_effects,
     compute_daily_consumption,
     compute_travel_distance,
     desperate_repair,
@@ -196,8 +197,10 @@ class GameEngine:
         if self.state.distance_remaining <= 0:
             self._arrive_at_next_node()
         else:
+            rem = self.state.distance_remaining
+            unit = "mile" if rem == 1 else "miles"
             show_message(
-                f"Traveled {distance} miles. {self.state.distance_remaining} miles remaining.",
+                f"Traveled {distance} miles. {rem} {unit} remaining.",
                 "bold",
             )
 
@@ -275,6 +278,7 @@ class GameEngine:
 
     def _do_rest(self) -> None:
         """Process a rest action."""
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         # F-20fa3769: rest-after-repair opens the maintenance window.
         if self.state.last_action == "REPAIR":
             doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
@@ -299,6 +303,7 @@ class GameEngine:
         for eff in effects:
             if eff["type"] == "recovered":
                 show_message(f"  {eff['member']} has recovered.", "green")
+        self._emit_unreported_deaths(alive_before)
 
         update_morale(self.state)
         show_status(self.state)
@@ -310,6 +315,7 @@ class GameEngine:
             show_message("No ammunition for hunting.", "red")
             return
 
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         result = dict(attempt_hunt(self.state, self.rng))
         injured = str(result.pop("injured", "") or "")
         self.state.supplies.apply_delta(result)
@@ -320,6 +326,7 @@ class GameEngine:
             show_message("The hunt yielded nothing. 1 ammo spent.", "yellow")
         if injured:
             show_message(f"{injured} was injured on the hunt.", "yellow")
+        self._emit_unreported_deaths(alive_before)
 
         # Half-day action — partial consumption (F-4d750550: round toward
         # zero, not floor -- see physics.halve_consumption)
@@ -339,6 +346,7 @@ class GameEngine:
             show_message("Wagon is in good condition. No repair needed.", "dim")
             return
 
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         # F-20fa3769: repair-after-rest opens the maintenance window.
         if self.state.last_action == "REST":
             doc_mods = DOCTRINE_MODIFIERS.get(self.state.doctrine, {})
@@ -359,6 +367,7 @@ class GameEngine:
             f"Wagon repaired. Condition: {self.state.wagon.condition}/100. Used 1 part.",
             "green",
         )
+        self._emit_unreported_deaths(alive_before)
 
         # Half-day action (F-4d750550: round toward zero, not floor -- see
         # physics.halve_consumption)
@@ -449,6 +458,7 @@ class GameEngine:
             )
             return
 
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         self.state.escape_valve_cooldown = 3
         result = desperate_repair(self.state, self.rng)
         if result.get("success"):
@@ -470,6 +480,7 @@ class GameEngine:
             else f"Repair failed. {result.get('injured', 'Someone')} injured."
         )
         emit_escape_valve_card(self.state, "desperate_repair", detail)
+        self._emit_unreported_deaths(alive_before)
 
     def _hard_ration_refusal_line(self) -> str:
         """Name the closed gate. Same three sentences as StepEngine."""
@@ -492,6 +503,7 @@ class GameEngine:
             show_message(self._hard_ration_refusal_line(), "dim")
             return
 
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         self.state.escape_valve_cooldown = 3
         hard_ration(self.state)
         show_message(
@@ -504,6 +516,25 @@ class GameEngine:
             self.state, "hard_ration",
             "Hard rationing imposed — half rations for 2 days.",
         )
+        self._emit_unreported_deaths(alive_before)
+
+    def _emit_unreported_deaths(
+        self,
+        alive_before: set[int],
+        *,
+        from_event: bool = False,
+    ) -> None:
+        """Emit death message, milestone, and memory card for newly dead members (#42)."""
+        death_effects = collect_new_death_effects(
+            self.state, alive_before, from_event=from_event,
+        )
+        if not death_effects:
+            return
+        for eff in death_effects:
+            cause = eff.get("cause") or "the trail"
+            show_message(f"{eff['member']} has died ({cause}).", "red bold")
+        self._record_death_milestones(death_effects)
+        emit_health_cards(self.state, death_effects)
 
     def _record_milestone(
         self,
@@ -737,6 +768,7 @@ class GameEngine:
             choice_id = valid_ids[0]
 
         # Resolve outcome
+        alive_before = {id(m) for m in self.state.party.members if m.is_alive()}
         outcome = resolve_event(self.state, event, choice_id, self.rng)
         apply_outcome(self.state, outcome)
 
@@ -791,8 +823,8 @@ class GameEngine:
 
         if not outcome_narration:
             outcome_title = "Outcome"
-            callout = _build_fallback_callout(outcome)
-            outcome_narration = callout
+            outcome_narration = _build_fallback_callout(outcome)
+            callout = ""
 
         show_outcome(outcome_title, outcome_narration, callout, outcome.supplies_delta)
 
@@ -811,6 +843,7 @@ class GameEngine:
 
         # Memory emitters — engine cards from event
         emit_event_card(self.state, event)
+        self._emit_unreported_deaths(alive_before, from_event=True)
 
         # Validate GM-proposed memory cards
         if scene and hasattr(scene, "memory_proposals"):

@@ -1,0 +1,14 @@
+Escape the Valley — Self Check
+
+  trail 1.3.2
+  No saved game.
+  Ollama reachable at http://localhost:11434
+  Models: translategemma:27b-16k, qwen3-coder-next:latest, qwen3.5:4b, 
+qwen3.5:9b, granite4.2:30b
+  model 'llama3.2' not found -- run: ollama pull llama3.2
+  Event library: 260 events
+  xrpl extra present
+  voice extra absent
+  hint: pip install "escape-the-valley[voice]"
+  TUI stylesheet found: tui.tcss
+

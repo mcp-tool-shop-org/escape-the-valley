@@ -1,0 +1,8 @@
+83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907 *03-licenses.out
+248845
+83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907 *04-licenses-flag.out
+248845
+83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907 *THIRD_PARTY_NOTICES-win-x64.txt
+248845
+cmp licenses vs release notices: identical
+cmp --licenses vs release notices: identical

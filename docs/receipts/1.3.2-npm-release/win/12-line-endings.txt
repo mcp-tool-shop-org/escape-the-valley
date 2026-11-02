@@ -1,0 +1,13 @@
+== THIRD_PARTY_NOTICES-win-x64.txt: 248845 bytes, sha256 83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907
+   CR 0 | LF 5014 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 5014, blank 886 | universal newlines: 5014, blank 886
+== 03-licenses.out: 248845 bytes, sha256 83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907
+   CR 0 | LF 5014 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 5014, blank 886 | universal newlines: 5014, blank 886
+   byte-identical to THIRD_PARTY_NOTICES-win-x64.txt: True
+== 04-licenses-flag.out: 248845 bytes, sha256 83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907
+   CR 0 | LF 5014 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 5014, blank 886 | universal newlines: 5014, blank 886
+   byte-identical to THIRD_PARTY_NOTICES-win-x64.txt: True
+== console rows 10-console-licenses.rows.txt: 5014 rows, blank 889 | expected (LF text): 5014 lines, blank 889
+   rows equal the expected lines: True

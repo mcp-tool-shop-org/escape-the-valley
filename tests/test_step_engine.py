@@ -1853,6 +1853,9 @@ def test_self_edge_fork_with_one_real_alternative_takes_the_real_route():
     state.distance_remaining = 0
 
     engine = StepEngine(state, GMConfig(enabled=False))
+    assert engine.phase == GamePhase.CAMP
+
+    engine.step(PlayerIntent(IntentAction.TRAVEL))
 
     # Exactly one non-self option offered -- never the self-edge.
     assert engine.phase == GamePhase.ROUTE

@@ -25,11 +25,11 @@ MAX_STEPS = 3000
 
 PINS = [
     (1207, "triumphant"),
-    (1188, "weathered"),
-    # H-3: fixing fork route prompts burning a turn of wagon maintenance
-    # upgraded seed 1006 from pyrrhic to weathered; 1009 is the WAVE_6
-    # 300-set pyrrhic pin under corrected fork maintenance ticking.
-    (1009, "pyrrhic"),
+    # #21: per-event_id cooldown (N=4) prevents the consecutive Day 12
+    # lost_child repeat on seed 1188 and the 3-step f3_003 repeat on 1009;
+    # 1003 (weathered) and 1006 (pyrrhic) are the WAVE_6 300-set pins.
+    (1003, "weathered"),
+    (1006, "pyrrhic"),
     (1000, "lost"),
 ]
 

@@ -1,0 +1,111 @@
+"""Drive the classic `trail` CLI through a pipe, answering each prompt by policy.
+
+Usage: python -I cli_drive.py <log> <max-actions> <policy> -- <trail-exe> <args...>
+Run it with cwd set to the run's own folder (saves go to ./.trail/).
+
+Policies: travel (camp: always 1 = Travel; event: first choice; fork: A).
+          quit   (camp: Q at the first camp prompt).
+          until:<text>  travel, then Q at the first camp prompt after <text> has been printed.
+After each answer the transcript records the prompt kind and the answer sent,
+and, when ./.trail/run.json exists, the save's maintained_turns_remaining and day.
+"""
+import json
+import os
+import pathlib
+import subprocess
+import sys
+import threading
+import time
+
+log_path, max_actions, policy = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+cmd = sys.argv[sys.argv.index("--") + 1:]
+env = dict(os.environ, PYTHONUNBUFFERED="1", COLUMNS="100", TERM="dumb", NO_COLOR="1")
+p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                     stderr=subprocess.STDOUT, env=env)
+buf = bytearray()
+lock = threading.Lock()
+
+
+def reader():
+    while True:
+        b = p.stdout.read1(65536)
+        if not b:
+            break
+        with lock:
+            buf.extend(b)
+
+
+threading.Thread(target=reader, daemon=True).start()
+PROMPTS = [
+    ("camp", b"What do you do? "),
+    ("event", b"Your choice: "),
+    ("fork", b"Which way? "),
+    ("pace", b"Set pace: "),
+    ("confirm", b"[y/N]: "),
+]
+out = open(log_path, "wb")
+seen = 0
+actions = 0
+answers = []
+
+
+def save_probe():
+    s = pathlib.Path(".trail/run.json")
+    if not s.exists():
+        return ""
+    try:
+        d = json.loads(s.read_text(encoding="utf-8"))
+        return f" save(day={d.get('day')} maint={d.get('maintained_turns_remaining')})"
+    except Exception as e:  # mid-write
+        return f" save(unreadable {type(e).__name__})"
+
+
+while True:
+    time.sleep(0.02)
+    with lock:
+        chunk = bytes(buf[seen:])
+    if p.poll() is not None and not chunk:
+        time.sleep(0.2)
+        with lock:
+            chunk = bytes(buf[seen:])
+        if not chunk:
+            break
+    kind = None
+    for k, pat in PROMPTS:
+        if chunk.rstrip(b" ").endswith(pat.rstrip(b" ")):
+            kind = k
+            break
+    if kind is None:
+        if p.poll() is not None:
+            out.write(chunk); seen += len(chunk)
+        continue
+    out.write(chunk); seen += len(chunk)
+    if kind == "camp":
+        actions += 1
+        stop = policy == "quit" or actions > max_actions
+        if policy.startswith("until:") and policy[6:].encode() in bytes(buf[:seen]):
+            stop = True
+        ans = "Q" if stop else "1"
+    elif kind == "event":
+        # first offered id: the line "  A. ..." just above the prompt
+        ids = [ln.strip()[:1] for ln in chunk.decode("utf-8", "replace").splitlines()
+               if len(ln.strip()) > 2 and ln.strip()[1:3] == ". " and ln.strip()[0].isalpha()]
+        ans = ids[0] if ids else "A"
+    elif kind == "fork":
+        ans = "A"
+    elif kind == "pace":
+        ans = "2"
+    else:
+        ans = "y"
+    out.write(f"\n<<{kind} -> {ans}>>{save_probe()}\n".encode())
+    out.flush()
+    answers.append((kind, ans))
+    try:
+        p.stdin.write((ans + "\n").encode()); p.stdin.flush()
+    except OSError:
+        break
+p.wait(timeout=30)
+out.write(f"\n<<exit {p.returncode}; camp actions {actions}; answers {len(answers)}>>\n".encode())
+out.close()
+print(f"exit={p.returncode} actions={actions} answers={len(answers)}")
+sys.exit(0)

@@ -291,6 +291,8 @@ def attempt_hunt(state: RunState, rng: SeededRNG) -> dict[str, object]:
                 unlucky = rng.choice(alive)
                 unlucky.health = max(0, unlucky.health - rng.randint(5, 15))
                 unlucky.condition = Condition.INJURED
+                if unlucky.health <= 0:
+                    unlucky.death_cause = _proximate_death_cause(unlucky, state)
                 deltas["injured"] = unlucky.name
 
     return deltas
@@ -325,12 +327,21 @@ def rest_day(state: RunState, rng: SeededRNG) -> list[dict]:
             continue
 
         heal = rng.randint(3, 10)
-        member.health = min(100, member.health + heal)
+        member.health = max(0, min(100, member.health + heal))
 
         # Sick members might recover
         if member.condition in (Condition.SICK, Condition.INJURED) and rng.random() < 0.3:
             member.condition = Condition.HEALTHY
             effects.append({"member": member.name, "type": "recovered"})
+
+        if member.health <= 0:
+            cause = _proximate_death_cause(member, state)
+            member.death_cause = cause
+            effects.append({
+                "member": member.name,
+                "type": "died",
+                "cause": cause,
+            })
 
     # Morale boost
     state.party.morale = min(100, state.party.morale + rng.randint(3, 8))
@@ -517,6 +528,8 @@ def desperate_repair(
         unlucky = rng.choice(alive)
         unlucky.health = max(0, unlucky.health - rng.randint(5, 15))
         unlucky.condition = Condition.INJURED
+        if unlucky.health <= 0:
+            unlucky.death_cause = _proximate_death_cause(unlucky, state)
         injured_name = unlucky.name
 
     return {
@@ -536,6 +549,42 @@ def hard_ration(state: RunState) -> None:
     for member in state.party.members:
         if member.is_alive():
             member.health = max(0, member.health - 5)
+            if member.health <= 0:
+                member.death_cause = _proximate_death_cause(member, state)
+
+
+def collect_new_death_effects(
+    state: RunState,
+    alive_before_ids: set[int],
+    emitted_ids: set[int] | None = None,
+    *,
+    from_event: bool = False,
+) -> list[dict]:
+    """Build `died` effects for members who transitioned alive -> dead (#42).
+
+    Ensures `member.death_cause` is populated via `_proximate_death_cause`
+    and records each member in `emitted_ids` so each death is emitted at
+    most once with zero RNG draws.
+    """
+    effects: list[dict] = []
+    for member in state.party.members:
+        if id(member) not in alive_before_ids or member.is_alive():
+            continue
+        if emitted_ids is not None:
+            if id(member) in emitted_ids:
+                continue
+            emitted_ids.add(id(member))
+        member.health = max(0, member.health)
+        cause = member.death_cause or _proximate_death_cause(
+            member, state, from_event=from_event,
+        )
+        member.death_cause = cause
+        effects.append({
+            "member": member.name,
+            "type": "died",
+            "cause": cause,
+        })
+    return effects
 
 
 def _proximate_death_cause(member, state: RunState, from_event: bool = False) -> str:

@@ -187,8 +187,24 @@ jobs:
       - name: Verify third-party notices against PyInstaller TOC and check bundle archive
         shell: bash
         run: |
+          uv run --no-sync python scripts/gen_third_party_notices.py --verify-pbs-archive
           uv run --no-sync python scripts/gen_third_party_notices.py --verify-toc build/escape-the-valley THIRD_PARTY_NOTICES.txt
           uv run --no-sync python scripts/gen_third_party_notices.py --verify-bundle "dist/$ASSET_NAME"
+          uv run --no-sync python -c '
+          import hashlib, pathlib, subprocess, sys
+          bin_path = pathlib.Path(sys.argv[1])
+          notices_path = pathlib.Path(sys.argv[2])
+          raw = notices_path.read_bytes()
+          if b"\r" in raw:
+              raise SystemExit(f"CR byte found in {notices_path}")
+          want_sha = hashlib.sha256(raw).hexdigest()
+          for arg in ("licenses", "--licenses"):
+              out = subprocess.check_output([str(bin_path), arg])
+              got_sha = hashlib.sha256(out).hexdigest()
+              if out != raw or got_sha != want_sha:
+                  raise SystemExit(f"{arg} output sha256 {got_sha} != {notices_path} sha256 {want_sha}")
+          print(f"[licenses-lf-check] {notices_path} (0 CR bytes, sha256={want_sha[:16]}) matches binary licenses/--licenses byte-for-byte.")
+          ' "dist/$ASSET_NAME" "dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt"
 
       - name: Smoke test binary
         # F-a6fa29e0: the build succeeding is not the same as the binary

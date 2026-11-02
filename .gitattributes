@@ -9,5 +9,6 @@ bin/*.js text eol=lf
 *.json text eol=lf
 *.py text eol=lf
 *.sh text eol=lf
+LICENSE text eol=lf
 src/escape_the_valley/_licenses/** -text
 src/escape_the_valley/_licenses/SOURCES.json text eol=lf

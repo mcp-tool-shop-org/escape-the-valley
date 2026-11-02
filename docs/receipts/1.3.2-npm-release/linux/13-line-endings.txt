@@ -1,0 +1,11 @@
+== THIRD_PARTY_NOTICES-linux-x64.txt: 240186 bytes, sha256 ac68c11983f067afd3f7da5f444ceff1401dabf018841e4378b3780de35fc5f2
+   CR 0 | LF 4819 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 4819, blank 847 | universal newlines: 4819, blank 847
+== 03-licenses.out: 240186 bytes, sha256 ac68c11983f067afd3f7da5f444ceff1401dabf018841e4378b3780de35fc5f2
+   CR 0 | LF 4819 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 4819, blank 847 | universal newlines: 4819, blank 847
+   byte-identical to THIRD_PARTY_NOTICES-linux-x64.txt: True
+== 04-licenses-flag.out: 240186 bytes, sha256 ac68c11983f067afd3f7da5f444ceff1401dabf018841e4378b3780de35fc5f2
+   CR 0 | LF 4819 | CRLF 0 | CR CR LF 0 | lone CR 0
+   lines split on LF: 4819, blank 847 | universal newlines: 4819, blank 847
+   byte-identical to THIRD_PARTY_NOTICES-linux-x64.txt: True
