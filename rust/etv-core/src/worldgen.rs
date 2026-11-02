@@ -412,6 +412,7 @@ pub fn create_new_run_with_rng(
         rng_counter: rng.counter,
         rng_state: None,
         recent_event_tags: Vec::new(),
+        recent_event_ids: Default::default(),
         memory_cards: Vec::new(),
         resource_crises_seen: Vec::new(),
         doctrine: doctrine.as_str().to_string(),

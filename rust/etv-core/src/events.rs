@@ -1,13 +1,13 @@
 //! Event system — skeleton library, weighted selection, cost gates, and resolution (`events.py`).
 //!
-//! Exact port of `src/escape_the_valley/events.py` at tag `v1.3.1` (`47b01a3`).
+//! Exact port of `src/escape_the_valley/events.py` at `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`.
 
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
 use crate::events_builtin::builtin_hand_authored_events;
 use crate::model::{Biome, GMProfile, RunState, TimeOfDay, TwistModifier, Weather};
-use crate::physics::{current_node, journey_pressure, proximate_death_cause};
+use crate::physics::{current_node, journey_pressure, proximate_death_cause, HealthEffect};
 use crate::rng::CpythonRng;
 use crate::worldgen::{
     load_json_events, ChoiceTemplate, EventCategory, EventOutcome, EventSkeleton, FolkloreType,
@@ -18,6 +18,7 @@ const TAG_FAMILIES: [&str; 7] = [
 ];
 const COOLDOWN_WINDOW: usize = 6;
 const COOLDOWN_PENALTY: f64 = 0.25;
+pub const EVENT_ID_COOLDOWN_WINDOW: usize = 4;
 
 const INVENTORY_COST_KEYS: [&str; 5] = ["rope", "parts", "food", "tools", "meds"];
 const DURABLE_INVENTORY: [&str; 1] = ["tools"];
@@ -110,7 +111,25 @@ pub fn can_spend_uncanny_token(state: &RunState, event: &EventSkeleton) -> bool 
     }
 }
 
-/// Record an event's primary tags in the cooldown buffer (`events.py:1739-1755`).
+/// Return the last `EVENT_ID_COOLDOWN_WINDOW` (`4`) event IDs selected (`events.py:1740-1750`).
+///
+/// Lazily hydrates from `state.journal` on first call so save/load round-trips
+/// preserve the repeat guard without adding a serialized field to `.trail/run.json`.
+pub fn recent_event_id_history(state: &mut RunState) -> &mut Vec<String> {
+    if state.recent_event_ids.0.is_none() {
+        let from_journal: Vec<String> = state
+            .journal
+            .iter()
+            .filter(|j| !j.choice_made.is_empty() && !j.event_id.is_empty())
+            .map(|j| j.event_id.clone())
+            .collect();
+        let start = from_journal.len().saturating_sub(EVENT_ID_COOLDOWN_WINDOW);
+        state.recent_event_ids.0 = Some(from_journal[start..].to_vec());
+    }
+    state.recent_event_ids.0.as_mut().unwrap()
+}
+
+/// Record an event's primary tags and `event_id` in the cooldown buffers (`events.py:1753-1774`).
 pub fn record_event_tags(state: &mut RunState, event: &EventSkeleton) {
     let first_family = event
         .tags
@@ -132,6 +151,13 @@ pub fn record_event_tags(state: &mut RunState, event: &EventSkeleton) {
     if state.recent_event_tags.len() > max_window {
         let trim = state.recent_event_tags.len() - max_window;
         state.recent_event_tags.drain(..trim);
+    }
+
+    let id_buf = recent_event_id_history(state);
+    id_buf.push(event.event_id.clone());
+    if id_buf.len() > EVENT_ID_COOLDOWN_WINDOW {
+        let trim = id_buf.len() - EVENT_ID_COOLDOWN_WINDOW;
+        id_buf.drain(..trim);
     }
 }
 
@@ -271,7 +297,21 @@ pub fn select_event(
         };
     }
 
-    let selected = (**rng.weighted_choice(&candidates, &weights)).clone();
+    let mut selected = (**rng.weighted_choice(&candidates, &weights)).clone();
+    let recent_ids = recent_event_id_history(state).clone();
+    if recent_ids.contains(&selected.event_id) {
+        let mut nr_candidates: Vec<&EventSkeleton> = Vec::new();
+        let mut nr_weights: Vec<f64> = Vec::new();
+        for (c, &w) in candidates.iter().zip(weights.iter()) {
+            if !recent_ids.contains(&c.event_id) {
+                nr_candidates.push(*c);
+                nr_weights.push(w);
+            }
+        }
+        if !nr_candidates.is_empty() {
+            selected = (**rng.weighted_choice(&nr_candidates, &nr_weights)).clone();
+        }
+    }
     record_event_tags(state, &selected);
     selected
 }
@@ -621,8 +661,11 @@ pub fn resolve_event(
     outcome
 }
 
-/// Apply an event outcome to game state (`events.py:2145-2179`).
-pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) {
+/// Apply an event outcome to game state (`events.py:2179-2221`).
+///
+/// Returns `HealthEffect::Died` entries for any party member whose health dropped to `<= 0`.
+pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) -> Vec<HealthEffect> {
+    let mut effects = Vec::new();
     state.supplies.apply_delta(&outcome.supplies_delta);
 
     if outcome.health_delta != 0 {
@@ -630,11 +673,15 @@ pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) {
             if state.party.members[i].is_alive() {
                 state.party.members[i].health =
                     (state.party.members[i].health + outcome.health_delta).clamp(0, 100);
-                if state.party.members[i].health <= 0
-                    && state.party.members[i].death_cause.is_empty()
-                {
-                    let cause = proximate_death_cause(&state.party.members[i], state, true);
-                    state.party.members[i].death_cause = cause;
+                if state.party.members[i].health <= 0 {
+                    if state.party.members[i].death_cause.is_empty() {
+                        let cause = proximate_death_cause(&state.party.members[i], state, true);
+                        state.party.members[i].death_cause = cause;
+                    }
+                    effects.push(HealthEffect::Died {
+                        member: state.party.members[i].name.clone(),
+                        cause: state.party.members[i].death_cause.clone(),
+                    });
                 }
             }
         }
@@ -656,6 +703,8 @@ pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) {
     if outcome.distance_delta != 0 {
         state.distance_remaining += outcome.distance_delta;
     }
+
+    effects
 }
 
 #[cfg(test)]
@@ -694,5 +743,129 @@ mod tests {
             .iter()
             .any(|f| f == "insufficient_supplies"));
         assert_eq!(rng.counter, counter_before);
+    }
+
+    #[test]
+    fn test_event_id_cooldown_window_4_and_lazy_journal_hydration() {
+        use crate::engine::StepEngine;
+        use crate::model::{GamePhase, IntentAction, PlayerIntent};
+        use crate::save::{load_game, save_game};
+
+        let expected_1_3_2: Vec<(i32, i32, &str, u64)> = vec![
+            (1, 1, "f1_017", 206),
+            (6, 2, "f1_020", 238),
+            (8, 3, "f4_066", 252),
+            (9, 3, "f5_110", 260),
+            (12, 4, "f1_006", 281),
+            (14, 5, "f5_118", 295),
+            (17, 6, "f1_036", 310),
+            (18, 6, "f5_090", 319),
+            (20, 7, "f4_058", 334),
+            (21, 7, "f2_010", 343),
+            (22, 8, "animal_lame", 352),
+            (24, 9, "f1_028", 367),
+            (29, 10, "f5_115", 401),
+            (30, 10, "whispering_tree", 409),
+            (31, 11, "f4_045", 416),
+            (32, 11, "f3_028", 425),
+            (33, 12, "storm_sudden", 432),
+            (35, 12, "f3_032", 444),
+            (36, 13, "f3_040", 450),
+            (37, 13, "f5_114", 457),
+            (39, 14, "f5_099", 467),
+        ];
+
+        let mut eng = StepEngine::new(create_new_run(42));
+        let mut travel_step = 0;
+        let mut observed: Vec<(i32, i32, String, u64)> = Vec::new();
+        let tmp = tempfile::tempdir().expect("tempdir");
+
+        while eng.phase != GamePhase::GameOver {
+            match eng.phase {
+                GamePhase::Camp => {
+                    travel_step += 1;
+                    eng.step(&PlayerIntent {
+                        action: IntentAction::Travel,
+                        choice_id: String::new(),
+                        pace: String::new(),
+                    });
+                }
+                GamePhase::Event => {
+                    let ev_id = eng.pending_event().unwrap().event_id.clone();
+                    observed.push((travel_step, eng.state.day, ev_id, eng.rng.counter));
+                    eng.step(&PlayerIntent {
+                        action: IntentAction::Choose,
+                        choice_id: "A".to_string(),
+                        pace: String::new(),
+                    });
+                    if observed.len() == 18 {
+                        save_game(&eng.state, tmp.path()).expect("save after event 18");
+                    }
+                }
+                GamePhase::Route => {
+                    eng.step(&PlayerIntent {
+                        action: IntentAction::Choose,
+                        choice_id: "A".to_string(),
+                        pace: String::new(),
+                    });
+                }
+                GamePhase::GameOver => break,
+            }
+        }
+
+        let obs_refs: Vec<(i32, i32, &str, u64)> = observed
+            .iter()
+            .map(|(t, d, id, c)| (*t, *d, id.as_str(), *c))
+            .collect();
+        assert_eq!(obs_refs[19], (37, 13, "f5_114", 457));
+        assert_eq!(obs_refs, expected_1_3_2);
+
+        // Reload from disk after Event 18 and verify lazy hydration from state.journal
+        // still blocks f3_028 at Travel 37 and draws f5_114 (rng.counter == 457).
+        let loaded = load_game(tmp.path()).expect("load after event 18");
+        let mut eng2 = StepEngine::new(loaded);
+        let mut travel_step2 = 35;
+        let mut post_reload: Vec<(i32, i32, String, u64)> = Vec::new();
+        while eng2.phase != GamePhase::GameOver {
+            match eng2.phase {
+                GamePhase::Camp => {
+                    travel_step2 += 1;
+                    eng2.step(&PlayerIntent {
+                        action: IntentAction::Travel,
+                        choice_id: String::new(),
+                        pace: String::new(),
+                    });
+                }
+                GamePhase::Event => {
+                    let ev_id = eng2.pending_event().unwrap().event_id.clone();
+                    post_reload.push((travel_step2, eng2.state.day, ev_id, eng2.rng.counter));
+                    eng2.step(&PlayerIntent {
+                        action: IntentAction::Choose,
+                        choice_id: "A".to_string(),
+                        pace: String::new(),
+                    });
+                }
+                GamePhase::Route => {
+                    eng2.step(&PlayerIntent {
+                        action: IntentAction::Choose,
+                        choice_id: "A".to_string(),
+                        pace: String::new(),
+                    });
+                }
+                GamePhase::GameOver => break,
+            }
+        }
+        let post_refs: Vec<(i32, i32, &str, u64)> = post_reload
+            .iter()
+            .map(|(t, d, id, c)| (*t, *d, id.as_str(), *c))
+            .collect();
+        assert_eq!(
+            post_refs,
+            vec![
+                (36, 13, "f3_040", 450),
+                (37, 13, "f5_114", 457),
+                (39, 14, "f5_099", 467),
+            ]
+        );
     }
 }

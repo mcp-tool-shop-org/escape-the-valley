@@ -1,17 +1,33 @@
 #!/usr/bin/env python3
-"""Oracle vector generator for Escape the Valley 2.0 (Phase 1a + Phase 1b).
+"""Oracle vector generator for Escape the Valley 2.0 (Phase 0 Part 2 re-pin + Phase 2 targets).
 
-Run against the pinned CPython 3.12.13 venv in the v1.3.1 (47b01a3) worktree:
+Pinned legacy Python commit SHA:
+    87104824d1f5b8bfda5b0dc5c14bc5a8e3721407
+
+Generator code SHA-256 (post-docstring body; full-file SHA-256 recorded in README.md):
+    bc2ca5f8276599ddc32908e5063a78a93726342903c961c6bb526c68eb87ccd0
+
+Run against the pinned CPython 3.12.13 (python-build-standalone 20260510) venv:
 
     uv run --no-sync python rust/oracle/generate_vectors.py
 
-Produces gzip-compressed vector files in `rust/oracle/vectors/`:
-1. `rng_s1_vectors.json.gz` — S1 & gameplay RNG call-shape vectors
-2. `worldgen_200.json.gz` — 200 seeds: RunState JSON + RNG SHA-256 + weather + 200 JSON events
-3. `saves_20.json.gz` — 20 real Python saves + 5 migrations + next 100 RNG draws
-4. `turns_1000_seeds.json.gz` — 1,000 seeds × 60 turns golden harness + 260 events + 8 endings
-5. `turns_long_seeds.json.gz` — 80 seeds × 250 turns reaching all endings, death causes, spoilage
-6. `resume_120_seeds.json.gz` — 120 turn-20 save/resume runs with Python's `reloaded_turns`
+Produces 8 deterministic gzip-compressed vector files in `rust/oracle/vectors/`:
+1. `rng_s1_vectors.json.gz`
+   SHA-256: 3502a1a025af60ba887dc0bd4f3d28a0efe54de5f07007c51b329a90bcb200af
+2. `worldgen_200.json.gz`
+   SHA-256: 8d0687472f3d8bd747c65ea10160a6ff593c9fdd19a1e95d1e6bfa6330c9a054
+3. `saves_20.json.gz`
+   SHA-256: 29cb378837c3771bf7e82f3878488f5e2c45c2cfcd7458ffdd8d248e0e3ce027
+4. `turns_1000_seeds.json.gz`
+   SHA-256: 61525662348f3c7874fe74cb9c71ce5de2f6f6553e83a65aef19f8d19196b418
+5. `turns_long_seeds.json.gz`
+   SHA-256: 94278582e7be5eac3e5c0ba7f608d8a832e800bddaebc9c1ae67c7c46e570435
+6. `resume_120_seeds.json.gz`
+   SHA-256: f40d1adb6d7eba495732cf3fe13f0144b708f10d89d8c405f46dcb4c4769e4ac
+7. `ledger_reference.json.gz`
+   SHA-256: 5d04b91a438c5a27487573a7b2443a784260721c1ccdf780cf5538a878465605
+8. `notices_reference.json.gz`
+   SHA-256: d8edd4d272c827b5e44ad379dc2262b7380b5d8a22be5b4855b401e282a48c6f
 """
 
 from __future__ import annotations
@@ -31,6 +47,12 @@ from pathlib import Path
 from typing import Any
 
 import escape_the_valley
+from escape_the_valley.adapter import (
+    FrameState,
+    build_ending_facts,
+    build_run_stats,
+    populate_end_data,
+)
 from escape_the_valley.backpack_models import (
     ParcelRecord,
     PermitRecord,
@@ -43,14 +65,30 @@ from escape_the_valley.event_loader import load_json_events
 from escape_the_valley.events import build_event_library
 from escape_the_valley.gm import GMConfig
 from escape_the_valley.intent import GamePhase, IntentAction, PlayerIntent
+from escape_the_valley.ledger import (
+    build_trail_ledger,
+    build_xrpl_postcard,
+)
+from escape_the_valley.ledger_proof import (
+    PlayerProofResult,
+    proof_player_save,
+    report_to_dict,
+)
+from escape_the_valley.memory import MemoryCard
 from escape_the_valley.models import (
     Biome,
+    Condition,
     Doctrine,
     GMProfile,
     JournalEntry,
     RunState,
     SeededRNG,
     Taboo,
+)
+from escape_the_valley.notices import (
+    generate_third_party_notices,
+    get_third_party_notices_text,
+    verify_vendored_licenses_integrity,
 )
 from escape_the_valley.physics import (
     can_abandon_cargo,
@@ -107,22 +145,59 @@ def rng_state_sha256_hex(state: tuple[Any, ...]) -> str:
     return sha256_hex(raw)
 
 
-def get_oracle_metadata() -> dict[str, str]:
-    repo_dir = Path(escape_the_valley.__file__).resolve().parents[2]
-    oracle_commit = subprocess.check_output(
-        ["git", "-C", str(repo_dir), "rev-parse", "v1.3.1^{commit}"],
+PINNED_ORACLE_COMMIT = "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+
+
+def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, str]:
+    if repo_dir is None:
+        repo_dir = Path(escape_the_valley.__file__).resolve().parents[2]
+    resolved_commit = subprocess.check_output(
+        ["git", "-C", str(repo_dir), "rev-parse", f"{PINNED_ORACLE_COMMIT}^{{commit}}"],
         text=True,
     ).strip()
+    if resolved_commit != PINNED_ORACLE_COMMIT:
+        raise RuntimeError(
+            f"Refusing to generate oracle vectors: pinned commit {PINNED_ORACLE_COMMIT} "
+            f"resolved to {resolved_commit}"
+        )
     diff = subprocess.check_output(
-        ["git", "-C", str(repo_dir), "diff", oracle_commit, "--", "src/escape_the_valley"],
+        [
+            "git",
+            "-C",
+            str(repo_dir),
+            "diff",
+            PINNED_ORACLE_COMMIT,
+            "--",
+            "src/escape_the_valley",
+        ],
         text=True,
     ).strip()
-    assert diff == "", f"src/escape_the_valley differs from v1.3.1 ({oracle_commit}):\n{diff}"
+    if diff != "":
+        raise RuntimeError(
+            f"Refusing to generate oracle vectors: src/escape_the_valley differs from "
+            f"pinned commit {PINNED_ORACLE_COMMIT}:\n{diff}"
+        )
+    status = subprocess.check_output(
+        [
+            "git",
+            "-C",
+            str(repo_dir),
+            "status",
+            "--porcelain",
+            "--",
+            "src/escape_the_valley",
+        ],
+        text=True,
+    ).strip()
+    if status != "":
+        raise RuntimeError(
+            f"Refusing to generate oracle vectors: dirty or untracked files in "
+            f"src/escape_the_valley relative to {PINNED_ORACLE_COMMIT}:\n{status}"
+        )
     return {
         "python_version": sys.version.split()[0],
         "python_full": sys.version,
-        "oracle_commit": oracle_commit,
-        "oracle_tag": "v1.3.1",
+        "oracle_commit": PINNED_ORACLE_COMMIT,
     }
 
 
@@ -1552,6 +1627,679 @@ def generate_golden_harness_vectors(
     return turns_payload, long_turns_payload, resume_payload
 
 
+# ── 6. Ledger & Proof Reference Vectors (Phase 2 target, network/XRPL off) ──
+
+
+def _new_deterministic_run(seed: int) -> RunState:
+    st = create_new_run(seed=seed)
+    det_suffix = hashlib.sha256(f"etv-phase2-ledger-seed-{seed}".encode()).hexdigest()[:8]
+    st.run_id = f"{st.run_id.split('-')[0]}-{det_suffix}"
+    return st
+
+
+def _snapshot_ledger_case(
+    case_id: str,
+    state: RunState,
+    diagnostics: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    trail_ledger_lines = build_trail_ledger(state)
+    xrpl_postcard_lines = build_xrpl_postcard(state)
+    frame = FrameState()
+    populate_end_data(frame, state)
+    return {
+        "case_id": case_id,
+        "seed": state.seed,
+        "state": _state_to_dict(state),
+        "diagnostics": diagnostics,
+        "trail_ledger_lines": trail_ledger_lines,
+        "trail_ledger_text": "\n".join(trail_ledger_lines),
+        "trail_ledger_sha256": sha256_hex("\n".join(trail_ledger_lines)),
+        "xrpl_postcard_lines": xrpl_postcard_lines,
+        "xrpl_postcard_text": "\n".join(xrpl_postcard_lines),
+        "xrpl_postcard_sha256": sha256_hex("\n".join(xrpl_postcard_lines)),
+        "ending_facts": [list(row) for row in build_ending_facts(state)],
+        "run_stats": [list(row) for row in build_run_stats(state)],
+        "end_frame": {
+            "game_over": frame.game_over,
+            "victory": frame.victory,
+            "ending_tier": frame.ending_tier,
+            "ending_headline": frame.ending_headline,
+            "ending_facts": [list(row) for row in frame.ending_facts],
+            "run_stats": [list(row) for row in frame.run_stats],
+            "is_postcard": frame.is_postcard,
+            "postcard_lines": list(frame.postcard_lines),
+        },
+    }
+
+
+def generate_ledger_reference_vectors(meta: dict[str, str]) -> dict[str, Any]:
+    """Generate deterministic `ledger.py` + `ledger_proof.py` reference vectors.
+
+    All XRPL/network operations remain completely disabled (zero network calls,
+    zero wallet keys).
+    """
+    ledger_cases: list[dict[str, Any]] = []
+
+    # A. 6 real stepped runs from fixed seeds [1, 2, 7, 19, 42, 77]
+    stepped_specs = [
+        ("stepped_seed_1_turn_60", 1, 0, 60),
+        ("stepped_seed_2_turn_60", 2, 1, 60),
+        ("stepped_seed_7_turn_220_victory", 7, 6, 220),
+        ("stepped_seed_19_turn_220_defeat", 19, 18, 220),
+        ("stepped_seed_42_turn_80", 42, 41, 80),
+        ("stepped_seed_77_turn_160", 77, 76, 160),
+    ]
+    for case_id, seed, idx, max_turns in stepped_specs:
+        st = _new_deterministic_run(seed)
+        eng = StepEngine(st, GMConfig(enabled=False), autosave=False)
+        prng = make_policy_rng(seed)
+        for t in range(1, max_turns + 1):
+            if eng.phase == GamePhase.GAME_OVER:
+                break
+            intent = pick_intent(eng, prng, idx, t)
+            eng.step(intent)
+        ledger_cases.append(_snapshot_ledger_case(case_id, eng.state, dict(eng.diagnostics)))
+
+    # B. 6 curated runs exercising every branch of `ledger.py` and `build_xrpl_postcard`
+    # 1. Victory with XRPL backpack enabled, settlements, parcels, permits, kept promise, omen
+    c1 = _new_deterministic_run(101)
+    c1.victory = True
+    c1.game_over = True
+    c1.day = 14
+    c1.distance_traveled = c1.total_distance
+    c1.doctrine = Doctrine.TRAVEL_LIGHT.value
+    c1.taboo = Taboo.NEVER_RIVER.value
+    c1.ending = compute_ending(c1)
+    c1.backpack.enabled = True
+    c1.backpack.wallet_address = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+    c1.backpack.issuer_address = "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+    c1.backpack.trust_lines_ready = True
+    stamp_minted_snapshot(
+        c1.backpack, {"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3}
+    )
+    c1.backpack.last_settled_supplies = {
+        "food": 32,
+        "water": 28,
+        "meds": 4,
+        "ammo": 14,
+        "parts": 2,
+    }
+    c1.backpack.last_settlement_day = 14
+    c1.backpack.settlements = [
+        SettlementRecord(
+            day=5,
+            location="Oak Crossing",
+            deltas={"food": -10, "water": -12, "ammo": -4},
+            txids=["TX_SETTLE_D5_001", "TX_SETTLE_D5_002"],
+            status="confirmed",
+        ),
+        SettlementRecord(
+            day=14,
+            location="Salt Flats",
+            deltas={"food": -8, "water": -10, "meds": -1, "ammo": -2, "parts": -1},
+            txids=["TX_SETTLE_D14_001"],
+            status="confirmed",
+        ),
+    ]
+    c1.backpack.parcels = [
+        ParcelRecord(
+            parcel_id="parcel_d7",
+            sender="Trail Cache",
+            contents={"food": 6, "meds": 1},
+            txid="TX_PARCEL_IN_001",
+            accepted=True,
+            day_received=7,
+        ),
+        ParcelRecord(
+            parcel_id="parcel_d9_refused",
+            sender="Stranger",
+            contents={"ammo": 4},
+            txid="",
+            accepted=False,
+            day_received=9,
+        ),
+    ]
+    c1.backpack.sent_parcels = [
+        SentParcelRecord(
+            recipient="rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH",
+            supply="food",
+            amount=4,
+            txid="TX_PARCEL_OUT_001",
+            day_sent=11,
+            memo=f"TRAIL|RUN:{c1.run_id}|DAY:11|PARCEL:FOD+4",
+        )
+    ]
+    c1.backpack.permits = [
+        PermitRecord(
+            permit_id="ferry_permit_1",
+            txid="TX_PERMIT_001",
+            used=True,
+            day_earned=4,
+            day_used=6,
+        ),
+        PermitRecord(
+            permit_id="ridge_permit_2",
+            txid="TX_PERMIT_002",
+            used=False,
+            day_earned=10,
+            day_used=0,
+        ),
+    ]
+    c1.journal.extend([
+        JournalEntry(
+            day=5,
+            location="Oak Crossing",
+            event_id="storm_sudden",
+            scene_title="Sudden Storm",
+            narration="Rain lashed the canvas.",
+            choice_made="A: Hunker down",
+            outcome="wagon -4, -3 food",
+            deltas={"food": -3, "water": 2},
+            tags=["weather", "storm"],
+        ),
+        JournalEntry(
+            day=9,
+            location="Broken Ridge",
+            event_id="bandit_toll",
+            scene_title="Toll at the Ridge",
+            narration="Armed riders blocked the pass.",
+            choice_made="B: Pay the toll",
+            outcome="-6 food, -4 ammo, -2 meds",
+            deltas={"food": -6, "ammo": -4, "meds": -2},
+            tags=["human", "bandits"],
+        ),
+    ])
+    c1.memory_cards.extend([
+        MemoryCard(
+            id="gm_promise_3_aabbccddeeff",
+            kind="promise",
+            title="Deliver the Salt Box",
+            text="Promised the ferryman to carry the sealed box to the valley.",
+            tags=["promise"],
+            day_created=3,
+            day_last_seen=12,
+            entities=["Ferryman"],
+            salience=0.8,
+            cooldown_until=0,
+            source="gm",
+        ),
+        MemoryCard(
+            id="eng_event_whispering_tree_d8",
+            kind="omen",
+            title="Whispering Ash",
+            text=(
+                "The ash tree at the bend spoke three names in the wind before "
+                "dawn, and every lantern in camp flickered blue until sunrise "
+                "over the ridge."
+            ),
+            tags=["folklore", "omen"],
+            day_created=8,
+            day_last_seen=8,
+            entities=[],
+            salience=0.7,
+            cooldown_until=0,
+            source="engine",
+        ),
+    ])
+    ledger_cases.append(
+        _snapshot_ledger_case(
+            "curated_victory_xrpl_promise_omen",
+            c1,
+            {
+                "wagon_breakdowns": 1,
+                "events_high_sev": 2,
+                "events_total": 9,
+                "maintenance_windows": 2,
+                "caches_found": 1,
+                "escape_valves_used": 0,
+                "gm_calls": 0,
+                "gm_fallbacks": 0,
+                "memory_card_failures": 0,
+            },
+        )
+    )
+
+    # 2. Pyrrhic victory with fallen party member (death_day from journal + fallback 0),
+    #    Breakdown Without Parts closest call, and unresolved promise
+    c2 = _new_deterministic_run(202)
+    c2.victory = True
+    c2.game_over = True
+    c2.day = 26
+    c2.distance_traveled = c2.total_distance
+    c2.taboo = Taboo.LEAVE_NOTHING.value
+    c2.party.members[0].health = 0
+    c2.party.members[0].death_cause = "Disease"
+    c2.party.members[1].health = 0
+    c2.party.members[1].death_cause = "Starvation"
+    c2.ending = compute_ending(c2)
+    c2.journal.append(
+        JournalEntry(
+            day=11,
+            location="Black Marsh",
+            event_id="death:disease",
+            scene_title=f"Death: {c2.party.members[0].name}",
+            narration="",
+            choice_made="",
+            outcome=f"{c2.party.members[0].name} died of disease on day 11 near Black Marsh.",
+            deltas={},
+            tags=["death", "disease"],
+        )
+    )
+    c2.memory_cards.extend([
+        MemoryCard(
+            id="eng_wagon_noparts_d14",
+            kind="event_callback",
+            title="Breakdown Without Parts",
+            text="The wagon took 14 damage on day 14 with no parts to repair it.",
+            tags=["wagon", "breakdown", "crisis"],
+            day_created=14,
+            day_last_seen=14,
+            entities=[],
+            salience=0.7,
+            cooldown_until=0,
+            source="engine",
+        ),
+        MemoryCard(
+            id="gm_promise_5_112233445566",
+            kind="promise",
+            title="Keep Every Soul Together",
+            text="Swore around the fire that no one would be left behind.",
+            tags=["promise"],
+            day_created=5,
+            day_last_seen=5,
+            entities=[],
+            salience=0.6,
+            cooldown_until=0,
+            source="gm",
+        ),
+    ])
+    ledger_cases.append(_snapshot_ledger_case("curated_pyrrhic_fallen_and_noparts", c2, None))
+
+    # 3. Defeat with Hard Rationing closest call and costliest day tie-breaking
+    c3 = _new_deterministic_run(303)
+    c3.victory = False
+    c3.game_over = True
+    c3.day = 18
+    c3.cause_of_death = "Starvation"
+    for m in c3.party.members:
+        m.health = 0
+        m.death_cause = "Starvation"
+    c3.ending = compute_ending(c3)
+    c3.journal.extend([
+        JournalEntry(
+            day=7,
+            location="Dry Gulch",
+            event_id="spoilage",
+            scene_title="Spoiled Stores",
+            narration="",
+            choice_made="A: Discard",
+            outcome="-5 food",
+            deltas={"food": -5},
+            tags=["survival"],
+        ),
+        JournalEntry(
+            day=12,
+            location="Windy Pass",
+            event_id="ambush",
+            scene_title="Canyon Ambush",
+            narration="",
+            choice_made="A: Fight",
+            outcome="-3 food, -2 ammo",
+            deltas={"food": -3, "ammo": -2},
+            tags=["human"],
+        ),
+    ])
+    c3.memory_cards.append(
+        MemoryCard(
+            id="eng_valve_hard_ration_d15",
+            kind="crisis",
+            title="Hard Rationing Imposed",
+            text="Day 15: Hard rationing imposed — half rations for 2 days.",
+            tags=["escape_valve", "hard_ration"],
+            day_created=15,
+            day_last_seen=15,
+            entities=[],
+            salience=0.7,
+            cooldown_until=0,
+            source="engine",
+        )
+    )
+    ledger_cases.append(_snapshot_ledger_case("curated_defeat_hard_ration_tie_day", c3, None))
+
+    # 4. Closest call fallback to resource crisis ("food") and no negative deltas
+    c4 = _new_deterministic_run(404)
+    c4.day = 6
+    c4.resource_crises_seen = ["food", "ammo"]
+    c4.memory_cards.append(
+        MemoryCard(
+            id="eng_crisis_food_d6",
+            kind="crisis",
+            title="Starvation Begins",
+            text="The party ran out of food on day 6.",
+            tags=["food", "crisis"],
+            day_created=6,
+            day_last_seen=6,
+            entities=[],
+            salience=0.7,
+            cooldown_until=0,
+            source="engine",
+        )
+    )
+    ledger_cases.append(_snapshot_ledger_case("curated_crisis_fallback_no_neg_deltas", c4, None))
+
+    # 5. Closest call fallback to low member health (< 40) when no crisis cards exist
+    c5 = _new_deterministic_run(505)
+    c5.day = 4
+    c5.party.members[2].health = 22
+    c5.party.members[2].condition = Condition.INJURED
+    ledger_cases.append(_snapshot_ledger_case("curated_low_health_closest_call", c5, None))
+
+    # 6. Clean run with all members >= 40 HP and no crises -> closest_call is None
+    c6 = _new_deterministic_run(606)
+    c6.day = 2
+    ledger_cases.append(_snapshot_ledger_case("curated_clean_no_closest_call", c6, None))
+
+    # C. 8 deterministic local `ledger_proof.py` reconciliation & player-save proof cases
+    #    (network/XRPL submission disabled; uses pure `reconcile` and `proof_player_save`
+    #    with a local mock manager — zero network calls, zero keys).
+    class _OfflineMockManager:
+        def __init__(
+            self,
+            *,
+            available: bool = True,
+            balances: dict[str, int] | None = None,
+            balances_error: str | None = None,
+            onchain_memos: dict[str, str] | None = None,
+        ) -> None:
+            self.available = available
+            self._balances = balances or {}
+            self._balances_error = balances_error
+            self._onchain_memos = onchain_memos
+
+        def wallet_info(self, _state: RunState) -> dict[str, Any]:
+            return {
+                "balances": dict(self._balances),
+                "balances_error": self._balances_error,
+            }
+
+        def fetch_onchain_memos(self, _state: RunState) -> dict[str, str] | None:
+            return None if self._onchain_memos is None else dict(self._onchain_memos)
+
+        def close(self) -> None:
+            pass
+
+    def _make_proof_base_state(seed: int) -> RunState:
+        st = _new_deterministic_run(seed)
+        st.day = 12
+        st.supplies.food = 34
+        st.supplies.water = 34
+        st.supplies.meds = 3
+        st.supplies.ammo = 15
+        st.supplies.parts = 2
+        st.backpack.enabled = True
+        st.backpack.wallet_address = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+        st.backpack.issuer_address = "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+        st.backpack.trust_lines_ready = True
+        stamp_minted_snapshot(
+            st.backpack, {"food": 50, "water": 50, "meds": 5, "ammo": 20, "parts": 3}
+        )
+        st.backpack.last_settled_supplies = {
+            "food": 34,
+            "water": 34,
+            "meds": 3,
+            "ammo": 15,
+            "parts": 2,
+        }
+        st.backpack.last_settlement_day = 12
+        st.backpack.settlements = [
+            SettlementRecord(
+                day=6,
+                location="Red Ford",
+                deltas={"food": -10, "water": -12, "ammo": -3},
+                txids=["TX_PROOF_D6_1", "TX_PROOF_D6_2"],
+                status="confirmed",
+                memo=f"TRAIL|RUN:{st.run_id}|DAY:6|DELTA:FOD-10,WTR-12,AMO-3",
+            ),
+            SettlementRecord(
+                day=12,
+                location="Pine Camp",
+                deltas={"food": -6, "water": -4, "meds": -2, "ammo": -2, "parts": -1},
+                txids=["TX_PROOF_D12_1"],
+                status="confirmed",
+                memo=f"TRAIL|RUN:{st.run_id}|DAY:12|DELTA:FOD-6,WTR-4,MED-2,AMO-2,PRT-1",
+            ),
+        ]
+        return st
+
+    # Expected XRPL currency balances (minted + sum_deltas == last_settled_supplies):
+    # FOD (food):  50 - 16 = 34
+    # WTR (water): 50 - 16 = 34
+    # MED (meds):   5 -  2 =  3
+    # AMO (ammo):  20 -  5 = 15
+    # PRT (parts):  3 -  1 =  2
+    matching_chain = {"FOD": 34, "WTR": 34, "MED": 3, "AMO": 15, "PRT": 2}
+    drifted_chain = {"FOD": 31, "WTR": 34, "MED": 3, "AMO": 19, "PRT": 2}
+
+    def _valid_memos_for(st: RunState) -> dict[str, str]:
+        return {
+            "TX_PROOF_D6_1": f"TRAIL|RUN:{st.run_id}|DAY:6|DELTA:FOD-10",
+            "TX_PROOF_D6_2": f"TRAIL|RUN:{st.run_id}|DAY:6|DELTA:WTR-12,AMO-3",
+            "TX_PROOF_D12_1": f"TRAIL|RUN:{st.run_id}|DAY:12|DELTA:FOD-6,WTR-4,MED-2,AMO-2,PRT-1",
+        }
+
+    proof_specs: list[tuple[str, RunState, PlayerProofResult]] = []
+
+    # 1. PASS: exact balance + conservation + external on-chain memo match
+    p1_st = _make_proof_base_state(701)
+    p1_res = proof_player_save(
+        p1_st,
+        manager=_OfflineMockManager(
+            balances=matching_chain, onchain_memos=_valid_memos_for(p1_st)
+        ),
+    )
+    assert p1_res.verdict == "PASS"
+    proof_specs.append(("pass_exact_match", p1_st, p1_res))
+
+    # 2. PASS: legacy `__minted_initial__` permit shim hydration
+    p2_st = _make_proof_base_state(702)
+    p2_st.backpack.minted_initial = {}
+    p2_res = proof_player_save(
+        p2_st,
+        manager=_OfflineMockManager(
+            balances=matching_chain, onchain_memos=_valid_memos_for(p2_st)
+        ),
+    )
+    assert p2_res.verdict == "PASS"
+    proof_specs.append(("pass_legacy_permit_shim", p2_st, p2_res))
+
+    # 3. FAIL: on-ledger balance drift on FOD and AMO
+    p3_st = _make_proof_base_state(703)
+    p3_res = proof_player_save(
+        p3_st,
+        manager=_OfflineMockManager(
+            balances=drifted_chain, onchain_memos=_valid_memos_for(p3_st)
+        ),
+    )
+    assert p3_res.verdict == "FAIL"
+    proof_specs.append(("fail_balance_drift", p3_st, p3_res))
+
+    # 4. FAIL: pending settlement + balance drift (FAIL takes precedence over INCONCLUSIVE)
+    p4_st = _make_proof_base_state(704)
+    p4_st.backpack.pending_settlements.append(
+        SettlementRecord(
+            day=12,
+            location="Pine Camp",
+            deltas={"food": -2},
+            txids=[],
+            status="pending",
+            memo=f"TRAIL|RUN:{p4_st.run_id}|DAY:12",
+        )
+    )
+    p4_res = proof_player_save(
+        p4_st,
+        manager=_OfflineMockManager(
+            balances=drifted_chain, onchain_memos=_valid_memos_for(p4_st)
+        ),
+    )
+    assert p4_res.verdict == "FAIL"
+    proof_specs.append(("fail_pending_and_drift", p4_st, p4_res))
+
+    # 5. INCONCLUSIVE: balances + memos match, sole blocker is pending settlement
+    p5_st = _make_proof_base_state(705)
+    p5_st.backpack.pending_settlements.append(
+        SettlementRecord(
+            day=12,
+            location="Pine Camp",
+            deltas={"water": -3},
+            txids=[],
+            status="pending",
+            memo=f"TRAIL|RUN:{p5_st.run_id}|DAY:12",
+        )
+    )
+    p5_res = proof_player_save(
+        p5_st,
+        manager=_OfflineMockManager(
+            balances=matching_chain, onchain_memos=_valid_memos_for(p5_st)
+        ),
+    )
+    assert p5_res.verdict == "INCONCLUSIVE"
+    proof_specs.append(("inconclusive_pending_settlements", p5_st, p5_res))
+
+    # 6. INCONCLUSIVE: network / AccountLines unreachable (`balances_error`)
+    p6_st = _make_proof_base_state(706)
+    p6_res = proof_player_save(
+        p6_st,
+        manager=_OfflineMockManager(
+            balances={}, balances_error="timeout", onchain_memos=None
+        ),
+    )
+    assert p6_res.verdict == "INCONCLUSIVE"
+    proof_specs.append(("inconclusive_network_unreachable", p6_st, p6_res))
+
+    # 7. INCONCLUSIVE: missing enable-time mint snapshot (legacy save without shim)
+    p7_st = _make_proof_base_state(707)
+    p7_st.backpack.minted_initial = {}
+    p7_st.backpack.permits = []
+    p7_res = proof_player_save(
+        p7_st,
+        manager=_OfflineMockManager(
+            balances=matching_chain, onchain_memos=_valid_memos_for(p7_st)
+        ),
+    )
+    assert p7_res.verdict == "INCONCLUSIVE"
+    proof_specs.append(("inconclusive_missing_mint_snapshot", p7_st, p7_res))
+
+    # 8. FAIL: external on-chain memo tampering (wrong RUN header on TX_PROOF_D6_1)
+    p8_st = _make_proof_base_state(708)
+    bad_memos = _valid_memos_for(p8_st)
+    bad_memos["TX_PROOF_D6_1"] = "TRAIL|RUN:tampered-00000000|DAY:6|DELTA:FOD-10"
+    p8_res = proof_player_save(
+        p8_st,
+        manager=_OfflineMockManager(balances=matching_chain, onchain_memos=bad_memos),
+    )
+    assert p8_res.verdict == "FAIL"
+    proof_specs.append(("fail_onchain_memo_mismatch", p8_st, p8_res))
+
+    # 9. INCONCLUSIVE: backpack disabled on save (`report is None`)
+    p9_st = _make_proof_base_state(709)
+    p9_st.backpack.enabled = False
+    p9_res = proof_player_save(p9_st, manager=_OfflineMockManager())
+    assert p9_res.verdict == "INCONCLUSIVE"
+    assert p9_res.report is None
+    proof_specs.append(("inconclusive_backpack_disabled", p9_st, p9_res))
+
+    proof_cases: list[dict[str, Any]] = []
+    for case_id, st, pres in proof_specs:
+        rep_dict = report_to_dict(pres.report) if pres.report is not None else None
+        proof_cases.append(
+            {
+                "case_id": case_id,
+                "seed": st.seed,
+                "verdict": pres.verdict,
+                "passed": pres.passed,
+                "report_dict": rep_dict,
+                "markdown": pres.markdown,
+                "markdown_sha256": sha256_hex(pres.markdown),
+                "notes": list(pres.notes),
+                "overlay_dict": pres.to_overlay_dict(),
+            }
+        )
+
+    return {
+        "schema": "etv-phase2-ledger-v1",
+        "metadata": meta,
+        "ledger_case_count": len(ledger_cases),
+        "proof_case_count": len(proof_cases),
+        "ledger_cases": ledger_cases,
+        "proof_cases": proof_cases,
+    }
+
+
+# ── 7. Notices Reference Vectors (Phase 2 target) ───────────────────────────
+
+
+def generate_notices_reference_vectors(meta: dict[str, str]) -> dict[str, Any]:
+    """Export `notices.py` (`trail licenses` / `THIRD_PARTY_NOTICES.txt`) reference vectors."""
+    sources = verify_vendored_licenses_integrity()
+    pip_runtime_text = generate_third_party_notices(release=False)
+    cli_runtime_text = get_third_party_notices_text()
+    assert pip_runtime_text == cli_runtime_text
+
+    outputs: list[dict[str, Any]] = []
+    pip_bytes = pip_runtime_text.encode("utf-8")
+    outputs.append(
+        {
+            "output_id": "pip_runtime",
+            "release": False,
+            "target": None,
+            "byte_length": len(pip_bytes),
+            "sha256": hashlib.sha256(pip_bytes).hexdigest(),
+            "text": pip_runtime_text,
+        }
+    )
+
+    for target in sorted(sources["targets"]):
+        rel_text = generate_third_party_notices(target=target, release=True)
+        rel_bytes = rel_text.encode("utf-8")
+        outputs.append(
+            {
+                "output_id": f"release_{target}",
+                "release": True,
+                "target": target,
+                "byte_length": len(rel_bytes),
+                "sha256": hashlib.sha256(rel_bytes).hexdigest(),
+                "text": rel_text,
+            }
+        )
+
+    return {
+        "schema": "etv-phase2-notices-v1",
+        "metadata": meta,
+        "python_version": sources["python_version"],
+        "pbs_build_tag": sources["pbs_build_tag"],
+        "targets": sorted(sources["targets"]),
+        "sources_manifest": sources,
+        "outputs": outputs,
+    }
+
+
+def write_gzip_json(path: Path, payload: dict[str, Any], *, compact: bool = False) -> str:
+    """Write deterministic gzip-compressed JSON (`mtime=0`, `filename=''`) and return SHA-256."""
+    if compact:
+        raw_text = json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n"
+    else:
+        raw_text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    raw_bytes = raw_text.encode("utf-8")
+    with path.open("wb") as raw_file:
+        with gzip.GzipFile(
+            filename="", mode="wb", fileobj=raw_file, compresslevel=9, mtime=0
+        ) as gz:
+            gz.write(raw_bytes)
+    file_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    print(f"Wrote {path.name} ({path.stat().st_size} bytes, sha256={file_sha})")
+    return file_sha
+
+
 def main() -> None:
     logging.disable(logging.CRITICAL)
     t0 = time.time()
@@ -1559,9 +2307,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     meta = get_oracle_metadata()
-    print(
-        f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']} ({meta['oracle_tag']})"
-    )
+    print(f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']}")
 
     # 1. S1 & Gameplay RNG vectors
     s1_payload = {
@@ -1570,19 +2316,11 @@ def main() -> None:
         "seed_vectors": [generate_s1_seed_vector(label, seed) for label, seed in S1_SEEDS],
         "save_restore_vector": generate_s1_save_restore_vector(),
     }
-    s1_path = out_dir / "rng_s1_vectors.json.gz"
-    with gzip.open(s1_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(s1_payload, f, indent=2)
-        f.write("\n")
-    print(f"Wrote {s1_path} ({s1_path.stat().st_size} bytes)")
+    write_gzip_json(out_dir / "rng_s1_vectors.json.gz", s1_payload)
 
     # 2. Worldgen 200 seeds + 200 JSON events
     wg_payload = generate_worldgen_vectors(meta)
-    wg_path = out_dir / "worldgen_200.json.gz"
-    with gzip.open(wg_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(wg_payload, f, indent=2)
-        f.write("\n")
-    print(f"Wrote {wg_path} ({wg_path.stat().st_size} bytes)")
+    write_gzip_json(out_dir / "worldgen_200.json.gz", wg_payload)
 
     # 3. Saves 20 + Migrations + RNG restore
     saves_payload = {
@@ -1591,31 +2329,21 @@ def main() -> None:
         "saves_20": make_20_real_saves(),
         "migrations": make_migration_vectors(),
     }
-    saves_path = out_dir / "saves_20.json.gz"
-    with gzip.open(saves_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(saves_payload, f, indent=2)
-        f.write("\n")
-    print(f"Wrote {saves_path} ({saves_path.stat().st_size} bytes)")
+    write_gzip_json(out_dir / "saves_20.json.gz", saves_payload)
 
-    # 4 & 5. Golden harness: 1,000x60 + 80x250 + 120 save-and-resume runs at turn 20
+    # 4, 5, 6. Golden harness: 1,000x60 + 80x250 + 120 save-and-resume runs at turn 20
     turns_payload, long_turns_payload, resume_payload = generate_golden_harness_vectors(meta)
-    turns_path = out_dir / "turns_1000_seeds.json.gz"
-    with gzip.open(turns_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(turns_payload, f, separators=(",", ":"), ensure_ascii=False)
-        f.write("\n")
-    print(f"Wrote {turns_path} ({turns_path.stat().st_size} bytes)")
+    write_gzip_json(out_dir / "turns_1000_seeds.json.gz", turns_payload, compact=True)
+    write_gzip_json(out_dir / "turns_long_seeds.json.gz", long_turns_payload, compact=True)
+    write_gzip_json(out_dir / "resume_120_seeds.json.gz", resume_payload, compact=True)
 
-    long_turns_path = out_dir / "turns_long_seeds.json.gz"
-    with gzip.open(long_turns_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(long_turns_payload, f, separators=(",", ":"), ensure_ascii=False)
-        f.write("\n")
-    print(f"Wrote {long_turns_path} ({long_turns_path.stat().st_size} bytes)")
+    # 7. Ledger & proof reference vectors (Phase 2 target)
+    ledger_payload = generate_ledger_reference_vectors(meta)
+    write_gzip_json(out_dir / "ledger_reference.json.gz", ledger_payload)
 
-    resume_path = out_dir / "resume_120_seeds.json.gz"
-    with gzip.open(resume_path, "wt", encoding="utf-8", compresslevel=9) as f:
-        json.dump(resume_payload, f, separators=(",", ":"), ensure_ascii=False)
-        f.write("\n")
-    print(f"Wrote {resume_path} ({resume_path.stat().st_size} bytes)")
+    # 8. Notices reference vectors (Phase 2 target)
+    notices_payload = generate_notices_reference_vectors(meta)
+    write_gzip_json(out_dir / "notices_reference.json.gz", notices_payload)
 
     total_bytes = sum(p.stat().st_size for p in out_dir.glob("*.json.gz"))
     mb = total_bytes / (1024 * 1024)

@@ -1013,6 +1013,22 @@ fn default_callout_level() -> String {
     "verbose".to_string()
 }
 
+/// Transient in-memory cache of the last 4 selected `event_id`s (`events.py:1737-1750`).
+///
+/// Lazily hydrated from `RunState::journal` on first `select_event` / `record_event_tags`
+/// call and skipped during serialization and `PartialEq` (matching Python's dynamic
+/// `_recent_event_ids` attribute on `RunState`).
+#[derive(Debug, Clone, Default)]
+pub struct TransientEventIdCooldown(pub Option<Vec<String>>);
+
+impl PartialEq for TransientEventIdCooldown {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for TransientEventIdCooldown {}
+
 /// Authoritative in-memory game run state (`models.py::RunState`).
 ///
 /// Note on deserialization: `save::load_game` / `save::load_game_result` always load
@@ -1078,6 +1094,8 @@ pub struct RunState {
     pub rng_state: Option<RngState>,
     #[serde(default)]
     pub recent_event_tags: Vec<String>,
+    #[serde(skip)]
+    pub recent_event_ids: TransientEventIdCooldown,
     #[serde(default)]
     pub memory_cards: Vec<MemoryCard>,
     #[serde(default)]
@@ -1131,6 +1149,7 @@ impl Default for RunState {
             rng_counter: 0,
             rng_state: None,
             recent_event_tags: Vec::new(),
+            recent_event_ids: TransientEventIdCooldown::default(),
             memory_cards: Vec::new(),
             resource_crises_seen: Vec::new(),
             doctrine: String::new(),

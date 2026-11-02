@@ -906,6 +906,7 @@ pub fn value_to_state(data: &Value) -> Result<RunState, String> {
         rng_counter,
         rng_state,
         recent_event_tags,
+        recent_event_ids: Default::default(),
         memory_cards,
         resource_crises_seen,
         doctrine,
