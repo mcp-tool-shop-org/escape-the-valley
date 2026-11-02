@@ -7,8 +7,8 @@ process.env.MCPTOOLSHOP_LAUNCH_CONFIG = JSON.stringify({
   toolName: "escape-the-valley",
   owner: "mcp-tool-shop-org",
   repo: "escape-the-valley",
-  version: "1.3.1",
-  tag: "v1.3.1",
+  version: "1.3.2",
+  tag: "v1.3.2",
 });
 
 require("@mcptoolshop/npm-launcher/bin/mcptoolshop-launch.js");

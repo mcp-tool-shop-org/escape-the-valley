@@ -499,7 +499,9 @@ pub fn emit_health_cards(state: &mut RunState, effects: &[HealthEffect]) {
                 };
                 add_card(state, card);
             }
-            HealthEffect::Starvation { .. } | HealthEffect::Dehydration { .. } => {}
+            HealthEffect::Starvation { .. }
+            | HealthEffect::Dehydration { .. }
+            | HealthEffect::Recovered { .. } => {}
         }
     }
 }

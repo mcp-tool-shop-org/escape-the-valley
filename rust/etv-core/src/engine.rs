@@ -1,6 +1,6 @@
 //! Step-based deterministic turn engine (`step_engine.py`).
 //!
-//! Exact port of `src/escape_the_valley/step_engine.py` at tag `v1.3.1` (`47b01a3`)
+//! Exact port of `src/escape_the_valley/step_engine.py` at `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`
 //! with the GM off (`gm_config.enabled == false`).
 
 use std::collections::{BTreeMap, HashSet};
@@ -21,9 +21,10 @@ use crate::model::{
 use crate::physics::{
     abandon_cargo, apply_breakdown, attempt_hunt, attempt_repair, can_abandon_cargo,
     can_desperate_repair, can_hard_ration, check_breakdown, check_game_over, check_health_effects,
-    check_night_travel_danger, check_spoilage, compute_daily_consumption, compute_travel_distance,
-    current_node, desperate_repair, determine_cause_of_death, halve_consumption, hard_ration,
-    rest_day, update_morale, HealthEffect,
+    check_night_travel_danger, check_spoilage, collect_new_death_effects,
+    compute_daily_consumption, compute_travel_distance, current_node, desperate_repair,
+    determine_cause_of_death, halve_consumption, hard_ration, rest_day, update_morale,
+    HealthEffect,
 };
 use crate::rng::CpythonRng;
 use crate::save::save_game;
@@ -62,6 +63,8 @@ pub struct RouteOption {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct StepMessages {
     pub lines: Vec<String>,
+    #[serde(default)]
+    pub effects: Vec<HealthEffect>,
     pub event_title: String,
     pub event_narration: String,
     pub event_choices: Vec<EventChoiceInfo>,
@@ -118,6 +121,8 @@ pub struct StepEngine {
     pending_event_title: String,
     pending_event_narration: String,
     pending_routes: Vec<RouteOption>,
+    alive_before_step: Vec<usize>,
+    emitted_death_indices: Vec<usize>,
 }
 
 impl StepEngine {
@@ -131,7 +136,7 @@ impl StepEngine {
         self.pending_event.as_ref()
     }
 
-    /// Construct a `StepEngine` with explicit `autosave` and `base_path` options (`step_engine.py:161-230`).
+    /// Construct a `StepEngine` with explicit `autosave` and `base_path` options (`step_engine.py:161-235`).
     pub fn with_options(state: RunState, autosave: bool, base_path: Option<PathBuf>) -> Self {
         let rng = CpythonRng::from_seed_and_counter(
             state.seed,
@@ -165,29 +170,21 @@ impl StepEngine {
             pending_event_title: String::new(),
             pending_event_narration: String::new(),
             pending_routes: Vec::new(),
+            alive_before_step: Vec::new(),
+            emitted_death_indices: Vec::new(),
         };
         engine.check_initial_phase();
         engine
     }
 
-    /// Set phase based on current state (`step_engine.py:231-250`).
+    /// Set phase based on current state (`step_engine.py:237-240`).
     fn check_initial_phase(&mut self) {
         if self.state.game_over {
             self.phase = GamePhase::GameOver;
-            return;
-        }
-
-        if let Some(node) = current_node(&self.state).cloned() {
-            if node.connections.len() > 1
-                && self.state.distance_remaining <= 0
-                && self.build_route_choices(&node)
-            {
-                self.phase = GamePhase::Route;
-            }
         }
     }
 
-    /// Process one player action (`step_engine.py:251-281`).
+    /// Process one player action (`step_engine.py:242-277`).
     pub fn step(&mut self, intent: &PlayerIntent) -> StepMessages {
         self.msgs = StepMessages::default();
 
@@ -203,6 +200,17 @@ impl StepEngine {
             return self.msgs.clone();
         }
 
+        self.alive_before_step = self
+            .state
+            .party
+            .members
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m.is_alive())
+            .map(|(i, _)| i)
+            .collect();
+        self.emitted_death_indices.clear();
+
         match self.phase {
             GamePhase::Event => self.handle_event_choice(intent),
             GamePhase::Route => self.handle_route_choice(intent),
@@ -210,6 +218,7 @@ impl StepEngine {
             GamePhase::GameOver => {}
         }
 
+        self.emit_unreported_deaths(false);
         self.check_game_over_transition();
         self.save();
 
@@ -284,9 +293,10 @@ impl StepEngine {
         if self.state.distance_remaining <= 0 {
             self.arrive_at_next_node();
         } else {
+            let rem = self.state.distance_remaining;
+            let unit = if rem == 1 { "mile" } else { "miles" };
             self.msgs.lines.push(format!(
-                "Traveled {distance} miles. {} miles remaining.",
-                self.state.distance_remaining
+                "Traveled {distance} miles. {rem} {unit} remaining."
             ));
         }
 
@@ -339,6 +349,7 @@ impl StepEngine {
         }
 
         let effects = check_health_effects(&mut self.state, &mut self.rng);
+        self.msgs.effects.extend(effects.clone());
         for eff in &effects {
             match eff {
                 HealthEffect::Died { member, cause } => {
@@ -355,7 +366,14 @@ impl StepEngine {
                 HealthEffect::Healed { member } => {
                     self.msgs.lines.push(format!("{member} is recovering."));
                 }
-                HealthEffect::Starvation { .. } | HealthEffect::Dehydration { .. } => {}
+                HealthEffect::Starvation { .. }
+                | HealthEffect::Dehydration { .. }
+                | HealthEffect::Recovered { .. } => {}
+            }
+        }
+        for (i, m) in self.state.party.members.iter().enumerate() {
+            if !m.is_alive() && !self.emitted_death_indices.contains(&i) {
+                self.emitted_death_indices.push(i);
             }
         }
         self.record_death_milestones(&effects);
@@ -396,8 +414,10 @@ impl StepEngine {
             .push("The party rests for a day.".to_string());
         for member in recovered {
             self.msgs.lines.push(format!("  {member} has recovered."));
+            self.msgs.effects.push(HealthEffect::Recovered { member });
         }
 
+        self.emit_unreported_deaths(false);
         update_morale(&mut self.state, 0);
     }
 
@@ -430,6 +450,7 @@ impl StepEngine {
                     .push(format!("{injured} was injured on the hunt."));
             }
         }
+        self.emit_unreported_deaths(false);
 
         let half = halve_consumption(&compute_daily_consumption(&self.state, false));
         self.state.supplies.apply_delta(&half);
@@ -471,6 +492,7 @@ impl StepEngine {
             "Wagon repaired to {}/100. -1 part.",
             self.state.wagon.condition
         ));
+        self.emit_unreported_deaths(false);
 
         let half = halve_consumption(&compute_daily_consumption(&self.state, false));
         self.state.supplies.apply_delta(&half);
@@ -562,6 +584,7 @@ impl StepEngine {
             format!("Repair failed. {} injured.", result.injured)
         };
         emit_escape_valve_card(&mut self.state, "desperate_repair", &detail);
+        self.emit_unreported_deaths(false);
     }
 
     fn hard_ration_refusal_line(&self) -> String {
@@ -603,6 +626,33 @@ impl StepEngine {
             "hard_ration",
             "Hard rationing imposed — half rations for 2 days.",
         );
+        self.emit_unreported_deaths(false);
+    }
+
+    /// Emit message, `died` effect, milestone, and memory card for any newly dead member (`step_engine.py:693-709`).
+    fn emit_unreported_deaths(&mut self, from_event: bool) {
+        let death_effects = collect_new_death_effects(
+            &mut self.state,
+            &self.alive_before_step,
+            &mut self.emitted_death_indices,
+            from_event,
+        );
+        if death_effects.is_empty() {
+            return;
+        }
+        for eff in &death_effects {
+            if let HealthEffect::Died { member, cause } = eff {
+                let c = if cause.is_empty() {
+                    "the trail"
+                } else {
+                    cause.as_str()
+                };
+                self.msgs.lines.push(format!("{member} has died ({c})."));
+            }
+        }
+        self.msgs.effects.extend(death_effects.clone());
+        self.record_death_milestones(&death_effects);
+        emit_health_cards(&mut self.state, &death_effects);
     }
 
     fn record_milestone(
@@ -778,6 +828,7 @@ impl StepEngine {
         });
 
         emit_event_card(&mut self.state, &event);
+        self.emit_unreported_deaths(true);
         check_resource_crises(&mut self.state);
 
         self.pending_event = None;
@@ -1375,5 +1426,350 @@ mod tests {
             "expected spoilage line in travel messages, got {:?}",
             msgs_spoil.lines
         );
+    }
+
+    #[test]
+    fn test_fork_reload_stays_in_camp_and_matches_uninterrupted_seed_2() {
+        use crate::save::{load_game, save_game};
+
+        fn fork_policy_intent(eng: &StepEngine, prng: &mut CpythonRng) -> PlayerIntent {
+            if eng.phase == GamePhase::Event {
+                let ids: Vec<String> = if eng.pending_event_choices.is_empty() {
+                    vec!["A".to_string()]
+                } else {
+                    eng.pending_event_choices
+                        .iter()
+                        .map(|c| c.id.clone())
+                        .collect()
+                };
+                let pick = prng.choice(&ids).clone();
+                return PlayerIntent {
+                    action: IntentAction::Choose,
+                    choice_id: pick,
+                    pace: String::new(),
+                };
+            }
+            if eng.phase == GamePhase::Route {
+                let count = std::cmp::max(1, eng.pending_routes.len());
+                let opts: Vec<&str> = ["A", "B", "C", "D"][..count].to_vec();
+                let pick = (*prng.choice(&opts)).to_string();
+                return PlayerIntent {
+                    action: IntentAction::Choose,
+                    choice_id: pick,
+                    pace: String::new(),
+                };
+            }
+            if eng.state.supplies.food() < 12 && eng.state.supplies.ammo() > 0 {
+                return PlayerIntent {
+                    action: IntentAction::Hunt,
+                    choice_id: String::new(),
+                    pace: String::new(),
+                };
+            }
+            if eng.state.wagon.condition < 50 && eng.state.supplies.parts() > 0 {
+                return PlayerIntent {
+                    action: IntentAction::Repair,
+                    choice_id: String::new(),
+                    pace: String::new(),
+                };
+            }
+            if eng
+                .state
+                .party
+                .members
+                .iter()
+                .any(|m| m.is_alive() && m.health < 45)
+            {
+                return PlayerIntent {
+                    action: IntentAction::Rest,
+                    choice_id: String::new(),
+                    pace: String::new(),
+                };
+            }
+            PlayerIntent {
+                action: IntentAction::Travel,
+                choice_id: String::new(),
+                pace: String::new(),
+            }
+        }
+
+        let mut st = create_new_run(2);
+        st.run_id = format!("{}-00000000", RunState::seed_prefix(2));
+        let mut eng = StepEngine::new(st);
+        let mut prng = CpythonRng::from_seed(2 ^ 0xA5A5A5A5);
+
+        for _ in 0..8 {
+            let intent = fork_policy_intent(&eng, &mut prng);
+            eng.step(&intent);
+        }
+
+        let node = current_node(&eng.state).expect("current node");
+        assert!(node.connections.len() > 1);
+        assert_eq!(eng.state.distance_remaining, 0);
+        assert_eq!(eng.phase, GamePhase::Camp);
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        save_game(&eng.state, tmp.path()).expect("save at fork");
+        let loaded = load_game(tmp.path()).expect("load at fork");
+        let mut reloaded = StepEngine::new(loaded);
+
+        assert_eq!(reloaded.phase, GamePhase::Camp);
+        assert_eq!(reloaded.state.rng_counter, eng.state.rng_counter);
+
+        let mut prng_rel = prng.clone();
+        for step_idx in 1..=30 {
+            let intent_u = fork_policy_intent(&eng, &mut prng);
+            let intent_r = fork_policy_intent(&reloaded, &mut prng_rel);
+            assert_eq!(intent_r, intent_u, "step {step_idx}: intent diverged");
+            let msgs_u = eng.step(&intent_u);
+            let msgs_r = reloaded.step(&intent_r);
+            assert_eq!(reloaded.phase, eng.phase, "step {step_idx}: phase diverged");
+            assert_eq!(
+                msgs_r.lines, msgs_u.lines,
+                "step {step_idx}: lines diverged"
+            );
+            assert_eq!(
+                reloaded.state.rng_counter, eng.state.rng_counter,
+                "step {step_idx}: rng_counter diverged"
+            );
+        }
+    }
+
+    #[test]
+    fn test_non_travel_and_travel_deaths_emit_message_milestone_and_memory_card() {
+        use crate::model::Condition;
+        use crate::worldgen::{ChoiceTemplate, EventCategory};
+
+        fn assert_single_death(
+            eng: &StepEngine,
+            msgs: &StepMessages,
+            member_name: &str,
+            expected_cause: &str,
+        ) {
+            let member = eng
+                .state
+                .party
+                .members
+                .iter()
+                .find(|m| m.name == member_name)
+                .expect("member found");
+            assert!(!member.is_alive());
+            assert_eq!(member.death_cause, expected_cause);
+
+            let expected_line = format!("{member_name} has died ({expected_cause}).");
+            let death_lines: Vec<&String> = msgs
+                .lines
+                .iter()
+                .filter(|l| l.contains(" has died ("))
+                .collect();
+            assert_eq!(death_lines, vec![&expected_line]);
+
+            let died_effects: Vec<&HealthEffect> = msgs
+                .effects
+                .iter()
+                .filter(|e| matches!(e, HealthEffect::Died { .. }))
+                .collect();
+            assert_eq!(
+                died_effects,
+                vec![&HealthEffect::Died {
+                    member: member_name.to_string(),
+                    cause: expected_cause.to_string(),
+                }]
+            );
+
+            let death_milestones: Vec<&JournalEntry> = eng
+                .state
+                .journal
+                .iter()
+                .filter(|j| j.event_id.starts_with("death:"))
+                .collect();
+            assert_eq!(death_milestones.len(), 1);
+            assert_eq!(
+                death_milestones[0].event_id,
+                format!("death:{}", expected_cause.to_lowercase())
+            );
+            assert_eq!(
+                death_milestones[0].scene_title,
+                format!("Death: {member_name}")
+            );
+
+            let card_id = format!(
+                "eng_death_{}_d{}",
+                member_name.to_lowercase(),
+                eng.state.day
+            );
+            let death_cards: Vec<_> = eng
+                .state
+                .memory_cards
+                .iter()
+                .filter(|c| c.id == card_id)
+                .collect();
+            assert_eq!(death_cards.len(), 1);
+            assert_eq!(death_cards[0].title, format!("{member_name}'s Death"));
+            assert_eq!(
+                death_cards[0].text,
+                format!(
+                    "{member_name} perished on day {} ({expected_cause}).",
+                    eng.state.day
+                )
+            );
+        }
+
+        // 1. EVENT death: lethal health_delta (-15) on Ruth (health 10) -> "Injury", +1 RNG draw
+        let mut st_ev = create_new_run(42);
+        assert_eq!(st_ev.party.members[0].name, "Ruth");
+        st_ev.party.members[0].health = 10;
+        let mut eng_ev = StepEngine::new(st_ev);
+        let ev = EventSkeleton {
+            event_id: "test_lethal_ambush".to_string(),
+            title: "Rockfall".to_string(),
+            category: EventCategory::Survival,
+            tags: vec!["danger".to_string()],
+            severity: "high".to_string(),
+            family: String::new(),
+            biome_filter: None,
+            weather_filter: None,
+            time_filter: None,
+            preconditions: Vec::new(),
+            base_weight: 1.0,
+            folklore_type: None,
+            costs_uncanny_token: false,
+            oregon_nod: false,
+            fallback_narration: "Boulders crash down the slope.".to_string(),
+            fallback_choices: vec![ChoiceTemplate {
+                choice_id: "A".to_string(),
+                label: "Shield the wagon".to_string(),
+                action: "CHOOSE".to_string(),
+                style: "BOLD".to_string(),
+                risk_hint: "Dangerous".to_string(),
+                cost_hint: "Health".to_string(),
+                outcome_weights: BTreeMap::new(),
+            }],
+            outcome_templates: BTreeMap::from([(
+                "A".to_string(),
+                EventOutcome {
+                    health_delta: -15,
+                    morale_delta: -5,
+                    ..Default::default()
+                },
+            )]),
+            gm_aside: String::new(),
+        };
+        eng_ev.phase = GamePhase::Event;
+        eng_ev.pending_event = Some(ev.clone());
+        eng_ev.pending_event_choices = vec![EventChoiceInfo {
+            id: "A".to_string(),
+            label: "Shield the wagon".to_string(),
+            risk_hint: "Dangerous".to_string(),
+            cost_hint: "Health".to_string(),
+        }];
+        eng_ev.pending_event_title = ev.title.clone();
+        eng_ev.pending_event_narration = ev.fallback_narration.clone();
+        assert_eq!(eng_ev.rng.counter, 198);
+        let msgs_ev = eng_ev.step(&PlayerIntent {
+            action: IntentAction::Choose,
+            choice_id: "A".to_string(),
+            pace: String::new(),
+        });
+        assert_single_death(&eng_ev, &msgs_ev, "Ruth", "Injury");
+        assert_eq!(eng_ev.rng.counter, 199);
+
+        // 2. HUNT death: failed hunt injury on Ruth (health 5) -> "Injury", 4 RNG draws
+        let mut st_hunt = create_new_run(42);
+        st_hunt.party.members[0].health = 5;
+        st_hunt.supplies.set("ammo", 10);
+        let mut eng_hunt = StepEngine::new(st_hunt);
+        eng_hunt.rng = CpythonRng::from_seed(15);
+        let msgs_hunt = eng_hunt.step(&PlayerIntent {
+            action: IntentAction::Hunt,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_single_death(&eng_hunt, &msgs_hunt, "Ruth", "Injury");
+        assert_eq!(eng_hunt.rng.counter, 4);
+
+        // 3. DESPERATE_REPAIR death: failed repair injury on Ruth (health 5) -> "Injury", 3 RNG draws
+        let mut st_dr = create_new_run(42);
+        st_dr.wagon.condition = 20;
+        st_dr.supplies.set("parts", 0);
+        st_dr.party.members[0].health = 5;
+        let mut eng_dr = StepEngine::new(st_dr);
+        eng_dr.rng = CpythonRng::from_seed(2);
+        let msgs_dr = eng_dr.step(&PlayerIntent {
+            action: IntentAction::DesperateRepair,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_single_death(&eng_dr, &msgs_dr, "Ruth", "Injury");
+        assert_eq!(eng_dr.rng.counter, 3);
+
+        // 4. HARD_RATION death: -5 HP cost on Ruth (health 5, Exhausted) -> "Exhaustion", 0 RNG draws
+        let mut st_hr = create_new_run(42);
+        st_hr.supplies.set("food", 4);
+        st_hr.party.members[0].health = 5;
+        st_hr.party.members[0].condition = Condition::Exhausted;
+        let mut eng_hr = StepEngine::new(st_hr);
+        assert_eq!(eng_hr.rng.counter, 198);
+        let msgs_hr = eng_hr.step(&PlayerIntent {
+            action: IntentAction::HardRation,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_single_death(&eng_hr, &msgs_hr, "Ruth", "Exhaustion");
+        assert_eq!(eng_hr.rng.counter, 198);
+
+        // 5. TRAVEL death: starvation on Ruth (health 5, food 0) -> "Starvation"
+        let mut st_tr = create_new_run(42);
+        st_tr.party.members[0].health = 5;
+        st_tr.supplies.set("food", 0);
+        st_tr.supplies.set("water", 50);
+        let mut eng_tr = StepEngine::new(st_tr);
+        let msgs_tr = eng_tr.step(&PlayerIntent {
+            action: IntentAction::Travel,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_single_death(&eng_tr, &msgs_tr, "Ruth", "Starvation");
+
+        // 6. REST and REPAIR death emission via emit_unreported_deaths (0 extra RNG draws)
+        let mut st_rest = create_new_run(42);
+        st_rest.party.members[0].health = 5;
+        st_rest.party.members[0].condition = Condition::Sick;
+        let mut eng_rest = StepEngine::new(st_rest);
+        eng_rest.alive_before_step = vec![0, 1, 2, 3];
+        eng_rest.emitted_death_indices.clear();
+        eng_rest.state.party.members[0].health = 0;
+        let counter_before_rest = eng_rest.rng.counter;
+        eng_rest.emit_unreported_deaths(false);
+        let msgs_rest = eng_rest.msgs.clone();
+        assert_single_death(&eng_rest, &msgs_rest, "Ruth", "Disease");
+        assert_eq!(eng_rest.rng.counter, counter_before_rest);
+
+        let mut st_rep = create_new_run(42);
+        st_rep.party.members[0].health = 5;
+        st_rep.party.members[0].condition = Condition::Exhausted;
+        let mut eng_rep = StepEngine::new(st_rep);
+        eng_rep.alive_before_step = vec![0, 1, 2, 3];
+        eng_rep.emitted_death_indices.clear();
+        eng_rep.state.party.members[0].health = 0;
+        let counter_before_rep = eng_rep.rng.counter;
+        eng_rep.emit_unreported_deaths(false);
+        let msgs_rep = eng_rep.msgs.clone();
+        assert_single_death(&eng_rep, &msgs_rep, "Ruth", "Exhaustion");
+        assert_eq!(eng_rep.rng.counter, counter_before_rep);
+    }
+
+    #[test]
+    fn test_do_travel_singular_one_mile_remaining() {
+        let mut st = create_new_run(42);
+        st.distance_remaining = 6;
+        let mut eng = StepEngine::new(st);
+        let msgs = eng.step(&PlayerIntent {
+            action: IntentAction::Travel,
+            choice_id: String::new(),
+            pace: String::new(),
+        });
+        assert_eq!(eng.state.distance_remaining, 1);
+        assert_eq!(msgs.lines[0], "Traveled 5 miles. 1 mile remaining.");
     }
 }

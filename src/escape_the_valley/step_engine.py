@@ -53,6 +53,7 @@ from .physics import (
     check_health_effects,
     check_night_travel_danger,
     check_spoilage,
+    collect_new_death_effects,
     compute_daily_consumption,
     compute_travel_distance,
     desperate_repair,
@@ -132,6 +133,7 @@ class StepMessages:
     """Everything that happened during one step — UI reads this."""
 
     lines: list[str] = field(default_factory=list)
+    effects: list[dict] = field(default_factory=list)
     event_title: str = ""
     event_narration: str = ""
     event_choices: list[EventChoiceInfo] = field(default_factory=list)
@@ -224,6 +226,10 @@ class StepEngine:
         self._pending_event_title: str = ""
         self._pending_event_narration: str = ""
         self._pending_routes: list[RouteOption] = []
+        self._alive_before_step: set[int] = {
+            id(m) for m in self.state.party.members if m.is_alive()
+        }
+        self._emitted_death_ids: set[int] = set()
 
         # Check initial conditions
         self._check_initial_phase()
@@ -232,21 +238,6 @@ class StepEngine:
         """Set phase based on current state (e.g. after load)."""
         if self.state.game_over:
             self.phase = GamePhase.GAME_OVER
-            return
-
-        # Check if at a fork
-        node = _find_node(self.state)
-        if (
-            node
-            and len(node.connections) > 1
-            and self.state.distance_remaining <= 0
-        ):
-            if self._build_route_choices(node):
-                self.phase = GamePhase.ROUTE
-            # else: no legitimate route exists here (F-dd6869ca/
-            # F-0877c51a) -- _build_route_choices already logged and
-            # queued the stuck message. Stay in CAMP; there is nothing to
-            # advance toward.
 
     def step(self, intent: PlayerIntent) -> StepMessages:
         """Process one player action. Returns messages for the UI."""
@@ -265,12 +256,19 @@ class StepEngine:
             self._save()
             return self.msgs
 
+        self._alive_before_step = {
+            id(m) for m in self.state.party.members if m.is_alive()
+        }
+        self._emitted_death_ids = set()
+
         if self.phase == GamePhase.EVENT:
             self._handle_event_choice(intent)
         elif self.phase == GamePhase.ROUTE:
             self._handle_route_choice(intent)
         elif self.phase == GamePhase.CAMP:
             self._handle_camp(intent)
+
+        self._emit_unreported_deaths()
 
         # Check game over after any action
         self._check_game_over()
@@ -393,9 +391,11 @@ class StepEngine:
         if self.state.distance_remaining <= 0:
             self._arrive_at_next_node()
         else:
+            rem = self.state.distance_remaining
+            unit = "mile" if rem == 1 else "miles"
             self.msgs.lines.append(
                 f"Traveled {distance} miles. "
-                f"{self.state.distance_remaining} miles remaining."
+                f"{rem} {unit} remaining."
             )
 
         # Advance time
@@ -448,6 +448,7 @@ class StepEngine:
 
         # Health effects
         effects = check_health_effects(self.state, self.rng)
+        self.msgs.effects.extend(effects)
         for eff in effects:
             if eff["type"] == "died":
                 # F-1a1edd7a: cause is already on the effect (and the journal).
@@ -463,6 +464,9 @@ class StepEngine:
                 self.msgs.lines.append(
                     f"{eff['member']} is recovering."
                 )
+        for m in self.state.party.members:
+            if not m.is_alive():
+                self._emitted_death_ids.add(id(m))
         self._record_death_milestones(effects)
         emit_health_cards(self.state, effects)
 
@@ -505,6 +509,8 @@ class StepEngine:
                 self.msgs.lines.append(
                     f"  {eff['member']} has recovered."
                 )
+                self.msgs.effects.append(eff)
+        self._emit_unreported_deaths()
 
         update_morale(self.state)
 
@@ -529,6 +535,7 @@ class StepEngine:
             )
         if injured:
             self.msgs.lines.append(f"{injured} was injured on the hunt.")
+        self._emit_unreported_deaths()
 
         # Half-day consumption (F-4d750550: round toward zero, not floor)
         half = halve_consumption(compute_daily_consumption(self.state))
@@ -569,6 +576,7 @@ class StepEngine:
             f"Wagon repaired to {self.state.wagon.condition}/100. "
             "-1 part."
         )
+        self._emit_unreported_deaths()
 
         # Half-day consumption (F-4d750550: round toward zero, not floor)
         half = halve_consumption(compute_daily_consumption(self.state))
@@ -645,6 +653,7 @@ class StepEngine:
             else f"Repair failed. {result.get('injured', 'Someone')} injured."
         )
         emit_escape_valve_card(self.state, "desperate_repair", detail)
+        self._emit_unreported_deaths()
 
     def _hard_ration_refusal_line(self) -> str:
         """Name the closed gate. F-9fabf995: one shared refusal hid three."""
@@ -679,6 +688,25 @@ class StepEngine:
             self.state, "hard_ration",
             "Hard rationing imposed — half rations for 2 days.",
         )
+        self._emit_unreported_deaths()
+
+    def _emit_unreported_deaths(self, *, from_event: bool = False) -> None:
+        """Emit death message, `died` effect, milestone, and memory card for
+        any party member who transitioned alive -> dead (#42)."""
+        death_effects = collect_new_death_effects(
+            self.state,
+            self._alive_before_step,
+            self._emitted_death_ids,
+            from_event=from_event,
+        )
+        if not death_effects:
+            return
+        for eff in death_effects:
+            cause = eff.get("cause") or "the trail"
+            self.msgs.lines.append(f"{eff['member']} has died ({cause}).")
+        self.msgs.effects.extend(death_effects)
+        self._record_death_milestones(death_effects)
+        emit_health_cards(self.state, death_effects)
 
     # ── Journal milestones (ENG-B-02) ───────────────────────────────
 
@@ -997,6 +1025,7 @@ class StepEngine:
 
         # Memory emitters — engine cards from event
         emit_event_card(self.state, event)
+        self._emit_unreported_deaths(from_event=True)
 
         # Validate GM-proposed memory cards
         # F-b6d0a4bc: a malformed-but-schema-legal proposal batch (or any
@@ -1046,14 +1075,15 @@ class StepEngine:
         Entering ROUTE with zero options would be an unrecoverable
         softlock: _handle_route_choice can never satisfy
         idx < len(_pending_routes) against an empty list, and
-        _check_initial_phase would rebuild the same broken ROUTE state on
-        every reload. This method avoids that the same way it always
-        has -- return False and don't enter ROUTE -- but F-dd6869ca
-        forbids the map_nodes[-1] beeline that used to live in the False
-        branch (it can silently skip unvisited content and manufacture a
-        VICTORY the party never earned). So the False branch now invents
-        no destination at all: it only logs and queues a player-facing
-        message. The caller (_do_travel / _check_initial_phase) must NOT
+        _do_travel would rebuild the same broken ROUTE state on every
+        travel attempt (_check_initial_phase only sets GAME_OVER; route
+        choices are built by _do_travel). This method avoids that the
+        same way it always has -- return False and don't enter ROUTE --
+        but F-dd6869ca forbids the map_nodes[-1] beeline that used to
+        live in the False branch (it can silently skip unvisited content
+        and manufacture a VICTORY the party never earned). So the False
+        branch now invents no destination at all: it only logs and queues
+        a player-facing message. The caller (_do_travel) must NOT
         fall through to a normal travel step when this returns False --
         there is nothing legitimate to advance toward, so falling through
         would fake a travel leg exactly like the self-edge case would.

@@ -225,8 +225,8 @@ def show_event_scene(title: str, narration: str, choices: list[dict]) -> str:
     for i, choice in enumerate(choices):
         choice_id = choice.get("id", chr(65 + i))
         label = choice.get("label", f"Option {choice_id}")
-        risk = choice.get("risk_hint", "")
-        cost = choice.get("cost_hint", "")
+        risk = choice.get("risk_hint", "").rstrip(".")
+        cost = choice.get("cost_hint", "").rstrip(".")
 
         hint = ""
         if risk or cost:
@@ -278,7 +278,7 @@ def _delta_magnitude(deltas: dict) -> float:
 def show_outcome(title: str, narration: str, callout: str, deltas: dict) -> None:
     """Display the outcome of a choice."""
     text = narration
-    if callout:
+    if callout and callout != narration:
         text += f"\n\n[bold]{callout}[/bold]"
 
     if deltas:

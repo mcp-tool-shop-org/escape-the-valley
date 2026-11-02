@@ -37,6 +37,7 @@ EXCLUDED_BUILD_TOOLS: frozenset[str] = frozenset({
     "build",
     "hatchling",
     "twine",
+    "zstandard",
 })
 
 # Direct runtime roots of escape-the-valley (base + [xrpl] extra bundled in
@@ -103,6 +104,25 @@ def _requires_source_line(license_label: str) -> bool:
 def _sha256_bytes(data: bytes) -> str:
     """Return lowercase hex SHA-256 digest of raw bytes."""
     return hashlib.sha256(data).hexdigest()
+
+
+def _normalize_license_text_and_sha256(raw_bytes: bytes) -> tuple[str, str]:
+    """Normalise license bytes to LF (`\\n`) with a single trailing `\\n`.
+
+    Convention (1.3.2 N1/N2): every license text block printed beneath a
+    `SHA256: <hex>` line is `text_block = normalized.decode('utf-8').strip()`,
+    and `SHA256: <hex>` is `sha256((text_block + '\\n').encode('utf-8'))`.
+    """
+    text_block = (
+        raw_bytes.replace(b"\r\n", b"\n")
+        .replace(b"\r", b"\n")
+        .decode("utf-8", errors="replace")
+        .strip()
+    )
+    if not text_block:
+        return _sha256_bytes(b""), ""
+    canonical_bytes = (text_block + "\n").encode("utf-8")
+    return _sha256_bytes(canonical_bytes), text_block
 
 
 def _load_sources_manifest() -> dict[str, Any]:
@@ -378,13 +398,12 @@ def _read_cpython_license_blocks(
         )
 
     raw_lic = lic_path.read_bytes()
-    lic_text = raw_lic.decode("utf-8", errors="replace").strip()
+    lic_sha, lic_text = _normalize_license_text_and_sha256(raw_lic)
     if not lic_text:
         raise FileNotFoundError(
             f"CPython LICENSE file at {lic_path} is empty; "
             "refusing to generate partial PSF license notices."
         )
-    lic_sha = _sha256_bytes(raw_lic)
 
     target_info = sources["targets"][target]
     cpython_tag = sources["cpython_tag"]
@@ -410,12 +429,11 @@ def _read_cpython_license_blocks(
             f"Vendored CPython incorporated-software section missing: {inc_path}"
         )
     inc_raw = inc_path.read_bytes()
-    inc_sha = _sha256_bytes(inc_raw)
+    inc_sha, inc_text = _normalize_license_text_and_sha256(inc_raw)
     if inc_sha != inc_info["sha256"]:
         raise RuntimeError(
             f"SHA-256 mismatch for {inc_path}: expected {inc_info['sha256']}, got {inc_sha}"
         )
-    inc_text = inc_raw.decode("utf-8").strip()
     blocks.append((
         f"CPython {cpython_tag} Doc/license.rst — {inc_info['section_heading']}",
         f"{inc_info['source_url']} (Doc/license.rst sha256: {inc_info['doc_license_rst_sha256']})",
@@ -430,12 +448,11 @@ def _read_cpython_license_blocks(
                 f"Vendored python-build-standalone license file missing: {vpath}"
             )
         raw_bytes = vpath.read_bytes()
-        fsha = _sha256_bytes(raw_bytes)
+        fsha, text = _normalize_license_text_and_sha256(raw_bytes)
         if fsha != entry["sha256"]:
             raise RuntimeError(
                 f"SHA-256 mismatch for {vpath}: expected {entry['sha256']}, got {fsha}"
             )
-        text = raw_bytes.decode("utf-8").replace("\r\n", "\n").strip()
         src_desc = (
             f"{entry['pbs_archive_url']} "
             f"(archive: {entry['archive_name']}, "
@@ -513,14 +530,13 @@ def _extract_dist_license_files(
         try:
             located = Path(str(f.locate()))
             raw_bytes = located.read_bytes()
-            text = raw_bytes.decode("utf-8", errors="replace").strip()
+            file_sha, text = _normalize_license_text_and_sha256(raw_bytes)
         except Exception:
             continue
 
         if not text or text in seen_texts:
             continue
         seen_texts.add(text)
-        file_sha = _sha256_bytes(raw_bytes)
 
         # Strip the leading `<pkg>-<ver>.dist-info/(licenses/)?` prefix so no
         # installation layout noise leaks into the output.
@@ -633,9 +649,15 @@ def _read_game_license_block(
     for cand in candidates:
         if cand.is_file():
             raw = cand.read_bytes()
-            text = raw.decode("utf-8", errors="replace").strip()
+            fsha, text = _normalize_license_text_and_sha256(raw)
             if text:
-                return source_url, _sha256_bytes(raw), text
+                expected_sha = str(game_meta.get("sha256") or "").strip()
+                if expected_sha and fsha != expected_sha:
+                    raise RuntimeError(
+                        f"SHA-256 mismatch for game LICENSE at {cand}: "
+                        f"expected {expected_sha}, got {fsha}"
+                    )
+                return source_url, fsha, text
 
     etv_dist = dists_by_norm.get("escape-the-valley")
     if etv_dist is not None:
@@ -1057,7 +1079,7 @@ def prune_notices_to_toc(
         include_only_dists=set(bundled),
         release=release,
     )
-    Path(notices_path).write_text(content, encoding="utf-8")
+    Path(notices_path).write_text(content, encoding="utf-8", newline="\n")
     return bundled
 
 
@@ -1293,6 +1315,326 @@ def verify_bundle_no_direct_url(
     return entries
 
 
+def _decompress_zst_to_file(src_zst: Path, dst_tar: Path) -> None:
+    """Decompress a `.zst` archive to `dst_tar` using `zstandard`, `zstd` CLI, or `libzstd`."""
+    import ctypes
+    import shutil
+    import subprocess
+
+    try:
+        import zstandard  # type: ignore[import-not-found]
+
+        dctx = zstandard.ZstdDecompressor()
+        with src_zst.open("rb") as ifh, dst_tar.open("wb") as ofh:
+            dctx.copy_stream(ifh, ofh)
+        return
+    except ImportError:
+        pass
+
+    zstd_bin = shutil.which("zstd")
+    if zstd_bin:
+        subprocess.run(
+            [zstd_bin, "-d", "-f", "-o", str(dst_tar), str(src_zst)],
+            check=True,
+            timeout=120,
+        )
+        return
+
+    for lib_name in (
+        "libzstd.so.1",
+        "libzstd.so",
+        "libzstd.1.dylib",
+        "libzstd.dylib",
+        "libzstd.dll",
+        "zstd.dll",
+    ):
+        try:
+            lib = ctypes.CDLL(lib_name)
+            break
+        except OSError:
+            continue
+    else:
+        raise RuntimeError(
+            "Cannot decompress .zst archive: install `zstandard` (`pip install zstandard`) "
+            "or `zstd` CLI"
+        )
+
+    class _ZstdInBuffer(ctypes.Structure):
+        _fields_ = [
+            ("src", ctypes.c_void_p),
+            ("size", ctypes.c_size_t),
+            ("pos", ctypes.c_size_t),
+        ]
+
+    class _ZstdOutBuffer(ctypes.Structure):
+        _fields_ = [
+            ("dst", ctypes.c_void_p),
+            ("size", ctypes.c_size_t),
+            ("pos", ctypes.c_size_t),
+        ]
+
+    lib.ZSTD_createDCtx.restype = ctypes.c_void_p
+    lib.ZSTD_freeDCtx.argtypes = [ctypes.c_void_p]
+    lib.ZSTD_freeDCtx.restype = ctypes.c_size_t
+    lib.ZSTD_decompressStream.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(_ZstdOutBuffer),
+        ctypes.POINTER(_ZstdInBuffer),
+    ]
+    lib.ZSTD_decompressStream.restype = ctypes.c_size_t
+    lib.ZSTD_isError.argtypes = [ctypes.c_size_t]
+    lib.ZSTD_isError.restype = ctypes.c_uint
+
+    dctx_ptr = lib.ZSTD_createDCtx()
+    if not dctx_ptr:
+        raise RuntimeError("ZSTD_createDCtx returned NULL")
+    try:
+        out_chunk = ctypes.create_string_buffer(1024 * 256)
+        with src_zst.open("rb") as ifh, dst_tar.open("wb") as ofh:
+            while True:
+                data = ifh.read(1024 * 256)
+                if not data:
+                    break
+                in_buf_raw = ctypes.create_string_buffer(data, len(data))
+                in_buf = _ZstdInBuffer(
+                    ctypes.cast(in_buf_raw, ctypes.c_void_p), len(data), 0
+                )
+                while in_buf.pos < in_buf.size:
+                    out_buf = _ZstdOutBuffer(
+                        ctypes.cast(out_chunk, ctypes.c_void_p),
+                        len(out_chunk),
+                        0,
+                    )
+                    ret = lib.ZSTD_decompressStream(
+                        dctx_ptr, ctypes.byref(out_buf), ctypes.byref(in_buf)
+                    )
+                    if lib.ZSTD_isError(ret):
+                        raise RuntimeError(
+                            f"libzstd ZSTD_decompressStream error code {ret}"
+                        )
+                    if out_buf.pos > 0:
+                        ofh.write(out_chunk.raw[: out_buf.pos])
+    finally:
+        lib.ZSTD_freeDCtx(dctx_ptr)
+
+
+def verify_pbs_archive_accounting(
+    *,
+    target: str | None = None,
+    archive_path: str | Path | None = None,
+    sources: dict[str, Any] | None = None,
+    verify_archive_sha256: bool = True,
+) -> list[str]:
+    """Verify `_licenses/SOURCES.json` against a python-build-standalone archive (#31.2).
+
+    Inspects `python/licenses/*` and `python/PYTHON.json` inside the archive
+    (downloading `pbs_archive_url` when `archive_path` is None) and verifies:
+    - every file under `python/licenses/` is accounted for in `SOURCES.json`
+      (`files` ∪ `system_libraries` ∪ `excluded_unbundled_extensions`);
+    - every `license_path` in `python/PYTHON.json` is accounted for in `SOURCES.json`;
+    - every vendored file under `_licenses/<target>/` matches the LF-normalised
+      SHA-256 of its corresponding archive file and `SOURCES.json`.
+    """
+    import tarfile
+    import tempfile
+    import urllib.request
+
+    manifest = sources if sources is not None else _load_sources_manifest()
+    targets = manifest.get("targets") or {}
+    if target == "all":
+        if archive_path is not None:
+            raise RuntimeError("--archive-path cannot be combined with --target all")
+        out_targets: list[str] = []
+        for tname in targets:
+            out_targets.extend(
+                verify_pbs_archive_accounting(
+                    target=tname,
+                    sources=manifest,
+                    verify_archive_sha256=verify_archive_sha256,
+                )
+            )
+        return out_targets
+
+    resolved_target = target if target is not None else _detect_target_triple()
+    if resolved_target not in targets:
+        raise RuntimeError(
+            f"Unknown target {resolved_target!r} (available: {sorted(targets)})"
+        )
+    target_info = targets[resolved_target]
+
+    def _inspect_archive_file(arch_file: Path) -> None:
+        if verify_archive_sha256:
+            actual_arch_sha = _sha256_bytes(arch_file.read_bytes())
+            expected_arch_sha = str(target_info.get("archive_sha256") or "").strip()
+            if expected_arch_sha and actual_arch_sha != expected_arch_sha:
+                raise RuntimeError(
+                    f"Archive SHA-256 mismatch for {arch_file}: "
+                    f"expected {expected_arch_sha}, got {actual_arch_sha}"
+                )
+
+        install_lic_rel = str(
+            target_info.get("install_license_archive_path") or ""
+        ).strip()
+        archive_licenses: dict[str, bytes] = {}
+        python_json_bytes: bytes | None = None
+        install_lic_bytes: bytes | None = None
+
+        def _read_tar_stream(tf: tarfile.TarFile) -> None:
+            nonlocal python_json_bytes, install_lic_bytes
+            for member in tf:
+                if not member.isfile():
+                    continue
+                norm_name = member.name.replace("\\", "/").lstrip("./")
+                if norm_name.startswith("python/licenses/"):
+                    fobj = tf.extractfile(member)
+                    if fobj is not None:
+                        archive_licenses[norm_name] = fobj.read()
+                elif norm_name == "python/PYTHON.json":
+                    fobj = tf.extractfile(member)
+                    if fobj is not None:
+                        python_json_bytes = fobj.read()
+                elif install_lic_rel and norm_name == install_lic_rel:
+                    fobj = tf.extractfile(member)
+                    if fobj is not None:
+                        install_lic_bytes = fobj.read()
+
+        if str(arch_file).lower().endswith(".zst"):
+            tar_tmp = arch_file.with_suffix("")
+            if tar_tmp == arch_file:
+                tar_tmp = arch_file.parent / f"{arch_file.name}.tar"
+            _decompress_zst_to_file(arch_file, tar_tmp)
+            try:
+                with tarfile.open(tar_tmp, mode="r:*") as tf:
+                    _read_tar_stream(tf)
+            finally:
+                try:
+                    tar_tmp.unlink()
+                except OSError:
+                    pass
+        else:
+            with tarfile.open(arch_file, mode="r:*") as tf:
+                _read_tar_stream(tf)
+
+        if not archive_licenses:
+            raise RuntimeError(
+                f"No python/licenses/* entries found in archive {arch_file}"
+            )
+        if python_json_bytes is None:
+            raise RuntimeError(
+                f"python/PYTHON.json not found in archive {arch_file}"
+            )
+
+        vendored_by_archive = {
+            str(e["archive_path"]): e for e in (target_info.get("files") or [])
+        }
+        sys_paths = {
+            str(p)
+            for s in (target_info.get("system_libraries") or [])
+            for p in (s.get("archive_paths") or [])
+        }
+        excl_paths = {
+            str(p)
+            for ex in (target_info.get("excluded_unbundled_extensions") or [])
+            for p in (ex.get("archive_paths") or [])
+        }
+        accounted = set(vendored_by_archive) | sys_paths | excl_paths
+        declared_all = set(target_info.get("archive_license_files") or [])
+
+        if declared_all and accounted != declared_all:
+            raise RuntimeError(
+                f"SOURCES.json accounting mismatch for {resolved_target}: "
+                f"{sorted(accounted ^ declared_all)}"
+            )
+
+        archive_set = set(archive_licenses)
+        if archive_set != accounted:
+            unaccounted = sorted(archive_set - accounted)
+            missing = sorted(accounted - archive_set)
+            raise RuntimeError(
+                f"Archive python/licenses/ mismatch for {resolved_target}: "
+                f"unaccounted={unaccounted}, missing_from_archive={missing}"
+            )
+
+        pj = json.loads(python_json_bytes.decode("utf-8"))
+        pj_lic_paths: set[str] = set()
+        for raw_p in (
+            pj.get("python_license_path"),
+            (pj.get("build_info") or {}).get("core", {}).get("license_path"),
+        ):
+            if isinstance(raw_p, str) and raw_p.strip():
+                clean_p = raw_p.strip().replace("\\", "/")
+                if not clean_p.startswith("python/"):
+                    clean_p = f"python/{clean_p.lstrip('/')}"
+                pj_lic_paths.add(clean_p)
+
+        exts = ((pj.get("build_info") or {}).get("extensions") or {})
+        if isinstance(exts, dict):
+            for ext_entries in exts.values():
+                if not isinstance(ext_entries, list):
+                    continue
+                for ext_item in ext_entries:
+                    if not isinstance(ext_item, dict):
+                        continue
+                    lp = ext_item.get("license_path")
+                    if isinstance(lp, str) and lp.strip():
+                        clean_lp = lp.strip().replace("\\", "/")
+                        if not clean_lp.startswith("python/"):
+                            clean_lp = f"python/{clean_lp.lstrip('/')}"
+                        pj_lic_paths.add(clean_lp)
+
+        unaccounted_pj = sorted(pj_lic_paths - accounted)
+        if unaccounted_pj:
+            raise RuntimeError(
+                f"Unaccounted license_path(s) in python/PYTHON.json for "
+                f"{resolved_target}: {unaccounted_pj}"
+            )
+
+        for arch_path, entry in sorted(vendored_by_archive.items()):
+            arch_sha, _ = _normalize_license_text_and_sha256(
+                archive_licenses[arch_path]
+            )
+            vpath = _LICENSES_DIR / entry["vendored_path"]
+            if not vpath.is_file():
+                raise FileNotFoundError(
+                    f"Missing vendored file for {resolved_target}: {vpath}"
+                )
+            vend_sha = _sha256_bytes(vpath.read_bytes())
+            want_sha = str(entry["sha256"])
+            if arch_sha != want_sha or vend_sha != want_sha:
+                raise RuntimeError(
+                    f"SHA-256 mismatch for {arch_path} ({resolved_target}): "
+                    f"archive_lf={arch_sha}, vendored={vend_sha}, "
+                    f"SOURCES.json={want_sha}"
+                )
+
+        if install_lic_bytes is not None and target_info.get("install_license_sha256"):
+            inst_sha, _ = _normalize_license_text_and_sha256(install_lic_bytes)
+            want_inst_sha = str(target_info["install_license_sha256"])
+            if inst_sha != want_inst_sha:
+                raise RuntimeError(
+                    f"Install LICENSE.txt SHA-256 mismatch for {resolved_target}: "
+                    f"archive_lf={inst_sha}, SOURCES.json={want_inst_sha}"
+                )
+
+    if archive_path is not None:
+        _inspect_archive_file(Path(archive_path))
+    else:
+        url = str(target_info["pbs_archive_url"])
+        if not url.startswith("https://"):
+            raise RuntimeError(f"Refusing non-HTTPS pbs_archive_url: {url!r}")
+        with tempfile.TemporaryDirectory(prefix="etv-pbs-") as tmpdir:
+            dest = Path(tmpdir) / str(target_info.get("archive_name") or "pbs.tar.zst")
+            with urllib.request.urlopen(url, timeout=180) as resp, dest.open("wb") as fh:
+                while True:
+                    chunk = resp.read(1024 * 256)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+            _inspect_archive_file(dest)
+
+    return [resolved_target]
+
+
 def write_third_party_notices(
     output_path: str | Path = "THIRD_PARTY_NOTICES.txt",
     *,
@@ -1317,7 +1659,7 @@ def write_third_party_notices(
         target=target,
         release=release,
     )
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
     return path
 
 
@@ -1344,7 +1686,12 @@ def get_third_party_notices_text() -> str:
     """Return the bundled THIRD_PARTY_NOTICES.txt, or generate it at runtime for pip installs."""
     bundled = resolve_bundled_notices_path()
     if bundled is not None:
-        return bundled.read_text(encoding="utf-8", errors="replace")
+        return (
+            bundled.read_bytes()
+            .replace(b"\r\n", b"\n")
+            .replace(b"\r", b"\n")
+            .decode("utf-8", errors="replace")
+        )
     if getattr(sys, "frozen", False):
         raise FileNotFoundError(
             "Bundled THIRD_PARTY_NOTICES.txt not found in frozen binary."

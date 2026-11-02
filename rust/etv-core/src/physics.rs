@@ -1,8 +1,10 @@
 //! Deterministic survival physics — consumption, health, breakdown (`physics.py`).
 //!
-//! Exact port of `src/escape_the_valley/physics.py` at tag `v1.3.1` (`47b01a3`).
+//! Exact port of `src/escape_the_valley/physics.py` at `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`.
 
 use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
 
 use crate::model::{
     doctrine_modifiers, Biome, Condition, MapNode, Pace, PartyMember, RunState, TimeOfDay, Trait,
@@ -179,13 +181,14 @@ pub fn apply_breakdown(state: &mut RunState, damage: i32) -> BTreeMap<String, i3
     BTreeMap::new()
 }
 
-/// Single health effect entry emitted by [`check_health_effects`] (`physics.py:183-237`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Single health effect entry emitted by [`check_health_effects`] and death collectors (`physics.py:183-237, 556-587`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HealthEffect {
     Starvation { member: String, health_delta: i32 },
     Dehydration { member: String, health_delta: i32 },
     FellSick { member: String },
     Healed { member: String },
+    Recovered { member: String },
     Died { member: String, cause: String },
 }
 
@@ -336,6 +339,10 @@ pub fn attempt_hunt(state: &mut RunState, rng: &mut CpythonRng) -> HuntResult {
             state.party.members[unlucky_idx].health =
                 std::cmp::max(0, state.party.members[unlucky_idx].health - dmg);
             state.party.members[unlucky_idx].condition = Condition::Injured;
+            if state.party.members[unlucky_idx].health <= 0 {
+                let cause = proximate_death_cause(&state.party.members[unlucky_idx], state, false);
+                state.party.members[unlucky_idx].death_cause = cause;
+            }
             injured = Some(state.party.members[unlucky_idx].name.clone());
         }
     }
@@ -369,21 +376,30 @@ pub fn attempt_repair(state: &mut RunState) -> BTreeMap<String, i32> {
     BTreeMap::from([("parts".to_string(), -1)])
 }
 
-/// Party rests for a day. Health recovers, morale improves (`physics.py:320-337`).
+/// Party rests for a day. Health recovers, morale improves (`physics.py:320-346`).
 /// Returns list of member names who recovered from `Sick` or `Injured`.
 pub fn rest_day(state: &mut RunState, rng: &mut CpythonRng) -> Vec<String> {
     let mut recovered = Vec::new();
-    for member in &mut state.party.members {
-        if !member.is_alive() {
+    for i in 0..state.party.members.len() {
+        if !state.party.members[i].is_alive() {
             continue;
         }
 
         let heal = rng.randint(3, 10) as i32;
-        member.health = std::cmp::min(100, member.health + heal);
+        state.party.members[i].health = (state.party.members[i].health + heal).clamp(0, 100);
 
-        if matches!(member.condition, Condition::Sick | Condition::Injured) && rng.random() < 0.3 {
-            member.condition = Condition::Healthy;
-            recovered.push(member.name.clone());
+        if matches!(
+            state.party.members[i].condition,
+            Condition::Sick | Condition::Injured
+        ) && rng.random() < 0.3
+        {
+            state.party.members[i].condition = Condition::Healthy;
+            recovered.push(state.party.members[i].name.clone());
+        }
+
+        if state.party.members[i].health <= 0 {
+            let cause = proximate_death_cause(&state.party.members[i], state, false);
+            state.party.members[i].death_cause = cause;
         }
     }
 
@@ -575,6 +591,10 @@ pub fn desperate_repair(state: &mut RunState, rng: &mut CpythonRng) -> Desperate
         state.party.members[unlucky_idx].health =
             std::cmp::max(0, state.party.members[unlucky_idx].health - dmg);
         state.party.members[unlucky_idx].condition = Condition::Injured;
+        if state.party.members[unlucky_idx].health <= 0 {
+            let cause = proximate_death_cause(&state.party.members[unlucky_idx], state, false);
+            state.party.members[unlucky_idx].death_cause = cause;
+        }
         injured_name = state.party.members[unlucky_idx].name.clone();
     }
 
@@ -586,15 +606,55 @@ pub fn desperate_repair(state: &mut RunState, rng: &mut CpythonRng) -> Desperate
     }
 }
 
-/// Declare hard rations — 2 travel steps at half consumption (`physics.py:530-539`).
+/// Declare hard rations — 2 travel steps at half consumption (`physics.py:540-553`).
 pub fn hard_ration(state: &mut RunState) {
     state.rationing_steps = 2;
     state.party.morale = std::cmp::max(0, state.party.morale - 10);
-    for member in &mut state.party.members {
-        if member.is_alive() {
-            member.health = std::cmp::max(0, member.health - 5);
+    for i in 0..state.party.members.len() {
+        if state.party.members[i].is_alive() {
+            state.party.members[i].health = std::cmp::max(0, state.party.members[i].health - 5);
+            if state.party.members[i].health <= 0 {
+                let cause = proximate_death_cause(&state.party.members[i], state, false);
+                state.party.members[i].death_cause = cause;
+            }
         }
     }
+}
+
+/// Build [`HealthEffect::Died`] entries for any member who transitioned from alive to dead (`physics.py:556-587`).
+///
+/// Pure state inspection — never touches the RNG. Iterates `state.party.members` in party order.
+pub fn collect_new_death_effects(
+    state: &mut RunState,
+    alive_before_indices: &[usize],
+    emitted_indices: &mut Vec<usize>,
+    from_event: bool,
+) -> Vec<HealthEffect> {
+    let mut effects = Vec::new();
+    for i in 0..state.party.members.len() {
+        if !alive_before_indices.contains(&i) {
+            continue;
+        }
+        if state.party.members[i].is_alive() {
+            continue;
+        }
+        if emitted_indices.contains(&i) {
+            continue;
+        }
+        emitted_indices.push(i);
+        state.party.members[i].health = std::cmp::max(0, state.party.members[i].health);
+        let cause = if state.party.members[i].death_cause.is_empty() {
+            proximate_death_cause(&state.party.members[i], state, from_event)
+        } else {
+            state.party.members[i].death_cause.clone()
+        };
+        state.party.members[i].death_cause = cause.clone();
+        effects.push(HealthEffect::Died {
+            member: state.party.members[i].name.clone(),
+            cause,
+        });
+    }
+    effects
 }
 
 /// Determine what killed a party member based on current state (`physics.py:541-572`).

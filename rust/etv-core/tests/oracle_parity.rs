@@ -1,15 +1,17 @@
-//! Oracle parity test suite for Escape the Valley 2.0 Phase 1a & Phase 1b (`etv-core`).
+//! Oracle parity test suite for Escape the Valley 2.0 Phase 1a, Phase 1b & Phase 0 Part 2 (`etv-core`).
 //!
-//! Verifies all Phase 1a and Phase 1b oracle checks against CPython 3.12.13 / v1.3.1 (47b01a3):
+//! Verifies all Phase 1a, Phase 1b, and Phase 0 Part 2 oracle checks against CPython 3.12.13 / `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`:
 //! 1. S1 & gameplay RNG call-shape vectors (8,725 assertions across 10 seeds, all 18 engine `randint` ranges, all 9 `shuffle` lengths, both `sample` branches)
 //! 2. Worldgen (200 seeds: byte-for-byte canonical RunState JSON + RNG state SHA-256 + weather + 200 JSON events)
 //! 3. Save round trip (20 real Python saves: load, re-save, canonical JSON match, reload equality)
 //! 4. Migration (v1 and v2 saves migrate to identical v3 state + audit L-2 `last_settle_failed`/`minted_initial`)
 //! 5. RNG restore (20 saves × 100 draws with `rng_state`, 20 saves × 100 draws with `None` counter-replay, and malformed `rng_state` fallback)
 //! 6. Secrets sidecar & corrupt quarantine (`run.json.corrupt-<timestamp>` and write-only `secrets.json.corrupt-<timestamp>` matching Python 1.3.2)
-//! 7. Golden harness: 1,000 seeds × 60 turns (59,522 turns) + 80 long seeds × 250 turns (10,970 turns) + full 260-event library + 8 ending/finalization vectors
-//! 8. Golden harness save-and-resume: 120 seeds saved at fixed turn 20 (`camp`, `camp_at_fork`, `route`), loaded in Rust, and compared against Python's reloaded trace (4,736 turns)
+//! 7. Golden harness: 1,000 seeds × 60 turns (59,529 turns) + 80 long seeds × 250 turns (11,021 turns) + full 260-event library + 8 ending/finalization vectors
+//! 8. Golden harness save-and-resume: 120 seeds saved at fixed turn 20 (`camp`, `camp_at_fork`, `route`), loaded in Rust, and compared against Python's reloaded trace (4,742 turns)
 //! 9. Negative harness checks: corrupting a recorded hash or truncating a turn list fails with `seed`, `turn`, `rng_hash`, then `state_diff`
+//! 10. Phase 2 target: `ledger_reference.json.gz` schema and SHA-256 check (`ledger.py`, `ledger_proof.py`, `adapter.py`)
+//! 11. Phase 2 target: `notices_reference.json.gz` schema and SHA-256 check (`notices.py`)
 
 use etv_core::engine::{compute_ending, StepEngine, StepMessages};
 use etv_core::events::build_event_library;
@@ -153,7 +155,10 @@ fn check_01_s1_rng_vectors_and_pool_label() {
     let vf: S1VectorsFile = read_gzip_json(raw);
     assert_eq!(vf.schema, "etv-s1-rng-v2");
     assert_eq!(vf.metadata.python_version, "3.12.13");
-    assert!(vf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        vf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
 
     let mut total_checks = 0usize;
     let mut saw_pool_n1000_k20 = false;
@@ -428,7 +433,10 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
     let wf: WorldgenFile = read_gzip_json(raw);
     assert_eq!(wf.schema, "etv-phase1a-worldgen-v1");
     assert_eq!(wf.metadata.python_version, "3.12.13");
-    assert!(wf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        wf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
     assert_eq!(wf.count, 200);
     assert_eq!(wf.vectors.len(), 200);
 
@@ -685,7 +693,10 @@ fn check_03_save_round_trip_20_saves() {
     let sf: SavesFile = read_gzip_json(raw);
     assert_eq!(sf.schema, "etv-phase1a-saves-v1");
     assert_eq!(sf.metadata.python_version, "3.12.13");
-    assert!(sf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        sf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
     assert_eq!(sf.saves_20.len(), 20);
 
     for sv in &sf.saves_20 {
@@ -1491,7 +1502,10 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     let tf: TurnsHarnessFile = read_gzip_json(raw);
     assert_eq!(tf.schema, "etv-phase1b-turns-v1");
     assert_eq!(tf.metadata.python_version, "3.12.13");
-    assert!(tf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        tf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
 
     // Non-vacuous length assertions
     assert_eq!(tf.seed_count, 1000);
@@ -1637,48 +1651,48 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     assert!(has_seed_above_u64_max, "must include a seed > u64::MAX");
 
     // Exact active-path, death-cause, ending, run, game-over, victory, action, phase, and event counts
-    assert_eq!(active_abandon_cargo, 16);
-    assert_eq!(active_desperate_repair_ok, 9);
-    assert_eq!(active_desperate_repair_fail, 4);
-    assert_eq!(active_hard_ration, 611);
+    assert_eq!(active_abandon_cargo, 13);
+    assert_eq!(active_desperate_repair_ok, 8);
+    assert_eq!(active_desperate_repair_fail, 3);
+    assert_eq!(active_hard_ration, 613);
     assert_eq!(active_no_ammo_hunt, 82);
     assert_eq!(
         death_counts,
         BTreeMap::from([
             ("Dehydration".to_string(), 18usize),
-            ("Disease".to_string(), 22usize),
-            ("Starvation".to_string(), 50usize),
+            ("Disease".to_string(), 23usize),
+            ("Starvation".to_string(), 47usize),
             ("Wagon failure".to_string(), 1usize),
         ])
     );
-    assert_eq!(full_60_runs, 921);
-    assert_eq!(game_over_runs, 91);
+    assert_eq!(full_60_runs, 923);
+    assert_eq!(game_over_runs, 89);
     assert_eq!(victory_runs, 0);
     assert_eq!(
         ending_counts,
-        BTreeMap::from([("lost".to_string(), 91usize)])
+        BTreeMap::from([("lost".to_string(), 89usize)])
     );
     assert_eq!(
         action_counts,
         BTreeMap::from([
-            ("ABANDON_CARGO".to_string(), 304usize),
+            ("ABANDON_CARGO".to_string(), 299usize),
             ("CHANGE_PACE".to_string(), 1331usize),
-            ("CHOOSE".to_string(), 18470usize),
-            ("DESPERATE_REPAIR".to_string(), 151usize),
+            ("CHOOSE".to_string(), 18526usize),
+            ("DESPERATE_REPAIR".to_string(), 149usize),
             ("HARD_RATION".to_string(), 757usize),
-            ("HUNT".to_string(), 3251usize),
-            ("REPAIR".to_string(), 1275usize),
-            ("REST".to_string(), 3841usize),
+            ("HUNT".to_string(), 3246usize),
+            ("REPAIR".to_string(), 1264usize),
+            ("REST".to_string(), 3815usize),
             ("TRAVEL".to_string(), 30142usize),
         ])
     );
     assert_eq!(
         phase_counts,
         BTreeMap::from([
-            ("camp".to_string(), 40318usize),
-            ("event".to_string(), 17785usize),
-            ("over".to_string(), 91usize),
-            ("route".to_string(), 1328usize),
+            ("camp".to_string(), 40278usize),
+            ("event".to_string(), 17833usize),
+            ("over".to_string(), 89usize),
+            ("route".to_string(), 1329usize),
         ])
     );
     assert_eq!(events_seen.len(), 258);
@@ -1722,20 +1736,19 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
         }
     }
     assert_eq!(verified_turns, tf.total_turns);
-    assert_eq!(verified_turns, 59522);
+    assert_eq!(verified_turns, 59529);
 }
 
-// Fails on b86fbe4 because the new long-run vector file `rust/oracle/vectors/turns_long_seeds.json.gz`
-// (80 seeds × up to 250 turns reaching all 4 `EndingResult` tiers, all 6 reachable `cause_of_death`
-// values in 1.3.1 play, and active `check_spoilage` after salt is exhausted via `ABANDON_CARGO`)
-// is absent on b86fbe4.
 #[test]
 fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
     let raw = include_bytes!("../../oracle/vectors/turns_long_seeds.json.gz");
     let tf: TurnsHarnessFile = read_gzip_json(raw);
     assert_eq!(tf.schema, "etv-phase1b-turns-long-v1");
     assert_eq!(tf.metadata.python_version, "3.12.13");
-    assert!(tf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        tf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
 
     assert_eq!(tf.seed_count, 80);
     assert_eq!(tf.max_turns_per_seed, 250);
@@ -1826,57 +1839,57 @@ fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
     assert_eq!(seeds_seen.len(), 80);
     assert_eq!(full_250_runs, 6);
     assert_eq!(game_over_runs, 74);
-    assert_eq!(victory_runs, 21);
+    assert_eq!(victory_runs, 20);
     assert_eq!(
         ending_counts,
         BTreeMap::from([
-            ("lost".to_string(), 53usize),
-            ("pyrrhic".to_string(), 11usize),
-            ("triumphant".to_string(), 7usize),
-            ("weathered".to_string(), 3usize),
+            ("lost".to_string(), 54usize),
+            ("pyrrhic".to_string(), 10usize),
+            ("triumphant".to_string(), 8usize),
+            ("weathered".to_string(), 2usize),
         ])
     );
     assert_eq!(
         death_counts,
         BTreeMap::from([
             ("Dehydration".to_string(), 5usize),
-            ("Disease".to_string(), 14usize),
-            ("Exhaustion".to_string(), 2usize),
-            ("Injury".to_string(), 1usize),
-            ("Starvation".to_string(), 18usize),
-            ("Wagon failure".to_string(), 13usize),
+            ("Disease".to_string(), 16usize),
+            ("Exhaustion".to_string(), 1usize),
+            ("Injury".to_string(), 2usize),
+            ("Starvation".to_string(), 19usize),
+            ("Wagon failure".to_string(), 11usize),
         ])
     );
     assert_eq!(
         action_counts,
         BTreeMap::from([
-            ("ABANDON_CARGO".to_string(), 108usize),
-            ("CHANGE_PACE".to_string(), 180usize),
-            ("CHOOSE".to_string(), 3183usize),
-            ("DESPERATE_REPAIR".to_string(), 90usize),
-            ("HARD_RATION".to_string(), 170usize),
-            ("HUNT".to_string(), 680usize),
-            ("REPAIR".to_string(), 251usize),
-            ("REST".to_string(), 1065usize),
-            ("TRAVEL".to_string(), 5243usize),
+            ("ABANDON_CARGO".to_string(), 110usize),
+            ("CHANGE_PACE".to_string(), 179usize),
+            ("CHOOSE".to_string(), 3254usize),
+            ("DESPERATE_REPAIR".to_string(), 77usize),
+            ("HARD_RATION".to_string(), 180usize),
+            ("HUNT".to_string(), 682usize),
+            ("REPAIR".to_string(), 250usize),
+            ("REST".to_string(), 998usize),
+            ("TRAVEL".to_string(), 5291usize),
         ])
     );
     assert_eq!(
         phase_counts,
         BTreeMap::from([
-            ("camp".to_string(), 7625usize),
-            ("event".to_string(), 3046usize),
+            ("camp".to_string(), 7604usize),
+            ("event".to_string(), 3113usize),
             ("over".to_string(), 74usize),
-            ("route".to_string(), 225usize),
+            ("route".to_string(), 230usize),
         ])
     );
-    assert_eq!(active_abandon_cargo, 38);
-    assert_eq!(active_desperate_repair_ok, 37);
-    assert_eq!(active_desperate_repair_fail, 21);
-    assert_eq!(active_hard_ration, 135);
-    assert_eq!(active_no_ammo_hunt, 37);
-    assert_eq!(active_spoilage, 5);
-    assert_eq!(events_seen.len(), 252);
+    assert_eq!(active_abandon_cargo, 43);
+    assert_eq!(active_desperate_repair_ok, 27);
+    assert_eq!(active_desperate_repair_fail, 18);
+    assert_eq!(active_hard_ration, 147);
+    assert_eq!(active_no_ammo_hunt, 33);
+    assert_eq!(active_spoilage, 8);
+    assert_eq!(events_seen.len(), 251);
     let mut missing_events: Vec<String> = rust_lib
         .iter()
         .map(|e| e.event_id.clone())
@@ -1886,14 +1899,15 @@ fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
     assert_eq!(
         missing_events,
         vec![
+            "cave_shelter".to_string(),
             "cliff_path".to_string(),
-            "drought".to_string(),
+            "f1_010".to_string(),
+            "f1_025".to_string(),
             "f2_009".to_string(),
-            "f4_047".to_string(),
-            "f4_050".to_string(),
+            "f2_023".to_string(),
             "f5_109".to_string(),
+            "mudslide".to_string(),
             "quiet_mile".to_string(),
-            "water_hole".to_string(),
         ]
     );
 
@@ -1924,13 +1938,9 @@ fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
         }
     }
     assert_eq!(verified_turns, tf.total_turns);
-    assert_eq!(verified_turns, 10970);
+    assert_eq!(verified_turns, 11021);
 }
 
-// Fails on b86fbe4 because `resume_120_seeds.json.gz` on b86fbe4 omitted `phase_at_save`,
-// `differs_from_uninterrupted`, and `reloaded_turns`, and excluded all `camp_at_fork` saves
-// instead of comparing Rust's resumed run against Python's reloaded trace across `camp`,
-// `camp_at_fork` (`escape-the-valley#41`), and `route` turn-20 saves.
 #[test]
 fn check_08_golden_harness_120_save_and_resume_runs() {
     let raw_turns = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
@@ -1940,7 +1950,10 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
 
     assert_eq!(rf.schema, "etv-phase1b-resume-v2");
     assert_eq!(rf.metadata.python_version, "3.12.13");
-    assert!(rf.metadata.oracle_commit.starts_with("47b01a3"));
+    assert_eq!(
+        rf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
     assert_eq!(rf.count, 120);
     assert_eq!(rf.save_turn, 20);
     assert_eq!(rf.resume_runs.len(), 120);
@@ -1972,12 +1985,13 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
             ("route".to_string(), 5usize),
         ])
     );
-    // All 6 `camp_at_fork` saves differ from the uninterrupted trace due to escape-the-valley#41
-    // (`StepEngine._check_initial_phase()` immediately entering `GamePhase.ROUTE` on reload),
-    // while all 109 `camp` (`distance_remaining > 0`) and 5 `route` saves match the uninterrupted trace.
+    // With Part 1 (`87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`) fixing escape-the-valley#41
+    // (`StepEngine._check_initial_phase()` stays in `GamePhase.CAMP` on reload), all 6
+    // `camp_at_fork` saves and all 109 `camp` saves match the uninterrupted trace, while the 5
+    // `route` saves (where `GamePhase` is not persisted in `run.json`) resume in `CAMP` on reload.
     assert_eq!(
         diff_counts_by_phase,
-        BTreeMap::from([("camp_at_fork".to_string(), 6usize)])
+        BTreeMap::from([("route".to_string(), 5usize)])
     );
 
     let worker_count = std::thread::available_parallelism()
@@ -2064,7 +2078,7 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
             Err(diag) => panic!("{diag}"),
         }
     }
-    assert_eq!(resumed_turns_verified, 4736);
+    assert_eq!(resumed_turns_verified, 4742);
 }
 
 // preservation: negative check that corrupted state_hash/rng_hash or truncated turn lists fail with seed, turn, rng_hash, then state_diff
@@ -2119,4 +2133,235 @@ fn check_09_negative_corrupted_hash_and_truncated_lists_must_fail() {
     let err_trunc =
         verify_seed_run(&truncated_turns, 60).expect_err("truncated turn list must fail check");
     assert!(err_trunc.contains("expected 60 turns or game_over on final turn"));
+}
+
+// ── 10 & 11. Phase 2 Target Reference Vectors: Ledger & Notices ──────────────
+
+#[derive(Deserialize)]
+struct LedgerReferenceFile {
+    schema: String,
+    metadata: OracleMeta,
+    ledger_case_count: usize,
+    ledger_cases: Vec<LedgerCaseVector>,
+    proof_case_count: usize,
+    proof_cases: Vec<ProofCaseVector>,
+}
+
+#[derive(Deserialize)]
+struct LedgerCaseVector {
+    case_id: String,
+    seed: i128,
+    state: Value,
+    diagnostics: Option<BTreeMap<String, i64>>,
+    trail_ledger_lines: Vec<String>,
+    trail_ledger_text: String,
+    trail_ledger_sha256: String,
+    xrpl_postcard_lines: Vec<String>,
+    xrpl_postcard_text: String,
+    xrpl_postcard_sha256: String,
+    ending_facts: Vec<[String; 2]>,
+    run_stats: Vec<[String; 2]>,
+    end_frame: EndFrameVector,
+}
+
+#[derive(Deserialize)]
+struct EndFrameVector {
+    game_over: bool,
+    victory: bool,
+    ending_tier: String,
+    ending_headline: String,
+    ending_facts: Vec<[String; 2]>,
+    run_stats: Vec<[String; 2]>,
+    is_postcard: bool,
+    postcard_lines: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct ProofCaseVector {
+    case_id: String,
+    seed: i128,
+    verdict: String,
+    passed: bool,
+    report_dict: Option<Value>,
+    markdown: String,
+    markdown_sha256: String,
+    notes: Vec<String>,
+    overlay_dict: Value,
+}
+
+/// PHASE 2 TARGET (`etv-ledger` / `etv-tui`):
+/// Loads `rust/oracle/vectors/ledger_reference.json.gz`, verifies its pinned `.json.gz` SHA-256
+/// and oracle metadata (`87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`), and schema-checks all 12
+/// `ledger.py` + `adapter.py` cases (`build_trail_ledger`, `build_xrpl_postcard`,
+/// `build_ending_facts`, `build_run_stats`, `populate_end_data`) and all 9 `ledger_proof.py`
+/// reconciliation cases (`reconcile`, `report_to_dict`, `report_to_markdown`, `proof_verdict`,
+/// `proof_player_save`) with network/XRPL submission disabled.
+#[test]
+fn check_10_phase2_target_ledger_reference_vectors() {
+    let raw = include_bytes!("../../oracle/vectors/ledger_reference.json.gz");
+    assert_eq!(
+        sha256_hex_bytes(raw),
+        "5d04b91a438c5a27487573a7b2443a784260721c1ccdf780cf5538a878465605"
+    );
+    let lf: LedgerReferenceFile = read_gzip_json(raw);
+    assert_eq!(lf.schema, "etv-phase2-ledger-v1");
+    assert_eq!(lf.metadata.python_version, "3.12.13");
+    assert_eq!(
+        lf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
+    assert_eq!(lf.ledger_case_count, 12);
+    assert_eq!(lf.ledger_cases.len(), 12);
+    assert_eq!(lf.proof_case_count, 9);
+    assert_eq!(lf.proof_cases.len(), 9);
+
+    for lc in &lf.ledger_cases {
+        assert!(!lc.case_id.is_empty());
+        let parsed_state = value_to_state(&lc.state)
+            .unwrap_or_else(|e| panic!("ledger case {} state must parse: {e}", lc.case_id));
+        assert_eq!(parsed_state.seed, lc.seed);
+        assert!(parsed_state.backpack.wallet_secret.is_empty());
+        assert!(parsed_state.backpack.issuer_secret.is_empty());
+
+        let joined_ledger = lc.trail_ledger_lines.join("\n");
+        assert_eq!(joined_ledger, lc.trail_ledger_text);
+        assert_eq!(
+            sha256_hex_bytes(joined_ledger.as_bytes()),
+            lc.trail_ledger_sha256,
+            "trail_ledger_sha256 mismatch on {}",
+            lc.case_id
+        );
+        let joined_xrpl = lc.xrpl_postcard_lines.join("\n");
+        assert_eq!(joined_xrpl, lc.xrpl_postcard_text);
+        assert_eq!(
+            sha256_hex_bytes(joined_xrpl.as_bytes()),
+            lc.xrpl_postcard_sha256,
+            "xrpl_postcard_sha256 mismatch on {}",
+            lc.case_id
+        );
+        assert_eq!(lc.end_frame.ending_facts, lc.ending_facts);
+        assert_eq!(lc.end_frame.run_stats, lc.run_stats);
+        if lc.end_frame.is_postcard {
+            assert_eq!(lc.end_frame.postcard_lines, lc.xrpl_postcard_lines);
+        } else {
+            assert_eq!(lc.end_frame.postcard_lines, lc.trail_ledger_lines);
+        }
+        assert!(!lc.end_frame.ending_headline.is_empty());
+        let _ = (
+            &lc.diagnostics,
+            lc.end_frame.game_over,
+            lc.end_frame.victory,
+            &lc.end_frame.ending_tier,
+        );
+    }
+
+    let mut verdicts_seen = HashSet::new();
+    for pc in &lf.proof_cases {
+        assert!(!pc.case_id.is_empty());
+        assert!(pc.seed > 0);
+
+        verdicts_seen.insert(pc.verdict.clone());
+        assert_eq!(
+            sha256_hex_bytes(pc.markdown.as_bytes()),
+            pc.markdown_sha256,
+            "markdown_sha256 mismatch on {}",
+            pc.case_id
+        );
+        assert_eq!(
+            pc.overlay_dict["verdict"].as_str(),
+            Some(pc.verdict.as_str())
+        );
+        assert_eq!(pc.passed, pc.verdict == "PASS");
+        if let Some(ref rep) = pc.report_dict {
+            let raw_report = serde_json::to_string(rep).unwrap();
+            assert!(!raw_report.contains("wallet_secret"));
+            assert!(!raw_report.contains("issuer_secret"));
+        }
+        let _ = &pc.notes;
+    }
+    assert!(verdicts_seen.contains("PASS"));
+    assert!(verdicts_seen.contains("FAIL"));
+    assert!(verdicts_seen.contains("INCONCLUSIVE"));
+}
+
+#[derive(Deserialize)]
+struct NoticesReferenceFile {
+    schema: String,
+    metadata: OracleMeta,
+    python_version: String,
+    pbs_build_tag: String,
+    targets: Vec<String>,
+    sources_manifest: Value,
+    outputs: Vec<NoticeOutputRecord>,
+}
+
+#[derive(Deserialize)]
+struct NoticeOutputRecord {
+    output_id: String,
+    release: bool,
+    target: Option<String>,
+    sha256: String,
+    byte_length: usize,
+    text: String,
+}
+
+/// PHASE 2 TARGET (`etv-cli` `--notices`):
+/// Loads `rust/oracle/vectors/notices_reference.json.gz`, verifies its pinned `.json.gz` SHA-256
+/// and oracle metadata (`87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`), and schema-checks the
+/// `notices.py` reference outputs (`verify_vendored_licenses_integrity`,
+/// `get_third_party_notices_text`, `generate_third_party_notices` for `release=False` and all 3
+/// release targets: `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`, `x86_64-unknown-linux-gnu`).
+#[test]
+fn check_11_phase2_target_notices_reference_vectors() {
+    let raw = include_bytes!("../../oracle/vectors/notices_reference.json.gz");
+    assert_eq!(
+        sha256_hex_bytes(raw),
+        "d8edd4d272c827b5e44ad379dc2262b7380b5d8a22be5b4855b401e282a48c6f"
+    );
+    let nf: NoticesReferenceFile = read_gzip_json(raw);
+    assert_eq!(nf.schema, "etv-phase2-notices-v1");
+    assert_eq!(nf.metadata.python_version, "3.12.13");
+    assert_eq!(
+        nf.metadata.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
+    assert_eq!(nf.python_version, "3.12.13");
+    assert_eq!(nf.pbs_build_tag, "20260510");
+    assert_eq!(
+        nf.targets,
+        vec![
+            "aarch64-apple-darwin".to_string(),
+            "x86_64-pc-windows-msvc".to_string(),
+            "x86_64-unknown-linux-gnu".to_string(),
+        ]
+    );
+    assert!(nf.sources_manifest.is_object());
+
+    assert_eq!(nf.outputs.len(), 4);
+    let expected_ids = [
+        "pip_runtime",
+        "release_aarch64-apple-darwin",
+        "release_x86_64-pc-windows-msvc",
+        "release_x86_64-unknown-linux-gnu",
+    ];
+    for (out, exp_id) in nf.outputs.iter().zip(expected_ids.iter()) {
+        assert_eq!(&out.output_id, exp_id);
+        assert_eq!(
+            out.text.len(),
+            out.byte_length,
+            "byte_length mismatch on {exp_id}"
+        );
+        assert_eq!(
+            sha256_hex_bytes(out.text.as_bytes()),
+            out.sha256,
+            "sha256 mismatch on {exp_id}"
+        );
+        if *exp_id == "pip_runtime" {
+            assert!(!out.release);
+            assert!(out.target.is_none());
+        } else {
+            assert!(out.release);
+            assert!(out.target.is_some());
+        }
+    }
 }
