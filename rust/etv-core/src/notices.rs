@@ -103,6 +103,16 @@ pub struct NoticesManifest {
     pub crates: Vec<CrateNotice>,
 }
 
+/// Pinned crate entry in [`LicenseAllowlist::reviewed_crates`] recording version and license
+/// re-read at pin time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewedCratePin {
+    pub name: String,
+    pub version: String,
+    pub license: String,
+    pub reviewed_on: String,
+}
+
 /// Repository SPDX license allow-list for crates and bundled data files.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LicenseAllowlist {
@@ -110,6 +120,8 @@ pub struct LicenseAllowlist {
     pub description: String,
     pub allowed_spdx_identifiers: Vec<String>,
     pub allowed_license_expressions: Vec<String>,
+    #[serde(default)]
+    pub reviewed_crates: Vec<ReviewedCratePin>,
     pub prohibited_copyleft_prefixes: Vec<String>,
 }
 
@@ -362,6 +374,34 @@ pub fn validate_notices_against_allowlist(
                     code: "ALLOWLIST_CONTAINS_COPYLEFT".to_string(),
                     message: format!(
                         "allow-list contains prohibited copyleft identifier '{allowed_id}'"
+                    ),
+                });
+            }
+        }
+    }
+
+    // Validate pinned reviewed_crates entries against the allow-list and manifest
+    for pin in &allowlist.reviewed_crates {
+        let pin_subj = format!("{}@{}", pin.name, pin.version);
+        validate_license_expression(&pin_subj, &pin.license, allowlist, &mut errors);
+        if let Some(found) = manifest.crates.iter().find(|c| c.name == pin.name) {
+            if found.version != pin.version {
+                errors.push(NoticesValidationError {
+                    subject: pin_subj.clone(),
+                    code: "PINNED_CRATE_VERSION_MISMATCH".to_string(),
+                    message: format!(
+                        "pinned crate '{}' expected version '{}', found '{}'",
+                        pin.name, pin.version, found.version
+                    ),
+                });
+            }
+            if found.license != pin.license {
+                errors.push(NoticesValidationError {
+                    subject: pin_subj,
+                    code: "PINNED_CRATE_LICENSE_MISMATCH".to_string(),
+                    message: format!(
+                        "pinned crate '{}' expected license '{}', found '{}'",
+                        pin.name, pin.license, found.license
                     ),
                 });
             }
