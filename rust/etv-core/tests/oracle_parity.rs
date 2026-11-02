@@ -1,4 +1,10 @@
-//! Oracle parity test suite for Escape the Valley 2.0 Phase 1a, Phase 1b & Phase 0 Part 2 (`etv-core`).
+//! Oracle parity test suite (Tier 1) for Escape the Valley 2.0 (`etv-core`).
+//!
+//! Tier 1 oracle parity always loads the frozen legacy content snapshot from
+//! `rust/oracle/content-legacy/` (`content_manifest.json` + `event_skeletons.json`) through
+//! [`ContentPack`], never the live embedded content in `rust/etv-core/content/`, while Tier 2
+//! (`rust/etv-core/src/snapshot.rs`, `rust/etv-core/tests/phase1_content_loader.rs`) continues to
+//! read the live embedded content.
 //!
 //! Verifies all Phase 1a, Phase 1b, and Phase 0 Part 2 oracle checks against CPython 3.12.13 / `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`:
 //! 1. S1 & gameplay RNG call-shape vectors (8,725 assertions across 10 seeds, all 18 engine `randint` ranges, all 9 `shuffle` lengths, both `sample` branches)
@@ -12,19 +18,24 @@
 //! 9. Negative harness checks: corrupting a recorded hash or truncating a turn list fails with `seed`, `turn`, `rng_hash`, then `state_diff`
 //! 10. Phase 2 target: `ledger_reference.json.gz` schema and SHA-256 check (`ledger.py`, `ledger_proof.py`, `adapter.py`)
 //! 11. Phase 2 target: `notices_reference.json.gz` schema and SHA-256 check (`notices.py`)
+//! 12. Snapshot pin check: `rust/oracle/content-legacy/` SHA-256 pins and tamper rejection
+//! 13. Live content fixture test: adding an `outcome_sentence` to live content leaves Tier 2 `mechanics_state_hash` identical, changes only `presentation_record`, and keeps Tier 1 green
+//! 14. Snapshot isolation: pointing Tier 1 at live content carrying an authored `outcome_sentence` fails parity on the resolved turn
 
-use etv_core::content::EMBEDDED_CONTENT_HASH_HEX;
+use etv_core::content::{
+    embedded_content_pack, ContentPack, CONTENT_MANIFEST_JSON, EVENT_SKELETONS_JSON,
+};
 use etv_core::engine::{compute_ending, StepEngine, StepMessages};
-use etv_core::events::build_event_library;
-use etv_core::model::{Biome, EndingResult, IntentAction, PlayerIntent, RunState};
+use etv_core::model::{Biome, EndingResult, GMProfile, IntentAction, PlayerIntent, RunState};
 use etv_core::rng::{coerce_rng_state, CpythonRng, RngState};
 use etv_core::save::{
-    has_save, load_game, load_game_result, read_secrets_sidecar, save_game, state_to_value,
-    value_to_state, SaveLoadError, LEGACY_SAVE_REFUSAL_MESSAGE, PYTHON_SAVE_VERSION, SAVE_DIR,
-    SAVE_FILE, SAVE_VERSION, SECRETS_FILE,
+    has_save, load_game_result_with_content_hash, read_secrets_sidecar, save_game, state_to_value,
+    value_to_state_checked, LoadResult, SaveLoadError, LEGACY_SAVE_REFUSAL_MESSAGE,
+    PYTHON_SAVE_VERSION, SAVE_DIR, SAVE_FILE, SAVE_VERSION, SECRETS_FILE,
 };
+use etv_core::snapshot::{build_1000_seeds, run_tier2_seed_trace};
 use etv_core::worldgen::{
-    create_new_run, create_new_run_with_rng, generate_weather, load_json_events,
+    create_new_run_with_content, create_new_run_with_rng, generate_weather,
     load_json_events_from_str, EventSkeleton,
 };
 use flate2::read::GzDecoder;
@@ -34,6 +45,74 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashSet};
 use std::io::Read;
 use std::path::Path;
+use std::sync::OnceLock;
+
+/// Frozen legacy `content_manifest.json` from `rust/oracle/content-legacy/content_manifest.json`.
+pub const LEGACY_CONTENT_MANIFEST_JSON: &str =
+    include_str!("../../oracle/content-legacy/content_manifest.json");
+
+/// Frozen legacy `event_skeletons.json` from `rust/oracle/content-legacy/event_skeletons.json`.
+pub const LEGACY_EVENT_SKELETONS_JSON: &str =
+    include_str!("../../oracle/content-legacy/event_skeletons.json");
+
+/// Pinned SHA-256 of `rust/oracle/content-legacy/content_manifest.json`.
+pub const EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256: &str =
+    "f84f98ea845bbfc9a0e0198ba9a29011104a2ed410d40867bb38a82dab342b9f";
+
+/// Pinned SHA-256 of `rust/oracle/content-legacy/event_skeletons.json`.
+pub const EXPECTED_LEGACY_EVENT_SKELETONS_SHA256: &str =
+    "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576";
+
+/// Pinned 64-hex `content_hash` of the frozen legacy content snapshot at `LOGIC_VERSION`.
+pub const LEGACY_SNAPSHOT_CONTENT_HASH_HEX: &str =
+    "7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74";
+
+/// Return a cached reference to the frozen legacy [`ContentPack`] loaded from `rust/oracle/content-legacy/`.
+fn legacy_snapshot_content_pack() -> &'static ContentPack {
+    static LEGACY_PACK: OnceLock<ContentPack> = OnceLock::new();
+    LEGACY_PACK.get_or_init(|| {
+        let pack = ContentPack::from_raw_strings(
+            LEGACY_CONTENT_MANIFEST_JSON,
+            LEGACY_EVENT_SKELETONS_JSON,
+        )
+        .expect("legacy oracle content snapshot must be valid");
+        assert_eq!(pack.content_hash_hex, LEGACY_SNAPSHOT_CONTENT_HASH_HEX);
+        pack
+    })
+}
+
+/// Create a `RunState` and `CpythonRng` stamped with the frozen legacy snapshot `content_hash`.
+fn create_legacy_run_with_rng(seed: i128) -> (RunState, CpythonRng) {
+    let (mut state, rng) = create_new_run_with_rng(seed, GMProfile::Fireside, 2);
+    state.content_hash = legacy_snapshot_content_pack().content_hash_hex.clone();
+    (state, rng)
+}
+
+/// Create a `RunState` stamped with the frozen legacy snapshot `content_hash`.
+fn create_legacy_run(seed: i128) -> RunState {
+    create_new_run_with_content(seed, legacy_snapshot_content_pack())
+}
+
+/// Build a `StepEngine` loaded from the frozen legacy snapshot `ContentPack` (`rust/oracle/content-legacy/`).
+fn new_legacy_engine(state: RunState) -> StepEngine {
+    StepEngine::with_content(state, legacy_snapshot_content_pack())
+}
+
+/// Load a save against the frozen legacy snapshot's `content_hash`, returning a `LoadResult`.
+fn load_legacy_game_result(base_path: &Path) -> LoadResult {
+    load_game_result_with_content_hash(base_path, &legacy_snapshot_content_pack().content_hash_hex)
+}
+
+/// Load a save against the frozen legacy snapshot's `content_hash`, returning `Option<RunState>`.
+fn load_legacy_game(base_path: &Path) -> Option<RunState> {
+    load_legacy_game_result(base_path).state
+}
+
+/// Reconstruct `RunState` from a JSON `Value` against the frozen legacy snapshot's `content_hash`.
+fn legacy_value_to_state(data: &Value) -> Result<RunState, String> {
+    value_to_state_checked(data, &legacy_snapshot_content_pack().content_hash_hex)
+        .map_err(|e| e.message())
+}
 
 fn read_gzip_json<T: for<'de> Deserialize<'de>>(bytes: &[u8]) -> T {
     let mut decoder = GzDecoder::new(bytes);
@@ -50,27 +129,36 @@ fn to_canonical_json_string(val: &Value) -> String {
 }
 
 /// Convert a Rust v4 `state_to_value` into the frozen Python 1.3.x v1 shape for Tier 1 oracle vector comparison,
-/// after asserting the v4 `save_version` and `content_hash` fields are present and equal to the embedded content hash.
-fn state_to_oracle_v1_value(state: &RunState) -> Value {
+/// after asserting the v4 `save_version` and `content_hash` fields are present and equal to `expected_content_hash`.
+fn state_to_oracle_v1_value_with_hash(state: &RunState, expected_content_hash: &str) -> Value {
     let mut val = state_to_value(state);
     let obj = val.as_object_mut().expect("state_to_value object");
     assert_eq!(obj.get("save_version"), Some(&json!(SAVE_VERSION)));
     assert_eq!(
         obj.remove("content_hash"),
-        Some(json!(EMBEDDED_CONTENT_HASH_HEX))
+        Some(json!(expected_content_hash))
     );
     obj.insert("save_version".to_string(), json!(PYTHON_SAVE_VERSION));
     val
 }
 
+/// Convert a Rust v4 `state_to_value` into the frozen Python 1.3.x v1 shape for Tier 1 oracle vector comparison,
+/// after asserting the v4 `save_version` and `content_hash` fields are present and equal to the frozen legacy snapshot content hash.
+fn state_to_oracle_v1_value(state: &RunState) -> Value {
+    state_to_oracle_v1_value_with_hash(state, LEGACY_SNAPSHOT_CONTENT_HASH_HEX)
+}
+
 /// Adapt a frozen Python 1.3.x (`save_version` 0..=3) vector JSON value to v4 (`save_version: 4`, `content_hash`)
-/// so Tier 1 parity tests can exercise field hydration on the frozen vectors while production `load_game` / `value_to_state`
-/// refuses 0..=3 saves.
+/// using the frozen legacy snapshot content hash so Tier 1 parity tests can exercise field hydration on the frozen vectors
+/// while production `load_game` / `value_to_state` refuses 0..=3 saves.
 fn upgrade_oracle_v1_value_to_v4(val: &Value) -> Value {
     let mut out = val.clone();
     if let Some(obj) = out.as_object_mut() {
         obj.insert("save_version".to_string(), json!(SAVE_VERSION));
-        obj.insert("content_hash".to_string(), json!(EMBEDDED_CONTENT_HASH_HEX));
+        obj.insert(
+            "content_hash".to_string(),
+            json!(LEGACY_SNAPSHOT_CONTENT_HASH_HEX),
+        );
     }
     out
 }
@@ -96,12 +184,15 @@ struct OracleMeta {
     python_version: String,
     oracle_commit: String,
     generator_sha256: String,
+    content_legacy_manifest_sha256: String,
+    content_legacy_event_skeletons_sha256: String,
+    content_legacy_files_sha256: BTreeMap<String, String>,
     vector_sha256: String,
     vector_files_sha256: BTreeMap<String, String>,
 }
 
 const EXPECTED_GENERATOR_SHA256: &str =
-    "3917d0889f28f949f63c07f832c8cab9c04593dc0a49009f1dc3b17be19627a8";
+    "b632c11aadbdbaa110c99c0b4062fcfb32f2daa82d22b8c3d129276fd0243639";
 
 fn assert_oracle_meta(meta: &OracleMeta, file_name: &str, expected_vector_sha256: &str) {
     assert_eq!(meta.python_version, "3.12.13");
@@ -110,6 +201,27 @@ fn assert_oracle_meta(meta: &OracleMeta, file_name: &str, expected_vector_sha256
         "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
     );
     assert_eq!(meta.generator_sha256, EXPECTED_GENERATOR_SHA256);
+    assert_eq!(
+        meta.content_legacy_manifest_sha256,
+        EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256
+    );
+    assert_eq!(
+        meta.content_legacy_event_skeletons_sha256,
+        EXPECTED_LEGACY_EVENT_SKELETONS_SHA256
+    );
+    assert_eq!(meta.content_legacy_files_sha256.len(), 2);
+    assert_eq!(
+        meta.content_legacy_files_sha256
+            .get("content_manifest.json")
+            .map(String::as_str),
+        Some(EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256)
+    );
+    assert_eq!(
+        meta.content_legacy_files_sha256
+            .get("event_skeletons.json")
+            .map(String::as_str),
+        Some(EXPECTED_LEGACY_EVENT_SKELETONS_SHA256)
+    );
     assert_eq!(meta.vector_sha256, expected_vector_sha256);
     assert_eq!(meta.vector_files_sha256.len(), 8);
     assert_eq!(
@@ -497,8 +609,7 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
 
     for (idx, wv) in wf.vectors.iter().enumerate() {
         let seed: i128 = wv.seed.parse().expect("valid seed");
-        let (mut state, mut rng) =
-            create_new_run_with_rng(seed, etv_core::model::GMProfile::Fireside, 2);
+        let (mut state, mut rng) = create_legacy_run_with_rng(seed);
 
         let parts: Vec<&str> = state.run_id.split('-').collect();
         assert_eq!(parts.len(), 2, "salted run_id must have two parts");
@@ -611,11 +722,11 @@ fn verify_event_slice(rust_events: &[EventSkeleton], oracle_events: &[OracleJson
 }
 
 fn verify_worldgen_json_events(wf: &WorldgenFile) {
-    let rust_events = load_json_events();
+    let rust_events = &legacy_snapshot_content_pack().json_events;
     assert_eq!(rust_events.len(), 200);
     assert_eq!(wf.json_events_count, 200);
     assert_eq!(wf.json_events.len(), 200);
-    verify_event_slice(&rust_events, &wf.json_events);
+    verify_event_slice(rust_events, &wf.json_events);
 }
 
 // preservation: Phase 1a negative check for truncated json_events
@@ -762,7 +873,7 @@ fn check_03_save_round_trip_20_saves() {
 
         // 1. Direct load of unmodified Python 1.3.x v1 save is refused with LEGACY_SAVE_REFUSAL_MESSAGE
         std::fs::write(&save_path, &sv.raw_save_json).unwrap();
-        let refused = load_game_result(tmp.path());
+        let refused = load_legacy_game_result(tmp.path());
         assert!(!refused.ok);
         assert_eq!(refused.reason, LEGACY_SAVE_REFUSAL_MESSAGE);
         assert_eq!(
@@ -770,16 +881,17 @@ fn check_03_save_round_trip_20_saves() {
             Some(SaveLoadError::LegacySaveRefused { save_version: 1 })
         );
 
-        // 2. Adapt the frozen vector to v4 (save_version: 4 + embedded content_hash) to verify field round-trip
+        // 2. Adapt the frozen vector to v4 (save_version: 4 + legacy snapshot content_hash) to verify field round-trip
         let v4_json = upgrade_oracle_v1_json_to_v4(&sv.raw_save_json);
         std::fs::write(&save_path, &v4_json).unwrap();
 
-        let res = load_game_result(tmp.path());
+        let res = load_legacy_game_result(tmp.path());
         assert!(res.ok, "failed to load {}: {}", sv.label, res.reason);
         let loaded_state = res.state.expect("loaded state");
 
-        let direct_serde: RunState =
+        let mut direct_serde: RunState =
             serde_json::from_str(&sv.raw_save_json).expect("direct serde deserialize");
+        direct_serde.content_hash = LEGACY_SNAPSHOT_CONTENT_HASH_HEX.to_string();
         assert_eq!(
             direct_serde, loaded_state,
             "direct serde mismatch on {}",
@@ -794,7 +906,7 @@ fn check_03_save_round_trip_20_saves() {
             assert_eq!(obj.get("save_version"), Some(&json!(SAVE_VERSION)));
             assert_eq!(
                 obj.remove("content_hash"),
-                Some(json!(EMBEDDED_CONTENT_HASH_HEX))
+                Some(json!(LEGACY_SNAPSHOT_CONTENT_HASH_HEX))
             );
             obj.insert("save_version".to_string(), json!(PYTHON_SAVE_VERSION));
         }
@@ -806,7 +918,7 @@ fn check_03_save_round_trip_20_saves() {
             sv.label
         );
 
-        let mut reloaded = load_game(tmp2.path()).expect("reload own save");
+        let mut reloaded = load_legacy_game(tmp2.path()).expect("reload own save");
         assert_eq!(
             reloaded, loaded_state,
             "reload state mismatch on {}",
@@ -846,7 +958,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
 
         // Unmodified v1/v2 vector is refused as a legacy save without touching the file
         std::fs::write(&save_path, &mv.input_json).unwrap();
-        let refused = load_game_result(tmp.path());
+        let refused = load_legacy_game_result(tmp.path());
         assert!(!refused.ok);
         assert_eq!(refused.reason, LEGACY_SAVE_REFUSAL_MESSAGE);
 
@@ -854,7 +966,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         let v4_input = upgrade_oracle_v1_json_to_v4(&mv.input_json);
         std::fs::write(&save_path, &v4_input).unwrap();
 
-        let res = load_game_result(tmp.path());
+        let res = load_legacy_game_result(tmp.path());
         assert!(
             res.ok,
             "migration load failed on {}: {}",
@@ -905,7 +1017,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
     }
 
     let tmp = tempfile::tempdir().expect("tempdir");
-    let mut run = create_new_run(42);
+    let mut run = create_legacy_run(42);
     run.backpack.enabled = true;
     run.backpack.last_settle_failed = true;
     let mut minted = BTreeMap::new();
@@ -917,7 +1029,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
     run.backpack.minted_initial = minted.clone();
 
     save_game(&run, tmp.path()).unwrap();
-    let loaded = load_game(tmp.path()).expect("load L-2 save");
+    let loaded = load_legacy_game(tmp.path()).expect("load L-2 save");
     assert!(loaded.backpack.last_settle_failed);
     assert_eq!(loaded.backpack.minted_initial, minted);
 
@@ -926,7 +1038,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         val.as_object_mut()
             .unwrap()
             .insert("save_version".to_string(), json!(v));
-        let err = value_to_state(&val).expect_err("version 0..=3 must be refused in v4");
+        let err = legacy_value_to_state(&val).expect_err("version 0..=3 must be refused in v4");
         assert_eq!(err, LEGACY_SAVE_REFUSAL_MESSAGE);
     }
     let tmp_incompat = tempfile::tempdir().expect("tempdir");
@@ -942,14 +1054,14 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         serde_json::to_string_pretty(&future_val).unwrap(),
     )
     .unwrap();
-    let incompat_res = load_game_result(tmp_incompat.path());
+    let incompat_res = load_legacy_game_result(tmp_incompat.path());
     assert!(!incompat_res.ok);
     assert_eq!(incompat_res.reason, "incompatible");
     assert!(save_dir.join(SAVE_FILE).exists());
 
     let tmp_big_seed = tempfile::tempdir().expect("tempdir big seed");
     let big_seed: i128 = (u64::MAX as i128) + 42;
-    let run_big = create_new_run(big_seed);
+    let run_big = create_legacy_run(big_seed);
     let mut val_big = state_to_value(&run_big);
     let mut raw_big = serde_json::to_string_pretty(&val_big).unwrap();
     raw_big = raw_big.replace(
@@ -959,7 +1071,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
     let save_dir_big = tmp_big_seed.path().join(SAVE_DIR);
     std::fs::create_dir_all(&save_dir_big).unwrap();
     std::fs::write(save_dir_big.join(SAVE_FILE), &raw_big).unwrap();
-    let res_big = load_game_result(tmp_big_seed.path());
+    let res_big = load_legacy_game_result(tmp_big_seed.path());
     assert!(
         res_big.ok,
         "bare JSON seed > u64::MAX within i128 must load: {}",
@@ -979,7 +1091,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         "\"seed\": 340282366920938463463374607431768211456",
     );
     std::fs::write(save_dir_ov.join(SAVE_FILE), &raw_ov).unwrap();
-    let res_ov = load_game_result(tmp_overflow.path());
+    let res_ov = load_legacy_game_result(tmp_overflow.path());
     assert!(!res_ov.ok);
     assert_eq!(res_ov.reason, "seed_out_of_range");
     assert!(
@@ -998,7 +1110,7 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
     for sv in &sf.saves_20 {
         let raw_val: Value = serde_json::from_str(&sv.raw_save_json).unwrap();
         let val = upgrade_oracle_v1_value_to_v4(&raw_val);
-        let state = value_to_state(&val).expect("parse save");
+        let state = legacy_value_to_state(&val).expect("parse save");
 
         assert_eq!(sv.next_100_draws_with_state.len(), 100);
         let mut rng_full = CpythonRng::from_seed_and_counter(
@@ -1038,7 +1150,8 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
                 .as_object_mut()
                 .unwrap()
                 .insert("rng_state".to_string(), bad_json);
-            let st_bad = value_to_state(&modified).expect("malformed rng_state must not fail load");
+            let st_bad =
+                legacy_value_to_state(&modified).expect("malformed rng_state must not fail load");
             assert!(st_bad.rng_state.is_none());
             let mut rng_fallback = CpythonRng::from_seed_and_counter(
                 st_bad.seed,
@@ -1072,8 +1185,8 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let base: &Path = tmp.path();
 
-    let mut run_a = create_new_run(42);
-    let mut run_b = create_new_run(42);
+    let mut run_a = create_legacy_run(42);
+    let mut run_b = create_legacy_run(42);
     assert_ne!(run_a.run_id, run_b.run_id);
     assert_eq!(
         run_a.run_id.split('-').next().unwrap(),
@@ -1115,7 +1228,7 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     assert_eq!(sec_a_after.wallet_secret, "sTestnetDummySecretA00000000");
     assert_eq!(sec_b_after.wallet_secret, "sTestnetDummySecretB11111111");
 
-    let loaded_b = load_game(base).expect("load run_b");
+    let loaded_b = load_legacy_game(base).expect("load run_b");
     assert_eq!(loaded_b.run_id, run_b.run_id);
     assert_eq!(
         loaded_b.backpack.wallet_secret,
@@ -1131,7 +1244,7 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     let secrets_path = save_dir.join(SECRETS_FILE);
     std::fs::write(&secrets_path, "{corrupt secrets json!!!").unwrap();
     let loaded_with_corrupt_sidecar =
-        load_game(base).expect("load_game succeeds with corrupt secrets.json");
+        load_legacy_game(base).expect("load_game succeeds with corrupt secrets.json");
     assert_eq!(loaded_with_corrupt_sidecar.backpack.wallet_secret, "");
     assert_eq!(loaded_with_corrupt_sidecar.backpack.issuer_secret, "");
     assert!(
@@ -1204,7 +1317,7 @@ fn check_06_secrets_sidecar_and_corrupt_quarantine() {
     // 4. Corrupt run.json -> quarantined as run.json.corrupt-<timestamp>
     let save_path = save_dir.join(SAVE_FILE);
     std::fs::write(&save_path, "{corrupt json!!!").unwrap();
-    let bad_res = load_game_result(base);
+    let bad_res = load_legacy_game_result(base);
     assert!(!bad_res.ok);
     assert_eq!(bad_res.reason, "corrupt");
     assert!(
@@ -1341,8 +1454,11 @@ struct ResumeRunVector {
     reloaded_turns: Vec<TurnRecord>,
 }
 
-fn compute_state_hash_and_digest(state: &RunState) -> (String, StateDigest) {
-    let mut val = state_to_oracle_v1_value(state);
+fn compute_state_hash_and_digest_with_hash(
+    state: &RunState,
+    expected_content_hash: &str,
+) -> (String, StateDigest) {
+    let mut val = state_to_oracle_v1_value_with_hash(state, expected_content_hash);
     if let Some(obj) = val.as_object_mut() {
         if let Some(rid) = obj.get("run_id").and_then(|v| v.as_str()) {
             if let Some((prefix, _)) = rid.split_once('-') {
@@ -1497,13 +1613,14 @@ fn format_state_diff(
     diffs.join("; ")
 }
 
-/// Execute and verify a single turn step on `engine`.
+/// Execute and verify a single turn step on `engine`, asserting the state carries `expected_content_hash`.
 /// On failure, stops immediately and formats the diagnostic in the required order:
 /// `seed`, `turn`, `rng_hash`, then `state_diff`.
-fn verify_turn_step(
+fn verify_turn_step_with_hash(
     seed_str: &str,
     engine: &mut StepEngine,
     tr: &TurnRecord,
+    expected_content_hash: &str,
 ) -> Result<(), String> {
     let action: IntentAction =
         serde_json::from_value(json!(tr.act)).map_err(|e| format!("bad action {}: {e}", tr.act))?;
@@ -1516,7 +1633,8 @@ fn verify_turn_step(
 
     let got_cnt = engine.state.rng_counter;
     let got_rng_h = engine.rng.state_sha256_hex();
-    let (got_st_h, got_st_d) = compute_state_hash_and_digest(&engine.state);
+    let (got_st_h, got_st_d) =
+        compute_state_hash_and_digest_with_hash(&engine.state, expected_content_hash);
     let got_ev = capture_emitted_events(engine, &msgs);
 
     if got_cnt != tr.cnt
@@ -1535,9 +1653,22 @@ fn verify_turn_step(
     Ok(())
 }
 
-/// Replay and verify an entire seed run (`max_turns` turns, or until game over).
+/// Execute and verify a single turn step on `engine` against the frozen legacy snapshot.
+fn verify_turn_step(
+    seed_str: &str,
+    engine: &mut StepEngine,
+    tr: &TurnRecord,
+) -> Result<(), String> {
+    verify_turn_step_with_hash(seed_str, engine, tr, LEGACY_SNAPSHOT_CONTENT_HASH_HEX)
+}
+
+/// Replay and verify an entire seed run (`max_turns` turns, or until game over) using the given `content` pack.
 /// Stops at the first mismatch and reports `seed`, `turn`, `rng_hash`, then `state_diff`.
-fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, String> {
+fn verify_seed_run_with_content(
+    run: &SeedRunVector,
+    max_turns: usize,
+    content: &ContentPack,
+) -> Result<usize, String> {
     if run.turns.is_empty() {
         return Err(format!(
             "golden harness mismatch:\n  seed: {}\n  turn: 0\n  rng_hash: none\n  state_diff: empty turn list",
@@ -1562,8 +1693,8 @@ fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, Strin
         .seed
         .parse()
         .map_err(|e| format!("invalid seed {}: {e}", run.seed))?;
-    let state = create_new_run(seed);
-    let mut engine = StepEngine::new(state);
+    let state = create_new_run_with_content(seed, content);
+    let mut engine = StepEngine::with_content(state, content);
 
     for (idx, tr) in run.turns.iter().enumerate() {
         if tr.t != idx + 1 {
@@ -1575,10 +1706,16 @@ fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, Strin
                 idx + 1
             ));
         }
-        verify_turn_step(&run.seed, &mut engine, tr)?;
+        verify_turn_step_with_hash(&run.seed, &mut engine, tr, &content.content_hash_hex)?;
     }
 
     Ok(run.turns.len())
+}
+
+/// Replay and verify an entire seed run (`max_turns` turns, or until game over) against the frozen legacy snapshot.
+/// Stops at the first mismatch and reports `seed`, `turn`, `rng_hash`, then `state_diff`.
+fn verify_seed_run(run: &SeedRunVector, max_turns: usize) -> Result<usize, String> {
+    verify_seed_run_with_content(run, max_turns, legacy_snapshot_content_pack())
 }
 
 // Fails on b86fbe4 because `turns_1000_seeds.json.gz` on b86fbe4 had 0 `"Dehydration"` deaths
@@ -1603,18 +1740,18 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     assert_eq!(tf.event_library.len(), 260);
     assert_eq!(tf.ending_vectors.len(), 8);
 
-    // 1. Verify full 260-event library (`60` hand-authored + `200` JSON)
-    let rust_lib = build_event_library();
+    // 1. Verify full 260-event library (`60` hand-authored + `200` JSON) from the frozen legacy snapshot
+    let rust_lib = &legacy_snapshot_content_pack().all_events;
     assert_eq!(rust_lib.len(), 260);
-    verify_event_slice(&rust_lib, &tf.event_library);
+    verify_event_slice(rust_lib, &tf.event_library);
 
     // 2. Verify all 8 ending and `finalize_run` vectors
     for ev in &tf.ending_vectors {
         let raw_val: Value = serde_json::from_str(&ev.input_state_json).unwrap();
         let val = upgrade_oracle_v1_value_to_v4(&raw_val);
-        let st = value_to_state(&val).expect("parse ending vector state");
+        let st = legacy_value_to_state(&val).expect("parse ending vector state");
         let (got_ending, got_cod, got_over) = if ev.use_finalize {
-            let mut eng = StepEngine::new(st);
+            let mut eng = new_legacy_engine(st);
             let end = eng.finalize_run("stalled");
             (end, eng.state.cause_of_death.clone(), eng.state.game_over)
         } else {
@@ -1846,7 +1983,7 @@ fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
     assert_eq!(tf.event_library.len(), 260);
     assert_eq!(tf.ending_vectors.len(), 8);
 
-    let rust_lib = build_event_library();
+    let rust_lib = &legacy_snapshot_content_pack().all_events;
     assert_eq!(rust_lib.len(), 260);
 
     let mut seeds_seen = HashSet::with_capacity(80);
@@ -2107,8 +2244,9 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
                     let upgraded_py_save = upgrade_oracle_v1_json_to_v4(&rr.raw_save_json);
                     std::fs::write(save_dir_py.join(SAVE_FILE), &upgraded_py_save).unwrap();
 
-                    let loaded_py = load_game(tmp_py.path()).expect("load Python turn-20 save");
-                    let mut eng_from_py = StepEngine::new(loaded_py);
+                    let loaded_py =
+                        load_legacy_game(tmp_py.path()).expect("load Python turn-20 save");
+                    let mut eng_from_py = new_legacy_engine(loaded_py);
 
                     let mut count_turns = 0usize;
                     let mut err_opt: Option<String> = None;
@@ -2126,7 +2264,7 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
 
                     // Path B: Run turns 1..=20 in Rust, save at turn 20, load in Rust, and verify against Python's reloaded trace
                     let seed_val: i128 = rr.seed.parse().unwrap();
-                    let mut eng_rust = StepEngine::new(create_new_run(seed_val));
+                    let mut eng_rust = new_legacy_engine(create_legacy_run(seed_val));
                     for tr in &uninterrupted.turns[..rr.save_turn] {
                         if let Err(diag) = verify_turn_step(&rr.seed, &mut eng_rust, tr) {
                             err_opt = Some(format!("[pre-save-rust] {diag}"));
@@ -2140,8 +2278,9 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
 
                     let tmp_rs = tempfile::tempdir().expect("tempdir rust save");
                     save_game(&eng_rust.state, tmp_rs.path()).expect("save at turn 20 in Rust");
-                    let loaded_rs = load_game(tmp_rs.path()).expect("load Rust turn-20 save");
-                    let mut eng_from_rs = StepEngine::new(loaded_rs);
+                    let loaded_rs =
+                        load_legacy_game(tmp_rs.path()).expect("load Rust turn-20 save");
+                    let mut eng_from_rs = new_legacy_engine(loaded_rs);
 
                     for tr in &rr.reloaded_turns {
                         if let Err(diag) = verify_turn_step(&rr.seed, &mut eng_from_rs, tr) {
@@ -2291,7 +2430,7 @@ fn check_10_phase2_target_ledger_reference_vectors() {
     let raw = include_bytes!("../../oracle/vectors/ledger_reference.json.gz");
     assert_eq!(
         sha256_hex_bytes(raw),
-        "ffe4b12dabeed12ec751469bb642bef353f5305c8da0d30d64d08d30756fd766"
+        "688cdc9491e03f5d44a50d792c836a1ed05cff99fede4b728e844716ad9bc743"
     );
     let lf: LedgerReferenceFile = read_gzip_json(raw);
     assert_eq!(lf.schema, "etv-phase2-ledger-v1");
@@ -2308,7 +2447,7 @@ fn check_10_phase2_target_ledger_reference_vectors() {
     for lc in &lf.ledger_cases {
         assert!(!lc.case_id.is_empty());
         let v4_state = upgrade_oracle_v1_value_to_v4(&lc.state);
-        let parsed_state = value_to_state(&v4_state)
+        let parsed_state = legacy_value_to_state(&v4_state)
             .unwrap_or_else(|e| panic!("ledger case {} state must parse: {e}", lc.case_id));
         assert_eq!(parsed_state.seed, lc.seed);
         assert!(parsed_state.backpack.wallet_secret.is_empty());
@@ -2407,7 +2546,7 @@ fn check_11_phase2_target_notices_reference_vectors() {
     let raw = include_bytes!("../../oracle/vectors/notices_reference.json.gz");
     assert_eq!(
         sha256_hex_bytes(raw),
-        "be8eec30247e4a9cd95dc4f5b40ea1e7776bbdb6a86634b0b786f835b21075ca"
+        "4d75fa318f29677255578b547d051b0984048b500e4d9dab2b221b05e133a242"
     );
     let nf: NoticesReferenceFile = read_gzip_json(raw);
     assert_eq!(nf.schema, "etv-phase2-notices-v1");
@@ -2455,4 +2594,271 @@ fn check_11_phase2_target_notices_reference_vectors() {
             assert!(out.target.is_some());
         }
     }
+}
+
+// ── 12, 13 & 14. Legacy Snapshot Pin Check, Live Content Fixture & Snapshot Isolation ──
+
+fn verify_legacy_snapshot_pins_in_dir(dir: &Path) -> Result<ContentPack, String> {
+    let manifest_bytes = std::fs::read(dir.join("content_manifest.json"))
+        .map_err(|e| format!("failed to read content_manifest.json: {e}"))?;
+    let skeletons_bytes = std::fs::read(dir.join("event_skeletons.json"))
+        .map_err(|e| format!("failed to read event_skeletons.json: {e}"))?;
+
+    let manifest_sha = sha256_hex_bytes(&manifest_bytes);
+    if manifest_sha != EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256 {
+        return Err(format!(
+            "legacy snapshot content_manifest.json SHA-256 mismatch: expected {EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256}, got {manifest_sha}"
+        ));
+    }
+    let skeletons_sha = sha256_hex_bytes(&skeletons_bytes);
+    if skeletons_sha != EXPECTED_LEGACY_EVENT_SKELETONS_SHA256 {
+        return Err(format!(
+            "legacy snapshot event_skeletons.json SHA-256 mismatch: expected {EXPECTED_LEGACY_EVENT_SKELETONS_SHA256}, got {skeletons_sha}"
+        ));
+    }
+
+    let manifest_str = std::str::from_utf8(&manifest_bytes)
+        .map_err(|e| format!("invalid UTF-8 in content_manifest.json: {e}"))?;
+    let skeletons_str = std::str::from_utf8(&skeletons_bytes)
+        .map_err(|e| format!("invalid UTF-8 in event_skeletons.json: {e}"))?;
+    let pack = ContentPack::from_raw_strings(manifest_str, skeletons_str)
+        .map_err(|e| format!("failed to parse legacy snapshot ContentPack: {e}"))?;
+    if pack.content_hash_hex != LEGACY_SNAPSHOT_CONTENT_HASH_HEX {
+        return Err(format!(
+            "legacy snapshot content_hash mismatch: expected {LEGACY_SNAPSHOT_CONTENT_HASH_HEX}, got {}",
+            pack.content_hash_hex
+        ));
+    }
+    Ok(pack)
+}
+
+/// Build a copy of the live `rust/etv-core/content/` pack (`CONTENT_MANIFEST_JSON` +
+/// `EVENT_SKELETONS_JSON`) with a non-empty `outcome_sentence` authored on `f1_017` choice `0` (`A`),
+/// preserving `engine_effect_profile` key order across all events.
+fn build_live_content_with_authored_outcome_sentence(outcome_sentence: &str) -> (String, String) {
+    let needle = "\"label\": \"Continue despite the wet\",";
+    assert_eq!(
+        EVENT_SKELETONS_JSON.matches(needle).count(),
+        1,
+        "f1_017 choice 0 label must appear exactly once in EVENT_SKELETONS_JSON"
+    );
+    let escaped = serde_json::to_string(outcome_sentence).expect("serialize outcome_sentence");
+    let replacement = format!("{needle}\n        \"outcome_sentence\": {escaped},");
+    let modified_skeletons_json = EVENT_SKELETONS_JSON.replacen(needle, &replacement, 1);
+    (CONTENT_MANIFEST_JSON.to_string(), modified_skeletons_json)
+}
+
+/// (a) Snapshot pin check: verifies `rust/oracle/content-legacy/content_manifest.json` and
+/// `rust/oracle/content-legacy/event_skeletons.json` match their pinned SHA-256s on disk and via
+/// `include_str!`, and fails when either file's bytes are mutated.
+#[test]
+fn check_12_tier1_legacy_snapshot_pin_check() {
+    let crate_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let legacy_dir = crate_dir.join("../oracle/content-legacy");
+
+    assert_eq!(
+        sha256_hex_bytes(LEGACY_CONTENT_MANIFEST_JSON.as_bytes()),
+        EXPECTED_LEGACY_CONTENT_MANIFEST_SHA256
+    );
+    assert_eq!(
+        sha256_hex_bytes(LEGACY_EVENT_SKELETONS_JSON.as_bytes()),
+        EXPECTED_LEGACY_EVENT_SKELETONS_SHA256
+    );
+
+    let pack = verify_legacy_snapshot_pins_in_dir(&legacy_dir)
+        .expect("pinned rust/oracle/content-legacy/ files must verify");
+    assert_eq!(pack.content_hash_hex, LEGACY_SNAPSHOT_CONTENT_HASH_HEX);
+    assert_eq!(pack.json_events.len(), 200);
+    assert_eq!(pack.all_events.len(), 260);
+
+    // Mutating `event_skeletons.json` in a temp copy must fail the pin check.
+    let tmp_bad_skel = tempfile::tempdir().expect("tempdir bad skeletons");
+    std::fs::write(
+        tmp_bad_skel.path().join("content_manifest.json"),
+        LEGACY_CONTENT_MANIFEST_JSON,
+    )
+    .unwrap();
+    let (_, mutated_skel) = build_live_content_with_authored_outcome_sentence(
+        "You lower your head into the rain and press the team forward.",
+    );
+    std::fs::write(
+        tmp_bad_skel.path().join("event_skeletons.json"),
+        &mutated_skel,
+    )
+    .unwrap();
+    let err_skel = verify_legacy_snapshot_pins_in_dir(tmp_bad_skel.path())
+        .expect_err("mutated event_skeletons.json must fail legacy snapshot pin check");
+    assert!(
+        err_skel.contains("event_skeletons.json SHA-256 mismatch"),
+        "unexpected error: {err_skel}"
+    );
+
+    // Mutating `content_manifest.json` in a temp copy must also fail the pin check.
+    let tmp_bad_manifest = tempfile::tempdir().expect("tempdir bad manifest");
+    std::fs::write(
+        tmp_bad_manifest.path().join("content_manifest.json"),
+        format!("{LEGACY_CONTENT_MANIFEST_JSON}\n"),
+    )
+    .unwrap();
+    std::fs::write(
+        tmp_bad_manifest.path().join("event_skeletons.json"),
+        LEGACY_EVENT_SKELETONS_JSON,
+    )
+    .unwrap();
+    let err_manifest = verify_legacy_snapshot_pins_in_dir(tmp_bad_manifest.path())
+        .expect_err("mutated content_manifest.json must fail legacy snapshot pin check");
+    assert!(
+        err_manifest.contains("content_manifest.json SHA-256 mismatch"),
+        "unexpected error: {err_manifest}"
+    );
+}
+
+/// (b) Live content fixture test: adds a non-empty `outcome_sentence` to a copy of the live
+/// `rust/etv-core/content/` in a temp directory / `ContentPack`, loads it through `ContentPack`,
+/// runs the Tier 2 1,000-seed mechanics hash (`mechanics_state_hash` unchanged,
+/// `presentation_record` changed on the resolved turn), and runs Tier 1 (`verify_seed_run` against
+/// `rust/oracle/content-legacy/`) and verifies Tier 1 stays green.
+#[test]
+fn check_13_live_content_outcome_sentence_fixture_tier2_and_tier1_green() {
+    let authored_sentence = "You lower your head into the rain and press the team forward.";
+    let (manifest_json, authored_skeletons_json) =
+        build_live_content_with_authored_outcome_sentence(authored_sentence);
+
+    let tmp_live = tempfile::tempdir().expect("tempdir live content fixture");
+    std::fs::write(
+        tmp_live.path().join("content_manifest.json"),
+        &manifest_json,
+    )
+    .unwrap();
+    std::fs::write(
+        tmp_live.path().join("event_skeletons.json"),
+        &authored_skeletons_json,
+    )
+    .unwrap();
+
+    let authored_live_pack = ContentPack::from_raw_strings(
+        &std::fs::read_to_string(tmp_live.path().join("content_manifest.json")).unwrap(),
+        &std::fs::read_to_string(tmp_live.path().join("event_skeletons.json")).unwrap(),
+    )
+    .expect("authored live ContentPack must parse and validate");
+
+    #[cfg(feature = "authoring")]
+    {
+        let loaded_from_dir = ContentPack::load_from_dir(tmp_live.path())
+            .expect("ContentPack::load_from_dir must load temp live content fixture");
+        assert_eq!(
+            loaded_from_dir.content_hash_hex,
+            authored_live_pack.content_hash_hex
+        );
+    }
+
+    let baseline_live_pack = embedded_content_pack();
+    assert_ne!(
+        authored_live_pack.content_hash_hex, baseline_live_pack.content_hash_hex,
+        "adding an outcome_sentence to live content must change its content_hash"
+    );
+
+    // Run Tier 2 across all 1,000 seeds: every turn's `mechanics_state_hash` must be identical,
+    // while `presentation_record` changes on turns where `f1_017` choice A (`0`) is resolved.
+    let seeds: Vec<(usize, i128)> = build_1000_seeds().into_iter().enumerate().collect();
+    assert_eq!(seeds.len(), 1000);
+    let worker_count = std::thread::available_parallelism()
+        .map(|n| n.get().clamp(1, 16))
+        .unwrap_or(4);
+    let chunk_size = seeds.len().div_ceil(worker_count);
+    let authored_ref = &authored_live_pack;
+
+    let chunk_results: Vec<(usize, usize)> = std::thread::scope(|s| {
+        let mut handles = Vec::new();
+        for chunk in seeds.chunks(chunk_size) {
+            handles.push(s.spawn(move || {
+                let mut turns_checked = 0usize;
+                let mut presentation_diffs = 0usize;
+                for &(seed_idx, seed) in chunk {
+                    let base_trace = run_tier2_seed_trace(seed, seed_idx, baseline_live_pack, 60);
+                    let auth_trace = run_tier2_seed_trace(seed, seed_idx, authored_ref, 60);
+                    assert_eq!(
+                        base_trace.turns.len(),
+                        auth_trace.turns.len(),
+                        "turn count mismatch on seed {seed}"
+                    );
+                    for (b, a) in base_trace.turns.iter().zip(auth_trace.turns.iter()) {
+                        assert_eq!(b.turn, a.turn);
+                        assert_eq!(
+                            b.mechanics_state_hash, a.mechanics_state_hash,
+                            "Tier 2 mechanics_state_hash diverged on seed {seed} turn {}",
+                            b.turn
+                        );
+                        if b.presentation_record != a.presentation_record {
+                            presentation_diffs += 1;
+                            assert_eq!(a.presentation_record.outcome_sentence, authored_sentence);
+                        }
+                        turns_checked += 1;
+                    }
+                }
+                (turns_checked, presentation_diffs)
+            }));
+        }
+        handles.into_iter().map(|h| h.join().unwrap()).collect()
+    });
+
+    let total_turns: usize = chunk_results.iter().map(|(t, _)| *t).sum();
+    let total_pres_diffs: usize = chunk_results.iter().map(|(_, d)| *d).sum();
+    assert!(
+        total_turns > 50_000,
+        "unexpected total_turns: {total_turns}"
+    );
+    assert!(
+        total_pres_diffs > 0,
+        "expected presentation_record to change on turns resolving f1_017 choice A"
+    );
+
+    // And Tier 1 (which reads `rust/oracle/content-legacy/`) stays green.
+    let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
+    let tf: TurnsHarnessFile = read_gzip_json(raw);
+    let seed42_run = tf
+        .runs
+        .iter()
+        .find(|r| r.seed == "42")
+        .expect("seed 42 run present");
+    assert_eq!(verify_seed_run(seed42_run, 60), Ok(60));
+}
+
+/// (c) Snapshot isolation: pointing Tier 1 at the live content copy carrying the authored
+/// `outcome_sentence` fails parity on the resolved turn (`seed: 42`, `turn: 2`), proving Tier 1
+/// is actually reading the frozen snapshot and not ignoring `outcome_narration`.
+#[test]
+fn check_14_tier1_snapshot_isolation_fails_on_authored_live_content() {
+    let authored_sentence = "You lower your head into the rain and press the team forward.";
+    let (manifest_json, authored_skeletons_json) =
+        build_live_content_with_authored_outcome_sentence(authored_sentence);
+    let authored_live_pack =
+        ContentPack::from_raw_strings(&manifest_json, &authored_skeletons_json)
+            .expect("authored live ContentPack must parse");
+
+    let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
+    let tf: TurnsHarnessFile = read_gzip_json(raw);
+    let seed42_run = tf
+        .runs
+        .iter()
+        .find(|r| r.seed == "42")
+        .expect("seed 42 run present");
+
+    // Against the frozen legacy snapshot, seed 42 passes all 60 turns.
+    assert_eq!(verify_seed_run(seed42_run, 60), Ok(60));
+
+    // Pointing Tier 1 at the live content copy carrying the authored `outcome_sentence`
+    // must fail on turn 2 of seed 42 with an `outcome_narration` mismatch.
+    let err = verify_seed_run_with_content(seed42_run, 60, &authored_live_pack)
+        .expect_err("Tier 1 pointed at authored live content must fail parity on seed 42 turn 2");
+    assert!(err.contains("seed: 42"), "unexpected error: {err}");
+    assert!(err.contains("turn: 2"), "unexpected error: {err}");
+    assert!(
+        err.contains("\"outcome_narration\":\"wagon -2, morale -2, 1 time lost\""),
+        "expected legacy fallback narration in diff, got: {err}"
+    );
+    assert!(
+        err.contains(&format!("\"outcome_narration\":\"{authored_sentence}\"")),
+        "expected authored outcome_sentence in diff, got: {err}"
+    );
 }

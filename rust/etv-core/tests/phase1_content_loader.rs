@@ -42,20 +42,32 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn test_item1_rust_owned_content_dir_byte_identical_to_python_data() {
     let rust_events_path =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("content/event_skeletons.json");
+    let legacy_events_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../oracle/content-legacy/event_skeletons.json");
+    let legacy_manifest_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../oracle/content-legacy/content_manifest.json");
     let py_events_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../src/escape_the_valley/data/event_skeletons.json");
     let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("content/content_manifest.json");
 
-    let rust_bytes = fs::read(&rust_events_path).expect("read rust event_skeletons.json");
+    let legacy_bytes = fs::read(&legacy_events_path).expect("read legacy event_skeletons.json");
     let py_bytes = fs::read(&py_events_path).expect("read python event_skeletons.json");
     assert_eq!(
-        rust_bytes, py_bytes,
-        "rust/etv-core/content/event_skeletons.json must be byte-for-byte identical to Python event_skeletons.json"
+        legacy_bytes, py_bytes,
+        "rust/oracle/content-legacy/event_skeletons.json must be byte-for-byte identical to Python event_skeletons.json"
     );
     assert_eq!(
-        sha256_hex(&rust_bytes),
+        sha256_hex(&legacy_bytes),
         "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576"
     );
+    let legacy_manifest_bytes =
+        fs::read(&legacy_manifest_path).expect("read legacy content_manifest.json");
+    assert_eq!(
+        sha256_hex(&legacy_manifest_bytes),
+        "f84f98ea845bbfc9a0e0198ba9a29011104a2ed410d40867bb38a82dab342b9f"
+    );
+
+    let rust_bytes = fs::read(&rust_events_path).expect("read rust event_skeletons.json");
     assert_eq!(rust_bytes, EVENT_SKELETONS_JSON.as_bytes());
 
     let manifest_bytes = fs::read(&manifest_path).expect("read content_manifest.json");
@@ -187,27 +199,29 @@ fn test_item2_content_hash_hand_worked_literal_and_shipped_pack() {
         .expect_err("floats in content files must be rejected");
     assert!(float_err.contains("floating-point"));
 
-    // Shipped embedded content pack hash
+    // Frozen legacy content snapshot pack hash (pinned to 7836724a... at LOGIC_VERSION)
+    let legacy_manifest = include_str!("../../oracle/content-legacy/content_manifest.json");
+    let legacy_events = include_str!("../../oracle/content-legacy/event_skeletons.json");
+    let legacy_pack =
+        ContentPack::from_raw_strings(legacy_manifest, legacy_events).expect("legacy content pack");
+    assert_eq!(
+        legacy_pack.content_hash_hex,
+        "7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74"
+    );
+
+    // Shipped live embedded content pack hash (matches EMBEDDED_CONTENT_HASH_HEX)
     let embedded = embedded_content_pack();
     assert_eq!(embedded.logic_version, LOGIC_VERSION);
-    assert_eq!(
-        embedded.content_hash_hex,
-        "7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74"
-    );
     assert_eq!(embedded.content_hash_hex, EMBEDDED_CONTENT_HASH_HEX);
-    assert_eq!(
-        embedded_content_hash_hex(),
-        "7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74"
-    );
+    assert_eq!(embedded_content_hash_hex(), EMBEDDED_CONTENT_HASH_HEX);
     assert_eq!(
         compute_content_hash_hex(embedded),
-        "7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74"
+        EMBEDDED_CONTENT_HASH_HEX
     );
 
     let ver = embedded_version_string();
     assert!(ver.contains("logic_version=etv-rust-2.0-logic-v1"));
-    assert!(ver
-        .contains("content_hash=7836724a01c9db8e8e97b234a817b4f3be44a923677292af96f8426d6540fe74"));
+    assert!(ver.contains(&format!("content_hash={EMBEDDED_CONTENT_HASH_HEX}")));
 
     let state = create_new_run(42);
     assert_eq!(state.content_hash, EMBEDDED_CONTENT_HASH_HEX);

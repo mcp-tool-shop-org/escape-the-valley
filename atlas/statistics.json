@@ -171,7 +171,7 @@
       "confidence": "full",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 64,
+      "qualifyingSourceCommits": 65,
       "rebaseline": null
     }
   ],
@@ -284,8 +284,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 12,
-        "lines": 517,
+        "commits": 11,
+        "lines": 495,
         "path": "atlas/README.md"
       },
       {
@@ -294,18 +294,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 12,
-        "lines": 2125,
+        "commits": 11,
+        "lines": 2048,
         "path": "atlas/page.json"
       },
       {
-        "commits": 12,
-        "lines": 12128,
+        "commits": 11,
+        "lines": 12028,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 12,
-        "lines": 16603,
+        "commits": 11,
+        "lines": 16585,
         "path": "atlas/structure.json"
       },
       {
@@ -3015,7 +3015,7 @@
       },
       {
         "commits": 1,
-        "lines": 431,
+        "lines": 439,
         "path": "rust/etv-core/src/content.rs"
       },
       {
@@ -3065,7 +3065,7 @@
       },
       {
         "commits": 1,
-        "lines": 311,
+        "lines": 464,
         "path": "rust/etv-core/src/snapshot.rs"
       },
       {
@@ -3079,62 +3079,72 @@
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
-        "commits": 4,
-        "lines": 2868,
+        "commits": 5,
+        "lines": 3404,
         "path": "rust/etv-core/tests/oracle_parity.rs"
       },
       {
-        "commits": 1,
-        "lines": 817,
+        "commits": 2,
+        "lines": 1230,
         "path": "rust/etv-core/tests/phase1_content_loader.rs"
       },
       {
-        "commits": 2,
-        "lines": 46,
+        "commits": 3,
+        "lines": 70,
         "path": "rust/oracle/README.md"
       },
       {
-        "commits": 4,
-        "lines": 2959,
+        "commits": 1,
+        "lines": 6,
+        "path": "rust/oracle/content-legacy/content_manifest.json"
+      },
+      {
+        "commits": 1,
+        "lines": 6608,
+        "path": "rust/oracle/content-legacy/event_skeletons.json"
+      },
+      {
+        "commits": 5,
+        "lines": 3000,
         "path": "rust/oracle/generate_vectors.py"
       },
       {
-        "commits": 2,
+        "commits": 3,
         "lines": 0,
         "path": "rust/oracle/vectors/ledger_reference.json.gz"
       },
       {
-        "commits": 2,
+        "commits": 3,
         "lines": 0,
         "path": "rust/oracle/vectors/notices_reference.json.gz"
       },
       {
-        "commits": 3,
+        "commits": 4,
         "lines": 0,
         "path": "rust/oracle/vectors/resume_120_seeds.json.gz"
       },
       {
-        "commits": 4,
+        "commits": 5,
         "lines": 0,
         "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
       },
       {
-        "commits": 4,
+        "commits": 5,
         "lines": 0,
         "path": "rust/oracle/vectors/saves_20.json.gz"
       },
       {
-        "commits": 3,
+        "commits": 4,
         "lines": 0,
         "path": "rust/oracle/vectors/turns_1000_seeds.json.gz"
       },
       {
-        "commits": 3,
+        "commits": 4,
         "lines": 0,
         "path": "rust/oracle/vectors/turns_long_seeds.json.gz"
       },
       {
-        "commits": 4,
+        "commits": 5,
         "lines": 0,
         "path": "rust/oracle/vectors/worldgen_200.json.gz"
       },
@@ -3919,8 +3929,8 @@
         "path": "tests/test_npx_launcher.py"
       },
       {
-        "commits": 2,
-        "lines": 115,
+        "commits": 3,
+        "lines": 182,
         "path": "tests/test_oracle_generator.py"
       },
       {
@@ -3959,9 +3969,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-02T03:44:00.015Z",
+  "generatedAt": "2026-11-02T06:32:47.445Z",
   "generatedFrom": {
-    "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801"
+    "commit": "5fa8b6798faf4838af610437e1f0149a0f1d0a01"
   },
   "pairs": [
     {
@@ -3974,43 +3984,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 8,
-      "shared": 8,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
@@ -4143,8 +4153,8 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-01T22:19:28-05:00",
-    "inScopeFiles": 751,
+    "headDate": "2026-11-02T01:29:06-05:00",
+    "inScopeFiles": 753,
     "pinnedStart": null,
     "priorFloor": "fallen",
     "qualifyingCommits": 106,
@@ -4152,7 +4162,7 @@
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-06T03:19:28.000Z",
+    "since": "2026-05-06T06:29:06.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
