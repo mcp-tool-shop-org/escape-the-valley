@@ -1,17 +1,64 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::content::{hex_encode_32, ContentPack};
 use crate::engine::StepEngine;
-use crate::model::{GamePhase, IntentAction, PlayerIntent, RunState};
+use crate::events::EVENT_ID_COOLDOWN_WINDOW;
+use crate::model::{BackpackState, GamePhase, IntentAction, MapNode, PlayerIntent, RunState};
 use crate::worldgen::create_new_run_with_content;
 
-/// Mechanics-only per-turn record (inventory, health, morale, day, distance, wagon,
-/// RNG state, event ID, choice ID, numerical deltas — excluding all shown strings).
+/// Mechanical projection of a [`crate::model::JournalEntry`], retaining `day`, `location`,
+/// `event_id`, `choice_id` (the ID prefix before `':'` in `choice_made`), `deltas`, and `tags`
+/// while excluding prose fields (`scene_title`, `narration`, `choice_label`, `outcome`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JournalMechanicsRecord {
+    pub day: i32,
+    pub location: String,
+    pub event_id: String,
+    pub choice_id: String,
+    pub deltas: BTreeMap<String, i32>,
+    pub tags: Vec<String>,
+}
+
+/// Mechanical projection of a [`crate::model::MemoryCard`], retaining `id`, `kind`, `tags`,
+/// `day_created`, `day_last_seen`, `entities`, `salience_bits` (`f64::to_bits`), `cooldown_until`,
+/// and `source` while excluding prose fields (`title`, `text`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemoryCardMechanicsRecord {
+    pub id: String,
+    pub kind: String,
+    pub tags: Vec<String>,
+    pub day_created: i32,
+    pub day_last_seen: i32,
+    pub entities: Vec<String>,
+    pub salience_bits: u64,
+    pub cooldown_until: i32,
+    pub source: String,
+}
+
+/// Mechanics-only per-turn record covering every [`RunState`] field that can affect a later
+/// mechanic while excluding all text-only fields:
+/// - **IN (`RunState` fields):** `seed`, `day`, `time_of_day`, `location_id`, `destination_id`,
+///   `distance_remaining`, `total_distance`, `distance_traveled`, `mode`, `weirdness_level`,
+///   `uncanny_tokens`, `gm_profile`, `twists`, `game_over`, `victory`, `cause_of_death`,
+///   `ending` (`tier` + `facts`, excluding prose `headline`), `party` (`morale`, `member_names`,
+///   `member_health`, `member_conditions`, `member_traits`, `member_death_causes`), `wagon`
+///   (`condition`, `pace`, `animals_health`, `capacity`), `supplies`, `journal`
+///   ([`JournalMechanicsRecord`], excluding `scene_title`, `narration`, `choice_label`, `outcome`),
+///   `map_nodes` (including `cache_supplies`), `rng_counter`, `rng_state` (`rng_state_hash`),
+///   `recent_event_tags`, `recent_event_ids` (hydrated from `journal` when `None`), `memory_cards`
+///   ([`MemoryCardMechanicsRecord`], excluding `title` and `text`), `resource_crises_seen`,
+///   `doctrine`, `taboo`, `rationing_steps`, `escape_valve_cooldown`, `last_action`,
+///   `maintained_turns_remaining`, `last_spoilage_day`, and `backpack`.
+/// - **OUT (`RunState` fields):** `run_id` (contains random OS CSPRNG salt), `callout_level`
+///   (UI presentation verbosity setting), `content_hash` (changes on any content text edit),
+///   and prose strings on `ending`, `journal`, and `memory_cards`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MechanicsStateRecord {
+    pub seed: String,
     pub day: i32,
     pub time_of_day: String,
     pub location_id: String,
@@ -19,26 +66,47 @@ pub struct MechanicsStateRecord {
     pub distance_remaining: i32,
     pub distance_traveled: i32,
     pub total_distance: i32,
+    pub mode: String,
+    pub weirdness_level: i32,
+    pub uncanny_tokens: i32,
+    pub gm_profile: String,
+    pub twists: Vec<String>,
     pub supplies: BTreeMap<String, i32>,
     pub wagon_condition: i32,
     pub wagon_pace: String,
     pub animals_health: i32,
     pub wagon_capacity: i32,
     pub party_morale: i32,
+    pub member_names: Vec<String>,
     pub member_health: Vec<i32>,
     pub member_conditions: Vec<String>,
+    pub member_traits: Vec<Vec<String>>,
+    pub member_death_causes: Vec<String>,
+    pub journal: Vec<JournalMechanicsRecord>,
+    pub map_nodes: Vec<MapNode>,
     pub rng_counter: u64,
     pub rng_state_hash: String,
+    pub recent_event_tags: Vec<String>,
+    pub recent_event_ids: Vec<String>,
+    pub memory_cards: Vec<MemoryCardMechanicsRecord>,
+    pub resource_crises_seen: Vec<String>,
+    pub doctrine: String,
+    pub taboo: String,
     pub phase: String,
     pub event_id: String,
     pub choice_id: String,
     pub numerical_deltas: BTreeMap<String, i32>,
     pub rationing_steps: i32,
     pub escape_valve_cooldown: i32,
+    pub last_action: String,
     pub maintained_turns_remaining: i32,
     pub last_spoilage_day: i32,
+    pub backpack: BackpackState,
     pub game_over: bool,
     pub victory: bool,
+    pub cause_of_death: String,
+    pub ending_tier: Option<String>,
+    pub ending_facts: Option<BTreeMap<String, Value>>,
 }
 
 /// Presentation-only per-turn record (title, narration, choice labels, outcome sentence).
@@ -128,7 +196,57 @@ pub fn compute_mechanics_state_hash(
     choice_id: &str,
     numerical_deltas: &BTreeMap<String, i32>,
 ) -> String {
+    let recent_event_ids = match &state.recent_event_ids.0 {
+        Some(ids) => ids.clone(),
+        None => {
+            let from_journal: Vec<String> = state
+                .journal
+                .iter()
+                .filter(|j| !j.choice_made.is_empty() && !j.event_id.is_empty())
+                .map(|j| j.event_id.clone())
+                .collect();
+            let start = from_journal.len().saturating_sub(EVENT_ID_COOLDOWN_WINDOW);
+            from_journal[start..].to_vec()
+        }
+    };
+
+    let journal = state
+        .journal
+        .iter()
+        .map(|j| JournalMechanicsRecord {
+            day: j.day,
+            location: j.location.clone(),
+            event_id: j.event_id.clone(),
+            choice_id: j
+                .choice_made
+                .split(':')
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string(),
+            deltas: j.deltas.clone(),
+            tags: j.tags.clone(),
+        })
+        .collect();
+
+    let memory_cards = state
+        .memory_cards
+        .iter()
+        .map(|c| MemoryCardMechanicsRecord {
+            id: c.id.clone(),
+            kind: c.kind.clone(),
+            tags: c.tags.clone(),
+            day_created: c.day_created,
+            day_last_seen: c.day_last_seen,
+            entities: c.entities.clone(),
+            salience_bits: c.salience.to_bits(),
+            cooldown_until: c.cooldown_until,
+            source: c.source.clone(),
+        })
+        .collect();
+
     let record = MechanicsStateRecord {
+        seed: state.seed.to_string(),
         day: state.day,
         time_of_day: state.time_of_day.as_str().to_string(),
         location_id: state.location_id.clone(),
@@ -136,12 +254,22 @@ pub fn compute_mechanics_state_hash(
         distance_remaining: state.distance_remaining,
         distance_traveled: state.distance_traveled,
         total_distance: state.total_distance,
+        mode: state.mode.clone(),
+        weirdness_level: state.weirdness_level,
+        uncanny_tokens: state.uncanny_tokens,
+        gm_profile: state.gm_profile.as_str().to_string(),
+        twists: state
+            .twists
+            .iter()
+            .map(|t| t.as_str().to_string())
+            .collect(),
         supplies: state.supplies.to_dict(),
         wagon_condition: state.wagon.condition,
         wagon_pace: state.wagon.pace.as_str().to_string(),
         animals_health: state.wagon.animals_health,
         wagon_capacity: state.wagon.capacity,
         party_morale: state.party.morale,
+        member_names: state.party.members.iter().map(|m| m.name.clone()).collect(),
         member_health: state.party.members.iter().map(|m| m.health).collect(),
         member_conditions: state
             .party
@@ -149,18 +277,43 @@ pub fn compute_mechanics_state_hash(
             .iter()
             .map(|m| m.condition.as_str().to_string())
             .collect(),
+        member_traits: state
+            .party
+            .members
+            .iter()
+            .map(|m| m.traits.iter().map(|t| t.as_str().to_string()).collect())
+            .collect(),
+        member_death_causes: state
+            .party
+            .members
+            .iter()
+            .map(|m| m.death_cause.clone())
+            .collect(),
+        journal,
+        map_nodes: state.map_nodes.clone(),
         rng_counter: state.rng_counter,
         rng_state_hash: compute_rng_state_hash(state),
+        recent_event_tags: state.recent_event_tags.clone(),
+        recent_event_ids,
+        memory_cards,
+        resource_crises_seen: state.resource_crises_seen.clone(),
+        doctrine: state.doctrine.clone(),
+        taboo: state.taboo.clone(),
         phase: phase.as_str().to_string(),
         event_id: event_id.to_string(),
         choice_id: choice_id.to_string(),
         numerical_deltas: numerical_deltas.clone(),
         rationing_steps: state.rationing_steps,
         escape_valve_cooldown: state.escape_valve_cooldown,
+        last_action: state.last_action.clone(),
         maintained_turns_remaining: state.maintained_turns_remaining,
         last_spoilage_day: state.last_spoilage_day,
+        backpack: state.backpack.clone(),
         game_over: state.game_over,
         victory: state.victory,
+        cause_of_death: state.cause_of_death.clone(),
+        ending_tier: state.ending.as_ref().map(|e| e.tier.clone()),
+        ending_facts: state.ending.as_ref().map(|e| e.facts.clone()),
     };
     let canonical = serde_json::to_string(&record).expect("MechanicsStateRecord must serialize");
     sha256_str(&canonical)

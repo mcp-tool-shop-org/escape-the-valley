@@ -577,7 +577,7 @@ fn validate_references(
                             message: format!(
                                 "event '{ev_id}' choice '{cid}' references unknown trait '{req_trait}'"
                             ),
-                            hint: "Use a canonical trait ID: healer, mechanic, hunter, scout, cook, storyteller, musician, sharpshooter.".to_string(),
+                            hint: "Use a canonical trait ID: tough, healer, tracker, mechanic, lucky, anxious, steady, sharp_eye.".to_string(),
                         });
                     }
                 }
@@ -607,7 +607,7 @@ fn validate_references(
                                         message: format!(
                                             "event '{ev_id}' choice '{cid}' outcome references unknown trait '{t}'"
                                         ),
-                                        hint: "Use a canonical trait ID from Trait::ALL.".to_string(),
+                                        hint: "Use a canonical trait ID: tough, healer, tracker, mechanic, lucky, anxious, steady, sharp_eye.".to_string(),
                                     });
                                 }
                             }

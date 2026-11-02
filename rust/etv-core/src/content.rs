@@ -16,6 +16,11 @@ use crate::save::SaveLoadError;
 use crate::worldgen::{parse_event_skeletons_json, EventSkeleton};
 
 /// Logic version string included in the canonical `content_hash` byte stream.
+///
+/// `content_hash` covers the JSON content files (`content_manifest.json`, `event_skeletons.json`)
+/// and `LOGIC_VERSION`. Because the 60 built-in events (`events_builtin.rs`) live in Rust code
+/// rather than JSON content files, editing their text or mechanics requires bumping `LOGIC_VERSION`
+/// so that `content_hash` changes accordingly.
 pub const LOGIC_VERSION: &str = "etv-rust-2.0-logic-v1";
 
 /// Embedded `content_manifest.json` bytes from `rust/etv-core/content/content_manifest.json`.
@@ -275,6 +280,9 @@ pub fn embedded_version_string() -> String {
 }
 
 /// Header struct for the Trail Ledger export carrying `content_hash`.
+///
+/// Note: `TrailLedgerHeader` is a header type only in Phase 1 until the full Rust Trail Ledger
+/// implementation exists in Phase 2.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrailLedgerHeader {
     pub schema_version: u32,

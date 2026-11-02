@@ -431,14 +431,21 @@ fn test_item3_validator_rejects_each_defect_rule() {
     .unwrap();
     let rep5 = validate_content(&bad_refs_pack);
     assert!(!rep5.is_ok());
-    let ref_errors: Vec<_> = rep5
+    let ref_messages: Vec<&str> = rep5
         .errors
         .iter()
         .filter(|e| e.code == ERR_UNKNOWN_REFERENCE_ID)
+        .map(|e| e.message.as_str())
         .collect();
-    assert!(
-        ref_errors.len() >= 5,
-        "must report unknown trait, place, event precondition, choice required_trait, and outcome follow_up_event_id: {ref_errors:?}"
+    assert_eq!(
+        ref_messages,
+        vec![
+            "event 'ev_bad_refs': unknown trait 'nonexistent_wizard' referenced in precondition 'trait:nonexistent_wizard'",
+            "event 'ev_bad_refs': unknown place 'Atlantis' referenced in precondition 'place:Atlantis'",
+            "event 'ev_bad_refs': unknown event_id 'missing_ev_999' referenced in precondition 'event:missing_ev_999'",
+            "event 'ev_bad_refs' choice 'A' references unknown trait 'ghost_whisperer'",
+            "event 'ev_bad_refs' choice 'A' outcome references unknown event_id 'no_such_followup'",
+        ]
     );
 }
 
@@ -814,4 +821,366 @@ fn test_etv_cli_subcommands_and_validator_edge_cases() {
         .errors
         .iter()
         .any(|e| e.code == ERR_UNKNOWN_REFERENCE_ID && e.message.contains("NotAPlace")));
+}
+
+#[test]
+fn test_fix1_mechanics_hash_covers_all_play_affecting_runstate_fields() {
+    use etv_core::model::{GamePhase, MemoryCard, Trait, TransientEventIdCooldown, TwistModifier};
+    use etv_core::snapshot::compute_mechanics_state_hash;
+    use std::collections::BTreeMap;
+
+    let base = create_new_run(42);
+    let deltas = BTreeMap::new();
+    let base_hash = compute_mechanics_state_hash(&base, GamePhase::Camp, "", "", &deltas);
+
+    let mut s_weird = base.clone();
+    s_weird.weirdness_level = 1;
+    assert_ne!(
+        compute_mechanics_state_hash(&s_weird, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "weirdness_level mutation must change mechanics_state_hash"
+    );
+
+    let mut s_tokens = base.clone();
+    s_tokens.uncanny_tokens = 0;
+    assert_ne!(
+        compute_mechanics_state_hash(&s_tokens, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "uncanny_tokens mutation must change mechanics_state_hash"
+    );
+
+    let mut s_recent_ids = base.clone();
+    s_recent_ids.recent_event_ids = TransientEventIdCooldown(Some(vec!["f1_017".to_string()]));
+    assert_ne!(
+        compute_mechanics_state_hash(&s_recent_ids, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "recent_event_ids mutation must change mechanics_state_hash"
+    );
+
+    let mut s_recent_tags = base.clone();
+    s_recent_tags.recent_event_tags.push("folklore".to_string());
+    assert_ne!(
+        compute_mechanics_state_hash(&s_recent_tags, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "recent_event_tags mutation must change mechanics_state_hash"
+    );
+
+    let mut s_twists = base.clone();
+    s_twists.twists = vec![
+        TwistModifier::BanditYear,
+        TwistModifier::SickSeason,
+        TwistModifier::EarlyWinter,
+    ];
+    assert_ne!(
+        compute_mechanics_state_hash(&s_twists, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "twists mutation must change mechanics_state_hash"
+    );
+
+    let mut s_cards = base.clone();
+    s_cards.memory_cards.push(MemoryCard {
+        id: "eng_event_f1_017_d1".to_string(),
+        kind: "omen".to_string(),
+        title: "Lantern Signals".to_string(),
+        text: "Strange lanterns blink on the ridge.".to_string(),
+        tags: vec!["folklore".to_string()],
+        day_created: 1,
+        day_last_seen: 1,
+        entities: Vec::new(),
+        salience: 0.7,
+        cooldown_until: 0,
+        source: "engine".to_string(),
+    });
+    let card_hash = compute_mechanics_state_hash(&s_cards, GamePhase::Camp, "", "", &deltas);
+    assert_ne!(
+        card_hash, base_hash,
+        "memory_cards addition must change mechanics_state_hash"
+    );
+
+    // Text-only edits on a MemoryCard (title/text) must NOT change mechanics_state_hash
+    let mut s_cards_text = s_cards.clone();
+    s_cards_text.memory_cards[0].title = "Edited Card Title".to_string();
+    s_cards_text.memory_cards[0].text = "Edited card prose.".to_string();
+    assert_eq!(
+        compute_mechanics_state_hash(&s_cards_text, GamePhase::Camp, "", "", &deltas),
+        card_hash,
+        "MemoryCard title/text prose edits must not change mechanics_state_hash"
+    );
+
+    let mut s_crises = base.clone();
+    s_crises.resource_crises_seen.push("food".to_string());
+    assert_ne!(
+        compute_mechanics_state_hash(&s_crises, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "resource_crises_seen mutation must change mechanics_state_hash"
+    );
+
+    let mut s_doctrine = base.clone();
+    s_doctrine.doctrine = "careful_hands_override".to_string();
+    assert_ne!(
+        compute_mechanics_state_hash(&s_doctrine, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "doctrine mutation must change mechanics_state_hash"
+    );
+
+    let mut s_taboo = base.clone();
+    s_taboo.taboo = "never_night_override".to_string();
+    assert_ne!(
+        compute_mechanics_state_hash(&s_taboo, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "taboo mutation must change mechanics_state_hash"
+    );
+
+    let mut s_last_action = base.clone();
+    s_last_action.last_action = "REPAIR".to_string();
+    assert_ne!(
+        compute_mechanics_state_hash(&s_last_action, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "last_action mutation must change mechanics_state_hash"
+    );
+
+    let mut s_traits = base.clone();
+    s_traits.party.members[0].traits = vec![
+        Trait::Tough,
+        Trait::Healer,
+        Trait::Mechanic,
+        Trait::SharpEye,
+    ];
+    assert_ne!(
+        compute_mechanics_state_hash(&s_traits, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "member traits mutation must change mechanics_state_hash"
+    );
+
+    // Non-mechanical RunState fields (run_id salt, callout_level, content_hash) must NOT change mechanics_state_hash
+    let mut s_non_mech = base.clone();
+    s_non_mech.run_id = "00000000-ffffffff".to_string();
+    s_non_mech.callout_level = "minimal".to_string();
+    s_non_mech.content_hash = "0123456789abcdef".to_string();
+    assert_eq!(
+        compute_mechanics_state_hash(&s_non_mech, GamePhase::Camp, "", "", &deltas),
+        base_hash,
+        "run_id, callout_level, and content_hash must not change mechanics_state_hash"
+    );
+}
+
+#[test]
+fn test_fix1_negative_control_mechanics_edit_changes_mechanics_hash() {
+    let embedded = embedded_content_pack();
+    let base_trace = run_tier2_seed_trace(42, 2, embedded, 5);
+
+    // 1. Text-only edit on f1_017 (drawn on turn 1 of seed 42, resolved on turn 2)
+    let mut text_only_val: Value = serde_json::from_str(EVENT_SKELETONS_JSON).unwrap();
+    let f1_017_text = text_only_val
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|e| e.get("id").and_then(Value::as_str) == Some("f1_017"))
+        .unwrap();
+    f1_017_text["title"] = json!("Edited Lantern Signals");
+    f1_017_text["narration_seed"] = json!("Edited narration prose for negative control.");
+    f1_017_text["choices"][0]["label"] = json!("Edited choice A label");
+    f1_017_text["choices"][0]["outcome_sentence"] = json!("Edited outcome sentence for choice A.");
+    let text_only_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        &serde_json::to_string(&text_only_val).unwrap(),
+    )
+    .unwrap();
+    let text_only_trace = run_tier2_seed_trace(42, 2, &text_only_pack, 5);
+    for (bt, tt) in base_trace.turns.iter().zip(text_only_trace.turns.iter()) {
+        assert_eq!(
+            bt.mechanics_state_hash, tt.mechanics_state_hash,
+            "text-only edit must not change mechanics_state_hash on turn {}",
+            bt.turn
+        );
+    }
+    assert_ne!(
+        base_trace.turns[0].presentation_record, text_only_trace.turns[0].presentation_record,
+        "text-only edit must change presentation_record on turn 1"
+    );
+
+    // 2. Mechanics edit A: changing f1_017's tags from ["folklore", ...] to ["river"] changes
+    // recent_event_tags on turn 1 (when f1_017 is selected) and memory_cards on turn 2.
+    let mut tag_edit_val: Value = serde_json::from_str(EVENT_SKELETONS_JSON).unwrap();
+    let f1_017_tag = tag_edit_val
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|e| e.get("id").and_then(Value::as_str) == Some("f1_017"))
+        .unwrap();
+    f1_017_tag["tags"] = json!(["river"]);
+    let tag_edit_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        &serde_json::to_string(&tag_edit_val).unwrap(),
+    )
+    .unwrap();
+    let tag_edit_trace = run_tier2_seed_trace(42, 2, &tag_edit_pack, 5);
+    assert_ne!(
+        tag_edit_trace.turns[0].mechanics_state_hash, base_trace.turns[0].mechanics_state_hash,
+        "changing event tags in content file must change mechanics_state_hash on turn 1"
+    );
+
+    // 3. Mechanics edit B: changing one choice's effect value on f1_017 changes mechanics_state_hash on turn 2
+    let mut effect_edit_val: Value = serde_json::from_str(EVENT_SKELETONS_JSON).unwrap();
+    let f1_017_eff = effect_edit_val
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|e| e.get("id").and_then(Value::as_str) == Some("f1_017"))
+        .unwrap();
+    for ch in f1_017_eff["choices"].as_array_mut().unwrap() {
+        ch["engine_effect_profile"]["food"] = json!(5);
+    }
+    let effect_edit_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        &serde_json::to_string(&effect_edit_val).unwrap(),
+    )
+    .unwrap();
+    let effect_edit_trace = run_tier2_seed_trace(42, 2, &effect_edit_pack, 5);
+    assert_ne!(
+        effect_edit_trace.turns[1].mechanics_state_hash, base_trace.turns[1].mechanics_state_hash,
+        "changing a choice effect value in content file must change mechanics_state_hash on turn 2"
+    );
+}
+
+#[test]
+fn test_fix1_validator_unknown_reference_fixtures_by_kind() {
+    use etv_core::validator::ValidationDiagnostic;
+
+    let canonical_trait_hint =
+        "Use a canonical trait ID: tough, healer, tracker, mechanic, lucky, anxious, steady, sharp_eye.";
+
+    // 1. Unknown trait ID fixture (precondition, choice required_trait, outcome grant_trait)
+    let unknown_trait_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        r#"[
+            {
+                "id": "ev_unknown_trait",
+                "title": "Unknown Trait Fixture",
+                "preconditions": ["trait:nonexistent_wizard"],
+                "choices": [
+                    {
+                        "choice_id": "A",
+                        "label": "Wait",
+                        "intent_action": "WAIT",
+                        "required_trait": "ghost_whisperer",
+                        "cost_hint": "None",
+                        "risk_hint": "Safe",
+                        "engine_effect_profile": {
+                            "time_days": 1,
+                            "grant_trait": "not_a_trait"
+                        }
+                    }
+                ]
+            }
+        ]"#,
+    )
+    .unwrap();
+    let rep_trait = validate_content(&unknown_trait_pack);
+    assert_eq!(
+        rep_trait.errors,
+        vec![
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_trait': unknown trait 'nonexistent_wizard' referenced in precondition 'trait:nonexistent_wizard'".to_string(),
+                hint: canonical_trait_hint.to_string(),
+            },
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_trait' choice 'A' references unknown trait 'ghost_whisperer'".to_string(),
+                hint: canonical_trait_hint.to_string(),
+            },
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_trait' choice 'A' outcome references unknown trait 'not_a_trait'".to_string(),
+                hint: canonical_trait_hint.to_string(),
+            },
+        ]
+    );
+
+    // 2. Unknown place ID fixture (precondition, event place_id, outcome place_id)
+    let unknown_place_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        r#"[
+            {
+                "id": "ev_unknown_place",
+                "title": "Unknown Place Fixture",
+                "place_id": "UnknownTown",
+                "preconditions": ["place:Atlantis"],
+                "choices": [
+                    {
+                        "choice_id": "A",
+                        "label": "Wait",
+                        "intent_action": "WAIT",
+                        "engine_effect_profile": {
+                            "time_days": 1,
+                            "place_id": "NotAPlace"
+                        }
+                    }
+                ]
+            }
+        ]"#,
+    )
+    .unwrap();
+    let rep_place = validate_content(&unknown_place_pack);
+    assert_eq!(
+        rep_place.errors,
+        vec![
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_place': unknown place 'Atlantis' referenced in precondition 'place:Atlantis'".to_string(),
+                hint: "Use a canonical place name from TOWN_NAMES or LANDMARK_NAMES.".to_string(),
+            },
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_place' references unknown place_id 'UnknownTown'".to_string(),
+                hint: "Use a canonical place name from TOWN_NAMES or LANDMARK_NAMES.".to_string(),
+            },
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_place' choice 'A' outcome references unknown place 'NotAPlace'".to_string(),
+                hint: "Use a canonical place name from TOWN_NAMES or LANDMARK_NAMES.".to_string(),
+            },
+        ]
+    );
+
+    // 3. Unknown event ID fixture (precondition, outcome follow_up_event_id)
+    let unknown_event_pack = ContentPack::from_raw_strings(
+        CONTENT_MANIFEST_JSON,
+        r#"[
+            {
+                "id": "ev_unknown_event",
+                "title": "Unknown Event Fixture",
+                "preconditions": ["event:missing_ev_999"],
+                "choices": [
+                    {
+                        "choice_id": "A",
+                        "label": "Wait",
+                        "intent_action": "WAIT",
+                        "engine_effect_profile": {
+                            "time_days": 1,
+                            "follow_up_event_id": "no_such_followup"
+                        }
+                    }
+                ]
+            }
+        ]"#,
+    )
+    .unwrap();
+    let rep_event = validate_content(&unknown_event_pack);
+    assert_eq!(
+        rep_event.errors,
+        vec![
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_event': unknown event_id 'missing_ev_999' referenced in precondition 'event:missing_ev_999'".to_string(),
+                hint: "Reference an existing event_id present in the event library.".to_string(),
+            },
+            ValidationDiagnostic {
+                code: ERR_UNKNOWN_REFERENCE_ID.to_string(),
+                message: "event 'ev_unknown_event' choice 'A' outcome references unknown event_id 'no_such_followup'".to_string(),
+                hint: "Reference an existing event_id present in the event library.".to_string(),
+            },
+        ]
+    );
 }

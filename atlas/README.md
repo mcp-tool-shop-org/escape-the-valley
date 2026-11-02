@@ -1,24 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-02 from commit 26a0869 by Atlas 1.24.0.
+Mapped at 2026-11-02 from commit 95e2d10 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (66 files), Rust (16), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (e03ac56)
+## What changed since 2026-11-02 (26a0869)
 
-- CI now also checks rust/etv-core/src/bin/etv.rs.
-- Release now also checks rust/etv-core/src/bin/etv.rs.
-- etv (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv.rs.
-- rust/etv-core/content/content_manifest.json is now read by rust/etv-core/src/content.rs.
-- rust/etv-core/content/event_skeletons.json is now also read by rust/etv-core/content/content_manifest.json and rust/etv-core/src/content.rs.
-- rust/etv-core/src/bin/etv.rs is now read by rust/etv-core/Cargo.toml.
-- rust/etv-core/content/content_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/content/event_skeletons.json is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/bin/etv.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 4 more new files that belong to no part.
-- 7 files added.
+Nothing structural changed since 2026-11-02; 4 files changed content.
 
 ## What comes in
 

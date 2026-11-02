@@ -9904,7 +9904,7 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "26a0869632cbfadda81f1c334939e2e136cdad0a",
+    "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
     "tracked": 746
   },
   "landings": [
@@ -10621,14 +10621,14 @@
             {
               "inner": [
                 {
-                  "line": 232,
+                  "line": 385,
                   "name": "create_new_run_with_content",
                   "target": {
                     "file": "rust/etv-core/src/worldgen.rs"
                   }
                 },
                 {
-                  "line": 233,
+                  "line": 386,
                   "name": "with_content",
                   "receiver": "StepEngine",
                   "target": {
@@ -10636,7 +10636,7 @@
                   }
                 },
                 {
-                  "line": 177,
+                  "line": 330,
                   "name": "new",
                   "receiver": "PlayerIntent",
                   "target": {
@@ -10645,7 +10645,7 @@
                   "via": "pick_tier2_intent"
                 },
                 {
-                  "line": 115,
+                  "line": 183,
                   "name": "hex_encode_32",
                   "target": {
                     "file": "rust/etv-core/src/content.rs"
@@ -10686,25 +10686,25 @@
         {
           "in": "write_canonical_json_no_floats",
           "kind": "err",
-          "line": 177
+          "line": 182
         },
         {
           "in": "verify_content_hash",
           "kind": "err",
-          "line": 312
+          "line": 320
         },
         {
           "in": "parse_cli_args",
           "kind": "err",
-          "line": 378
+          "line": 386
         },
         {
           "in": "parse_cli_args",
           "kind": "err",
-          "line": 424
+          "line": 432
         }
       ],
-      "hash": "a743a0f9ba6f820b33d3c6102ce87888f15a370827b84b256f46c8960e8fb9dc",
+      "hash": "51051d1da8adab47138ff1633d16e3c8524a4ae5966669aef5f08560fac9082a",
       "importsFiles": [
         "rust/etv-core/src/events_builtin.rs",
         "rust/etv-core/src/model.rs",
@@ -11069,10 +11069,11 @@
         "run_tier2_seed_trace",
         "run_tier2_snapshot_matrix"
       ],
-      "hash": "aea3a799e207542ce4d887869f4dcbfdf0c756c290b8aa25a60075af8f8825c5",
+      "hash": "6bce89c648e6c3652ddcb6cce89abc871696d1c2d363add556bc5548cf4a5987",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/events.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
@@ -11081,7 +11082,7 @@
         {
           "calls": [
             {
-              "line": 115,
+              "line": 183,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11096,7 +11097,7 @@
         {
           "calls": [
             {
-              "line": 115,
+              "line": 183,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11112,7 +11113,7 @@
         {
           "calls": [
             {
-              "line": 115,
+              "line": 183,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11128,7 +11129,7 @@
         {
           "calls": [
             {
-              "line": 177,
+              "line": 330,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -11144,14 +11145,14 @@
         {
           "calls": [
             {
-              "line": 232,
+              "line": 385,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
               }
             },
             {
-              "line": 233,
+              "line": 386,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -11159,7 +11160,7 @@
               }
             },
             {
-              "line": 177,
+              "line": 330,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -11168,7 +11169,7 @@
               "via": "pick_tier2_intent"
             },
             {
-              "line": 115,
+              "line": 183,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11184,7 +11185,7 @@
         {
           "calls": [
             {
-              "line": 232,
+              "line": 385,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -11192,7 +11193,7 @@
               "via": "run_tier2_seed_trace"
             },
             {
-              "line": 233,
+              "line": 386,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -11201,7 +11202,7 @@
               "via": "run_tier2_seed_trace"
             },
             {
-              "line": 177,
+              "line": 330,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -11210,7 +11211,7 @@
               "via": "pick_tier2_intent"
             },
             {
-              "line": 115,
+              "line": 183,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11269,7 +11270,7 @@
           "line": 535
         }
       ],
-      "hash": "834e1148a06e55a6955d4cde17a3d04a04abcddf290c69158af9dbdcc4defb73",
+      "hash": "8853d5dd3224a17fae62d44f399c73c0d80f487ff46272a271327ef12421a567",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/events.rs",
@@ -11430,9 +11431,18 @@
       "testsInside": true
     },
     {
-      "hash": "6ad633fa16fe4fad62a0aff9ec16cbfc87a197eb2319a95f56a2750f8989fa6e",
+      "hash": "e16082362750fd9228af5a24b5a958db0b64c33775c4308dac61572d205e0e4f",
+      "importOrder": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/validator.rs",
+        "rust/etv-core/src/worldgen.rs",
+        "rust/etv-core/src/model.rs"
+      ],
       "importsFiles": [
         "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/model.rs",
         "rust/etv-core/src/save.rs",
         "rust/etv-core/src/snapshot.rs",
         "rust/etv-core/src/validator.rs",

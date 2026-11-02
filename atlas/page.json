@@ -68,99 +68,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 7,
-      "changed": 0,
+      "added": 0,
+      "changed": 4,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/bin/etv.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also checks rust/etv-core/src/bin/etv.rs.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "etv (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv.rs.",
-        "subjects": [
-          "rust/etv-core/Cargo.toml",
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/content/content_manifest.json is now read by rust/etv-core/src/content.rs.",
-        "subjects": [
-          "rust/etv-core/content/content_manifest.json",
-          "rust/etv-core/src/content.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/content/event_skeletons.json is now also read by rust/etv-core/content/content_manifest.json and rust/etv-core/src/content.rs.",
-        "subjects": [
-          "rust/etv-core/content/event_skeletons.json",
-          "rust/etv-core/content/content_manifest.json",
-          "rust/etv-core/src/content.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/src/bin/etv.rs is now read by rust/etv-core/Cargo.toml.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs",
-          "rust/etv-core/Cargo.toml"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/content/content_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/content/content_manifest.json"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/content/event_skeletons.json is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/content/event_skeletons.json"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/bin/etv.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 4 more new files that belong to no part.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "7 files added.",
+        "sentence": "Nothing structural changed since 2026-11-02; 4 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "e03ac56132e357df529ecc00a71316fe96d84dca",
-      "generatedAt": "2026-11-02T03:14:20.923Z"
+      "commit": "26a0869632cbfadda81f1c334939e2e136cdad0a",
+      "generatedAt": "2026-11-02T03:19:07.066Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -245,7 +170,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "26a0869632cbfadda81f1c334939e2e136cdad0a",
+  "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (66 files), Rust (16), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
@@ -609,7 +534,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T03:19:07.066Z",
+  "generatedAt": "2026-11-02T03:44:00.015Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
