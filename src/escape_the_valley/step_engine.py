@@ -1075,14 +1075,15 @@ class StepEngine:
         Entering ROUTE with zero options would be an unrecoverable
         softlock: _handle_route_choice can never satisfy
         idx < len(_pending_routes) against an empty list, and
-        _check_initial_phase would rebuild the same broken ROUTE state on
-        every reload. This method avoids that the same way it always
-        has -- return False and don't enter ROUTE -- but F-dd6869ca
-        forbids the map_nodes[-1] beeline that used to live in the False
-        branch (it can silently skip unvisited content and manufacture a
-        VICTORY the party never earned). So the False branch now invents
-        no destination at all: it only logs and queues a player-facing
-        message. The caller (_do_travel / _check_initial_phase) must NOT
+        _do_travel would rebuild the same broken ROUTE state on every
+        travel attempt (_check_initial_phase only sets GAME_OVER; route
+        choices are built by _do_travel). This method avoids that the
+        same way it always has -- return False and don't enter ROUTE --
+        but F-dd6869ca forbids the map_nodes[-1] beeline that used to
+        live in the False branch (it can silently skip unvisited content
+        and manufacture a VICTORY the party never earned). So the False
+        branch now invents no destination at all: it only logs and queues
+        a player-facing message. The caller (_do_travel) must NOT
         fall through to a normal travel step when this returns False --
         there is nothing legitimate to advance toward, so falling through
         would fake a travel leg exactly like the self-edge case would.

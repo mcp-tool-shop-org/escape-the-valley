@@ -141,7 +141,7 @@ def _capture_death_effects(eng: StepEngine) -> list[dict]:
 # ── 1. Bug 1: Reload at a fork (#41) ──────────────────────────────────
 
 
-def test_fork_arrival_reload_fails_at_ab628aa_seed_2(tmp_path: Path) -> None:
+def test_fork_arrival_reload_matches_uninterrupted_seed_2(tmp_path: Path) -> None:
     """Issue #41 regression test: arriving at a fork on seed 2 leaves
     phase == CAMP with distance_remaining == 0. Reloading a save taken at
     that fork arrival must stay in CAMP (not flip to ROUTE in
