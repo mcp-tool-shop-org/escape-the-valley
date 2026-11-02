@@ -2176,8 +2176,9 @@ def resolve_event(
     return outcome
 
 
-def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
-    """Apply an event outcome to game state."""
+def apply_outcome(state: RunState, outcome: EventOutcome) -> list[dict]:
+    """Apply an event outcome to game state and return any `died` effects."""
+    effects: list[dict] = []
     state.supplies.apply_delta(outcome.supplies_delta)
 
     if outcome.health_delta != 0:
@@ -2190,10 +2191,16 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
                 # through to the generic "The trail" in determine_cause_of_death.
                 # from_event=True so a bandit/animal wound with food + water in
                 # stock reads as "Injury", not the generic "Exposure" fallback.
-                if member.health <= 0 and not member.death_cause:
-                    member.death_cause = _proximate_death_cause(
-                        member, state, from_event=True
-                    )
+                if member.health <= 0:
+                    if not member.death_cause:
+                        member.death_cause = _proximate_death_cause(
+                            member, state, from_event=True
+                        )
+                    effects.append({
+                        "member": member.name,
+                        "type": "died",
+                        "cause": member.death_cause,
+                    })
 
     if outcome.wagon_delta != 0:
         state.wagon.condition = max(0, min(100, state.wagon.condition + outcome.wagon_delta))
@@ -2210,6 +2217,8 @@ def apply_outcome(state: RunState, outcome: EventOutcome) -> None:
 
     if outcome.distance_delta != 0:
         state.distance_remaining += outcome.distance_delta
+
+    return effects
 
 
 def _find_node(state: RunState):
