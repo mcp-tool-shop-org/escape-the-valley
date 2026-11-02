@@ -51,8 +51,9 @@ pub struct TurnMattersFlags {
     /// The party arrived at a map node / landmark on this turn (`RunState.location_id` advanced to
     /// the destination node in `StepEngine::arrive_at_next_node`).
     pub landmark_arrival: bool,
-    /// The party spent a night at camp (`GamePhase::Camp` non-travel camp action at `TimeOfDay::Night`
-    /// or `IntentAction::Rest` at camp).
+    /// The party ended the turn camped at night (`pre.phase == GamePhase::Camp`,
+    /// `!state.game_over`, `intent.action != IntentAction::Travel`, and post-step
+    /// `state.time_of_day == TimeOfDay::Night`).
     pub night_at_camp: bool,
 }
 
@@ -223,12 +224,15 @@ impl PreTurnObservation {
 /// 4. `landmark_arrival`: reads `state.location_id` (`rust/etv-core/src/model.rs:1083`), updated
 ///    exclusively by `StepEngine::arrive_at_next_node` (`rust/etv-core/src/engine.rs:310-311,961`),
 ///    checking `state.location_id != pre.location_id`.
-/// 5. `night_at_camp`: reads `pre.phase` (`rust/etv-core/src/engine.rs:146,234`),
-///    `state.last_action` (`rust/etv-core/src/model.rs:1141`, set to `"REST"` in
-///    `StepEngine::do_rest` at `rust/etv-core/src/engine.rs:421`), and `state.time_of_day`
-///    (`rust/etv-core/src/model.rs:1081`, advanced in `StepEngine::advance_time` at
-///    `rust/etv-core/src/engine.rs:1035-1044`), checking whether the turn was a camp rest or a
-///    non-travel camp turn at `TimeOfDay::Night`.
+/// 5. `night_at_camp`: flags only when the turn ends at night while the party is camped — reads
+///    `pre.phase` (`StepEngine::phase` at `rust/etv-core/src/engine.rs:146,234` / `GamePhase::Camp`
+///    at `rust/etv-core/src/model.rs:501`), `state.game_over` (`RunState::game_over` at
+///    `rust/etv-core/src/model.rs:1109`), `intent.action` (`PlayerIntent::action` at
+///    `rust/etv-core/src/model.rs:956`, requiring `intent.action != IntentAction::Travel` so the
+///    party remains camped in `GamePhase::Camp`), and post-step `state.time_of_day`
+///    (`RunState::time_of_day` at `rust/etv-core/src/model.rs:1081`, compared against
+///    `TimeOfDay::Night` at `rust/etv-core/src/model.rs:130`, advanced in
+///    `StepEngine::advance_time` at `rust/etv-core/src/engine.rs:1035-1044`).
 pub fn evaluate_turn_matters(
     pre: &PreTurnObservation,
     intent: &PlayerIntent,
@@ -260,11 +264,9 @@ pub fn evaluate_turn_matters(
     let landmark_arrival = state.location_id != pre.location_id;
 
     let night_at_camp = pre.phase == GamePhase::Camp
+        && !state.game_over
         && intent.action != IntentAction::Travel
-        && (intent.action == IntentAction::Rest
-            || state.last_action == "REST"
-            || pre.time_of_day == TimeOfDay::Night
-            || state.time_of_day == TimeOfDay::Night);
+        && state.time_of_day == TimeOfDay::Night;
 
     TurnMattersFlags {
         death,

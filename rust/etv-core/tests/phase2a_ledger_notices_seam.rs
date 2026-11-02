@@ -1,11 +1,12 @@
 //! Phase 2, Part A integration tests:
 //! 1. Trail Ledger (`trail_ledger(&RunState) -> Vec<String>`) line-exact parity against
 //!    `rust/oracle/vectors/ledger_reference.json.gz` and end-of-run `presentation_record` wiring.
-//! 2. `etv --notices` LF-only output, crate + bundled data file coverage, `Cargo.lock` currency,
-//!    and SPDX license allow-list enforcement (no missing license text, no unallowed license, no
-//!    copyleft license).
+//! 2. `etv --notices` LF-only output, `Cargo.lock`-derived compiled crate set equality (plus
+//!    negative fixture tests), reproducible generator byte-for-byte currency, and SPDX license
+//!    allow-list enforcement (no missing license text, no unallowed license, no copyleft license).
 //! 3. Narrator seam (`Narrator`, `NullNarrator`, `NarrationContext`, 5 "turn matters" flag rules +
-//!    negative test, and 1,000-seed Tier 2 sweep proving `mechanics_state_hash` invariance).
+//!    negative test, tightened `night_at_camp` real engine step test, and 1,000-seed Tier 2 sweep
+//!    proving `mechanics_state_hash` invariance).
 
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -26,9 +27,11 @@ use etv_core::narrator::{
     PreTurnObservation,
 };
 use etv_core::notices::{
-    embedded_license_allowlist, embedded_notices_manifest, normalize_lf_and_sha256,
-    parse_cargo_lock_packages, render_third_party_notices, third_party_notices_text,
-    validate_notices_against_allowlist, CrateLicenseFile, CrateNotice,
+    compute_compiled_crates_from_cargo_lock, embedded_license_allowlist, embedded_notices_manifest,
+    generate_notices_from_workspace, normalize_lf_and_sha256, render_third_party_notices,
+    third_party_notices_text, validate_notices_against_allowlist,
+    verify_manifest_coverage_against_cargo_lock, CrateLicenseFile, CrateNotice,
+    EMBEDDED_NOTICES_MANIFEST_JSON, EMBEDDED_THIRD_PARTY_NOTICES_TXT,
 };
 use etv_core::physics::HealthEffect;
 use etv_core::snapshot::{
@@ -193,32 +196,18 @@ fn phase2a_notices_cli_flag_outputs_lf_only_and_covers_all_compiled_crates_and_b
     let text = std::str::from_utf8(raw_bytes).expect("valid UTF-8 notices");
     assert_eq!(text, third_party_notices_text());
 
-    let expected_compiled_crates = [
-        ("block-buffer", "0.10.4"),
-        ("cfg-if", "1.0.5"),
-        ("cpufeatures", "0.2.17"),
-        ("crypto-common", "0.1.7"),
-        ("digest", "0.10.7"),
-        ("generic-array", "0.14.7"),
-        ("getrandom", "0.3.4"),
-        ("itoa", "1.0.18"),
-        ("libc", "0.2.191"),
-        ("memchr", "2.8.3"),
-        ("proc-macro2", "1.0.107"),
-        ("quote", "1.0.47"),
-        ("serde", "1.0.229"),
-        ("serde_core", "1.0.229"),
-        ("serde_derive", "1.0.229"),
-        ("serde_json", "1.0.154"),
-        ("sha2", "0.10.9"),
-        ("syn", "3.0.9"),
-        ("typenum", "1.20.1"),
-        ("unicode-ident", "1.0.27"),
-        ("version_check", "0.9.5"),
-        ("zmij", "1.0.23"),
-    ];
+    let root = repo_root();
+    let cargo_lock_raw =
+        std::fs::read_to_string(root.join("rust/Cargo.lock")).expect("read rust/Cargo.lock");
+    let cargo_toml_raw = std::fs::read_to_string(root.join("rust/etv-core/Cargo.toml"))
+        .expect("read rust/etv-core/Cargo.toml");
+    let compiled_crates = compute_compiled_crates_from_cargo_lock(&cargo_lock_raw, &cargo_toml_raw);
+    assert!(
+        !compiled_crates.is_empty(),
+        "compiled crate set from Cargo.lock must not be empty"
+    );
 
-    for (name, ver) in expected_compiled_crates {
+    for (name, ver) in &compiled_crates {
         let header = format!("Name: {name}\nVersion: {ver}\n");
         assert!(
             text.contains(&header),
@@ -238,75 +227,171 @@ fn phase2a_notices_cli_flag_outputs_lf_only_and_covers_all_compiled_crates_and_b
 }
 
 #[test]
-fn phase2a_notices_checked_in_file_is_current_with_cargo_lock_and_bundled_files() {
-    let manifest = embedded_notices_manifest();
-    let rendered = render_third_party_notices(&manifest);
-    let embedded_txt = third_party_notices_text();
-    assert_eq!(
-        rendered, embedded_txt,
-        "checked-in THIRD_PARTY_NOTICES.txt is out of sync with notices_manifest.json"
-    );
-
+fn phase2a_notices_cargo_lock_compiled_set_equals_manifest_and_excludes_workspace_and_dev() {
     let root = repo_root();
-    let (_, repo_lic_sha) =
-        normalize_lf_and_sha256(&std::fs::read(root.join("LICENSE")).expect("read repo LICENSE"));
-    assert_eq!(
-        manifest.package.license_sha256, repo_lic_sha,
-        "manifest package license SHA-256 does not match repository LICENSE"
-    );
-
-    for bf in &manifest.bundled_data_files {
-        let disk_bytes = std::fs::read(root.join(&bf.path))
-            .unwrap_or_else(|e| panic!("failed to read bundled file {}: {e}", bf.path));
-        let (_, disk_sha) = normalize_lf_and_sha256(&disk_bytes);
-        assert_eq!(
-            bf.sha256, disk_sha,
-            "bundled data file {} SHA-256 in notices_manifest.json is stale",
-            bf.path
-        );
-        assert_eq!(
-            bf.license_sha256, repo_lic_sha,
-            "bundled data file {} license SHA-256 is stale",
-            bf.path
-        );
-    }
-
     let cargo_lock_raw =
         std::fs::read_to_string(root.join("rust/Cargo.lock")).expect("read rust/Cargo.lock");
-    let lock_pkgs = parse_cargo_lock_packages(&cargo_lock_raw);
-
     let cargo_toml_raw = std::fs::read_to_string(root.join("rust/etv-core/Cargo.toml"))
         .expect("read rust/etv-core/Cargo.toml");
-    // Verify direct runtime dependencies from rust/etv-core/Cargo.toml are present in manifest.
-    for direct_dep in ["serde", "serde_json", "sha2"] {
-        assert!(
-            cargo_toml_raw.contains(direct_dep),
-            "expected direct dependency {direct_dep} in rust/etv-core/Cargo.toml"
-        );
-        assert!(
-            manifest.crates.iter().any(|c| c.name == direct_dep),
-            "direct dependency {direct_dep} missing from notices_manifest.json"
-        );
-    }
+    let manifest = embedded_notices_manifest();
 
-    for crate_notice in &manifest.crates {
-        let key = (crate_notice.name.clone(), crate_notice.version.clone());
-        let lock_chk = lock_pkgs
-            .get(&key)
-            .unwrap_or_else(|| {
+    let compiled_set =
+        verify_manifest_coverage_against_cargo_lock(&manifest, &cargo_lock_raw, &cargo_toml_raw)
+            .unwrap_or_else(|errs| {
                 panic!(
-                    "crate {} {} in notices_manifest.json not found in rust/Cargo.lock",
-                    crate_notice.name, crate_notice.version
+                    "Cargo.lock compiled crate set did not match notices_manifest.json:\n{}",
+                    errs.join("\n")
                 )
-            })
-            .as_deref()
-            .expect("third-party crate in Cargo.lock must have checksum");
-        assert_eq!(
-            crate_notice.cargo_lock_checksum, lock_chk,
-            "Cargo.lock checksum mismatch for {} {}",
-            crate_notice.name, crate_notice.version
+            });
+
+    let manifest_set: Vec<(String, String)> = manifest
+        .crates
+        .iter()
+        .map(|c| (c.name.clone(), c.version.clone()))
+        .collect();
+    assert_eq!(
+        compiled_set, manifest_set,
+        "Cargo.lock compiled (name, version) set must equal notices_manifest.json"
+    );
+
+    // Workspace crates (`source == None` in Cargo.lock) and dev-only packages (`[dev-dependencies]`
+    // in etv-core/Cargo.toml and their transitive closure) must be excluded.
+    for excluded in [
+        "etv-core",
+        "flate2",
+        "tempfile",
+        "miniz_oxide",
+        "rustix",
+        "fastrand",
+    ] {
+        assert!(
+            !compiled_set.iter().any(|(name, _)| name == excluded),
+            "workspace or dev-only package '{excluded}' must be excluded from compiled crate set"
         );
     }
+}
+
+#[test]
+fn phase2a_notices_cargo_lock_negative_fixture_with_extra_crate_or_mismatch_fails() {
+    let root = repo_root();
+    let cargo_lock_raw =
+        std::fs::read_to_string(root.join("rust/Cargo.lock")).expect("read rust/Cargo.lock");
+    let cargo_toml_raw = std::fs::read_to_string(root.join("rust/etv-core/Cargo.toml"))
+        .expect("read rust/etv-core/Cargo.toml");
+    let manifest = embedded_notices_manifest();
+
+    // 1. Fixture lock with one extra compiled crate (`extra-audit-crate 0.4.2`) must fail and name it.
+    let fixture_lock_with_extra = cargo_lock_raw.replace(
+        "name = \"etv-core\"\nversion = \"2.0.0-alpha.1\"\ndependencies = [\n",
+        "name = \"etv-core\"\nversion = \"2.0.0-alpha.1\"\ndependencies = [\n \"extra-audit-crate\",\n",
+    ) + "\n[[package]]\nname = \"extra-audit-crate\"\nversion = \"0.4.2\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"1111111111111111111111111111111111111111111111111111111111111111\"\n";
+    let fixture_toml_with_extra = cargo_toml_raw.replace(
+        "[dependencies]\n",
+        "[dependencies]\nextra-audit-crate = \"0.4\"\n",
+    );
+
+    let errs_extra = verify_manifest_coverage_against_cargo_lock(
+        &manifest,
+        &fixture_lock_with_extra,
+        &fixture_toml_with_extra,
+    )
+    .expect_err("fixture Cargo.lock with one extra crate must fail");
+    assert!(
+        errs_extra
+            .iter()
+            .any(|e| e.contains("extra-audit-crate@0.4.2")),
+        "failure must name the missing crate 'extra-audit-crate@0.4.2', got: {errs_extra:?}"
+    );
+
+    // 2. Fixture lock with a version mismatch on `serde` (`1.0.999` vs `1.0.229`) must fail and name `serde`.
+    let fixture_lock_version_mismatch = cargo_lock_raw.replace(
+        "name = \"serde\"\nversion = \"1.0.229\"",
+        "name = \"serde\"\nversion = \"1.0.999\"",
+    );
+    let errs_ver = verify_manifest_coverage_against_cargo_lock(
+        &manifest,
+        &fixture_lock_version_mismatch,
+        &cargo_toml_raw,
+    )
+    .expect_err("fixture Cargo.lock with version mismatch must fail");
+    assert!(
+        errs_ver
+            .iter()
+            .any(|e| e.contains("version mismatch for crate 'serde'") && e.contains("1.0.999")),
+        "failure must name 'serde' version mismatch, got: {errs_ver:?}"
+    );
+
+    // 3. Fixture manifest with an extra crate not in Cargo.lock must fail and name it.
+    let mut extra_manifest = manifest.clone();
+    let (norm_txt, norm_sha) = normalize_lf_and_sha256(b"MIT License\n");
+    extra_manifest.crates.push(CrateNotice {
+        name: "zzz-rogue-crate".to_string(),
+        version: "0.9.0".to_string(),
+        license: "MIT".to_string(),
+        repository: "https://example.invalid/zzz".to_string(),
+        cargo_lock_checksum: "22".repeat(32),
+        targets: vec!["x86_64-unknown-linux-gnu".to_string()],
+        license_files: vec![CrateLicenseFile {
+            filename: "LICENSE".to_string(),
+            sha256: norm_sha,
+            text: norm_txt,
+        }],
+    });
+    let errs_manifest_extra = verify_manifest_coverage_against_cargo_lock(
+        &extra_manifest,
+        &cargo_lock_raw,
+        &cargo_toml_raw,
+    )
+    .expect_err("manifest with extra crate not in Cargo.lock must fail");
+    assert!(
+        errs_manifest_extra
+            .iter()
+            .any(|e| e.contains("zzz-rogue-crate@0.9.0")),
+        "failure must name the extra crate 'zzz-rogue-crate@0.9.0', got: {errs_manifest_extra:?}"
+    );
+}
+
+#[test]
+fn phase2a_notices_checked_in_file_is_current_with_cargo_lock_and_bundled_files() {
+    let root = repo_root();
+    let generator_script = root.join("rust/tools/gen_notices.py");
+    assert!(
+        generator_script.is_file(),
+        "checked-in notices generator script must exist at {}",
+        generator_script.display()
+    );
+
+    let (gen_manifest, gen_manifest_json, gen_notices_txt) = generate_notices_from_workspace(&root)
+        .expect("generate_notices_from_workspace must succeed");
+
+    let embedded_manifest = embedded_notices_manifest();
+    assert_eq!(
+        gen_manifest, embedded_manifest,
+        "generated NoticesManifest does not match checked-in notices_manifest.json"
+    );
+
+    let clean_embedded_manifest_json = EMBEDDED_NOTICES_MANIFEST_JSON
+        .replace("\r\n", "\n")
+        .replace('\r', "\n");
+    assert_eq!(
+        gen_manifest_json.as_bytes(),
+        clean_embedded_manifest_json.as_bytes(),
+        "checked-in notices_manifest.json does not match generator output byte-for-byte"
+    );
+
+    let clean_embedded_notices_txt = EMBEDDED_THIRD_PARTY_NOTICES_TXT
+        .replace("\r\n", "\n")
+        .replace('\r', "\n");
+    assert_eq!(
+        gen_notices_txt.as_bytes(),
+        clean_embedded_notices_txt.as_bytes(),
+        "checked-in THIRD_PARTY_NOTICES.txt does not match generator output byte-for-byte"
+    );
+    assert_eq!(
+        render_third_party_notices(&embedded_manifest),
+        third_party_notices_text(),
+        "render_third_party_notices does not match third_party_notices_text()"
+    );
 }
 
 #[test]
@@ -531,27 +616,64 @@ fn phase2a_narrator_flag_rule_landmark_arrival() {
 
 #[test]
 fn phase2a_narrator_flag_rule_night_at_camp() {
-    let mut state = create_new_run(42);
-    state.time_of_day = TimeOfDay::Evening;
-    state.supplies.set_food(80);
-    state.supplies.set_water(80);
-    let mut engine = StepEngine::new(state);
+    // Uses real engine steps starting from an unmutated `create_new_run(42)` state (which begins in
+    // `GamePhase::Camp` at `TimeOfDay::Morning`).
+    let mut engine = StepEngine::new(create_new_run(42));
+    assert_eq!(engine.phase, GamePhase::Camp);
+    assert_eq!(engine.state.time_of_day, TimeOfDay::Morning);
 
-    let pre = PreTurnObservation::capture(engine.phase, &engine.state);
-    let intent = PlayerIntent::new(IntentAction::Rest);
-    let msgs = engine.step(&intent);
+    let rest_intent = PlayerIntent::new(IntentAction::Rest);
 
-    let flags = evaluate_turn_matters(&pre, &intent, &msgs, &engine.state);
+    // Step 1: Rest from Morning -> Afternoon at camp. Turn ends at Afternoon, NOT Night.
+    let pre1 = PreTurnObservation::capture(engine.phase, &engine.state);
+    let msgs1 = engine.step(&rest_intent);
+    let flags1 = evaluate_turn_matters(&pre1, &rest_intent, &msgs1, &engine.state);
+    assert_eq!(engine.phase, GamePhase::Camp);
+    assert_eq!(engine.state.time_of_day, TimeOfDay::Afternoon);
     assert!(
-        flags.night_at_camp,
-        "night_at_camp rule must fire when resting at camp into the night"
+        !flags1.night_at_camp,
+        "resting from Morning to Afternoon must NOT flag night_at_camp"
     );
+    assert!(!flags1.any());
+
+    // Step 2: Rest from Afternoon -> Evening at camp. Turn ends at Evening, NOT Night.
+    let pre2 = PreTurnObservation::capture(engine.phase, &engine.state);
+    let msgs2 = engine.step(&rest_intent);
+    let flags2 = evaluate_turn_matters(&pre2, &rest_intent, &msgs2, &engine.state);
+    assert_eq!(engine.phase, GamePhase::Camp);
+    assert_eq!(engine.state.time_of_day, TimeOfDay::Evening);
+    assert!(
+        !flags2.night_at_camp,
+        "resting from Afternoon to Evening must NOT flag night_at_camp"
+    );
+    assert!(!flags2.any());
+
+    // Step 3: Rest from Evening -> Night at camp. Turn ends at Night while camped -> MUST flag!
+    let pre3 = PreTurnObservation::capture(engine.phase, &engine.state);
+    let msgs3 = engine.step(&rest_intent);
+    let flags3 = evaluate_turn_matters(&pre3, &rest_intent, &msgs3, &engine.state);
+    assert_eq!(engine.phase, GamePhase::Camp);
     assert_eq!(engine.state.time_of_day, TimeOfDay::Night);
-    assert!(!flags.death);
-    assert!(!flags.injury);
-    assert!(!flags.supply_zero);
-    assert!(!flags.landmark_arrival);
-    assert!(flags.any());
+    assert!(
+        flags3.night_at_camp,
+        "turn ending at TimeOfDay::Night while in GamePhase::Camp must flag night_at_camp"
+    );
+    assert!(!flags3.death);
+    assert!(!flags3.injury);
+    assert!(!flags3.supply_zero);
+    assert!(!flags3.landmark_arrival);
+    assert!(flags3.any());
+
+    // Step 4: Rest from Night -> Morning (Day 2) at camp. Turn ends at Morning -> must NOT flag!
+    let pre4 = PreTurnObservation::capture(engine.phase, &engine.state);
+    let msgs4 = engine.step(&rest_intent);
+    let flags4 = evaluate_turn_matters(&pre4, &rest_intent, &msgs4, &engine.state);
+    assert_eq!(engine.phase, GamePhase::Camp);
+    assert_eq!(engine.state.time_of_day, TimeOfDay::Morning);
+    assert!(
+        !flags4.night_at_camp,
+        "turn starting at Night but ending at Morning must NOT flag night_at_camp"
+    );
 }
 
 #[test]

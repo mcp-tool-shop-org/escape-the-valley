@@ -1,26 +1,19 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-02 from commit 64173e0 by Atlas 1.24.0.
+Mapped at 2026-11-02 from commit 25c9f0c by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (66 files), Rust (20), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
+10 parts, mostly Python (67 files), Rust (20), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (95e2d10)
+## What changed since 2026-11-02 (64173e0)
 
-- LICENSE is now also read by rust/etv-core/notices/notices_manifest.json.
-- rust/etv-core/content/content_manifest.json is now also read by rust/etv-core/notices/notices_manifest.json.
-- rust/etv-core/content/event_skeletons.json is now also read by rust/etv-core/notices/notices_manifest.json.
-- And 3 more new writers and readers of places.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `third_party_notices_text`, before `load_from_dir`.
-- In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `capture`, before `new`.
-- In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `evaluate_turn_matters`, before `build_narration_context`.
-- And 2 more changes to the order of work.
-- rust/etv-core/notices/THIRD_PARTY_NOTICES.txt is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/notices/license_allowlist.json is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/notices/notices_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 4 more new files that belong to no part.
-- 7 files added and 5 changed content, across 1 part.
+- rust/etv-core/notices/THIRD_PARTY_NOTICES.txt is now written by rust/tools/gen_notices.py.
+- rust/etv-core/notices/notices_manifest.json is now written by rust/tools/gen_notices.py.
+- LICENSE is now also read by rust/tools/gen_notices.py.
+- And 7 more new writers and readers of places.
+- rust/tools/gen_notices.py is new and belongs to no part, so atlas check fails on it against the previous map.
+- 1 file added and 4 changed content.
 
 ## What comes in
 
@@ -104,6 +97,8 @@ Every tracked place code writes here is edited by people too; see Hand-authored.
 
 People write .github/, assets/, docs/, the repository root and site/; 1 write with a path built at run time may land here.
 
+- **rust/etv-core/notices/THIRD_PARTY_NOTICES.txt** is written by rust/tools/gen_notices.py from inputs this repository does not keep, and by people.
+- **rust/etv-core/notices/notices_manifest.json** is written by rust/tools/gen_notices.py from inputs this repository does not keep, and by people.
 - **src/escape_the_valley/data/event_skeletons.json** is written by scripts/yaml_to_json.py from inputs this repository does not keep, and by people.
 
 ## Where to start
@@ -118,7 +113,7 @@ Read those in order to follow one pull request end to end.
 - 1 write and 7 reads use paths built at run time and are not named here.
 - 4 writes and 19 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 40 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 37 more.
+- 41 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 38 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.

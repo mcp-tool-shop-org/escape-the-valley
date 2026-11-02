@@ -9904,8 +9904,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "64173e01760aed8f480ef99efb4995ccf4fb08be",
-    "tracked": 753
+    "commit": "25c9f0c5a3a269edf452b1ef7101a168d1be1d72",
+    "tracked": 754
   },
   "landings": [
     {
@@ -9924,6 +9924,16 @@
           "by": "rust/etv-core/notices/notices_manifest.json",
           "call": "configuration",
           "confidence": "config"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
         },
         {
           "by": "src/escape_the_valley/_licenses/SOURCES.json",
@@ -9978,12 +9988,45 @@
     {
       "readers": [
         {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_text",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/Cargo.lock",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "literal",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/Cargo.toml",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "rust/Cargo.toml",
           "call": "configuration",
           "confidence": "config"
         }
       ],
       "target": "rust/etv-core",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_text",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/etv-core/Cargo.toml",
       "writers": []
     },
     {
@@ -9996,6 +10039,11 @@
         {
           "by": "rust/etv-core/src/content.rs",
           "call": "include_str",
+          "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_bytes",
           "confidence": "ast"
         }
       ],
@@ -10023,6 +10071,11 @@
           "by": "rust/etv-core/src/worldgen.rs",
           "call": "include_str",
           "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
         }
       ],
       "target": "rust/etv-core/content/event_skeletons.json",
@@ -10034,10 +10087,22 @@
           "by": "rust/etv-core/src/notices.rs",
           "call": "include_str",
           "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
         }
       ],
       "target": "rust/etv-core/notices/THIRD_PARTY_NOTICES.txt",
-      "writers": []
+      "writers": [
+        {
+          "by": "rust/tools/gen_notices.py",
+          "confidence": "ast",
+          "stamps": true,
+          "untrackedInputs": true
+        }
+      ]
     },
     {
       "readers": [
@@ -10056,10 +10121,22 @@
           "by": "rust/etv-core/src/notices.rs",
           "call": "include_str",
           "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/gen_notices.py",
+          "call": "read_bytes",
+          "confidence": "ast"
         }
       ],
       "target": "rust/etv-core/notices/notices_manifest.json",
-      "writers": []
+      "writers": [
+        {
+          "by": "rust/tools/gen_notices.py",
+          "confidence": "ast",
+          "stamps": true,
+          "untrackedInputs": true
+        }
+      ]
     },
     {
       "readers": [
@@ -10994,7 +11071,7 @@
         "evaluate_turn_matters",
         "journey_band"
       ],
-      "hash": "364fe9772c028c424ee2c19641830f40950164ae52281b7926c2b8a725948413",
+      "hash": "36d426bac0e33a8adb8389e1d176431ed27fd0f528344cd68ee4c29a223bdf54",
       "importsFiles": [
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/model.rs",
@@ -11006,22 +11083,32 @@
       "entry": "normalize_lf_and_sha256",
       "entryRule": 4,
       "exports": [
+        "compute_compiled_crates_from_cargo_lock",
         "embedded_license_allowlist",
         "embedded_notices_manifest",
+        "generate_notices_from_workspace",
         "normalize_lf_and_sha256",
+        "parse_cargo_lock_entries",
         "parse_cargo_lock_packages",
+        "parse_non_dev_dependency_names",
         "render_third_party_notices",
         "third_party_notices_text",
-        "validate_notices_against_allowlist"
+        "validate_notices_against_allowlist",
+        "verify_manifest_coverage_against_cargo_lock"
       ],
       "failurePaths": [
         {
           "in": "validate_notices_against_allowlist",
           "kind": "err",
-          "line": 445
+          "line": 483
+        },
+        {
+          "in": "verify_manifest_coverage_against_cargo_lock",
+          "kind": "err",
+          "line": 752
         }
       ],
-      "hash": "7b5db3c2c4871b8af9bd531efcee01271265e4920b5437d288571cb8a2d33ca0",
+      "hash": "5c3ed34df1f18f472f3b882e8147b6c19e28395b0e150098ad3e8466f3807048",
       "importsFiles": [
         "rust/etv-core/src/content.rs"
       ],
@@ -11030,7 +11117,7 @@
         {
           "calls": [
             {
-              "line": 115,
+              "line": 153,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11045,7 +11132,7 @@
         {
           "calls": [
             {
-              "line": 115,
+              "line": 153,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11057,6 +11144,22 @@
           "invokedAtTopLevel": false,
           "isDefaultExport": false,
           "name": "validate_notices_against_allowlist"
+        },
+        {
+          "calls": [
+            {
+              "line": 153,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "normalize_lf_and_sha256"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "generate_notices_from_workspace"
         }
       ]
     },
@@ -11871,7 +11974,7 @@
       "testsInside": true
     },
     {
-      "hash": "d82a5bc9c97ddbe730d984556bdbc129c45c0d0a8bed28ca04078989e700246f",
+      "hash": "cc4f93416f3c320fa6cbcee7144dd88d7045c604339e186c72e091dcc9aa7c31",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -11894,7 +11997,7 @@
       "testsInside": true
     },
     {
-      "hash": "9ae6e2517fb98ad81a00cf0c4cd877e957e74ea3482e5e7782df0d584984edce",
+      "hash": "b263e36dbd76e2141342321941e042364f3c0d29b6e636b1dece88552dadac39",
       "path": "rust/oracle/README.md"
     },
     {
@@ -12025,6 +12128,41 @@
     {
       "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
       "path": "rust/rust-toolchain.toml"
+    },
+    {
+      "exports": [
+        "eval_cfg_expr",
+        "find_local_registry_src_dirs",
+        "generate_notices",
+        "locate_crate_dir",
+        "main",
+        "normalize_lf",
+        "parse_cargo_lock",
+        "parse_crate_dep_targets",
+        "parse_non_dev_dep_names_from_toml",
+        "parse_package_metadata_from_toml",
+        "render_notices_text",
+        "resolve_dep_entry",
+        "split_top_level_commas"
+      ],
+      "failurePaths": [
+        {
+          "in": "locate_crate_dir",
+          "kind": "raise",
+          "line": 291
+        },
+        {
+          "in": "generate_notices",
+          "kind": "raise",
+          "line": 424
+        },
+        {
+          "kind": "raise",
+          "line": 580
+        }
+      ],
+      "hash": "7990a9a0b3bfe822d3361b762b1db7a2a5223a6092c7d661390ba83f764976ef",
+      "path": "rust/tools/gen_notices.py"
     }
   ]
 }
