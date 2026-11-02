@@ -293,6 +293,34 @@ pub struct GMBrief {
     pub weirdness_allowance: String,
 }
 
+/// Pure, read-only GM brief facts computed from [`RunState`] without touching `memory_cards`
+/// retrieval state, the RNG, or any mutable state (`memory.py:313-362`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GMBriefReadOnly {
+    pub situation: String,
+    pub pressures: Vec<String>,
+    pub themes: Vec<String>,
+    pub tone_profile: String,
+    pub weirdness_allowance: String,
+}
+
+/// Compute the pure, read-only GM brief facts from `&RunState` with zero state mutation and zero
+/// RNG draws (`memory.py:324-362`).
+pub fn build_gm_brief_readonly(state: &RunState) -> GMBriefReadOnly {
+    let pressures = compute_pressures(state);
+    let themes = compute_themes(state);
+    let situation = build_situation(state, &pressures);
+    let weirdness = compute_weirdness(state).to_string();
+
+    GMBriefReadOnly {
+        situation,
+        pressures: pressures.into_iter().take(3).collect(),
+        themes,
+        tone_profile: state.gm_profile.as_str().to_string(),
+        weirdness_allowance: weirdness,
+    }
+}
+
 /// Compute the full GM brief from state (`memory.py:324-362`).
 pub fn build_gm_brief(state: &mut RunState, mark_retrieved: bool) -> GMBrief {
     let pressures = compute_pressures(state);

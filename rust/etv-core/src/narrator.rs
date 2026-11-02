@@ -1,13 +1,16 @@
-//! Narrator seam (`Narrator`, `NullNarrator`, `NarrationContext`, and `TurnMattersFlags`).
+//! Narrator seam (`Narrator`, `NullNarrator`, `NarrationContext`, `PartyStatusFacts`, and
+//! `TurnMattersFlags`).
 //!
-//! Provides a strictly read-only presentation hook for a future AI narrator:
-//! - [`NarrationContext`] is an owned, read-only snapshot of what a turn shows (the fixed outcome
-//!   sentence, event and choice IDs, shown effects/deltas/lines, place, and band). It holds **no**
-//!   reference or handle to [`crate::rng::CpythonRng`], [`crate::model::RunState`], the save path,
-//!   or any mutable engine state.
+//! Provides a strictly read-only presentation hook for an AI narrator:
+//! - [`NarrationContext`] is an owned, read-only snapshot of engine facts for a shown turn
+//!   (time of day, game phase, biome, journey day, top pressures and themes, weirdness allowance,
+//!   GM profile, nameless party counts/bands, event and choice IDs, shown effects/deltas/lines,
+//!   place, journey band, flags, and the deterministic `fallback_line`). It holds **no** reference
+//!   or handle to [`crate::rng::CpythonRng`], [`crate::model::RunState`], the save path, or any
+//!   mutable engine state.
 //! - [`TurnMattersFlags`] is derived by a pure read of effects and state fields the engine has
 //!   already computed on that turn, with **zero RNG draws and zero state mutation**.
-//! - [`Narrator::narrate`] is called only when [`TurnMattersFlags::any`] is `true`.
+//! - [`Narrator::narrate`] is called once on every turn that shows the player a turn result.
 //! - [`NullNarrator`] is the default implementation and always returns `None`.
 
 use std::collections::BTreeMap;
@@ -15,13 +18,16 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::engine::StepMessages;
-use crate::model::{GamePhase, IntentAction, PlayerIntent, RunState, TimeOfDay};
+use crate::memory::build_gm_brief_readonly;
+use crate::model::{
+    Condition, GMProfile, GamePhase, IntentAction, PlayerIntent, RunState, TimeOfDay,
+};
 use crate::physics::{current_node, journey_pressure, HealthEffect};
 
 /// Read-only trait for an optional turn narrator.
 ///
-/// Implementations receive a frozen [`NarrationContext`] and may return additional presentation
-/// prose (`Some(String)`) or `None` to keep the fixed outcome sentence unchanged.
+/// Implementations receive a frozen [`NarrationContext`] and may return presentation prose
+/// (`Some(String)`) or `None` to fall back to [`NarrationContext::fallback_line`].
 pub trait Narrator {
     fn narrate(&self, ctx: &NarrationContext) -> Option<String>;
 }
@@ -64,7 +70,117 @@ impl TurnMattersFlags {
     }
 }
 
-/// Owned, read-only snapshot of what a single turn shows to the player.
+/// Nameless party status facts (counts and coarse bands only — **never** member names).
+///
+/// The voice guide forbids member names in narration, so party status is represented strictly as
+/// aggregate counts and bands derived from [`crate::model::PartyState`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartyStatusFacts {
+    alive_count: usize,
+    total_count: usize,
+    sick_or_injured_count: usize,
+    critical_health_count: usize,
+    exhausted_count: usize,
+    health_band: String,
+    morale_band: String,
+}
+
+impl PartyStatusFacts {
+    /// Compute nameless party counts and bands from `state` (`memory.rs:137-164`, `model.rs:617-628`).
+    pub fn from_state(state: &RunState) -> Self {
+        let alive_count = state.party.alive_count();
+        let total_count = state.party.members.len();
+        let sick_or_injured_count = state
+            .party
+            .members
+            .iter()
+            .filter(|m| m.is_alive() && matches!(m.condition, Condition::Sick | Condition::Injured))
+            .count();
+        let critical_health_count = state
+            .party
+            .members
+            .iter()
+            .filter(|m| m.is_alive() && m.health < 30)
+            .count();
+        let exhausted_count = state
+            .party
+            .members
+            .iter()
+            .filter(|m| m.is_alive() && m.condition == Condition::Exhausted)
+            .count();
+
+        let avg_health = state.party.avg_health();
+        let health_band = if alive_count == 0 {
+            "dead"
+        } else if critical_health_count >= 2 || avg_health < 30 {
+            "critical"
+        } else if sick_or_injured_count >= 1 || avg_health < 65 {
+            "worn"
+        } else {
+            "steady"
+        }
+        .to_string();
+
+        let morale = state.party.morale;
+        let morale_band = if alive_count == 0 || morale < 15 {
+            "broken"
+        } else if morale < 30 {
+            "low"
+        } else if morale < 65 {
+            "steady"
+        } else {
+            "high"
+        }
+        .to_string();
+
+        Self {
+            alive_count,
+            total_count,
+            sick_or_injured_count,
+            critical_health_count,
+            exhausted_count,
+            health_band,
+            morale_band,
+        }
+    }
+
+    /// Number of living party members (`PartyState::alive_count`).
+    pub fn alive_count(&self) -> usize {
+        self.alive_count
+    }
+
+    /// Total number of party members at run start (`PartyState::members.len()`).
+    pub fn total_count(&self) -> usize {
+        self.total_count
+    }
+
+    /// Number of living party members currently `Sick` or `Injured`.
+    pub fn sick_or_injured_count(&self) -> usize {
+        self.sick_or_injured_count
+    }
+
+    /// Number of living party members with `health < 30`.
+    pub fn critical_health_count(&self) -> usize {
+        self.critical_health_count
+    }
+
+    /// Number of living party members currently `Exhausted`.
+    pub fn exhausted_count(&self) -> usize {
+        self.exhausted_count
+    }
+
+    /// Coarse party health band (`"steady"`, `"worn"`, `"critical"`, or `"dead"`).
+    pub fn health_band(&self) -> &str {
+        &self.health_band
+    }
+
+    /// Coarse party morale band (`"high"`, `"steady"`, `"low"`, or `"broken"`).
+    pub fn morale_band(&self) -> &str {
+        &self.morale_band
+    }
+}
+
+/// Owned, read-only snapshot of engine facts for a single shown turn.
 ///
 /// `NarrationContext` intentionally contains no reference or field for [`crate::model::RunState`],
 /// [`crate::rng::CpythonRng`], or any save file handle.
@@ -94,12 +210,14 @@ impl TurnMattersFlags {
 /// use etv_core::narrator::NarrationContext;
 ///
 /// fn try_mutate(ctx: &NarrationContext) {
-///     ctx.outcome_sentence = String::from("tampered");
+///     ctx.fallback_line = String::from("tampered");
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NarrationContext {
-    outcome_sentence: String,
+    /// Plain deterministic line the game shows when [`Narrator::narrate`] returns `None`.
+    /// This is the fallback line only — **not** prompt material for the narrator.
+    fallback_line: String,
     event_id: String,
     choice_id: String,
     shown_effects: Vec<HealthEffect>,
@@ -108,13 +226,23 @@ pub struct NarrationContext {
     place: String,
     band: String,
     flags: TurnMattersFlags,
+    time_of_day: TimeOfDay,
+    phase: GamePhase,
+    biome: String,
+    day: i32,
+    pressures: Vec<String>,
+    themes: Vec<String>,
+    weirdness_allowance: String,
+    gm_profile: GMProfile,
+    situation: String,
+    party_status: PartyStatusFacts,
 }
 
 impl NarrationContext {
     /// Construct an owned, read-only [`NarrationContext`] snapshot for a completed turn.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        outcome_sentence: String,
+        fallback_line: String,
         event_id: String,
         choice_id: String,
         shown_effects: Vec<HealthEffect>,
@@ -123,9 +251,19 @@ impl NarrationContext {
         place: String,
         band: String,
         flags: TurnMattersFlags,
+        time_of_day: TimeOfDay,
+        phase: GamePhase,
+        biome: String,
+        day: i32,
+        pressures: Vec<String>,
+        themes: Vec<String>,
+        weirdness_allowance: String,
+        gm_profile: GMProfile,
+        situation: String,
+        party_status: PartyStatusFacts,
     ) -> Self {
         Self {
-            outcome_sentence,
+            fallback_line,
             event_id,
             choice_id,
             shown_effects,
@@ -134,12 +272,24 @@ impl NarrationContext {
             place,
             band,
             flags,
+            time_of_day,
+            phase,
+            biome,
+            day,
+            pressures,
+            themes,
+            weirdness_allowance,
+            gm_profile,
+            situation,
+            party_status,
         }
     }
 
-    /// Fixed outcome sentence produced by the deterministic engine for this turn.
-    pub fn outcome_sentence(&self) -> &str {
-        &self.outcome_sentence
+    /// Plain fallback line the game displays when the narrator returns `None`.
+    ///
+    /// This is a fallback only, **not** prompt material for the narrator.
+    pub fn fallback_line(&self) -> &str {
+        &self.fallback_line
     }
 
     /// Event ID active or resolved on this turn (empty if none).
@@ -180,6 +330,59 @@ impl NarrationContext {
     /// Which of the five "turn matters" rules triggered on this turn.
     pub fn flags(&self) -> &TurnMattersFlags {
         &self.flags
+    }
+
+    /// Time of day on this turn (`Morning`, `Afternoon`, `Evening`, or `Night`).
+    pub fn time_of_day(&self) -> TimeOfDay {
+        self.time_of_day
+    }
+
+    /// Game phase on this turn (`Camp`, `Event`, `Route`, or `GameOver`).
+    pub fn phase(&self) -> GamePhase {
+        self.phase
+    }
+
+    /// Biome / terrain string of the current map node (or `"unknown terrain"` if not found).
+    pub fn biome(&self) -> &str {
+        &self.biome
+    }
+
+    /// Current journey day (`1`-indexed).
+    pub fn day(&self) -> i32 {
+        self.day
+    }
+
+    /// Top active survival pressures (up to 3, sorted by severity descending) from the pure
+    /// `GMBriefReadOnly` computation (`memory.rs:94-179, 322-335`).
+    pub fn pressures(&self) -> &[String] {
+        &self.pressures
+    }
+
+    /// Top active narrative themes (1–3 tags) from the pure `GMBriefReadOnly` computation
+    /// (`memory.rs:189-215, 322-335`).
+    pub fn themes(&self) -> &[String] {
+        &self.themes
+    }
+
+    /// Weirdness allowance (`"none"`, `"hint"`, or `"strong"`) from the pure `GMBriefReadOnly`
+    /// computation (`memory.rs:322-335, 408-419`).
+    pub fn weirdness_allowance(&self) -> &str {
+        &self.weirdness_allowance
+    }
+
+    /// Active GM voice / personality profile (`Chronicler`, `Fireside`, or `Lantern`).
+    pub fn gm_profile(&self) -> GMProfile {
+        self.gm_profile
+    }
+
+    /// Situation summary computed by the pure `GMBriefReadOnly` path (`memory.rs:322-335`).
+    pub fn situation(&self) -> &str {
+        &self.situation
+    }
+
+    /// Nameless party status counts and bands (contains **no** member names).
+    pub fn party_status(&self) -> &PartyStatusFacts {
+        &self.party_status
     }
 }
 
@@ -291,6 +494,9 @@ pub fn journey_band(state: &RunState) -> String {
 }
 
 /// Build an owned, read-only [`NarrationContext`] from a completed step.
+///
+/// Uses `GamePhase::GameOver` when `state.game_over` is `true`, otherwise `GamePhase::Camp`.
+/// Prefer [`build_narration_context_with_phase`] when the active `StepEngine::phase` is available.
 pub fn build_narration_context(
     state: &RunState,
     event_id: &str,
@@ -298,18 +504,43 @@ pub fn build_narration_context(
     msgs: &StepMessages,
     flags: TurnMattersFlags,
 ) -> NarrationContext {
-    let outcome_sentence = if !msgs.outcome_narration.is_empty() {
+    let phase = if state.game_over {
+        GamePhase::GameOver
+    } else {
+        GamePhase::Camp
+    };
+    build_narration_context_with_phase(state, phase, event_id, choice_id, msgs, flags)
+}
+
+/// Build an owned, read-only [`NarrationContext`] from a completed step and its post-step
+/// [`GamePhase`], reading engine facts purely via [`build_gm_brief_readonly`], [`current_node`],
+/// [`journey_band`], and [`PartyStatusFacts::from_state`] (zero RNG draws, zero state mutation).
+pub fn build_narration_context_with_phase(
+    state: &RunState,
+    phase: GamePhase,
+    event_id: &str,
+    choice_id: &str,
+    msgs: &StepMessages,
+    flags: TurnMattersFlags,
+) -> NarrationContext {
+    let fallback_line = if !msgs.outcome_narration.is_empty() {
         msgs.outcome_narration.clone()
     } else {
         msgs.lines.join(" ")
     };
-    let place = current_node(state)
+    let node = current_node(state);
+    let place = node
         .map(|n| n.name.clone())
         .unwrap_or_else(|| state.location_id.clone());
+    let biome = node
+        .map(|n| n.biome.as_str().to_string())
+        .unwrap_or_else(|| "unknown terrain".to_string());
     let band = journey_band(state);
+    let brief = build_gm_brief_readonly(state);
+    let party_status = PartyStatusFacts::from_state(state);
 
     NarrationContext::new(
-        outcome_sentence,
+        fallback_line,
         event_id.to_string(),
         choice_id.to_string(),
         msgs.effects.clone(),
@@ -318,5 +549,15 @@ pub fn build_narration_context(
         place,
         band,
         flags,
+        state.time_of_day,
+        phase,
+        biome,
+        state.day,
+        brief.pressures,
+        brief.themes,
+        brief.weirdness_allowance,
+        state.gm_profile,
+        brief.situation,
+        party_status,
     )
 }
