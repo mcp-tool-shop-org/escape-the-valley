@@ -5,7 +5,7 @@ Pinned legacy Python commit SHA:
     87104824d1f5b8bfda5b0dc5c14bc5a8e3721407
 
 Generator code SHA-256 (post-docstring body; full-file SHA-256 recorded in README.md):
-    bc2ca5f8276599ddc32908e5063a78a93726342903c961c6bb526c68eb87ccd0
+    ab60af19d0871f1d15b634ee7ee7ec4bdbeab684a4c63cbe0bba70d4fb79d8f0
 
 Run against the pinned CPython 3.12.13 (python-build-standalone 20260510) venv:
 
@@ -146,19 +146,36 @@ def rng_state_sha256_hex(state: tuple[Any, ...]) -> str:
 
 
 PINNED_ORACLE_COMMIT = "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+PINNED_ORACLE_TREE = "e1f37816a4c25e2a4a796f4feef59ebfd489a997"
 
 
 def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, str]:
     if repo_dir is None:
         repo_dir = Path(escape_the_valley.__file__).resolve().parents[2]
-    resolved_commit = subprocess.check_output(
-        ["git", "-C", str(repo_dir), "rev-parse", f"{PINNED_ORACLE_COMMIT}^{{commit}}"],
+    has_commit = (
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_dir),
+                "cat-file",
+                "-e",
+                f"{PINNED_ORACLE_COMMIT}^{{commit}}",
+            ],
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
+    diff_ref = PINNED_ORACLE_COMMIT if has_commit else "HEAD"
+    head_tree = subprocess.check_output(
+        ["git", "-C", str(repo_dir), "rev-parse", f"{diff_ref}:src/escape_the_valley"],
         text=True,
     ).strip()
-    if resolved_commit != PINNED_ORACLE_COMMIT:
+    if head_tree != PINNED_ORACLE_TREE:
         raise RuntimeError(
-            f"Refusing to generate oracle vectors: pinned commit {PINNED_ORACLE_COMMIT} "
-            f"resolved to {resolved_commit}"
+            f"Refusing to generate oracle vectors: src/escape_the_valley differs from "
+            f"pinned commit {PINNED_ORACLE_COMMIT} (tree {head_tree} != {PINNED_ORACLE_TREE})"
         )
     diff = subprocess.check_output(
         [
@@ -166,7 +183,7 @@ def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, str]:
             "-C",
             str(repo_dir),
             "diff",
-            PINNED_ORACLE_COMMIT,
+            diff_ref,
             "--",
             "src/escape_the_valley",
         ],

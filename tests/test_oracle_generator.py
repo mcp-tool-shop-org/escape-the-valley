@@ -11,7 +11,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 GENERATOR_PATH = REPO_ROOT / "rust" / "oracle" / "generate_vectors.py"
 EXPECTED_PIN_SHA = "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
-EXPECTED_GENERATOR_SHA256 = "86aeb3f08f9bdc05680d16ef5ba01efb93590688520dddfc9d98479fb5b263d1"
+EXPECTED_GENERATOR_SHA256 = "faf78ac8874346a496504e2d8b2495ad268231bbd1b7da664a84fd5ef783a4ee"
 
 
 def _load_generator_module():

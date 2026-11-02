@@ -8,8 +8,8 @@ The Python oracle (`rust/oracle/generate_vectors.py`) is permanently pinned to t
 
 - **Pinned legacy Python commit SHA:** `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`
 - **Python runtime:** CPython `3.12.13` (`python-build-standalone` build tag `20260510`)
-- **`rust/oracle/generate_vectors.py` SHA-256:** `86aeb3f08f9bdc05680d16ef5ba01efb93590688520dddfc9d98479fb5b263d1`
-- **`rust/oracle/generate_vectors.py` post-docstring code SHA-256:** `bc2ca5f8276599ddc32908e5063a78a93726342903c961c6bb526c68eb87ccd0`
+- **`rust/oracle/generate_vectors.py` SHA-256:** `faf78ac8874346a496504e2d8b2495ad268231bbd1b7da664a84fd5ef783a4ee`
+- **`rust/oracle/generate_vectors.py` post-docstring code SHA-256:** `ab60af19d0871f1d15b634ee7ee7ec4bdbeab684a4c63cbe0bba70d4fb79d8f0`
 
 | Vector File | Bytes | SHA-256 | Target Phase |
 |---|---:|---|---|
