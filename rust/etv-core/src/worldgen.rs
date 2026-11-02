@@ -8,11 +8,10 @@ use crate::model::{
 use crate::rng::CpythonRng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
-/// Compiled-in JSON event skeletons from `src/escape_the_valley/data/event_skeletons.json`.
-pub const EVENT_SKELETONS_JSON: &str =
-    include_str!("../../../src/escape_the_valley/data/event_skeletons.json");
+/// Compiled-in JSON event skeletons from `rust/etv-core/content/event_skeletons.json`.
+pub const EVENT_SKELETONS_JSON: &str = include_str!("../content/event_skeletons.json");
 
 // ── Worldgen constants (worldgen.py:27-55) ──────────────────────────────────
 
@@ -424,6 +423,7 @@ pub fn create_new_run_with_rng(
         last_spoilage_day: 0,
         backpack: Default::default(),
         callout_level: "verbose".to_string(),
+        content_hash: crate::content::EMBEDDED_CONTENT_HASH_HEX.to_string(),
     };
 
     (run, rng)
@@ -432,6 +432,13 @@ pub fn create_new_run_with_rng(
 /// Create a complete new game run with default `GMProfile::Fireside` and `weirdness_level = 2`.
 pub fn create_new_run(seed: i128) -> RunState {
     create_new_run_with_rng(seed, GMProfile::Fireside, 2).0
+}
+
+/// Create a complete new game run stamped with `content.content_hash_hex`.
+pub fn create_new_run_with_content(seed: i128, content: &crate::content::ContentPack) -> RunState {
+    let mut state = create_new_run(seed);
+    state.content_hash = content.content_hash_hex.clone();
+    state
 }
 
 // ── Event Loader (`event_loader.py` & `events.py` types) ─────────────────────
@@ -512,6 +519,8 @@ pub struct ChoiceTemplate {
     pub cost_hint: String,
     #[serde(default)]
     pub outcome_weights: BTreeMap<String, f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome_sentence: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -720,7 +729,12 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
         let ch = ch_val
             .as_object()
             .ok_or_else(|| format!("choice {i} is not an object"))?;
-        let cid = char::from(b'A' + (i as u8)).to_string();
+        let cid = ch
+            .get("choice_id")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(ToString::to_string)
+            .unwrap_or_else(|| char::from(b'A' + (i as u8)).to_string());
         let action = ch
             .get("intent_action")
             .and_then(|v| v.as_str())
@@ -738,15 +752,30 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        let risk_hint = ch
+            .get("risk_hint")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let cost_hint = ch
+            .get("cost_hint")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let outcome_sentence = ch
+            .get("outcome_sentence")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string);
 
         choices.push(ChoiceTemplate {
             choice_id: cid.clone(),
             label,
             action,
             style,
-            risk_hint: String::new(),
-            cost_hint: String::new(),
+            risk_hint,
+            cost_hint,
             outcome_weights: BTreeMap::new(),
+            outcome_sentence,
         });
         outcomes.insert(cid, outcome);
     }
@@ -770,8 +799,10 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
         .unwrap_or(false);
 
     let biome_filter = if !has_explicit_biome_filter {
-        let tagset: HashSet<String> = tags.iter().map(|t| t.to_lowercase()).collect();
-        if tagset.contains("river") || tagset.contains("ford") {
+        let has_water_tag = tags
+            .iter()
+            .any(|t| t.eq_ignore_ascii_case("river") || t.eq_ignore_ascii_case("ford"));
+        if has_water_tag {
             Some(
                 Biome::ALL
                     .into_iter()
@@ -784,6 +815,16 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
     } else {
         None
     };
+
+    let preconditions: Vec<String> = obj
+        .get("preconditions")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(ToString::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
 
     let title = obj
         .get("title")
@@ -806,7 +847,7 @@ pub fn convert_event(raw: &Value) -> Result<EventSkeleton, String> {
         biome_filter,
         weather_filter: None,
         time_filter: None,
-        preconditions: Vec::new(),
+        preconditions,
         base_weight: 1.0,
         folklore_type,
         costs_uncanny_token: costs_token,
@@ -942,6 +983,33 @@ pub fn load_json_events_from_str(json_str: &str) -> Vec<EventSkeleton> {
         }
     }
     events
+}
+
+/// Parse event skeletons from a JSON string (accepting either a top-level array or an object with `"events"`).
+pub fn parse_event_skeletons_json(json_str: &str) -> Result<Vec<EventSkeleton>, String> {
+    let val: Value =
+        serde_json::from_str(json_str).map_err(|e| format!("invalid event skeletons JSON: {e}"))?;
+    let raw_list = match &val {
+        Value::Array(arr) => arr.as_slice(),
+        Value::Object(obj) => obj
+            .get("events")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .ok_or_else(|| "event_skeletons.json object missing 'events' array".to_string())?,
+        _ => return Err("event_skeletons.json must be a JSON array or object".to_string()),
+    };
+    let key_orders = extract_profile_key_orders(json_str);
+    let mut events = Vec::with_capacity(raw_list.len());
+    for raw in raw_list {
+        let mut ev = convert_event(raw)?;
+        for (cid, outcome) in &mut ev.outcome_templates {
+            if let Some(order) = key_orders.get(&(ev.event_id.clone(), cid.clone())) {
+                outcome.supplies_delta_order = order.clone();
+            }
+        }
+        events.push(ev);
+    }
+    Ok(events)
 }
 
 /// Load the 200 compiled-in event skeletons from `event_skeletons.json`.

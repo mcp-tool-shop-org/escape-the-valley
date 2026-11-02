@@ -480,6 +480,7 @@ pub const RESOURCE_CATALOG: [ResourceDef; 12] = [
 ];
 
 pub const LEGACY_KEYS: [&str; 5] = ["food", "water", "meds", "ammo", "parts"];
+pub const INVENTORY_COST_KEYS: [&str; 5] = ["rope", "parts", "food", "tools", "meds"];
 
 pub fn is_valid_resource_key(key: &str) -> bool {
     RESOURCE_CATALOG.iter().any(|r| r.key == key)
@@ -505,6 +506,17 @@ pub enum GamePhase {
     Route,
     #[serde(rename = "over")]
     GameOver,
+}
+
+impl GamePhase {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Camp => "camp",
+            Self::Event => "event",
+            Self::Route => "route",
+            Self::GameOver => "over",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -533,6 +545,26 @@ pub struct PlayerIntent {
     pub choice_id: String,
     #[serde(default)]
     pub pace: String,
+}
+
+impl PlayerIntent {
+    pub fn new(action: IntentAction) -> Self {
+        Self {
+            action,
+            choice_id: String::new(),
+            pace: String::new(),
+        }
+    }
+
+    pub fn with_choice(mut self, choice_id: &str) -> Self {
+        self.choice_id = choice_id.to_string();
+        self
+    }
+
+    pub fn with_pace(mut self, pace: &str) -> Self {
+        self.pace = pace.to_string();
+        self
+    }
 }
 
 // ── Party, Wagon, Supplies (models.py) ──────────────────────────────────────
@@ -1118,6 +1150,12 @@ pub struct RunState {
     pub backpack: BackpackState,
     #[serde(default = "default_callout_level")]
     pub callout_level: String,
+    #[serde(default = "default_content_hash")]
+    pub content_hash: String,
+}
+
+fn default_content_hash() -> String {
+    crate::content::EMBEDDED_CONTENT_HASH_HEX.to_string()
 }
 
 impl Default for RunState {
@@ -1161,6 +1199,7 @@ impl Default for RunState {
             last_spoilage_day: 0,
             backpack: BackpackState::default(),
             callout_level: "verbose".to_string(),
+            content_hash: default_content_hash(),
         }
     }
 }

@@ -1,11 +1,14 @@
-//! Save and load system (`save.py`):
-//! - Schema v3 (`SAVE_VERSION = 3`) and v0/v1/v2 → v3 migration;
+//! Save and load system (`save.py`, Rust 2.0 Schema v4):
+//! - Schema v4 (`SAVE_VERSION = 4`) carrying `content_hash`;
+//! - Explicit refusal of legacy Python 1.3.x saves (`save_version` 0..=3) without touching the file on disk;
+//! - Explicit `ContentVersionMismatch` error when a v4 save's `content_hash` differs from the running content pack;
 //! - Corrupt-save quarantine (`run.json.corrupt-<timestamp>`);
 //! - Supply clamps on load (`SuppliesState::set`, floor 0, catalog filter);
 //! - Atomic write of `.trail/run.json` and `.trail/secrets.json` (keyed by `run_id`,
 //!   0o600 on POSIX and owner-only ACL on Windows);
 //! - Audit L-2 fix: `last_settle_failed` and `minted_initial` persisted directly.
 
+use crate::content::EMBEDDED_CONTENT_HASH_HEX;
 use crate::model::{
     is_valid_resource_key, BackpackState, Biome, Condition, GMProfile, JournalEntry, MapNode,
     MemoryCard, Pace, ParcelRecord, PartyMember, PartyState, PermitRecord, RunState,
@@ -25,20 +28,71 @@ pub const SAVE_DIR: &str = ".trail";
 pub const SAVE_FILE: &str = "run.json";
 pub const SECRETS_FILE: &str = "secrets.json";
 
-/// Python 1.3.1 writes `save_version = 1`. Design v1 refers to the full 1.3.x schema
-/// (with `rng_state`, `backpack`, `memory_cards`, `last_spoilage_day`) as schema v3.
-/// We accept versions 0, 1, 2, and 3 on load (migrating older schemas to v3 in memory)
-/// and report versions > 3 as `"incompatible"`.
+/// Python 1.3.1 writes `save_version = 1` (and 1.3.x supports 0..=3).
+/// Rust 2.0 bumps the save schema to `SAVE_VERSION = 4` (carrying `content_hash`)
+/// and refuses 0..=3 saves with [`LEGACY_SAVE_REFUSAL_MESSAGE`] without modifying the file.
 pub const PYTHON_SAVE_VERSION: i64 = 1;
-pub const MAX_SUPPORTED_SAVE_VERSION: i64 = 3;
+pub const SAVE_VERSION: i64 = 4;
+pub const MAX_SUPPORTED_SAVE_VERSION: i64 = 4;
+
+/// Exact player-facing refusal message for legacy 1.3.x (v0–v3) saves.
+pub const LEGACY_SAVE_REFUSAL_MESSAGE: &str = "This save comes from the earlier version of Escape the Valley (1.3). This version can't open it, but your trail isn't lost: the earlier game still runs and will carry on from where you left off. To open it, install the earlier version with `pip install \"escape-the-valley<2\"`, then run `trail play` (or `trail tui --continue` for the full-screen game). Your save file has not been changed.";
 
 static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// Structured error returned when loading or parsing a save file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SaveLoadError {
+    NoSave,
+    LegacySaveRefused {
+        save_version: i64,
+    },
+    ContentVersionMismatch {
+        save_content_hash: String,
+        running_content_hash: String,
+    },
+    IncompatibleSaveVersion {
+        save_version: i64,
+    },
+    SeedOutOfRange(String),
+    Corrupt(String),
+}
+
+impl SaveLoadError {
+    /// Return the player-facing message for this error.
+    pub fn message(&self) -> String {
+        match self {
+            Self::NoSave => "no_save".to_string(),
+            Self::LegacySaveRefused { .. } => LEGACY_SAVE_REFUSAL_MESSAGE.to_string(),
+            Self::ContentVersionMismatch {
+                save_content_hash,
+                running_content_hash,
+            } => format!(
+                "ContentVersionMismatch: save content_hash '{save_content_hash}' does not match running content_hash '{running_content_hash}'"
+            ),
+            Self::IncompatibleSaveVersion { save_version } => {
+                format!("save_version {save_version} newer than supported {MAX_SUPPORTED_SAVE_VERSION}")
+            }
+            Self::SeedOutOfRange(msg) => msg.clone(),
+            Self::Corrupt(msg) => msg.clone(),
+        }
+    }
+}
+
+impl std::fmt::Display for SaveLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message())
+    }
+}
+
+impl std::error::Error for SaveLoadError {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoadResult {
     pub ok: bool,
     pub state: Option<RunState>,
     pub reason: String,
+    pub error: Option<SaveLoadError>,
 }
 
 impl LoadResult {
@@ -47,6 +101,7 @@ impl LoadResult {
             ok: true,
             state: Some(state),
             reason: String::new(),
+            error: None,
         }
     }
 
@@ -55,6 +110,16 @@ impl LoadResult {
             ok: false,
             state: None,
             reason: reason.to_string(),
+            error: None,
+        }
+    }
+
+    pub fn from_error(reason: &str, err: SaveLoadError) -> Self {
+        Self {
+            ok: false,
+            state: None,
+            reason: reason.to_string(),
+            error: Some(err),
         }
     }
 }
@@ -92,51 +157,81 @@ pub fn load_game(base_path: &Path) -> Option<RunState> {
     load_game_result(base_path).state
 }
 
-/// Load a saved game, returning a structured `LoadResult` (`save.py::load_game_result`).
+/// Load a saved game from `<base_path>/.trail/run.json` against the embedded content hash,
+/// returning a typed `Result<RunState, SaveLoadError>`.
+pub fn load_game_checked(base_path: &Path) -> Result<RunState, SaveLoadError> {
+    load_game_checked_with_content_hash(base_path, EMBEDDED_CONTENT_HASH_HEX)
+}
+
+/// Load a saved game from `<base_path>/.trail/run.json` against `running_content_hash`,
+/// returning a typed `Result<RunState, SaveLoadError>`.
+pub fn load_game_checked_with_content_hash(
+    base_path: &Path,
+    running_content_hash: &str,
+) -> Result<RunState, SaveLoadError> {
+    let res = load_game_result_with_content_hash(base_path, running_content_hash);
+    if let Some(state) = res.state {
+        Ok(state)
+    } else if let Some(err) = res.error {
+        Err(err)
+    } else {
+        Err(SaveLoadError::Corrupt(res.reason))
+    }
+}
+
+/// Load a saved game against the embedded content hash, returning a structured `LoadResult`.
 /// On a corrupt save, renames `run.json` to `run.json.corrupt-<timestamp>` before returning.
+/// Legacy v0–v3 saves and v4 `ContentVersionMismatch` saves are refused without modifying the file on disk.
 pub fn load_game_result(base_path: &Path) -> LoadResult {
+    load_game_result_with_content_hash(base_path, EMBEDDED_CONTENT_HASH_HEX)
+}
+
+/// Load a saved game against `running_content_hash`, returning a structured `LoadResult`.
+pub fn load_game_result_with_content_hash(
+    base_path: &Path,
+    running_content_hash: &str,
+) -> LoadResult {
     let save_dir = base_path.join(SAVE_DIR);
     let save_path = save_dir.join(SAVE_FILE);
 
     if !save_path.exists() {
-        return LoadResult::failure("no_save");
+        return LoadResult::from_error("no_save", SaveLoadError::NoSave);
     }
 
     let raw_text = match fs::read_to_string(&save_path) {
         Ok(t) => t,
-        Err(_) => {
+        Err(e) => {
             let _ = backup_corrupt_save(&save_path);
-            return LoadResult::failure("corrupt");
+            return LoadResult::from_error("corrupt", SaveLoadError::Corrupt(e.to_string()));
         }
     };
 
     let data: Value = match serde_json::from_str(&raw_text) {
         Ok(v) => v,
-        Err(_) => {
+        Err(e) => {
             let _ = backup_corrupt_save(&save_path);
-            return LoadResult::failure("corrupt");
+            return LoadResult::from_error("corrupt", SaveLoadError::Corrupt(e.to_string()));
         }
     };
 
-    let Some(obj) = data.as_object() else {
-        let _ = backup_corrupt_save(&save_path);
-        return LoadResult::failure("corrupt");
-    };
-
-    if let Some(v) = obj.get("save_version").and_then(|v| v.as_i64()) {
-        if v > MAX_SUPPORTED_SAVE_VERSION {
-            return LoadResult::failure("incompatible");
-        }
-    }
-
-    let mut state = match value_to_state(&data) {
+    let mut state = match value_to_state_checked(&data, running_content_hash) {
         Ok(s) => s,
-        Err(ref e) if e.starts_with("seed_out_of_range:") => {
-            return LoadResult::failure("seed_out_of_range");
+        Err(err @ SaveLoadError::LegacySaveRefused { .. }) => {
+            return LoadResult::from_error(LEGACY_SAVE_REFUSAL_MESSAGE, err);
         }
-        Err(_) => {
+        Err(err @ SaveLoadError::ContentVersionMismatch { .. }) => {
+            let msg = err.message();
+            return LoadResult::from_error(&msg, err);
+        }
+        Err(err @ SaveLoadError::IncompatibleSaveVersion { .. }) => {
+            return LoadResult::from_error("incompatible", err);
+        }
+        Err(err @ SaveLoadError::SeedOutOfRange(_)) => {
+            return LoadResult::from_error("seed_out_of_range", err);
+        }
+        Err(err) => {
             let _ = backup_corrupt_save(&save_path);
-            return LoadResult::failure("corrupt");
+            return LoadResult::from_error("corrupt", err);
         }
     };
 
@@ -451,8 +546,15 @@ pub fn state_to_value(state: &RunState) -> Value {
         json!(state.seed.to_string())
     };
 
+    let content_hash = if state.content_hash.is_empty() {
+        EMBEDDED_CONTENT_HASH_HEX
+    } else {
+        state.content_hash.as_str()
+    };
+
     json!({
-        "save_version": PYTHON_SAVE_VERSION,
+        "save_version": SAVE_VERSION,
+        "content_hash": content_hash,
         "run_id": state.run_id,
         "seed": seed_val,
         "day": state.day,
@@ -580,25 +682,74 @@ fn parse_seed(v: &Value) -> Result<i128, String> {
     Err("invalid seed value".to_string())
 }
 
-/// Reconstruct `RunState` from a parsed JSON `Value` (`save.py::_dict_to_state`),
-/// migrating v0/v1/v2 saves to schema v3 and clamping supplies through `SuppliesState::set`.
+/// Reconstruct `RunState` from a parsed JSON `Value` against the embedded content hash.
 pub fn value_to_state(data: &Value) -> Result<RunState, String> {
-    let obj = data
-        .as_object()
-        .ok_or_else(|| "top-level save data is not an object".to_string())?;
+    value_to_state_checked(data, EMBEDDED_CONTENT_HASH_HEX).map_err(|e| e.message())
+}
+
+/// Reconstruct `RunState` from a parsed JSON `Value` against `running_content_hash`,
+/// returning a typed [`SaveLoadError`].
+///
+/// - Refuses `save_version` `0..=3` (or missing `save_version`) with [`SaveLoadError::LegacySaveRefused`].
+/// - Refuses `save_version == 4` whose `content_hash` differs from `running_content_hash` with
+///   [`SaveLoadError::ContentVersionMismatch`].
+/// - Refuses `save_version > 4` (or `< 0`) with [`SaveLoadError::IncompatibleSaveVersion`].
+pub fn value_to_state_checked(
+    data: &Value,
+    running_content_hash: &str,
+) -> Result<RunState, SaveLoadError> {
+    let obj = data.as_object().ok_or_else(|| {
+        SaveLoadError::Corrupt("top-level save data is not an object".to_string())
+    })?;
 
     let save_version = match obj.get("save_version") {
         None => 0,
         Some(v) => v
             .as_i64()
-            .ok_or_else(|| "save_version is not an integer".to_string())?,
+            .ok_or_else(|| SaveLoadError::Corrupt("save_version is not an integer".to_string()))?,
     };
-    if save_version > MAX_SUPPORTED_SAVE_VERSION {
-        return Err(format!(
-            "save_version {save_version} newer than supported {MAX_SUPPORTED_SAVE_VERSION}"
-        ));
+    if (0..=3).contains(&save_version) {
+        return Err(SaveLoadError::LegacySaveRefused { save_version });
+    }
+    if save_version != SAVE_VERSION {
+        return Err(SaveLoadError::IncompatibleSaveVersion { save_version });
     }
 
+    let save_content_hash = match obj.get("content_hash") {
+        Some(Value::String(s)) if !s.trim().is_empty() => s.clone(),
+        Some(Value::String(_)) | None => {
+            return Err(SaveLoadError::ContentVersionMismatch {
+                save_content_hash: "<missing>".to_string(),
+                running_content_hash: running_content_hash.to_string(),
+            });
+        }
+        Some(_) => {
+            return Err(SaveLoadError::Corrupt(
+                "content_hash is not a string".to_string(),
+            ));
+        }
+    };
+
+    if save_content_hash != running_content_hash {
+        return Err(SaveLoadError::ContentVersionMismatch {
+            save_content_hash,
+            running_content_hash: running_content_hash.to_string(),
+        });
+    }
+
+    parse_state_fields(obj, save_content_hash).map_err(|e| {
+        if e.starts_with("seed_out_of_range:") {
+            SaveLoadError::SeedOutOfRange(e)
+        } else {
+            SaveLoadError::Corrupt(e)
+        }
+    })
+}
+
+fn parse_state_fields(
+    obj: &serde_json::Map<String, Value>,
+    content_hash: String,
+) -> Result<RunState, String> {
     let party_obj = obj
         .get("party")
         .and_then(|v| v.as_object())
@@ -918,6 +1069,7 @@ pub fn value_to_state(data: &Value) -> Result<RunState, String> {
         last_spoilage_day,
         backpack,
         callout_level,
+        content_hash,
     })
 }
 
@@ -1189,7 +1341,11 @@ mod tests {
         let save_dir = tmp.path().join(SAVE_DIR);
         fs::create_dir_all(&save_dir).unwrap();
         let save_path = save_dir.join(SAVE_FILE);
-        fs::write(&save_path, "{\"save_version\": 1}").unwrap();
+        fs::write(
+            &save_path,
+            format!("{{\"save_version\": 4, \"content_hash\": \"{EMBEDDED_CONTENT_HASH_HEX}\"}}"),
+        )
+        .unwrap();
         let res = load_game_result(tmp.path());
         assert!(!res.ok);
         assert_eq!(res.reason, "corrupt");

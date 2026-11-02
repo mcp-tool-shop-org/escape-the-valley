@@ -13,13 +13,15 @@
 //! 10. Phase 2 target: `ledger_reference.json.gz` schema and SHA-256 check (`ledger.py`, `ledger_proof.py`, `adapter.py`)
 //! 11. Phase 2 target: `notices_reference.json.gz` schema and SHA-256 check (`notices.py`)
 
+use etv_core::content::EMBEDDED_CONTENT_HASH_HEX;
 use etv_core::engine::{compute_ending, StepEngine, StepMessages};
 use etv_core::events::build_event_library;
 use etv_core::model::{Biome, EndingResult, IntentAction, PlayerIntent, RunState};
 use etv_core::rng::{coerce_rng_state, CpythonRng, RngState};
 use etv_core::save::{
     has_save, load_game, load_game_result, read_secrets_sidecar, save_game, state_to_value,
-    value_to_state, SAVE_DIR, SAVE_FILE, SECRETS_FILE,
+    value_to_state, SaveLoadError, LEGACY_SAVE_REFUSAL_MESSAGE, PYTHON_SAVE_VERSION, SAVE_DIR,
+    SAVE_FILE, SAVE_VERSION, SECRETS_FILE,
 };
 use etv_core::worldgen::{
     create_new_run, create_new_run_with_rng, generate_weather, load_json_events,
@@ -47,6 +49,38 @@ fn to_canonical_json_string(val: &Value) -> String {
     serde_json::to_string(val).expect("serialize canonical JSON")
 }
 
+/// Convert a Rust v4 `state_to_value` into the frozen Python 1.3.x v1 shape for Tier 1 oracle vector comparison,
+/// after asserting the v4 `save_version` and `content_hash` fields are present and equal to the embedded content hash.
+fn state_to_oracle_v1_value(state: &RunState) -> Value {
+    let mut val = state_to_value(state);
+    let obj = val.as_object_mut().expect("state_to_value object");
+    assert_eq!(obj.get("save_version"), Some(&json!(SAVE_VERSION)));
+    assert_eq!(
+        obj.remove("content_hash"),
+        Some(json!(EMBEDDED_CONTENT_HASH_HEX))
+    );
+    obj.insert("save_version".to_string(), json!(PYTHON_SAVE_VERSION));
+    val
+}
+
+/// Adapt a frozen Python 1.3.x (`save_version` 0..=3) vector JSON value to v4 (`save_version: 4`, `content_hash`)
+/// so Tier 1 parity tests can exercise field hydration on the frozen vectors while production `load_game` / `value_to_state`
+/// refuses 0..=3 saves.
+fn upgrade_oracle_v1_value_to_v4(val: &Value) -> Value {
+    let mut out = val.clone();
+    if let Some(obj) = out.as_object_mut() {
+        obj.insert("save_version".to_string(), json!(SAVE_VERSION));
+        obj.insert("content_hash".to_string(), json!(EMBEDDED_CONTENT_HASH_HEX));
+    }
+    out
+}
+
+fn upgrade_oracle_v1_json_to_v4(raw_json: &str) -> String {
+    let val: Value = serde_json::from_str(raw_json).expect("valid oracle save JSON");
+    let v4 = upgrade_oracle_v1_value_to_v4(&val);
+    serde_json::to_string_pretty(&v4).expect("serialize upgraded v4 JSON")
+}
+
 fn sha256_hex_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut out = String::with_capacity(64);
@@ -61,6 +95,27 @@ fn sha256_hex_bytes(bytes: &[u8]) -> String {
 struct OracleMeta {
     python_version: String,
     oracle_commit: String,
+    generator_sha256: String,
+    vector_sha256: String,
+    vector_files_sha256: BTreeMap<String, String>,
+}
+
+const EXPECTED_GENERATOR_SHA256: &str =
+    "3917d0889f28f949f63c07f832c8cab9c04593dc0a49009f1dc3b17be19627a8";
+
+fn assert_oracle_meta(meta: &OracleMeta, file_name: &str, expected_vector_sha256: &str) {
+    assert_eq!(meta.python_version, "3.12.13");
+    assert_eq!(
+        meta.oracle_commit,
+        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    );
+    assert_eq!(meta.generator_sha256, EXPECTED_GENERATOR_SHA256);
+    assert_eq!(meta.vector_sha256, expected_vector_sha256);
+    assert_eq!(meta.vector_files_sha256.len(), 8);
+    assert_eq!(
+        meta.vector_files_sha256.get(file_name).map(String::as_str),
+        Some(expected_vector_sha256)
+    );
 }
 
 // ── 1. S1 & Gameplay RNG Vectors ────────────────────────────────────────────
@@ -154,10 +209,10 @@ fn check_01_s1_rng_vectors_and_pool_label() {
     let raw = include_bytes!("../../oracle/vectors/rng_s1_vectors.json.gz");
     let vf: S1VectorsFile = read_gzip_json(raw);
     assert_eq!(vf.schema, "etv-s1-rng-v2");
-    assert_eq!(vf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        vf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &vf.metadata,
+        "rng_s1_vectors.json.gz",
+        "1f891b7b21ac17c33c9a88d3e01091a58c3c0a5b38d014a58ea82d5842586605",
     );
 
     let mut total_checks = 0usize;
@@ -432,10 +487,10 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
     let raw = include_bytes!("../../oracle/vectors/worldgen_200.json.gz");
     let wf: WorldgenFile = read_gzip_json(raw);
     assert_eq!(wf.schema, "etv-phase1a-worldgen-v1");
-    assert_eq!(wf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        wf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &wf.metadata,
+        "worldgen_200.json.gz",
+        "179944a803e73791d27b8831cc1b9f20eebb3584a02cd0b40068f240e7804003",
     );
     assert_eq!(wf.count, 200);
     assert_eq!(wf.vectors.len(), 200);
@@ -475,7 +530,7 @@ fn check_02_worldgen_200_seeds_and_event_skeletons() {
         );
 
         state.run_id = parts[0].to_string();
-        let val = state_to_value(&state);
+        let val = state_to_oracle_v1_value(&state);
         let got_canonical = to_canonical_json_string(&val);
         assert_eq!(
             got_canonical, wv.canonical_json,
@@ -692,10 +747,10 @@ fn check_03_save_round_trip_20_saves() {
     let raw = include_bytes!("../../oracle/vectors/saves_20.json.gz");
     let sf: SavesFile = read_gzip_json(raw);
     assert_eq!(sf.schema, "etv-phase1a-saves-v1");
-    assert_eq!(sf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        sf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &sf.metadata,
+        "saves_20.json.gz",
+        "cd5f10b46b5018ed3722b5c184087196549036223167e1ee3bc045476fcbfafa",
     );
     assert_eq!(sf.saves_20.len(), 20);
 
@@ -704,7 +759,20 @@ fn check_03_save_round_trip_20_saves() {
         let save_dir = tmp.path().join(SAVE_DIR);
         std::fs::create_dir_all(&save_dir).unwrap();
         let save_path = save_dir.join(SAVE_FILE);
+
+        // 1. Direct load of unmodified Python 1.3.x v1 save is refused with LEGACY_SAVE_REFUSAL_MESSAGE
         std::fs::write(&save_path, &sv.raw_save_json).unwrap();
+        let refused = load_game_result(tmp.path());
+        assert!(!refused.ok);
+        assert_eq!(refused.reason, LEGACY_SAVE_REFUSAL_MESSAGE);
+        assert_eq!(
+            refused.error,
+            Some(SaveLoadError::LegacySaveRefused { save_version: 1 })
+        );
+
+        // 2. Adapt the frozen vector to v4 (save_version: 4 + embedded content_hash) to verify field round-trip
+        let v4_json = upgrade_oracle_v1_json_to_v4(&sv.raw_save_json);
+        std::fs::write(&save_path, &v4_json).unwrap();
 
         let res = load_game_result(tmp.path());
         assert!(res.ok, "failed to load {}: {}", sv.label, res.reason);
@@ -721,7 +789,15 @@ fn check_03_save_round_trip_20_saves() {
         let tmp2 = tempfile::tempdir().expect("tempdir 2");
         let resaved_path = save_game(&loaded_state, tmp2.path()).expect("save_game");
         let resaved_text = std::fs::read_to_string(&resaved_path).unwrap();
-        let resaved_val: Value = serde_json::from_str(&resaved_text).unwrap();
+        let mut resaved_val: Value = serde_json::from_str(&resaved_text).unwrap();
+        if let Some(obj) = resaved_val.as_object_mut() {
+            assert_eq!(obj.get("save_version"), Some(&json!(SAVE_VERSION)));
+            assert_eq!(
+                obj.remove("content_hash"),
+                Some(json!(EMBEDDED_CONTENT_HASH_HEX))
+            );
+            obj.insert("save_version".to_string(), json!(PYTHON_SAVE_VERSION));
+        }
         let resaved_canonical = to_canonical_json_string(&resaved_val);
 
         assert_eq!(
@@ -766,7 +842,17 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let save_dir = tmp.path().join(SAVE_DIR);
         std::fs::create_dir_all(&save_dir).unwrap();
-        std::fs::write(save_dir.join(SAVE_FILE), &mv.input_json).unwrap();
+        let save_path = save_dir.join(SAVE_FILE);
+
+        // Unmodified v1/v2 vector is refused as a legacy save without touching the file
+        std::fs::write(&save_path, &mv.input_json).unwrap();
+        let refused = load_game_result(tmp.path());
+        assert!(!refused.ok);
+        assert_eq!(refused.reason, LEGACY_SAVE_REFUSAL_MESSAGE);
+
+        // Adapt to v4 header to verify default-filling of omitted legacy fields on load
+        let v4_input = upgrade_oracle_v1_json_to_v4(&mv.input_json);
+        std::fs::write(&save_path, &v4_input).unwrap();
 
         let res = load_game_result(tmp.path());
         assert!(
@@ -782,7 +868,7 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
             mv.label
         );
 
-        let migrated_val = state_to_value(&state);
+        let migrated_val = state_to_oracle_v1_value(&state);
         let canonical = to_canonical_json_string(&migrated_val);
         assert_eq!(
             canonical, mv.canonical_migrated_json,
@@ -840,7 +926,8 @@ fn check_04_migration_v1_v2_to_v3_and_audit_l2() {
         val.as_object_mut()
             .unwrap()
             .insert("save_version".to_string(), json!(v));
-        assert!(value_to_state(&val).is_ok(), "version {v} must load");
+        let err = value_to_state(&val).expect_err("version 0..=3 must be refused in v4");
+        assert_eq!(err, LEGACY_SAVE_REFUSAL_MESSAGE);
     }
     let tmp_incompat = tempfile::tempdir().expect("tempdir");
     let save_dir = tmp_incompat.path().join(SAVE_DIR);
@@ -909,7 +996,8 @@ fn check_05_rng_restore_20_saves_plus_missing_and_malformed() {
     assert_eq!(sf.saves_20.len(), 20);
 
     for sv in &sf.saves_20 {
-        let val: Value = serde_json::from_str(&sv.raw_save_json).unwrap();
+        let raw_val: Value = serde_json::from_str(&sv.raw_save_json).unwrap();
+        let val = upgrade_oracle_v1_value_to_v4(&raw_val);
         let state = value_to_state(&val).expect("parse save");
 
         assert_eq!(sv.next_100_draws_with_state.len(), 100);
@@ -1254,7 +1342,7 @@ struct ResumeRunVector {
 }
 
 fn compute_state_hash_and_digest(state: &RunState) -> (String, StateDigest) {
-    let mut val = state_to_value(state);
+    let mut val = state_to_oracle_v1_value(state);
     if let Some(obj) = val.as_object_mut() {
         if let Some(rid) = obj.get("run_id").and_then(|v| v.as_str()) {
             if let Some((prefix, _)) = rid.split_once('-') {
@@ -1501,10 +1589,10 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
     let raw = include_bytes!("../../oracle/vectors/turns_1000_seeds.json.gz");
     let tf: TurnsHarnessFile = read_gzip_json(raw);
     assert_eq!(tf.schema, "etv-phase1b-turns-v1");
-    assert_eq!(tf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        tf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &tf.metadata,
+        "turns_1000_seeds.json.gz",
+        "ce7feff96f7e7c22dd4a9925137c1fd10571afebd1bf9d50e1022c24fa375722",
     );
 
     // Non-vacuous length assertions
@@ -1522,7 +1610,8 @@ fn check_07_golden_harness_1000_seeds_60_turns_and_260_events() {
 
     // 2. Verify all 8 ending and `finalize_run` vectors
     for ev in &tf.ending_vectors {
-        let val: Value = serde_json::from_str(&ev.input_state_json).unwrap();
+        let raw_val: Value = serde_json::from_str(&ev.input_state_json).unwrap();
+        let val = upgrade_oracle_v1_value_to_v4(&raw_val);
         let st = value_to_state(&val).expect("parse ending vector state");
         let (got_ending, got_cod, got_over) = if ev.use_finalize {
             let mut eng = StepEngine::new(st);
@@ -1744,10 +1833,10 @@ fn check_07b_golden_harness_long_runs_victories_endings_deaths_and_spoilage() {
     let raw = include_bytes!("../../oracle/vectors/turns_long_seeds.json.gz");
     let tf: TurnsHarnessFile = read_gzip_json(raw);
     assert_eq!(tf.schema, "etv-phase1b-turns-long-v1");
-    assert_eq!(tf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        tf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &tf.metadata,
+        "turns_long_seeds.json.gz",
+        "4c912f31e750ec3588db843ff5a54a593375e072033ab51ccec9cea16390237f",
     );
 
     assert_eq!(tf.seed_count, 80);
@@ -1949,10 +2038,10 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
     let rf: ResumeHarnessFile = read_gzip_json(raw_resume);
 
     assert_eq!(rf.schema, "etv-phase1b-resume-v2");
-    assert_eq!(rf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        rf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &rf.metadata,
+        "resume_120_seeds.json.gz",
+        "76fa1228de387ecaf689e08725f603bb7e95cf4253a5623099207a45801b8caf",
     );
     assert_eq!(rf.count, 120);
     assert_eq!(rf.save_turn, 20);
@@ -2015,7 +2104,8 @@ fn check_08_golden_harness_120_save_and_resume_runs() {
                     let tmp_py = tempfile::tempdir().expect("tempdir py save");
                     let save_dir_py = tmp_py.path().join(SAVE_DIR);
                     std::fs::create_dir_all(&save_dir_py).unwrap();
-                    std::fs::write(save_dir_py.join(SAVE_FILE), &rr.raw_save_json).unwrap();
+                    let upgraded_py_save = upgrade_oracle_v1_json_to_v4(&rr.raw_save_json);
+                    std::fs::write(save_dir_py.join(SAVE_FILE), &upgraded_py_save).unwrap();
 
                     let loaded_py = load_game(tmp_py.path()).expect("load Python turn-20 save");
                     let mut eng_from_py = StepEngine::new(loaded_py);
@@ -2201,14 +2291,14 @@ fn check_10_phase2_target_ledger_reference_vectors() {
     let raw = include_bytes!("../../oracle/vectors/ledger_reference.json.gz");
     assert_eq!(
         sha256_hex_bytes(raw),
-        "5d04b91a438c5a27487573a7b2443a784260721c1ccdf780cf5538a878465605"
+        "ffe4b12dabeed12ec751469bb642bef353f5305c8da0d30d64d08d30756fd766"
     );
     let lf: LedgerReferenceFile = read_gzip_json(raw);
     assert_eq!(lf.schema, "etv-phase2-ledger-v1");
-    assert_eq!(lf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        lf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &lf.metadata,
+        "ledger_reference.json.gz",
+        "bcbc4a6b30aed16fddbb66f301f1498b6a69e01424dd64cdacf9c7891773d964",
     );
     assert_eq!(lf.ledger_case_count, 12);
     assert_eq!(lf.ledger_cases.len(), 12);
@@ -2217,7 +2307,8 @@ fn check_10_phase2_target_ledger_reference_vectors() {
 
     for lc in &lf.ledger_cases {
         assert!(!lc.case_id.is_empty());
-        let parsed_state = value_to_state(&lc.state)
+        let v4_state = upgrade_oracle_v1_value_to_v4(&lc.state);
+        let parsed_state = value_to_state(&v4_state)
             .unwrap_or_else(|e| panic!("ledger case {} state must parse: {e}", lc.case_id));
         assert_eq!(parsed_state.seed, lc.seed);
         assert!(parsed_state.backpack.wallet_secret.is_empty());
@@ -2316,14 +2407,14 @@ fn check_11_phase2_target_notices_reference_vectors() {
     let raw = include_bytes!("../../oracle/vectors/notices_reference.json.gz");
     assert_eq!(
         sha256_hex_bytes(raw),
-        "d8edd4d272c827b5e44ad379dc2262b7380b5d8a22be5b4855b401e282a48c6f"
+        "be8eec30247e4a9cd95dc4f5b40ea1e7776bbdb6a86634b0b786f835b21075ca"
     );
     let nf: NoticesReferenceFile = read_gzip_json(raw);
     assert_eq!(nf.schema, "etv-phase2-notices-v1");
-    assert_eq!(nf.metadata.python_version, "3.12.13");
-    assert_eq!(
-        nf.metadata.oracle_commit,
-        "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
+    assert_oracle_meta(
+        &nf.metadata,
+        "notices_reference.json.gz",
+        "c56c3e2ee26d26dc3929624a36a81146face8546c605a85a7037dd1a8fcc59ee",
     );
     assert_eq!(nf.python_version, "3.12.13");
     assert_eq!(nf.pbs_build_tag, "20260510");

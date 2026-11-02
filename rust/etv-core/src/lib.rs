@@ -10,6 +10,7 @@
 //! - [`events`]: Full 260-event library (60 hand-authored + 200 JSON), weighted selection, cooldowns, advertised inventory cost gating, outcome resolution, and state application.
 //! - [`engine`]: Step-based deterministic turn engine (`StepEngine`), phase transitions (`Camp`, `Event`, `Route`, `GameOver`), route choices, town arrival trade, and graded endings (`compute_ending`).
 
+pub mod content;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;
@@ -18,4 +19,6 @@ pub mod model;
 pub mod physics;
 pub mod rng;
 pub mod save;
+pub mod snapshot;
+pub mod validator;
 pub mod worldgen;

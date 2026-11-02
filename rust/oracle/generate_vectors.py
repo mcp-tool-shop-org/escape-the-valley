@@ -4,30 +4,25 @@
 Pinned legacy Python commit SHA:
     87104824d1f5b8bfda5b0dc5c14bc5a8e3721407
 
-Generator code SHA-256 (post-docstring body; full-file SHA-256 recorded in README.md):
-    ab60af19d0871f1d15b634ee7ee7ec4bdbeab684a4c63cbe0bba70d4fb79d8f0
-
 Run against the pinned CPython 3.12.13 (python-build-standalone 20260510) venv:
 
     uv run --no-sync python rust/oracle/generate_vectors.py
 
 Produces 8 deterministic gzip-compressed vector files in `rust/oracle/vectors/`:
 1. `rng_s1_vectors.json.gz`
-   SHA-256: 3502a1a025af60ba887dc0bd4f3d28a0efe54de5f07007c51b329a90bcb200af
 2. `worldgen_200.json.gz`
-   SHA-256: 8d0687472f3d8bd747c65ea10160a6ff593c9fdd19a1e95d1e6bfa6330c9a054
 3. `saves_20.json.gz`
-   SHA-256: 29cb378837c3771bf7e82f3878488f5e2c45c2cfcd7458ffdd8d248e0e3ce027
 4. `turns_1000_seeds.json.gz`
-   SHA-256: 61525662348f3c7874fe74cb9c71ce5de2f6f6553e83a65aef19f8d19196b418
 5. `turns_long_seeds.json.gz`
-   SHA-256: 94278582e7be5eac3e5c0ba7f608d8a832e800bddaebc9c1ae67c7c46e570435
 6. `resume_120_seeds.json.gz`
-   SHA-256: f40d1adb6d7eba495732cf3fe13f0144b708f10d89d8c405f46dcb4c4769e4ac
 7. `ledger_reference.json.gz`
-   SHA-256: 5d04b91a438c5a27487573a7b2443a784260721c1ccdf780cf5538a878465605
 8. `notices_reference.json.gz`
-   SHA-256: d8edd4d272c827b5e44ad379dc2262b7380b5d8a22be5b4855b401e282a48c6f
+
+Each vector file header (`metadata`) records `oracle_commit`, `generator_sha256`
+(the full-file SHA-256 of `rust/oracle/generate_vectors.py`), `vector_sha256`
+(the canonical JSON SHA-256 of that vector file's content excluding `metadata`),
+and `vector_files_sha256` (all 8 vector files' content SHA-256s). Compressed
+`.json.gz` file SHA-256s are recorded in `rust/oracle/README.md`.
 """
 
 from __future__ import annotations
@@ -46,7 +41,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-import escape_the_valley
 from escape_the_valley.adapter import (
     FrameState,
     build_ending_facts,
@@ -149,9 +143,9 @@ PINNED_ORACLE_COMMIT = "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
 PINNED_ORACLE_TREE = "e1f37816a4c25e2a4a796f4feef59ebfd489a997"
 
 
-def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, str]:
+def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, Any]:
     if repo_dir is None:
-        repo_dir = Path(escape_the_valley.__file__).resolve().parents[2]
+        repo_dir = Path(__file__).resolve().parents[2]
     has_commit = (
         subprocess.run(
             [
@@ -211,10 +205,12 @@ def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, str]:
             f"Refusing to generate oracle vectors: dirty or untracked files in "
             f"src/escape_the_valley relative to {PINNED_ORACLE_COMMIT}:\n{status}"
         )
+    generator_sha256 = hashlib.sha256(Path(__file__).resolve().read_bytes()).hexdigest()
     return {
         "python_version": sys.version.split()[0],
         "python_full": sys.version,
         "oracle_commit": PINNED_ORACLE_COMMIT,
+        "generator_sha256": generator_sha256,
     }
 
 
@@ -823,7 +819,11 @@ def make_20_real_saves() -> list[dict[str, Any]]:
             )
             reloaded_for_snap = load_game(run_dir)
             assert reloaded_for_snap is not None
-            minted_snapshot = minted_snapshot_of(reloaded_for_snap.backpack)
+            raw_snap = minted_snapshot_of(reloaded_for_snap.backpack)
+            snap_order = ("water", "ammo", "meds", "parts", "food")
+            minted_snapshot = (
+                {k: raw_snap[k] for k in snap_order if k in raw_snap} if raw_snap else raw_snap
+            )
 
             draws_with_state = next_100_draws_from_save(
                 engine.state.seed,
@@ -939,7 +939,11 @@ def make_migration_vectors() -> list[dict[str, Any]]:
             canonical_migrated = json.dumps(
                 migrated_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False
             )
-            minted_snapshot = minted_snapshot_of(loaded.backpack)
+            raw_snap = minted_snapshot_of(loaded.backpack)
+            snap_order = ("water", "ammo", "meds", "parts", "food")
+            minted_snapshot = (
+                {k: raw_snap[k] for k in snap_order if k in raw_snap} if raw_snap else raw_snap
+            )
             draws = next_100_draws_from_save(loaded.seed, loaded.rng_counter, loaded.rng_state)
 
             cases.append(
@@ -1373,8 +1377,21 @@ def generate_ending_vectors() -> list[dict[str, Any]]:
     s8.supplies.set("parts", 0)
     cases.append(("finalize_run_wagon_failure", s8, True))
 
+    deterministic_ending_run_ids = (
+        "73475cb4-9e6bf2c9",
+        "73475cb4-263b7ef6",
+        "73475cb4-cf225297",
+        "73475cb4-751a2382",
+        "73475cb4-45c8750a",
+        "73475cb4-838f5a0e",
+        "73475cb4-7197ce98",
+        "73475cb4-799913ba",
+    )
     out = []
-    for label, st, use_finalize in cases:
+    for (label, st, use_finalize), det_run_id in zip(
+        cases, deterministic_ending_run_ids, strict=True
+    ):
+        st.run_id = det_run_id
         raw_input = json.dumps(
             _state_to_dict(st), sort_keys=True, separators=(",", ":"), ensure_ascii=False
         )
@@ -2300,6 +2317,13 @@ def generate_notices_reference_vectors(meta: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def compute_vector_content_sha256(payload: dict[str, Any]) -> str:
+    """Compute the deterministic SHA-256 of a vector payload excluding `metadata`."""
+    body = {k: v for k, v in payload.items() if k != "metadata"}
+    canonical = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return sha256_hex(canonical)
+
+
 def write_gzip_json(path: Path, payload: dict[str, Any], *, compact: bool = False) -> str:
     """Write deterministic gzip-compressed JSON (`mtime=0`, `filename=''`) and return SHA-256."""
     if compact:
@@ -2327,40 +2351,55 @@ def main() -> None:
     print(f"Oracle: Python {meta['python_version']} at {meta['oracle_commit']}")
 
     # 1. S1 & Gameplay RNG vectors
-    s1_payload = {
+    s1_payload: dict[str, Any] = {
         "schema": "etv-s1-rng-v2",
-        "metadata": meta,
+        "metadata": dict(meta),
         "seed_vectors": [generate_s1_seed_vector(label, seed) for label, seed in S1_SEEDS],
         "save_restore_vector": generate_s1_save_restore_vector(),
     }
-    write_gzip_json(out_dir / "rng_s1_vectors.json.gz", s1_payload)
 
     # 2. Worldgen 200 seeds + 200 JSON events
-    wg_payload = generate_worldgen_vectors(meta)
-    write_gzip_json(out_dir / "worldgen_200.json.gz", wg_payload)
+    wg_payload = generate_worldgen_vectors(dict(meta))
 
     # 3. Saves 20 + Migrations + RNG restore
-    saves_payload = {
+    saves_payload: dict[str, Any] = {
         "schema": "etv-phase1a-saves-v1",
-        "metadata": meta,
+        "metadata": dict(meta),
         "saves_20": make_20_real_saves(),
         "migrations": make_migration_vectors(),
     }
-    write_gzip_json(out_dir / "saves_20.json.gz", saves_payload)
 
     # 4, 5, 6. Golden harness: 1,000x60 + 80x250 + 120 save-and-resume runs at turn 20
-    turns_payload, long_turns_payload, resume_payload = generate_golden_harness_vectors(meta)
-    write_gzip_json(out_dir / "turns_1000_seeds.json.gz", turns_payload, compact=True)
-    write_gzip_json(out_dir / "turns_long_seeds.json.gz", long_turns_payload, compact=True)
-    write_gzip_json(out_dir / "resume_120_seeds.json.gz", resume_payload, compact=True)
+    turns_payload, long_turns_payload, resume_payload = generate_golden_harness_vectors(dict(meta))
 
     # 7. Ledger & proof reference vectors (Phase 2 target)
-    ledger_payload = generate_ledger_reference_vectors(meta)
-    write_gzip_json(out_dir / "ledger_reference.json.gz", ledger_payload)
+    ledger_payload = generate_ledger_reference_vectors(dict(meta))
 
     # 8. Notices reference vectors (Phase 2 target)
-    notices_payload = generate_notices_reference_vectors(meta)
-    write_gzip_json(out_dir / "notices_reference.json.gz", notices_payload)
+    notices_payload = generate_notices_reference_vectors(dict(meta))
+
+    vector_specs: list[tuple[str, dict[str, Any], bool]] = [
+        ("rng_s1_vectors.json.gz", s1_payload, False),
+        ("worldgen_200.json.gz", wg_payload, False),
+        ("saves_20.json.gz", saves_payload, False),
+        ("turns_1000_seeds.json.gz", turns_payload, True),
+        ("turns_long_seeds.json.gz", long_turns_payload, True),
+        ("resume_120_seeds.json.gz", resume_payload, True),
+        ("ledger_reference.json.gz", ledger_payload, False),
+        ("notices_reference.json.gz", notices_payload, False),
+    ]
+
+    vector_files_sha256: dict[str, str] = {
+        filename: compute_vector_content_sha256(payload) for filename, payload, _ in vector_specs
+    }
+
+    for filename, payload, compact in vector_specs:
+        payload["metadata"] = {
+            **meta,
+            "vector_sha256": vector_files_sha256[filename],
+            "vector_files_sha256": dict(vector_files_sha256),
+        }
+        write_gzip_json(out_dir / filename, payload, compact=compact)
 
     total_bytes = sum(p.stat().st_size for p in out_dir.glob("*.json.gz"))
     mb = total_bytes / (1024 * 1024)
