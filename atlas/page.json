@@ -8,6 +8,20 @@
   ],
   "authoredWritten": [
     {
+      "place": "rust/etv-core/notices/THIRD_PARTY_NOTICES.txt",
+      "untrackedInputs": true,
+      "writers": [
+        "rust/tools/gen_notices.py"
+      ]
+    },
+    {
+      "place": "rust/etv-core/notices/notices_manifest.json",
+      "untrackedInputs": true,
+      "writers": [
+        "rust/tools/gen_notices.py"
+      ]
+    },
+    {
       "place": "src/escape_the_valley/data/event_skeletons.json",
       "untrackedInputs": true,
       "writers": [
@@ -115,8 +129,8 @@
       }
     ],
     "since": {
-      "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
-      "generatedAt": "2026-11-02T03:44:00.015Z"
+      "commit": "25c9f0c5a3a269edf452b1ef7101a168d1be1d72",
+      "generatedAt": "2026-11-02T06:38:24.726Z"
     },
     "unchanged": false
   },
@@ -203,9 +217,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "5fa8b6798faf4838af610437e1f0149a0f1d0a01",
+  "commit": "0b83fd2c24848d909bf8b2061317d70d734ddbe5",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (66 files), Rust (16), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
+  "derived": "10 parts, mostly Python (67 files), Rust (20), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
     {
       "checks": [
@@ -257,7 +271,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 8,
+      "runsMore": 9,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -319,7 +333,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 8,
+      "runsMore": 9,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -567,13 +581,13 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T06:32:47.445Z",
+  "generatedAt": "2026-11-02T07:28:49.688Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
     "4 writes and 19 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "35 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 32 more.",
+    "43 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 40 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -601,7 +615,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 31,
+  "testFiles": 32,
   "testedBy": {
     "agents": 1,
     "bin": 0,
@@ -620,5 +634,5 @@
     }
   ],
   "untestedNote": [],
-  "written": 1
+  "written": 3
 }

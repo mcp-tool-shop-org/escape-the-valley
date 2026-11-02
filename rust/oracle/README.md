@@ -26,3 +26,15 @@ The Python oracle (`rust/oracle/generate_vectors.py`) is permanently pinned to t
 | `vectors/resume_120_seeds.json.gz` | 1,446,712 | `6af98bd0175d8bdf95e59d2151629b59d00c0fc7aa89e0b8dd50f47fe63ea112` | `76fa1228de387ecaf689e08725f603bb7e95cf4253a5623099207a45801b8caf` | Phase 1b (120 Save/Resume Runs) |
 | `vectors/ledger_reference.json.gz` | 75,166 | `688cdc9491e03f5d44a50d792c836a1ed05cff99fede4b728e844716ad9bc743` | `bcbc4a6b30aed16fddbb66f301f1498b6a69e01424dd64cdacf9c7891773d964` | Phase 2 (Trail Ledger, Postcard & Proof) |
 | `vectors/notices_reference.json.gz` | 186,734 | `4d75fa318f29677255578b547d051b0984048b500e4d9dab2b221b05e133a242` | `c56c3e2ee26d26dc3929624a36a81146face8546c605a85a7037dd1a8fcc59ee` | Phase 2 (`trail licenses` & `THIRD_PARTY_NOTICES.txt`) |
+
+## Regenerating Rust Third-Party Notices (`etv --notices`)
+
+Whereas `vectors/notices_reference.json.gz` captures the frozen legacy Python distribution notices, the Rust binary notices (`rust/etv-core/notices/notices_manifest.json` and `rust/etv-core/notices/THIRD_PARTY_NOTICES.txt`) are generated from `rust/Cargo.lock`, `rust/etv-core/Cargo.toml`, and each crate's license files in the local Cargo registry source (`$CARGO_HOME/registry/src/index.crates.io-*/<name>-<version>/`):
+
+```bash
+# Regenerate rust/etv-core/notices/notices_manifest.json and THIRD_PARTY_NOTICES.txt:
+python rust/tools/gen_notices.py
+
+# Verify checked-in files match generator output byte-for-byte:
+python rust/tools/gen_notices.py --check
+```

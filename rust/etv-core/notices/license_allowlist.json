@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "description": "Permissive SPDX license allow-list for crates and bundled data files compiled into the Escape the Valley (etv) binary. Copyleft licenses are prohibited.",
+  "allowed_spdx_identifiers": [
+    "Apache-2.0",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense"
+  ],
+  "allowed_license_expressions": [
+    "(MIT OR Apache-2.0) AND Unicode-3.0",
+    "MIT",
+    "MIT OR Apache-2.0",
+    "MIT/Apache-2.0",
+    "Unlicense OR MIT"
+  ],
+  "prohibited_copyleft_prefixes": [
+    "AGPL",
+    "CDDL",
+    "CPL",
+    "EPL",
+    "EUPL",
+    "GPL",
+    "LGPL",
+    "MPL",
+    "OSL",
+    "SSPL"
+  ]
+}

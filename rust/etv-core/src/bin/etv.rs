@@ -1,8 +1,10 @@
+use std::io::Write;
 use std::process::ExitCode;
 
 use etv_core::content::{
     embedded_content_pack, parse_cli_args, version_with_content_hash, CliCommand, ContentPack,
 };
+use etv_core::notices::third_party_notices_text;
 use etv_core::snapshot::run_tier2_seed_trace;
 use etv_core::validator::{validate_content_with_options, ValidationOptions};
 
@@ -29,6 +31,15 @@ fn main() -> ExitCode {
         }
     };
 
+    if opts.command == CliCommand::Notices {
+        let text = third_party_notices_text();
+        if let Err(e) = std::io::stdout().write_all(text.as_bytes()) {
+            eprintln!("error writing notices: {e}");
+            return ExitCode::from(1);
+        }
+        return ExitCode::SUCCESS;
+    }
+
     let content = match load_selected_content(opts.content_dir.as_deref()) {
         Ok(c) => c,
         Err(e) => {
@@ -42,6 +53,7 @@ fn main() -> ExitCode {
             println!("{}", version_with_content_hash(&content));
             ExitCode::SUCCESS
         }
+        CliCommand::Notices => ExitCode::SUCCESS,
         CliCommand::ValidateContent { require_outcomes } => {
             let report =
                 validate_content_with_options(&content, ValidationOptions { require_outcomes });
@@ -106,6 +118,11 @@ fn main() -> ExitCode {
                         t.presentation_record.event_title,
                         t.presentation_record.narration
                     );
+                }
+                if !t.presentation_record.trail_ledger_lines.is_empty() {
+                    for line in &t.presentation_record.trail_ledger_lines {
+                        println!("{line}");
+                    }
                 }
             }
             ExitCode::SUCCESS

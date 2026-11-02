@@ -330,6 +330,7 @@ impl TrailLedgerHeader {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliCommand {
     Version,
+    Notices,
     ValidateContent { require_outcomes: bool },
     InspectEvent { event_id: String },
     RunSeed { seed: i128, turns: usize },
@@ -342,7 +343,7 @@ pub struct CliOptions {
     pub content_dir: Option<PathBuf>,
 }
 
-/// Parse CLI arguments (`--version`, `validate-content [--require-outcomes]`,
+/// Parse CLI arguments (`--version`, `--notices`, `validate-content [--require-outcomes]`,
 /// `inspect-event <id>`, `run-seed <seed> [--turns <n>]`, and `--content-dir <dir>`).
 ///
 /// Rejects `--content-dir` in builds compiled without `--features authoring`.
@@ -352,6 +353,7 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     let mut positional: Vec<String> = Vec::new();
     let mut require_outcomes = false;
     let mut version_flag = false;
+    let mut notices_flag = false;
     let mut turns: usize = 60;
 
     let mut i = 0;
@@ -359,6 +361,9 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
         let arg = &args[i];
         if arg == "--version" || arg == "-V" {
             version_flag = true;
+            i += 1;
+        } else if arg == "--notices" || arg == "--licenses" {
+            notices_flag = true;
             i += 1;
         } else if arg == "--require-outcomes" {
             require_outcomes = true;
@@ -406,12 +411,20 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
         });
     }
 
+    if notices_flag {
+        return Ok(CliOptions {
+            command: CliCommand::Notices,
+            content_dir,
+        });
+    }
+
     let sub = positional.first().map(String::as_str).ok_or_else(|| {
-        "expected command: --version | validate-content | inspect-event <id> | run-seed <seed>"
+        "expected command: --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
             .to_string()
     })?;
 
     let command = match sub {
+        "notices" | "licenses" => CliCommand::Notices,
         "validate-content" => CliCommand::ValidateContent { require_outcomes },
         "inspect-event" => {
             let event_id = positional
