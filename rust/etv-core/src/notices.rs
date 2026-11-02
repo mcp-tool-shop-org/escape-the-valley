@@ -103,6 +103,16 @@ pub struct NoticesManifest {
     pub crates: Vec<CrateNotice>,
 }
 
+/// Pinned crate entry in [`LicenseAllowlist::reviewed_crates`] recording version and license
+/// re-read at pin time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewedCratePin {
+    pub name: String,
+    pub version: String,
+    pub license: String,
+    pub reviewed_on: String,
+}
+
 /// Repository SPDX license allow-list for crates and bundled data files.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LicenseAllowlist {
@@ -110,6 +120,8 @@ pub struct LicenseAllowlist {
     pub description: String,
     pub allowed_spdx_identifiers: Vec<String>,
     pub allowed_license_expressions: Vec<String>,
+    #[serde(default)]
+    pub reviewed_crates: Vec<ReviewedCratePin>,
     pub prohibited_copyleft_prefixes: Vec<String>,
 }
 
@@ -362,6 +374,34 @@ pub fn validate_notices_against_allowlist(
                     code: "ALLOWLIST_CONTAINS_COPYLEFT".to_string(),
                     message: format!(
                         "allow-list contains prohibited copyleft identifier '{allowed_id}'"
+                    ),
+                });
+            }
+        }
+    }
+
+    // Validate pinned reviewed_crates entries against the allow-list and manifest
+    for pin in &allowlist.reviewed_crates {
+        let pin_subj = format!("{}@{}", pin.name, pin.version);
+        validate_license_expression(&pin_subj, &pin.license, allowlist, &mut errors);
+        if let Some(found) = manifest.crates.iter().find(|c| c.name == pin.name) {
+            if found.version != pin.version {
+                errors.push(NoticesValidationError {
+                    subject: pin_subj.clone(),
+                    code: "PINNED_CRATE_VERSION_MISMATCH".to_string(),
+                    message: format!(
+                        "pinned crate '{}' expected version '{}', found '{}'",
+                        pin.name, pin.version, found.version
+                    ),
+                });
+            }
+            if found.license != pin.license {
+                errors.push(NoticesValidationError {
+                    subject: pin_subj,
+                    code: "PINNED_CRATE_LICENSE_MISMATCH".to_string(),
+                    message: format!(
+                        "pinned crate '{}' expected license '{}', found '{}'",
+                        pin.name, pin.license, found.license
                     ),
                 });
             }
@@ -886,6 +926,7 @@ pub fn generate_notices_from_workspace(
         });
     }
 
+    let embedded_fallback = embedded_notices_manifest();
     let mut crates = Vec::with_capacity(compiled_pairs.len());
     for (name, version) in compiled_pairs {
         let lock_pkg = lock_map
@@ -903,6 +944,7 @@ pub fn generate_notices_from_workspace(
                     &repo_root.join("rust/Cargo.toml").to_string_lossy(),
                     "--format-version",
                     "1",
+                    "--all-features",
                     "--locked",
                 ])
                 .stdin(std::process::Stdio::null())
@@ -915,9 +957,21 @@ pub fn generate_notices_from_workspace(
                 .map(|d| d.join(format!("{name}-{version}")))
                 .find(|p| p.is_dir());
         }
-        let crate_dir = crate_dir_opt.ok_or_else(|| {
-            format!("crate directory {name}-{version} not found in local Cargo registry source")
-        })?;
+        let Some(crate_dir) = crate_dir_opt else {
+            let expected_cksum = lock_pkg.checksum.as_deref().unwrap_or_default();
+            if let Some(existing) = embedded_fallback.crates.iter().find(|c| {
+                c.name == name
+                    && c.version == version
+                    && !expected_cksum.is_empty()
+                    && c.cargo_lock_checksum == expected_cksum
+            }) {
+                crates.push(existing.clone());
+                continue;
+            }
+            return Err(format!(
+                "crate directory {name}-{version} not found in local Cargo registry source"
+            ));
+        };
 
         let crate_toml_raw = std::fs::read_to_string(crate_dir.join("Cargo.toml"))
             .map_err(|e| format!("failed to read Cargo.toml for {name}-{version}: {e}"))?;

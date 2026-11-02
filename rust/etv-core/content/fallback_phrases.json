@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "phrases": {
+    "ammo": {
+      "neg": "PLACEHOLDER-ammo-neg",
+      "pos": "PLACEHOLDER-ammo-pos"
+    },
+    "animals_health": {
+      "neg": "PLACEHOLDER-animals_health-neg",
+      "pos": "PLACEHOLDER-animals_health-pos"
+    },
+    "boots": {
+      "neg": "PLACEHOLDER-boots-neg",
+      "pos": "PLACEHOLDER-boots-pos"
+    },
+    "cloth": {
+      "neg": "PLACEHOLDER-cloth-neg",
+      "pos": "PLACEHOLDER-cloth-pos"
+    },
+    "distance": {
+      "neg": "PLACEHOLDER-distance-neg",
+      "pos": "PLACEHOLDER-distance-pos"
+    },
+    "firewood": {
+      "neg": "PLACEHOLDER-firewood-neg",
+      "pos": "PLACEHOLDER-firewood-pos"
+    },
+    "food": {
+      "neg": "PLACEHOLDER-food-neg",
+      "pos": "PLACEHOLDER-food-pos"
+    },
+    "health": {
+      "neg": "PLACEHOLDER-health-neg",
+      "pos": "PLACEHOLDER-health-pos"
+    },
+    "lantern_oil": {
+      "neg": "PLACEHOLDER-lantern_oil-neg",
+      "pos": "PLACEHOLDER-lantern_oil-pos"
+    },
+    "meds": {
+      "neg": "PLACEHOLDER-meds-neg",
+      "pos": "PLACEHOLDER-meds-pos"
+    },
+    "morale": {
+      "neg": "PLACEHOLDER-morale-neg",
+      "pos": "PLACEHOLDER-morale-pos"
+    },
+    "none": {
+      "neutral": "PLACEHOLDER-none-neutral"
+    },
+    "oil": {
+      "neg": "PLACEHOLDER-oil-neg",
+      "pos": "PLACEHOLDER-oil-pos"
+    },
+    "parts": {
+      "neg": "PLACEHOLDER-parts-neg",
+      "pos": "PLACEHOLDER-parts-pos"
+    },
+    "rope": {
+      "neg": "PLACEHOLDER-rope-neg",
+      "pos": "PLACEHOLDER-rope-pos"
+    },
+    "salt": {
+      "neg": "PLACEHOLDER-salt-neg",
+      "pos": "PLACEHOLDER-salt-pos"
+    },
+    "time_days": {
+      "neg": "PLACEHOLDER-time_days-neg",
+      "pos": "PLACEHOLDER-time_days-pos"
+    },
+    "tools": {
+      "neg": "PLACEHOLDER-tools-neg",
+      "pos": "PLACEHOLDER-tools-pos"
+    },
+    "wagon_condition": {
+      "neg": "PLACEHOLDER-wagon_condition-neg",
+      "pos": "PLACEHOLDER-wagon_condition-pos"
+    },
+    "water": {
+      "neg": "PLACEHOLDER-water-neg",
+      "pos": "PLACEHOLDER-water-pos"
+    }
+  }
+}

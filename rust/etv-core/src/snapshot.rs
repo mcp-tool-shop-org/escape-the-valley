@@ -125,7 +125,9 @@ pub struct PresentationRecord {
     pub lines: Vec<String>,
     pub turn_matters: bool,
     pub narrator_calls: usize,
+    pub narrator_scene_text: Option<String>,
     pub narrator_text: Option<String>,
+    pub displayed_line: String,
     pub trail_ledger_lines: Vec<String>,
 }
 
@@ -456,7 +458,12 @@ pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
             &msgs,
             flags,
         );
-        let narrator_text = narrator.narrate(&ctx);
+        let turn_narration = narrator.narrate_turn(&ctx);
+        let narrator_scene_text = turn_narration.scene;
+        let narrator_text = turn_narration.outcome;
+        let displayed_line = narrator_text
+            .clone()
+            .unwrap_or_else(|| ctx.fallback_line().to_string());
 
         let trail_ledger_lines = if engine.phase == GamePhase::GameOver || engine.state.game_over {
             trail_ledger(&engine.state)
@@ -482,7 +489,9 @@ pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
             lines: msgs.lines,
             turn_matters,
             narrator_calls,
+            narrator_scene_text,
             narrator_text,
+            displayed_line,
             trail_ledger_lines,
         };
 

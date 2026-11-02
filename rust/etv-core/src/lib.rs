@@ -27,4 +27,10 @@ pub mod validator;
 pub mod worldgen;
 
 pub use ledger::trail_ledger;
-pub use narrator::{NarrationContext, Narrator, NullNarrator, TurnMattersFlags};
+pub use narrator::{
+    CheckFailure, CheckReasonCode, CheckerContext, ComposedFallbackComposer, EndpointError,
+    FallbackComposerError, FallbackPhraseTable, LiveNarrator, NarrationContext, Narrator,
+    NarratorLength, NarratorSettings, NarratorStats, NarratorTransport, NullNarrator,
+    OutcomeResponse, SceneResponse, StartupCheckStatus, TransportError, TurnMattersFlags,
+    TurnNarration, DEFAULT_OLLAMA_ENDPOINT, RESOURCE_NOUN_TABLE,
+};
