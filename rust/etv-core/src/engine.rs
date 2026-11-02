@@ -131,9 +131,26 @@ impl StepEngine {
         Self::with_options(state, false, None)
     }
 
+    /// Construct a `StepEngine` using an explicit `ContentPack` (`autosave = false`).
+    pub fn with_content(state: RunState, content: &crate::content::ContentPack) -> Self {
+        let mut engine = Self::with_options(state, false, None);
+        engine.event_library = content.all_events.clone();
+        engine
+    }
+
     /// Return the currently pending `EventSkeleton`, if the engine is in `GamePhase::Event`.
     pub fn pending_event(&self) -> Option<&EventSkeleton> {
         self.pending_event.as_ref()
+    }
+
+    /// Return the currently offered choices for a pending event.
+    pub fn pending_event_choices(&self) -> &[EventChoiceInfo] {
+        &self.pending_event_choices
+    }
+
+    /// Return the currently offered route forks when in `GamePhase::Route`.
+    pub fn pending_routes(&self) -> &[RouteOption] {
+        &self.pending_routes
     }
 
     /// Construct a `StepEngine` with explicit `autosave` and `base_path` options (`step_engine.py:161-235`).
@@ -787,6 +804,10 @@ impl StepEngine {
             self.advance_time();
         }
 
+        let choice_template = event
+            .fallback_choices
+            .iter()
+            .find(|c| &c.choice_id == choice_id);
         let choice_label = self
             .pending_event_choices
             .iter()
@@ -795,7 +816,19 @@ impl StepEngine {
             .unwrap_or_default();
 
         let outcome_title = "Outcome".to_string();
-        let outcome_narration = build_fallback_callout(&outcome);
+        let outcome_narration = if !outcome
+            .special_flags
+            .iter()
+            .any(|f| f == "insufficient_supplies")
+        {
+            choice_template
+                .and_then(|c| c.outcome_sentence.as_deref())
+                .filter(|s| !s.trim().is_empty())
+                .map(ToString::to_string)
+                .unwrap_or_else(|| build_fallback_callout(&outcome))
+        } else {
+            build_fallback_callout(&outcome)
+        };
 
         self.msgs.outcome_title = outcome_title;
         self.msgs.outcome_narration = outcome_narration.clone();
@@ -1644,6 +1677,7 @@ mod tests {
                 risk_hint: "Dangerous".to_string(),
                 cost_hint: "Health".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             }],
             outcome_templates: BTreeMap::from([(
                 "A".to_string(),

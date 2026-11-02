@@ -8,16 +8,15 @@ The Python oracle (`rust/oracle/generate_vectors.py`) is permanently pinned to t
 
 - **Pinned legacy Python commit SHA:** `87104824d1f5b8bfda5b0dc5c14bc5a8e3721407`
 - **Python runtime:** CPython `3.12.13` (`python-build-standalone` build tag `20260510`)
-- **`rust/oracle/generate_vectors.py` SHA-256:** `faf78ac8874346a496504e2d8b2495ad268231bbd1b7da664a84fd5ef783a4ee`
-- **`rust/oracle/generate_vectors.py` post-docstring code SHA-256:** `ab60af19d0871f1d15b634ee7ee7ec4bdbeab684a4c63cbe0bba70d4fb79d8f0`
+- **`rust/oracle/generate_vectors.py` SHA-256 (`metadata.generator_sha256`):** `3917d0889f28f949f63c07f832c8cab9c04593dc0a49009f1dc3b17be19627a8`
 
-| Vector File | Bytes | SHA-256 | Target Phase |
-|---|---:|---|---|
-| `vectors/rng_s1_vectors.json.gz` | 126,685 | `3502a1a025af60ba887dc0bd4f3d28a0efe54de5f07007c51b329a90bcb200af` | Phase 1a (RNG) |
-| `vectors/worldgen_200.json.gz` | 125,068 | `8d0687472f3d8bd747c65ea10160a6ff593c9fdd19a1e95d1e6bfa6330c9a054` | Phase 1a (Worldgen & Event JSON) |
-| `vectors/saves_20.json.gz` | 253,097 | `29cb378837c3771bf7e82f3878488f5e2c45c2cfcd7458ffdd8d248e0e3ce027` | Phase 1a (Save/Load & Migrations) |
-| `vectors/turns_1000_seeds.json.gz` | 7,525,427 | `61525662348f3c7874fe74cb9c71ce5de2f6f6553e83a65aef19f8d19196b418` | Phase 1b (1,000 Seeds × 60 Turns) |
-| `vectors/turns_long_seeds.json.gz` | 1,408,800 | `94278582e7be5eac3e5c0ba7f608d8a832e800bddaebc9c1ae67c7c46e570435` | Phase 1b (80 Long Seeds × 250 Turns) |
-| `vectors/resume_120_seeds.json.gz` | 1,446,080 | `f40d1adb6d7eba495732cf3fe13f0144b708f10d89d8c405f46dcb4c4769e4ac` | Phase 1b (120 Save/Resume Runs) |
-| `vectors/ledger_reference.json.gz` | 74,422 | `5d04b91a438c5a27487573a7b2443a784260721c1ccdf780cf5538a878465605` | Phase 2 (Trail Ledger, Postcard & Proof) |
-| `vectors/notices_reference.json.gz` | 186,064 | `d8edd4d272c827b5e44ad379dc2262b7380b5d8a22be5b4855b401e282a48c6f` | Phase 2 (`trail licenses` & `THIRD_PARTY_NOTICES.txt`) |
+| Vector File | Bytes | `.json.gz` SHA-256 | Header `metadata.vector_sha256` | Target Phase |
+|---|---:|---|---|---|
+| `vectors/rng_s1_vectors.json.gz` | 127,249 | `0c4204946dac928343569b324742e1944605fc6cecae3ac5b9ba739ce470b7cc` | `1f891b7b21ac17c33c9a88d3e01091a58c3c0a5b38d014a58ea82d5842586605` | Phase 1a (RNG) |
+| `vectors/worldgen_200.json.gz` | 125,590 | `125802c245e785acdcc19764eb313c4c47192072f965db4c4bdddc0f317ce527` | `179944a803e73791d27b8831cc1b9f20eebb3584a02cd0b40068f240e7804003` | Phase 1a (Worldgen & Event JSON) |
+| `vectors/saves_20.json.gz` | 253,580 | `5d2136bd93d2d5f7e9500b01247e98a0fa1a73251a022e10c8cab1607007cfab` | `cd5f10b46b5018ed3722b5c184087196549036223167e1ee3bc045476fcbfafa` | Phase 1a (Save/Load & Migrations) |
+| `vectors/turns_1000_seeds.json.gz` | 7,526,207 | `146a87f029ec6993d5848ef1f04cc1e47391a6b871bd31b3bb164bc613d0ff0a` | `ce7feff96f7e7c22dd4a9925137c1fd10571afebd1bf9d50e1022c24fa375722` | Phase 1b (1,000 Seeds × 60 Turns) |
+| `vectors/turns_long_seeds.json.gz` | 1,409,525 | `48fa1e5575ea1c34a0d4351de971e7cf9df47f00e17572e813f481cc00480f30` | `4c912f31e750ec3588db843ff5a54a593375e072033ab51ccec9cea16390237f` | Phase 1b (80 Long Seeds × 250 Turns) |
+| `vectors/resume_120_seeds.json.gz` | 1,446,569 | `5691dd6fff8d6730a0dff2b75b52ae222d156117bc0a7d12eec568f8b74ecbbc` | `76fa1228de387ecaf689e08725f603bb7e95cf4253a5623099207a45801b8caf` | Phase 1b (120 Save/Resume Runs) |
+| `vectors/ledger_reference.json.gz` | 75,011 | `ffe4b12dabeed12ec751469bb642bef353f5305c8da0d30d64d08d30756fd766` | `bcbc4a6b30aed16fddbb66f301f1498b6a69e01424dd64cdacf9c7891773d964` | Phase 2 (Trail Ledger, Postcard & Proof) |
+| `vectors/notices_reference.json.gz` | 186,596 | `be8eec30247e4a9cd95dc4f5b40ea1e7776bbdb6a86634b0b786f835b21075ca` | `c56c3e2ee26d26dc3929624a36a81146face8546c605a85a7037dd1a8fcc59ee` | Phase 2 (`trail licenses` & `THIRD_PARTY_NOTICES.txt`) |

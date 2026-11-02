@@ -64,129 +64,42 @@
       "kind": "part",
       "name": "tests",
       "partLabel": "tests"
-    },
-    {
-      "kind": "place",
-      "readers": [
-        "rust/etv-core/src/worldgen.rs",
-        "src"
-      ],
-      "target": "src/escape_the_valley/data/event_skeletons.json",
-      "writers": [
-        "scripts"
-      ]
     }
   ],
   "changes": {
     "fileCounts": {
-      "added": 111,
-      "changed": 7,
+      "added": 0,
+      "changed": 19,
       "moved": 0,
-      "parts": 5,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI's push trigger now also names `rust/**`.",
-        "subjects": [
-          ".github/workflows/ci.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI now also runs rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs and 6 more.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/engine.rs",
-          "rust/etv-core/src/events.rs",
-          "rust/etv-core/src/memory.rs",
-          "rust/etv-core/src/model.rs",
-          "rust/etv-core/src/physics.rs",
-          "rust/etv-core/src/rng.rs",
-          "rust/etv-core/src/save.rs",
-          "rust/etv-core/src/worldgen.rs",
-          "rust/etv-core/tests/"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/lib.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/lib.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "And 2 more changes to doors.",
-        "subjects": []
-      },
-      {
         "kind": "landing",
-        "sentence": "rust/etv-core/ is now read by rust/Cargo.toml.",
+        "sentence": "rust/etv-core/content/event_skeletons.json is now read by rust/etv-core/src/worldgen.rs.",
         "subjects": [
-          "rust/etv-core/",
-          "rust/Cargo.toml"
+          "rust/etv-core/content/event_skeletons.json",
+          "rust/etv-core/src/worldgen.rs"
         ]
       },
       {
         "kind": "landing",
-        "sentence": "rust/oracle/vectors/ is now read by rust/oracle/generate_vectors.py.",
+        "sentence": "rust/oracle/generate_vectors.py is now read by rust/oracle/generate_vectors.py.",
         "subjects": [
-          "rust/oracle/vectors/",
+          "rust/oracle/generate_vectors.py",
           "rust/oracle/generate_vectors.py"
         ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/oracle/vectors/ledger_reference.json.gz is now read by rust/etv-core/tests/oracle_parity.rs and rust/oracle/generate_vectors.py.",
-        "subjects": [
-          "rust/oracle/vectors/ledger_reference.json.gz",
-          "rust/etv-core/tests/oracle_parity.rs",
-          "rust/oracle/generate_vectors.py"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "And 11 more new writers and readers of places.",
-        "subjects": []
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/Cargo.lock is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/Cargo.lock"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/Cargo.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/Cargo.toml"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/deny.toml is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/deny.toml"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 23 more new files that belong to no part.",
-        "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "111 files added and 7 changed content, across 5 parts.",
+        "sentence": "19 files changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd",
-      "generatedAt": "2026-10-23T14:40:40.623Z"
+      "commit": "65bbadddaddd810bba7970424cac0947b3d2c329",
+      "generatedAt": "2026-11-02T02:00:51.015Z"
     },
     "unchanged": false
   },
@@ -222,21 +135,6 @@
       "shared": 6
     },
     {
-      "a": "src/escape_the_valley/engine.py",
-      "b": "tests/test_step_engine.py",
-      "either": 18,
-      "partLabels": [
-        "src",
-        "tests"
-      ],
-      "parts": [
-        "src",
-        "tests"
-      ],
-      "relation": "b-imports-a",
-      "shared": 14
-    },
-    {
       "a": "src/escape_the_valley/ui.py",
       "b": "tests/test_adapter.py",
       "either": 9,
@@ -253,8 +151,23 @@
     },
     {
       "a": "src/escape_the_valley/engine.py",
-      "b": "src/escape_the_valley/step_engine.py",
+      "b": "tests/test_step_engine.py",
       "either": 17,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 13
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "src/escape_the_valley/step_engine.py",
+      "either": 16,
       "partLabels": [
         "src",
         "src"
@@ -264,7 +177,7 @@
         "src"
       ],
       "relation": "inside",
-      "shared": 13
+      "shared": 12
     }
   ],
   "changesTogetherNote": [
@@ -273,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "65bbadddaddd810bba7970424cac0947b3d2c329",
+  "commit": "e03ac56132e357df529ecc00a71316fe96d84dca",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (66 files), shell (13), Rust (11), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
@@ -613,7 +526,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T02:00:51.015Z",
+  "generatedAt": "2026-11-02T03:14:20.923Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

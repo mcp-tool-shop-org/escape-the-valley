@@ -38,6 +38,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe but slow.".to_string(),
                 cost_hint: "Time and supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -47,6 +48,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Wagon damage and injury risk.".to_string(),
                 cost_hint: "Speed at a cost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -56,6 +58,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Depends on terrain.".to_string(),
                 cost_hint: "Time to search.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -136,6 +139,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Wagon damage, loss of supplies.".to_string(),
                 cost_hint: "Direct but dangerous.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -145,6 +149,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Takes time, may find nothing.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -154,6 +159,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe but slow.".to_string(),
                 cost_hint: "A day lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -235,6 +241,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe but costly.".to_string(),
                 cost_hint: "Food loss.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -244,6 +251,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Some sickness risk.".to_string(),
                 cost_hint: "Less food lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -253,6 +261,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Sickness likely.".to_string(),
                 cost_hint: "No food lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -333,6 +342,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses parts.".to_string(),
                 cost_hint: "1 part, time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -342,6 +352,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Risky repair, may not hold.".to_string(),
                 cost_hint: "Time, no parts.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -351,6 +362,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Lose supplies to reduce strain.".to_string(),
                 cost_hint: "Supplies lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -432,6 +444,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe, costs distance.".to_string(),
                 cost_hint: "Distance lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -441,6 +454,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, may find shortcut.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -450,6 +464,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May go wrong.".to_string(),
                 cost_hint: "Risk getting more lost.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -528,6 +543,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale drops.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -537,6 +553,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May find water or waste time.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -546,6 +563,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses more water faster.".to_string(),
                 cost_hint: "Water.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -624,6 +642,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, animal recovers.".to_string(),
                 cost_hint: "A day.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -633,6 +652,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slower progress.".to_string(),
                 cost_hint: "Speed.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -642,6 +662,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Animal may worsen.".to_string(),
                 cost_hint: "Animal health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -723,6 +744,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses meds.".to_string(),
                 cost_hint: "1 med.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -732,6 +754,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May recover slowly or worsen.".to_string(),
                 cost_hint: "Time and risk.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -741,6 +764,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Condition may worsen.".to_string(),
                 cost_hint: "Health risk.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -819,6 +843,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time-consuming.".to_string(),
                 cost_hint: "Half a day.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -828,6 +853,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Adds distance.".to_string(),
                 cost_hint: "Extra miles.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -837,6 +863,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Injury and wagon risk.".to_string(),
                 cost_hint: "Danger.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -911,6 +938,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No downside.".to_string(),
                 cost_hint: "Time to fill.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -920,6 +948,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Less water gained.".to_string(),
                 cost_hint: "Speed.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -980,6 +1009,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe passage.".to_string(),
                 cost_hint: "Food.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -989,6 +1019,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Adds distance.".to_string(),
                 cost_hint: "Time and miles.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -998,6 +1029,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May work, may escalate.".to_string(),
                 cost_hint: "Unpredictable.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1076,6 +1108,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fair trade.".to_string(),
                 cost_hint: "Food for meds.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1085,6 +1118,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Free information.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1094,6 +1128,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No interaction.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1176,6 +1211,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Avoid trouble.".to_string(),
                 cost_hint: "No rest or trade.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1185,6 +1221,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May warm up or escalate.".to_string(),
                 cost_hint: "Uncertain.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1194,6 +1231,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe but slow.".to_string(),
                 cost_hint: "Distance.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1272,6 +1310,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale boost, food cost.".to_string(),
                 cost_hint: "Food.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1281,6 +1320,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Exchange what you have.".to_string(),
                 cost_hint: "Depends on trade.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1290,6 +1330,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No interaction.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1371,6 +1412,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Kind but costly.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1380,6 +1422,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No cost.".to_string(),
                 cost_hint: "Morale depends on party.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1389,6 +1432,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Quick but cold.".to_string(),
                 cost_hint: "Morale hit.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1457,9 +1501,9 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
         oregon_nod: false,
         fallback_narration: "A bell rings once in the fog. Clean and bright. Then silence.".to_string(),
         fallback_choices: vec![
-            ChoiceTemplate { choice_id: "A".to_string(), label: "Keep the fire high and wait for morning.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "Safe but slow.".to_string(), cost_hint: "Time and supplies.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "B".to_string(), label: "Send two to investigate, rope-tethered.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "Might prevent a bigger problem.".to_string(), cost_hint: "Time or injury.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "C".to_string(), label: "Break camp and move now, slow and quiet.".to_string(), action: "TRAVEL".to_string(), style: "BOLD".to_string(), risk_hint: "Traveling blind in fog.".to_string(), cost_hint: "Wagon wear, delay.".to_string(), outcome_weights: BTreeMap::new() },
+            ChoiceTemplate { choice_id: "A".to_string(), label: "Keep the fire high and wait for morning.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "Safe but slow.".to_string(), cost_hint: "Time and supplies.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "B".to_string(), label: "Send two to investigate, rope-tethered.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "Might prevent a bigger problem.".to_string(), cost_hint: "Time or injury.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "C".to_string(), label: "Break camp and move now, slow and quiet.".to_string(), action: "TRAVEL".to_string(), style: "BOLD".to_string(), risk_hint: "Traveling blind in fog.".to_string(), cost_hint: "Wagon wear, delay.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
         ],
         outcome_templates: BTreeMap::from([
             ("A".to_string(), EventOutcome { supplies_delta: BTreeMap::from([("food".to_string(), -2), ("water".to_string(), -2)]), supplies_delta_order: vec!["food".to_string(), "water".to_string()], health_delta: 0, wagon_delta: 0, animals_health_delta: 0, morale_delta: -3, time_cost: 1, distance_delta: 0, special_flags: vec!["uncanny_token_spent".to_string()] }),
@@ -1501,6 +1545,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Curiosity may cost time.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1510,6 +1555,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No cost.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1519,6 +1565,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Might ease minds or worry them.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1584,9 +1631,9 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
         oregon_nod: false,
         fallback_narration: "For a stretch of trail, all sound stops. No birds. No wind. Even your footsteps seem muffled.".to_string(),
         fallback_choices: vec![
-            ChoiceTemplate { choice_id: "A".to_string(), label: "Stop and listen carefully.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "May learn something.".to_string(), cost_hint: "Time.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "B".to_string(), label: "Walk faster. Get through it.".to_string(), action: "TRAVEL".to_string(), style: "BOLD".to_string(), risk_hint: "Morale risk.".to_string(), cost_hint: "Anxiety.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "C".to_string(), label: "Talk loudly. Break the silence.".to_string(), action: "RISK".to_string(), style: "NEUTRAL".to_string(), risk_hint: "May settle nerves or attract attention.".to_string(), cost_hint: "Unpredictable.".to_string(), outcome_weights: BTreeMap::new() },
+            ChoiceTemplate { choice_id: "A".to_string(), label: "Stop and listen carefully.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "May learn something.".to_string(), cost_hint: "Time.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "B".to_string(), label: "Walk faster. Get through it.".to_string(), action: "TRAVEL".to_string(), style: "BOLD".to_string(), risk_hint: "Morale risk.".to_string(), cost_hint: "Anxiety.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "C".to_string(), label: "Talk loudly. Break the silence.".to_string(), action: "RISK".to_string(), style: "NEUTRAL".to_string(), risk_hint: "May settle nerves or attract attention.".to_string(), cost_hint: "Unpredictable.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
         ],
         outcome_templates: BTreeMap::from([
             ("A".to_string(), EventOutcome { supplies_delta: BTreeMap::new(), supplies_delta_order: vec![], health_delta: 0, wagon_delta: 0, animals_health_delta: 0, morale_delta: -5, time_cost: 1, distance_delta: 0, special_flags: vec!["uncanny_token_spent".to_string()] }),
@@ -1627,6 +1674,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Reassurance.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1636,6 +1684,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Might be right.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1702,6 +1751,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Limited trade window.".to_string(),
                 cost_hint: "Time pressure.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1711,6 +1761,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Might learn something or nothing.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1720,6 +1771,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May be fine or may not.".to_string(),
                 cost_hint: "Unknown.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1803,6 +1855,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fascinating but time-consuming.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1812,6 +1865,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fast but unsettling.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1878,6 +1932,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Curiosity.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1887,6 +1942,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Practical.".to_string(),
                 cost_hint: "Water gained.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1896,6 +1952,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Miss water opportunity.".to_string(),
                 cost_hint: "No water.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -1975,6 +2032,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Costly but safe.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -1984,6 +2042,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Risk injury, keep supplies.".to_string(),
                 cost_hint: "Health, ammo.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -1993,6 +2052,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May lose distance or wagon damage.".to_string(),
                 cost_hint: "Distance, wagon.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2079,6 +2139,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safest option.".to_string(),
                 cost_hint: "Time and supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2088,6 +2149,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Avoid flooding, risk exposure.".to_string(),
                 cost_hint: "Distance.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2097,6 +2159,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Dangerous.".to_string(),
                 cost_hint: "Everything.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2178,6 +2241,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Best chance of recovery.".to_string(),
                 cost_hint: "Meds.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2187,6 +2251,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slow recovery, risk of spread.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2196,6 +2261,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Dangerous to the sick.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2273,6 +2339,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Ammo cost, food reward.".to_string(),
                 cost_hint: "Ammo.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2282,6 +2349,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No risk.".to_string(),
                 cost_hint: "Missed opportunity.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2349,6 +2417,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Free supplies, maybe.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2358,6 +2427,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Don't invite trouble.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2426,6 +2496,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Best outcome.".to_string(),
                 cost_hint: "Meds.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2435,6 +2506,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slower recovery.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2444,6 +2516,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Risky.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2522,6 +2595,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses supplies for warmth.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2531,6 +2605,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uncomfortable but free.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2540,6 +2615,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Exhausting but generates heat.".to_string(),
                 cost_hint: "Health and morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2605,8 +2681,8 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
         oregon_nod: false,
         fallback_narration: "The wind through a rock formation produces a low, musical hum. It rises and falls like breathing.".to_string(),
         fallback_choices: vec![
-            ChoiceTemplate { choice_id: "A".to_string(), label: "Investigate the formation.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "Curiosity.".to_string(), cost_hint: "Time.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "B".to_string(), label: "Pass by without stopping.".to_string(), action: "TRAVEL".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "No delay.".to_string(), cost_hint: "Nothing.".to_string(), outcome_weights: BTreeMap::new() },
+            ChoiceTemplate { choice_id: "A".to_string(), label: "Investigate the formation.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "Curiosity.".to_string(), cost_hint: "Time.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "B".to_string(), label: "Pass by without stopping.".to_string(), action: "TRAVEL".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "No delay.".to_string(), cost_hint: "Nothing.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
         ],
         outcome_templates: BTreeMap::from([
             ("A".to_string(), EventOutcome { supplies_delta: BTreeMap::new(), supplies_delta_order: vec![], health_delta: 0, wagon_delta: 0, animals_health_delta: 0, morale_delta: 4, time_cost: 1, distance_delta: 0, special_flags: vec![] }),
@@ -2644,6 +2720,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Injury risk.".to_string(),
                 cost_hint: "Time, possible injury.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2653,6 +2730,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Health cost, safe.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2662,6 +2740,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Wagon damage for warmth.".to_string(),
                 cost_hint: "Wagon condition.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2739,6 +2818,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe if you have rope.".to_string(),
                 cost_hint: "Rope.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2748,6 +2828,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Risk more people.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2757,6 +2838,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slow but safe.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2835,6 +2917,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses parts.".to_string(),
                 cost_hint: "1 part, time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2844,6 +2927,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Needs tools, partial fix.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2853,6 +2937,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slow, more wagon damage.".to_string(),
                 cost_hint: "Distance, wagon.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -2931,6 +3016,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time-consuming.".to_string(),
                 cost_hint: "Half a day.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -2940,6 +3026,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Adds distance.".to_string(),
                 cost_hint: "Extra miles.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -2949,6 +3036,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Wagon damage risk.".to_string(),
                 cost_hint: "Wagon.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3027,6 +3115,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale drops hard.".to_string(),
                 cost_hint: "Morale, health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3036,6 +3125,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, may find nothing.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3045,6 +3135,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Burns more water.".to_string(),
                 cost_hint: "Water.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3123,6 +3214,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Small gain, safe.".to_string(),
                 cost_hint: "Food.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3132,6 +3224,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "More food, poison risk.".to_string(),
                 cost_hint: "Food or health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3141,6 +3234,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No risk.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3218,6 +3312,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses firewood.".to_string(),
                 cost_hint: "Firewood.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3227,6 +3322,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Ammo cost, may scatter them.".to_string(),
                 cost_hint: "Ammo.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3236,6 +3332,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Injury risk.".to_string(),
                 cost_hint: "Health, ammo.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3313,6 +3410,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe but slow.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3322,6 +3420,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Lose some supplies.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3331,6 +3430,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Wagon damage risk.".to_string(),
                 cost_hint: "Wagon.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3412,6 +3512,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Uses rope, safe.".to_string(),
                 cost_hint: "Rope, time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3421,6 +3522,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May lose supplies.".to_string(),
                 cost_hint: "Supplies, wagon.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3430,6 +3532,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Risk of damage.".to_string(),
                 cost_hint: "Wagon, health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3507,6 +3610,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3516,6 +3620,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale, health risk.".to_string(),
                 cost_hint: "Morale, health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3579,6 +3684,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Water cost, best recovery.".to_string(),
                 cost_hint: "Water.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3588,6 +3694,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Condition may worsen.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3652,6 +3759,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Good rest, safe.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3661,6 +3769,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Partial recovery.".to_string(),
                 cost_hint: "Less benefit.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3725,6 +3834,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe, adds distance.".to_string(),
                 cost_hint: "Distance.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3734,6 +3844,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Injury possible.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3743,6 +3854,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fast but risky.".to_string(),
                 cost_hint: "Health.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3820,6 +3932,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, small chance.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3829,6 +3942,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No food gained.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3893,6 +4007,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Good water.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3902,6 +4017,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Less gained, keep moving.".to_string(),
                 cost_hint: "Speed.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -3966,6 +4082,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fair exchange.".to_string(),
                 cost_hint: "Food for meds.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -3975,6 +4092,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fair exchange.".to_string(),
                 cost_hint: "Food for parts.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -3984,6 +4102,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No trade.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4069,6 +4188,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Costly, morale boost.".to_string(),
                 cost_hint: "Food, water.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4078,6 +4198,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No cost.".to_string(),
                 cost_hint: "Nothing tangible.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4087,6 +4208,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fast but cold.".to_string(),
                 cost_hint: "Morale hit.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4168,6 +4290,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, right thing.".to_string(),
                 cost_hint: "Half a day.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4177,6 +4300,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Some cost.".to_string(),
                 cost_hint: "Food.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4186,6 +4310,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Fastest.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4264,6 +4389,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale boost, time cost.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4273,6 +4399,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No effect.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4337,6 +4464,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Might lose supplies.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4346,6 +4474,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4355,6 +4484,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May recover losses or escalate.".to_string(),
                 cost_hint: "Uncertain.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4436,6 +4566,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, morale gain.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4445,6 +4576,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, no effort.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4454,6 +4586,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Adds distance.".to_string(),
                 cost_hint: "Distance.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4533,6 +4666,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Supplies, maybe a trap.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4542,6 +4676,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Less risk.".to_string(),
                 cost_hint: "Parts.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4551,6 +4686,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No risk.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4637,6 +4773,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May be useful.".to_string(),
                 cost_hint: "Food.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4646,6 +4783,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May learn something.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4710,6 +4848,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale boost, food cost.".to_string(),
                 cost_hint: "Food, time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4719,6 +4858,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "No effect.".to_string(),
                 cost_hint: "Nothing.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4783,6 +4923,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4792,6 +4933,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May escalate.".to_string(),
                 cost_hint: "Health, ammo.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -4801,6 +4943,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Costly but safe.".to_string(),
                 cost_hint: "Supplies.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4882,6 +5025,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May ease or worry the party.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4891,6 +5035,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Morale boost, time cost.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -4956,6 +5101,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Curiosity.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -4965,6 +5111,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Safe.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -5029,6 +5176,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Slower but works.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -5038,6 +5186,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "May waste time.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -5102,6 +5251,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Unnerving.".to_string(),
                 cost_hint: "Morale.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "B".to_string(),
@@ -5111,6 +5261,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Adds distance.".to_string(),
                 cost_hint: "Distance.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
             ChoiceTemplate {
                 choice_id: "C".to_string(),
@@ -5120,6 +5271,7 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
                 risk_hint: "Time cost, may explain.".to_string(),
                 cost_hint: "Time.".to_string(),
                 outcome_weights: BTreeMap::new(),
+                outcome_sentence: None,
             },
         ],
         outcome_templates: BTreeMap::from([
@@ -5187,9 +5339,9 @@ pub fn builtin_hand_authored_events() -> Vec<EventSkeleton> {
         oregon_nod: false,
         fallback_narration: "A traveler shares your fire. He knows your names and where you are headed.".to_string(),
         fallback_choices: vec![
-            ChoiceTemplate { choice_id: "A".to_string(), label: "Ask how he knows.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "May learn something. Or not.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "B".to_string(), label: "Share the fire and say nothing.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "Unsettling but harmless.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new() },
-            ChoiceTemplate { choice_id: "C".to_string(), label: "Ask him to leave.".to_string(), action: "RISK".to_string(), style: "BOLD".to_string(), risk_hint: "Direct.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new() },
+            ChoiceTemplate { choice_id: "A".to_string(), label: "Ask how he knows.".to_string(), action: "INVESTIGATE".to_string(), style: "NEUTRAL".to_string(), risk_hint: "May learn something. Or not.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "B".to_string(), label: "Share the fire and say nothing.".to_string(), action: "WAIT".to_string(), style: "CAUTIOUS".to_string(), risk_hint: "Unsettling but harmless.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
+            ChoiceTemplate { choice_id: "C".to_string(), label: "Ask him to leave.".to_string(), action: "RISK".to_string(), style: "BOLD".to_string(), risk_hint: "Direct.".to_string(), cost_hint: "Morale.".to_string(), outcome_weights: BTreeMap::new(), outcome_sentence: None },
         ],
         outcome_templates: BTreeMap::from([
             ("A".to_string(), EventOutcome { supplies_delta: BTreeMap::new(), supplies_delta_order: vec![], health_delta: 0, wagon_delta: 0, animals_health_delta: 0, morale_delta: -4, time_cost: 0, distance_delta: 0, special_flags: vec![] }),
