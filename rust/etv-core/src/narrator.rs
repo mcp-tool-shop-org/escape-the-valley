@@ -1790,7 +1790,7 @@ impl<'a> ComposedFallbackComposer<'a> {
             clauses.push(self.table.lookup(key, dir));
         }
         if clauses.is_empty() {
-            clauses.push(self.table.lookup("none", "zero"));
+            clauses.push(self.table.lookup("none", "neutral"));
         }
         let joined = clauses.join(", ");
         if joined.ends_with('.') {

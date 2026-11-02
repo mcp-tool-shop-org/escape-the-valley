@@ -284,6 +284,84 @@ fn step3_fallback_composer_464_choices_and_release_build_refusal() {
     );
 }
 
+#[test]
+fn step3_zero_effect_choice_composes_table_none_entry() {
+    let pack = embedded_content_pack();
+    let table = FallbackPhraseTable::embedded();
+    let expected_none_entry = table
+        .phrases
+        .get("none")
+        .and_then(|dirs| dirs.get("neutral"))
+        .expect("embedded table must store none -> neutral");
+    assert_eq!(expected_none_entry, "PLACEHOLDER-none-neutral");
+
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&table), false).unwrap();
+    assert_eq!(
+        composer.compose_from_effects(&[]),
+        format!("{expected_none_entry}.")
+    );
+    assert_eq!(
+        composer.compose_from_effects(&[("food", 0), ("morale", 0)]),
+        format!("{expected_none_entry}.")
+    );
+
+    // Also verify with a custom table entry for none -> neutral so a missing-entry fallback
+    // ("PLACEHOLDER-...") can never mask a key/direction mismatch.
+    let mut custom_table = table.clone();
+    custom_table.phrases.get_mut("none").unwrap().insert(
+        "neutral".to_string(),
+        "SENTINEL-NONE-NEUTRAL-ENTRY".to_string(),
+    );
+    let custom_composer =
+        ComposedFallbackComposer::try_start_with_mode(Some(&custom_table), false).unwrap();
+    assert_eq!(
+        custom_composer.compose_from_effects(&[("water", 0)]),
+        "SENTINEL-NONE-NEUTRAL-ENTRY."
+    );
+
+    let mut pack_with_zero_choice = pack.clone();
+    let first_event = &mut pack_with_zero_choice.json_events[0];
+    let first_event_id = first_event.event_id.clone();
+    let first_choice_id = first_event.fallback_choices[0].choice_id.clone();
+    if let Some(tpl) = first_event.outcome_templates.get_mut(&first_choice_id) {
+        tpl.supplies_delta.clear();
+        tpl.health_delta = 0;
+        tpl.wagon_delta = 0;
+        tpl.animals_health_delta = 0;
+        tpl.morale_delta = 0;
+        tpl.time_cost = 0;
+        tpl.distance_delta = 0;
+    }
+    let all_embedded = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &table);
+    assert_eq!(
+        all_embedded.get(&(first_event_id.clone(), first_choice_id.clone())),
+        Some(&format!("{expected_none_entry}."))
+    );
+    let all_custom = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &custom_table);
+    assert_eq!(
+        all_custom.get(&(first_event_id, first_choice_id)),
+        Some(&"SENTINEL-NONE-NEUTRAL-ENTRY.".to_string())
+    );
+
+    let state = create_new_run_with_content(42, pack);
+    let msgs = StepMessages {
+        outcome_narration: "No change.".to_string(),
+        ..Default::default()
+    };
+    let flags = evaluate_turn_matters(
+        &PreTurnObservation::capture(GamePhase::Camp, &state),
+        &PlayerIntent::new(IntentAction::Choose).with_choice("A"),
+        &msgs,
+        &state,
+    );
+    let zero_ctx =
+        build_narration_context_with_phase(&state, GamePhase::Camp, "f1_001", "A", &msgs, flags);
+    assert_eq!(
+        resolve_fallback_line_with_mode(&zero_ctx, Some(&custom_table), false),
+        "SENTINEL-NONE-NEUTRAL-ENTRY."
+    );
+}
+
 // ============================================================================
 // 3. Profiles & Prompt Hygiene (no fallback_line, no literal "lantern" leak)
 // ============================================================================

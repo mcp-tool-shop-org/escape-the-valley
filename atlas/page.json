@@ -83,54 +83,57 @@
   "changes": {
     "fileCounts": {
       "added": 2,
-      "changed": 13,
+      "changed": 11,
       "moved": 0,
-      "parts": 1,
+      "parts": 0,
       "removed": 0
     },
     "items": [
       {
         "kind": "landing",
-        "sentence": "rust/oracle/content-legacy/content_manifest.json is now read by rust/etv-core/tests/oracle_parity.rs and rust/etv-core/tests/phase1_content_loader.rs.",
+        "sentence": "rust/etv-core/content/fallback_phrases.json is now read by rust/etv-core/src/narrator.rs.",
         "subjects": [
-          "rust/oracle/content-legacy/content_manifest.json",
-          "rust/etv-core/tests/oracle_parity.rs",
-          "rust/etv-core/tests/phase1_content_loader.rs"
+          "rust/etv-core/content/fallback_phrases.json",
+          "rust/etv-core/src/narrator.rs"
         ]
       },
       {
-        "kind": "landing",
-        "sentence": "rust/oracle/content-legacy/event_skeletons.json is now read by rust/etv-core/tests/oracle_parity.rs, rust/etv-core/tests/phase1_content_loader.rs and rust/oracle/content-legacy/content_manifest.json.",
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` gained a step, `build_narration_context_with_phase`, before `trail_ledger`.",
         "subjects": [
-          "rust/oracle/content-legacy/event_skeletons.json",
-          "rust/etv-core/tests/oracle_parity.rs",
-          "rust/etv-core/tests/phase1_content_loader.rs",
-          "rust/oracle/content-legacy/content_manifest.json"
+          "rust/etv-core/src/snapshot.rs"
         ]
       },
       {
-        "kind": "unassigned",
-        "sentence": "rust/oracle/content-legacy/content_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/snapshot.rs, `run_tier2_seed_trace` lost a step, `build_narration_context`.",
         "subjects": [
-          "rust/oracle/content-legacy/content_manifest.json"
+          "rust/etv-core/src/snapshot.rs"
         ]
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/oracle/content-legacy/event_skeletons.json is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/etv-core/content/fallback_phrases.json is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/oracle/content-legacy/event_skeletons.json"
+          "rust/etv-core/content/fallback_phrases.json"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/step3_narrator_port.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/step3_narrator_port.rs"
         ]
       },
       {
         "kind": "counts",
-        "sentence": "2 files added and 13 changed content, across 1 part.",
+        "sentence": "2 files added and 11 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "25c9f0c5a3a269edf452b1ef7101a168d1be1d72",
-      "generatedAt": "2026-11-02T06:38:24.726Z"
+      "commit": "0b83fd2c24848d909bf8b2061317d70d734ddbe5",
+      "generatedAt": "2026-11-02T07:28:49.688Z"
     },
     "unchanged": false
   },
@@ -217,9 +220,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "0b83fd2c24848d909bf8b2061317d70d734ddbe5",
+  "commit": "bda1dfb3e45cb2df4b16d5f0711eecd16692228e",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (67 files), Rust (20), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
+  "derived": "10 parts, mostly Python (67 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
     {
       "checks": [
@@ -271,7 +274,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 9,
+      "runsMore": 10,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -333,7 +336,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 10,
-      "runsMore": 9,
+      "runsMore": 10,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -581,13 +584,13 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T07:28:49.688Z",
+  "generatedAt": "2026-11-02T08:59:56.254Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",
     "4 writes and 19 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "43 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 40 more.",
+    "45 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 42 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -615,7 +618,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 32,
+  "testFiles": 33,
   "testedBy": {
     "agents": 1,
     "bin": 0,
