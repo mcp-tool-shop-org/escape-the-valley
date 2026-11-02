@@ -8308,7 +8308,7 @@
   ],
   "doors": [
     {
-      "checksCount": 4,
+      "checksCount": 5,
       "commands": [
         {
           "dir": "",
@@ -8528,6 +8528,13 @@
         {
           "job": "rust",
           "matched": true,
+          "path": "rust/etv-core/src/bin/etv.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "rust",
+          "matched": true,
           "path": "rust/etv-core/src/engine.rs",
           "runKind": "executes",
           "via": "cargo test"
@@ -8620,7 +8627,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 14,
+      "runsCount": 15,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -8644,7 +8651,7 @@
         },
         {
           "dir": "rust",
-          "files": 9,
+          "files": 10,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9195,7 +9202,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 4,
+      "checksCount": 5,
       "commands": [
         {
           "dir": "",
@@ -9535,6 +9542,13 @@
         {
           "job": "gate/rust",
           "matched": true,
+          "path": "rust/etv-core/src/bin/etv.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
           "path": "rust/etv-core/src/engine.rs",
           "runKind": "executes",
           "via": "cargo test"
@@ -9627,7 +9641,7 @@
           "runKind": "checks"
         }
       ],
-      "runsCount": 14,
+      "runsCount": 15,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -9665,7 +9679,7 @@
         },
         {
           "dir": "rust",
-          "files": 9,
+          "files": 10,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -9820,6 +9834,43 @@
       "triggers": [],
       "uses": [],
       "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust/etv-core/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "etv",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust/etv-core/src/bin/etv.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
     }
   ],
   "edges": [
@@ -9853,8 +9904,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "e03ac56132e357df529ecc00a71316fe96d84dca",
-    "tracked": 739
+    "commit": "26a0869632cbfadda81f1c334939e2e136cdad0a",
+    "tracked": 746
   },
   "landings": [
     {
@@ -9933,12 +9984,44 @@
     {
       "readers": [
         {
+          "by": "rust/etv-core/src/content.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        }
+      ],
+      "target": "rust/etv-core/content/content_manifest.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/content/content_manifest.json",
+          "call": "configuration",
+          "confidence": "config"
+        },
+        {
+          "by": "rust/etv-core/src/content.rs",
+          "call": "include_str",
+          "confidence": "ast"
+        },
+        {
           "by": "rust/etv-core/src/worldgen.rs",
           "call": "include_str",
           "confidence": "ast"
         }
       ],
       "target": "rust/etv-core/content/event_skeletons.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/Cargo.toml",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust/etv-core/src/bin/etv.rs",
       "writers": []
     },
     {
@@ -10371,7 +10454,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 30,
+  "testFiles": 31,
   "testsNotRun": [
     "tests/test_adapter.py",
     "tests/test_backpack.py",
@@ -10418,6 +10501,219 @@
       "path": "rust/etv-core/Cargo.toml"
     },
     {
+      "hash": "f84f98ea845bbfc9a0e0198ba9a29011104a2ed410d40867bb38a82dab342b9f",
+      "path": "rust/etv-core/content/content_manifest.json"
+    },
+    {
+      "hash": "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576",
+      "path": "rust/etv-core/content/event_skeletons.json"
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
+      "failurePaths": [
+        {
+          "in": "load_selected_content",
+          "kind": "err",
+          "line": 14
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 26
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 34
+        }
+      ],
+      "hash": "6cf8ddb4acdc4faacd6ce1510a3947f4485ad436949c6d1e3b30a7820423c697",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/validator.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/src/bin/etv.rs",
+      "sequences": [
+        {
+          "calls": [
+            {
+              "line": 12,
+              "name": "load_from_dir",
+              "receiver": "ContentPack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            },
+            {
+              "line": 18,
+              "name": "embedded_content_pack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "load_selected_content"
+        },
+        {
+          "calls": [
+            {
+              "line": 24,
+              "name": "parse_cli_args",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            },
+            {
+              "line": 12,
+              "name": "load_from_dir",
+              "receiver": "ContentPack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "load_selected_content"
+            },
+            {
+              "line": 18,
+              "name": "embedded_content_pack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "load_selected_content"
+            },
+            {
+              "line": 42,
+              "name": "version_with_content_hash",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            },
+            {
+              "inner": [
+                {
+                  "line": 227,
+                  "name": "advertised_inventory_cost",
+                  "target": {
+                    "file": "rust/etv-core/src/events.rs"
+                  }
+                },
+                {
+                  "branch": "let Some((lhs, rhs)) = trimmed.split_once(op)",
+                  "line": 493,
+                  "name": "is_valid_resource_key",
+                  "target": {
+                    "file": "rust/etv-core/src/model.rs"
+                  },
+                  "via": "is_valid_precondition_expr"
+                }
+              ],
+              "line": 47,
+              "name": "validate_content_with_options",
+              "target": {
+                "file": "rust/etv-core/src/validator.rs"
+              }
+            },
+            {
+              "inner": [
+                {
+                  "line": 232,
+                  "name": "create_new_run_with_content",
+                  "target": {
+                    "file": "rust/etv-core/src/worldgen.rs"
+                  }
+                },
+                {
+                  "line": 233,
+                  "name": "with_content",
+                  "receiver": "StepEngine",
+                  "target": {
+                    "file": "rust/etv-core/src/engine.rs"
+                  }
+                },
+                {
+                  "line": 177,
+                  "name": "new",
+                  "receiver": "PlayerIntent",
+                  "target": {
+                    "file": "rust/etv-core/src/model.rs"
+                  },
+                  "via": "pick_tier2_intent"
+                },
+                {
+                  "line": 115,
+                  "name": "hex_encode_32",
+                  "target": {
+                    "file": "rust/etv-core/src/content.rs"
+                  },
+                  "via": "sha256_str"
+                }
+              ],
+              "line": 91,
+              "name": "run_tier2_seed_trace",
+              "target": {
+                "file": "rust/etv-core/src/snapshot.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": true,
+          "isDefaultExport": false,
+          "name": "main"
+        }
+      ]
+    },
+    {
+      "exports": [
+        "canonicalize_json_value_no_floats",
+        "compute_content_hash",
+        "compute_content_hash_hex",
+        "embedded_content_hash",
+        "embedded_content_hash_hex",
+        "embedded_content_pack",
+        "embedded_version_string",
+        "hex_encode_32",
+        "load_content_from_dir",
+        "parse_cli_args",
+        "try_compute_content_hash",
+        "version_with_content_hash"
+      ],
+      "failurePaths": [
+        {
+          "in": "write_canonical_json_no_floats",
+          "kind": "err",
+          "line": 177
+        },
+        {
+          "in": "verify_content_hash",
+          "kind": "err",
+          "line": 312
+        },
+        {
+          "in": "parse_cli_args",
+          "kind": "err",
+          "line": 378
+        },
+        {
+          "in": "parse_cli_args",
+          "kind": "err",
+          "line": 424
+        }
+      ],
+      "hash": "a743a0f9ba6f820b33d3c6102ce87888f15a370827b84b256f46c8960e8fb9dc",
+      "importsFiles": [
+        "rust/etv-core/src/events_builtin.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/content.rs"
+    },
+    {
       "exports": [
         "build_fallback_callout",
         "choose_one_of_line",
@@ -10437,11 +10733,11 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
         "rust/etv-core/src/worldgen.rs",
-        "rust/etv-core/src/lib.rs"
+        "rust/etv-core/src/content.rs"
       ],
       "importsFiles": [
+        "rust/etv-core/src/content.rs",
         "rust/etv-core/src/events.rs",
-        "rust/etv-core/src/lib.rs",
         "rust/etv-core/src/memory.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/physics.rs",
@@ -10503,6 +10799,7 @@
     {
       "hash": "f733e35a66d4eda455c45e34d190d8a77e852d9be713d9b70e029272be2b2890",
       "importsFiles": [
+        "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/events_builtin.rs",
@@ -10511,6 +10808,8 @@
         "rust/etv-core/src/physics.rs",
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/validator.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
       "path": "rust/etv-core/src/lib.rs"
@@ -10753,13 +11052,330 @@
       ],
       "hash": "3002b3b420ce1d529580c84d1c7108d81e8484fade9e06b155f55ca4d471baa1",
       "importsFiles": [
-        "rust/etv-core/src/lib.rs",
+        "rust/etv-core/src/content.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
       "path": "rust/etv-core/src/save.rs",
       "testsInside": true
+    },
+    {
+      "entry": "run_tier2_seed_trace",
+      "entryRule": 4,
+      "exports": [
+        "build_1000_seeds",
+        "compute_mechanics_state_hash",
+        "run_tier2_seed_trace",
+        "run_tier2_snapshot_matrix"
+      ],
+      "hash": "aea3a799e207542ce4d887869f4dcbfdf0c756c290b8aa25a60075af8f8825c5",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/snapshot.rs",
+      "sequences": [
+        {
+          "calls": [
+            {
+              "line": 115,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "sha256_str"
+        },
+        {
+          "calls": [
+            {
+              "line": 115,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "sha256_str"
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "compute_rng_state_hash"
+        },
+        {
+          "calls": [
+            {
+              "line": 115,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "sha256_str"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "compute_mechanics_state_hash"
+        },
+        {
+          "calls": [
+            {
+              "line": 177,
+              "name": "new",
+              "receiver": "PlayerIntent",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "pick_tier2_intent"
+        },
+        {
+          "calls": [
+            {
+              "line": 232,
+              "name": "create_new_run_with_content",
+              "target": {
+                "file": "rust/etv-core/src/worldgen.rs"
+              }
+            },
+            {
+              "line": 233,
+              "name": "with_content",
+              "receiver": "StepEngine",
+              "target": {
+                "file": "rust/etv-core/src/engine.rs"
+              }
+            },
+            {
+              "line": 177,
+              "name": "new",
+              "receiver": "PlayerIntent",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              },
+              "via": "pick_tier2_intent"
+            },
+            {
+              "line": 115,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "sha256_str"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "run_tier2_seed_trace"
+        },
+        {
+          "calls": [
+            {
+              "line": 232,
+              "name": "create_new_run_with_content",
+              "target": {
+                "file": "rust/etv-core/src/worldgen.rs"
+              },
+              "via": "run_tier2_seed_trace"
+            },
+            {
+              "line": 233,
+              "name": "with_content",
+              "receiver": "StepEngine",
+              "target": {
+                "file": "rust/etv-core/src/engine.rs"
+              },
+              "via": "run_tier2_seed_trace"
+            },
+            {
+              "line": 177,
+              "name": "new",
+              "receiver": "PlayerIntent",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              },
+              "via": "pick_tier2_intent"
+            },
+            {
+              "line": 115,
+              "name": "hex_encode_32",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "sha256_str"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "run_tier2_snapshot_matrix"
+        }
+      ]
+    },
+    {
+      "entry": "validate_content",
+      "entryRule": 4,
+      "exports": [
+        "validate_content",
+        "validate_content_with_options"
+      ],
+      "failurePaths": [
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 440
+        },
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 456
+        },
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 472
+        },
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 495
+        },
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 501
+        },
+        {
+          "in": "is_valid_precondition_expr",
+          "kind": "err",
+          "line": 510
+        },
+        {
+          "in": "validate_references",
+          "kind": "match-err",
+          "line": 535
+        }
+      ],
+      "hash": "834e1148a06e55a6955d4cde17a3d04a04abcddf290c69158af9dbdcc4defb73",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/events.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "path": "rust/etv-core/src/validator.rs",
+      "sequences": [
+        {
+          "calls": [
+            {
+              "line": 227,
+              "name": "advertised_inventory_cost",
+              "target": {
+                "file": "rust/etv-core/src/events.rs"
+              },
+              "via": "validate_content_with_options"
+            },
+            {
+              "branch": "let Some((lhs, rhs)) = trimmed.split_once(op)",
+              "line": 493,
+              "name": "is_valid_resource_key",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              },
+              "via": "is_valid_precondition_expr"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "validate_content"
+        },
+        {
+          "calls": [
+            {
+              "line": 227,
+              "name": "advertised_inventory_cost",
+              "target": {
+                "file": "rust/etv-core/src/events.rs"
+              }
+            },
+            {
+              "branch": "let Some((lhs, rhs)) = trimmed.split_once(op)",
+              "line": 493,
+              "name": "is_valid_resource_key",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              },
+              "via": "is_valid_precondition_expr"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "validate_content_with_options"
+        },
+        {
+          "calls": [
+            {
+              "line": 394,
+              "name": "advertised_inventory_cost",
+              "target": {
+                "file": "rust/etv-core/src/events.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "event_has_affordable_fallback"
+        },
+        {
+          "calls": [
+            {
+              "branch": "let Some((lhs, rhs)) = trimmed.split_once(op)",
+              "line": 493,
+              "name": "is_valid_resource_key",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "is_valid_precondition_expr"
+        },
+        {
+          "calls": [
+            {
+              "branch": "let Some((lhs, rhs)) = trimmed.split_once(op)",
+              "line": 493,
+              "name": "is_valid_resource_key",
+              "target": {
+                "file": "rust/etv-core/src/model.rs"
+              },
+              "via": "is_valid_precondition_expr"
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "validate_references"
+        }
+      ]
     },
     {
       "exports": [
@@ -10788,10 +11404,10 @@
       "importOrder": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
-        "rust/etv-core/src/lib.rs"
+        "rust/etv-core/src/content.rs"
       ],
       "importsFiles": [
-        "rust/etv-core/src/lib.rs",
+        "rust/etv-core/src/content.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs"
       ],
@@ -10800,19 +11416,10 @@
     },
     {
       "hash": "fa600ec576c1734325e996ff83692dece6432ae58f0a2a09cd66764c7f745707",
-      "importOrder": [
-        "rust/etv-core/src/lib.rs",
-        "rust/etv-core/src/engine.rs",
-        "rust/etv-core/src/events.rs",
-        "rust/etv-core/src/model.rs",
-        "rust/etv-core/src/rng.rs",
-        "rust/etv-core/src/save.rs",
-        "rust/etv-core/src/worldgen.rs"
-      ],
       "importsFiles": [
+        "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
-        "rust/etv-core/src/lib.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
@@ -10820,6 +11427,25 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/oracle_parity.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "6ad633fa16fe4fad62a0aff9ec16cbfc87a197eb2319a95f56a2750f8989fa6e",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/validator.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/phase1_content_loader.rs",
+      "spawns": [
+        "rust/etv-core/src/bin/etv.rs"
+      ],
+      "spawnsInstalled": [
+        "rust/etv-core/src/bin/etv.rs"
+      ],
       "testsInside": true
     },
     {
