@@ -1,14 +1,18 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-02 from commit 95e2d10 by Atlas 1.24.0.
+Mapped at 2026-11-02 from commit 5fa8b67 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (66 files), Rust (16), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (26a0869)
+## What changed since 2026-11-02 (95e2d10)
 
-Nothing structural changed since 2026-11-02; 4 files changed content.
+- rust/oracle/content-legacy/content_manifest.json is now read by rust/etv-core/tests/oracle_parity.rs and rust/etv-core/tests/phase1_content_loader.rs.
+- rust/oracle/content-legacy/event_skeletons.json is now read by rust/etv-core/tests/oracle_parity.rs, rust/etv-core/tests/phase1_content_loader.rs and rust/oracle/content-legacy/content_manifest.json.
+- rust/oracle/content-legacy/content_manifest.json is new and belongs to no part, so atlas check fails on it against the previous map.
+- rust/oracle/content-legacy/event_skeletons.json is new and belongs to no part, so atlas check fails on it against the previous map.
+- 2 files added and 13 changed content, across 1 part.
 
 ## What comes in
 
@@ -106,7 +110,7 @@ Read those in order to follow one pull request end to end.
 - 1 write and 7 reads use paths built at run time and are not named here.
 - 4 writes and 19 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 33 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 30 more.
+- 35 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 32 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.

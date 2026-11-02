@@ -7990,10 +7990,11 @@
         {
           "exports": [
             "test_generator_pinned_to_final_legacy_python_sha",
+            "test_generator_refuses_when_content_legacy_snapshot_differs_from_pinned_sha",
             "test_generator_refuses_when_escape_the_valley_differs_from_pinned_sha",
             "test_vector_headers_record_generator_and_vector_sha256"
           ],
-          "hash": "8a5050046cd3a59a7e846eba4b16eb5833e2c37b3f441dd0f73bcd89410d0c2c",
+          "hash": "56ab7b58dae51a3ef348d8f49d5fd4363217f00a9a222b5e86e3a25f422dfbd9",
           "importsFiles": [
             "rust/oracle/generate_vectors.py"
           ],
@@ -9904,8 +9905,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "95e2d109ffa837d1546f6c4f207a678e2d429801",
-    "tracked": 746
+    "commit": "5fa8b6798faf4838af610437e1f0149a0f1d0a01",
+    "tracked": 748
   },
   "landings": [
     {
@@ -10022,6 +10023,47 @@
         }
       ],
       "target": "rust/etv-core/src/bin/etv.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/etv-core/tests/phase1_content_loader.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/oracle/content-legacy/content_manifest.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/oracle_parity.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/etv-core/tests/phase1_content_loader.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        },
+        {
+          "by": "rust/oracle/content-legacy/content_manifest.json",
+          "call": "configuration",
+          "confidence": "config"
+        }
+      ],
+      "target": "rust/oracle/content-legacy/event_skeletons.json",
       "writers": []
     },
     {
@@ -11416,14 +11458,14 @@
       "testsInside": true
     },
     {
-      "hash": "fa600ec576c1734325e996ff83692dece6432ae58f0a2a09cd66764c7f745707",
+      "hash": "bdd97dd67c755ec3a0fdbc59bcd0abf44378bf3868a9d62c4fe13fddf22d82e7",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
-        "rust/etv-core/src/events.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/snapshot.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
       "library": "rust/etv-core/src/lib.rs",
@@ -11431,7 +11473,7 @@
       "testsInside": true
     },
     {
-      "hash": "e16082362750fd9228af5a24b5a958db0b64c33775c4308dac61572d205e0e4f",
+      "hash": "a741504e28cb9700ca3929446fb90316e4793d9cf9a4d30ac358f8fb31318166",
       "importOrder": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/save.rs",
@@ -11459,8 +11501,16 @@
       "testsInside": true
     },
     {
-      "hash": "9ae6e2517fb98ad81a00cf0c4cd877e957e74ea3482e5e7782df0d584984edce",
+      "hash": "d6730328073f8430872cffb298174e7a95a43ae5c28ed7a825b78e97726508e2",
       "path": "rust/oracle/README.md"
+    },
+    {
+      "hash": "f84f98ea845bbfc9a0e0198ba9a29011104a2ed410d40867bb38a82dab342b9f",
+      "path": "rust/oracle/content-legacy/content_manifest.json"
+    },
+    {
+      "hash": "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576",
+      "path": "rust/oracle/content-legacy/event_skeletons.json"
     },
     {
       "exports": [
@@ -11498,25 +11548,35 @@
         {
           "in": "get_oracle_metadata",
           "kind": "raise",
-          "line": 170
+          "line": 183
         },
         {
           "in": "get_oracle_metadata",
           "kind": "raise",
-          "line": 187
+          "line": 200
         },
         {
           "in": "get_oracle_metadata",
           "kind": "raise",
-          "line": 204
+          "line": 217
+        },
+        {
+          "in": "get_oracle_metadata",
+          "kind": "raise",
+          "line": 226
+        },
+        {
+          "in": "get_oracle_metadata",
+          "kind": "raise",
+          "line": 231
         },
         {
           "in": "next_100_draws_from_save",
           "kind": "except",
-          "line": 635
+          "line": 668
         }
       ],
-      "hash": "3917d0889f28f949f63c07f832c8cab9c04593dc0a49009f1dc3b17be19627a8",
+      "hash": "b632c11aadbdbaa110c99c0b4062fcfb32f2daa82d22b8c3d129276fd0243639",
       "importOrder": [
         "src/escape_the_valley/adapter.py",
         "src/escape_the_valley/backpack_models.py",
@@ -11556,35 +11616,35 @@
       "path": "rust/oracle/generate_vectors.py"
     },
     {
-      "hash": "ffe4b12dabeed12ec751469bb642bef353f5305c8da0d30d64d08d30756fd766",
+      "hash": "688cdc9491e03f5d44a50d792c836a1ed05cff99fede4b728e844716ad9bc743",
       "path": "rust/oracle/vectors/ledger_reference.json.gz"
     },
     {
-      "hash": "be8eec30247e4a9cd95dc4f5b40ea1e7776bbdb6a86634b0b786f835b21075ca",
+      "hash": "4d75fa318f29677255578b547d051b0984048b500e4d9dab2b221b05e133a242",
       "path": "rust/oracle/vectors/notices_reference.json.gz"
     },
     {
-      "hash": "5691dd6fff8d6730a0dff2b75b52ae222d156117bc0a7d12eec568f8b74ecbbc",
+      "hash": "6af98bd0175d8bdf95e59d2151629b59d00c0fc7aa89e0b8dd50f47fe63ea112",
       "path": "rust/oracle/vectors/resume_120_seeds.json.gz"
     },
     {
-      "hash": "0c4204946dac928343569b324742e1944605fc6cecae3ac5b9ba739ce470b7cc",
+      "hash": "b4cec10f901eb4febb930d273d825bffc4fee512d29cf1aacb73996e6b4c698b",
       "path": "rust/oracle/vectors/rng_s1_vectors.json.gz"
     },
     {
-      "hash": "5d2136bd93d2d5f7e9500b01247e98a0fa1a73251a022e10c8cab1607007cfab",
+      "hash": "fe3f882d815a4c3a1aaa9d5185a999de12ac62f63b246d767b5efa8b4b47e1dc",
       "path": "rust/oracle/vectors/saves_20.json.gz"
     },
     {
-      "hash": "146a87f029ec6993d5848ef1f04cc1e47391a6b871bd31b3bb164bc613d0ff0a",
+      "hash": "89abab8e3829f4bbe2d4ce49ebd08908aea008d159dc82a733c5b988d229a47c",
       "path": "rust/oracle/vectors/turns_1000_seeds.json.gz"
     },
     {
-      "hash": "48fa1e5575ea1c34a0d4351de971e7cf9df47f00e17572e813f481cc00480f30",
+      "hash": "df8ce43cd842fec6a48908a00a45b405c64cdb9ba9b8ac782d1081b3e0e9a865",
       "path": "rust/oracle/vectors/turns_long_seeds.json.gz"
     },
     {
-      "hash": "125802c245e785acdcc19764eb313c4c47192072f965db4c4bdddc0f317ce527",
+      "hash": "c7a51b2c06b84172391f85beaa519d75074475946eb51d86db534c3aac48b768",
       "path": "rust/oracle/vectors/worldgen_200.json.gz"
     },
     {

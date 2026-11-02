@@ -19,10 +19,13 @@ Produces 8 deterministic gzip-compressed vector files in `rust/oracle/vectors/`:
 8. `notices_reference.json.gz`
 
 Each vector file header (`metadata`) records `oracle_commit`, `generator_sha256`
-(the full-file SHA-256 of `rust/oracle/generate_vectors.py`), `vector_sha256`
-(the canonical JSON SHA-256 of that vector file's content excluding `metadata`),
-and `vector_files_sha256` (all 8 vector files' content SHA-256s). Compressed
-`.json.gz` file SHA-256s are recorded in `rust/oracle/README.md`.
+(the full-file SHA-256 of `rust/oracle/generate_vectors.py`),
+`content_legacy_manifest_sha256`, `content_legacy_event_skeletons_sha256`, and
+`content_legacy_files_sha256` (the SHA-256s of the frozen legacy content snapshot
+in `rust/oracle/content-legacy/`), `vector_sha256` (the canonical JSON SHA-256 of
+that vector file's content excluding `metadata`), and `vector_files_sha256` (all
+8 vector files' content SHA-256s). Compressed `.json.gz` file SHA-256s are
+recorded in `rust/oracle/README.md`.
 """
 
 from __future__ import annotations
@@ -141,6 +144,16 @@ def rng_state_sha256_hex(state: tuple[Any, ...]) -> str:
 
 PINNED_ORACLE_COMMIT = "87104824d1f5b8bfda5b0dc5c14bc5a8e3721407"
 PINNED_ORACLE_TREE = "e1f37816a4c25e2a4a796f4feef59ebfd489a997"
+PINNED_CONTENT_LEGACY_MANIFEST_SHA256 = (
+    "f84f98ea845bbfc9a0e0198ba9a29011104a2ed410d40867bb38a82dab342b9f"
+)
+PINNED_CONTENT_LEGACY_EVENT_SKELETONS_SHA256 = (
+    "3402c6e1a1508fd55ecc60e2bfe819f60c219638f10d10e2881ca2d237a44576"
+)
+PINNED_CONTENT_LEGACY_FILES_SHA256: dict[str, str] = {
+    "content_manifest.json": PINNED_CONTENT_LEGACY_MANIFEST_SHA256,
+    "event_skeletons.json": PINNED_CONTENT_LEGACY_EVENT_SKELETONS_SHA256,
+}
 
 
 def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, Any]:
@@ -205,12 +218,32 @@ def get_oracle_metadata(repo_dir: Path | None = None) -> dict[str, Any]:
             f"Refusing to generate oracle vectors: dirty or untracked files in "
             f"src/escape_the_valley relative to {PINNED_ORACLE_COMMIT}:\n{status}"
         )
+    content_legacy_dir = repo_dir / "rust" / "oracle" / "content-legacy"
+    content_legacy_files_sha256: dict[str, str] = {}
+    for rel_name, expected_sha in PINNED_CONTENT_LEGACY_FILES_SHA256.items():
+        snap_path = content_legacy_dir / rel_name
+        if not snap_path.exists():
+            raise RuntimeError(
+                f"Refusing to generate oracle vectors: missing legacy content snapshot {snap_path}"
+            )
+        actual_sha = hashlib.sha256(snap_path.read_bytes()).hexdigest()
+        if actual_sha != expected_sha:
+            raise RuntimeError(
+                f"Refusing to generate oracle vectors: legacy content snapshot {rel_name} "
+                f"sha256 {actual_sha} != pinned {expected_sha}"
+            )
+        content_legacy_files_sha256[rel_name] = actual_sha
     generator_sha256 = hashlib.sha256(Path(__file__).resolve().read_bytes()).hexdigest()
     return {
         "python_version": sys.version.split()[0],
         "python_full": sys.version,
         "oracle_commit": PINNED_ORACLE_COMMIT,
         "generator_sha256": generator_sha256,
+        "content_legacy_manifest_sha256": content_legacy_files_sha256["content_manifest.json"],
+        "content_legacy_event_skeletons_sha256": content_legacy_files_sha256[
+            "event_skeletons.json"
+        ],
+        "content_legacy_files_sha256": content_legacy_files_sha256,
     }
 
 
