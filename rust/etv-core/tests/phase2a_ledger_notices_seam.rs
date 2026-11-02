@@ -21,10 +21,15 @@ use serde_json::Value;
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::{StepEngine, StepMessages};
 use etv_core::ledger::trail_ledger;
-use etv_core::model::{GamePhase, IntentAction, PlayerIntent, RunState, TimeOfDay};
+use etv_core::memory::{
+    build_gm_brief, build_gm_brief_readonly, compute_pressures, compute_themes,
+};
+use etv_core::model::{
+    Condition, GMProfile, GamePhase, IntentAction, MemoryCard, PlayerIntent, RunState, TimeOfDay,
+};
 use etv_core::narrator::{
-    build_narration_context, evaluate_turn_matters, NarrationContext, Narrator, NullNarrator,
-    PreTurnObservation,
+    build_narration_context, build_narration_context_with_phase, evaluate_turn_matters,
+    journey_band, NarrationContext, Narrator, NullNarrator, PartyStatusFacts, PreTurnObservation,
 };
 use etv_core::notices::{
     compute_compiled_crates_from_cargo_lock, embedded_license_allowlist, embedded_notices_manifest,
@@ -33,11 +38,12 @@ use etv_core::notices::{
     verify_manifest_coverage_against_cargo_lock, CrateLicenseFile, CrateNotice,
     EMBEDDED_NOTICES_MANIFEST_JSON, EMBEDDED_THIRD_PARTY_NOTICES_TXT,
 };
-use etv_core::physics::HealthEffect;
+use etv_core::physics::{current_node, HealthEffect};
 use etv_core::snapshot::{
-    run_tier2_seed_trace, run_tier2_snapshot_matrix, run_tier2_snapshot_matrix_with_narrator,
+    build_1000_seeds, run_tier2_seed_trace, run_tier2_seed_trace_with_narrator,
+    run_tier2_snapshot_matrix, run_tier2_snapshot_matrix_with_narrator,
 };
-use etv_core::worldgen::create_new_run;
+use etv_core::worldgen::{create_new_run, create_new_run_with_content};
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -497,10 +503,10 @@ impl Narrator for CountingNarrator {
     fn narrate(&self, ctx: &NarrationContext) -> Option<String> {
         let idx = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
         Some(format!(
-            "[narrator #{idx} at {} ({}) outcome={:?}]",
+            "[narrator #{idx} at {} ({}) fallback={:?}]",
             ctx.place(),
             ctx.band(),
-            ctx.outcome_sentence()
+            ctx.fallback_line()
         ))
     }
 }
@@ -677,7 +683,7 @@ fn phase2a_narrator_flag_rule_night_at_camp() {
 }
 
 #[test]
-fn phase2a_narrator_flag_negative_unflagged_turn_does_not_call_narrator() {
+fn phase2a_narrator_flag_negative_unflagged_turn_still_calls_narrator_with_false_flags() {
     let mut state = create_new_run(42);
     state.time_of_day = TimeOfDay::Morning;
     state.distance_remaining = 40;
@@ -712,22 +718,12 @@ fn phase2a_narrator_flag_negative_unflagged_turn_does_not_call_narrator() {
     );
 
     let narrator = CountingNarrator::new();
-    let narrator_text = if flags.any() {
-        let ctx = build_narration_context(&state, "", "", &msgs, flags);
-        narrator.narrate(&ctx)
-    } else {
-        None
-    };
-    assert_eq!(
-        narrator.count(),
-        0,
-        "narrator must not be called on unflagged turns"
-    );
-    assert_eq!(narrator_text, None);
-    assert_eq!(
-        NullNarrator.narrate(&build_narration_context(&state, "", "", &msgs, flags)),
-        None
-    );
+    let ctx = build_narration_context(&state, "", "", &msgs, flags);
+    assert!(!ctx.flags().any());
+    let narrator_text = narrator.narrate(&ctx);
+    assert_eq!(narrator.count(), 1);
+    assert!(narrator_text.is_some());
+    assert_eq!(NullNarrator.narrate(&ctx), None);
 }
 
 struct PseudoRandomTestNarrator {
@@ -809,30 +805,29 @@ fn phase2a_narrator_1000_tier2_seeds_random_text_preserves_mechanics_hashes() {
                 "narrator output must never feed back into trail_ledger_lines"
             );
 
+            expected_calls_in_seed += 1;
             if rt.presentation_record.turn_matters {
-                expected_calls_in_seed += 1;
                 total_flagged_turns += 1;
-                assert_eq!(
-                    nt.presentation_record.narrator_text, None,
-                    "NullNarrator must return None on flagged turns"
-                );
-                assert!(
-                    rt.presentation_record.narrator_text.is_some(),
-                    "test narrator must populate presentation_record.narrator_text on flagged turns"
-                );
-                assert_ne!(
-                    nt.presentation_record, rt.presentation_record,
-                    "presentation_record must differ on flagged turns when narrator emits text"
-                );
             } else {
                 total_unflagged_turns += 1;
-                assert_eq!(
-                    rt.presentation_record.narrator_text, None,
-                    "narrator must not be called on unflagged turns"
-                );
-                assert_eq!(nt.presentation_record, rt.presentation_record);
             }
-
+            assert_eq!(
+                nt.presentation_record.narrator_text, None,
+                "NullNarrator must return None on every turn"
+            );
+            assert!(
+                rt.presentation_record.narrator_text.is_some(),
+                "test narrator must populate presentation_record.narrator_text on every turn"
+            );
+            assert_ne!(
+                nt.presentation_record, rt.presentation_record,
+                "presentation_record must differ on every turn when narrator emits text"
+            );
+            assert_eq!(
+                nt.presentation_record.narrator_calls, expected_calls_in_seed,
+                "NullNarrator narrator_calls count mismatch on seed {} turn {}",
+                null_trace.seed, nt.turn
+            );
             assert_eq!(
                 rt.presentation_record.narrator_calls, expected_calls_in_seed,
                 "narrator_calls count mismatch on seed {} turn {}",
@@ -851,8 +846,8 @@ fn phase2a_narrator_1000_tier2_seeds_random_text_preserves_mechanics_hashes() {
     );
     assert_eq!(
         random_narrator.counter.load(Ordering::SeqCst),
-        total_flagged_turns,
-        "narrator must be invoked exclusively on flagged turns"
+        null_matrix.total_turns,
+        "narrator must be invoked once on every shown turn"
     );
 
     // Ensure no HashMap or HashSet iteration was introduced in the new Phase 2A modules.
@@ -868,4 +863,337 @@ fn phase2a_narrator_1000_tier2_seeds_random_text_preserves_mechanics_hashes() {
         }
     }
     let _ = BTreeMap::<String, i32>::new();
+}
+
+struct PlaceholderNarrator;
+
+impl Narrator for PlaceholderNarrator {
+    fn narrate(&self, _ctx: &NarrationContext) -> Option<String> {
+        Some("PLACEHOLDER".to_string())
+    }
+}
+
+#[test]
+fn narrator_every_turn_called_once_per_shown_turn_200_seeds() {
+    let pack = embedded_content_pack();
+    let seeds = &build_1000_seeds()[..200];
+    assert_eq!(seeds.len(), 200);
+
+    let counting = CountingNarrator::new();
+    let mut total_shown_turns = 0usize;
+    let mut unflagged_turns = 0usize;
+
+    for (idx, &seed) in seeds.iter().enumerate() {
+        let before_seed = counting.count();
+        let trace = run_tier2_seed_trace_with_narrator(seed, idx, pack, 40, &counting);
+        let seed_calls = counting.count() - before_seed;
+        assert_eq!(
+            seed_calls,
+            trace.turns.len(),
+            "counting fake narrator must be called once per shown turn on seed {seed}"
+        );
+        for (turn_idx, t) in trace.turns.iter().enumerate() {
+            let expected_turn_calls = turn_idx + 1;
+            assert_eq!(
+                t.presentation_record.narrator_calls, expected_turn_calls,
+                "narrator_calls must equal shown turn index on seed {seed} turn {}",
+                t.turn
+            );
+            if !t.presentation_record.turn_matters {
+                unflagged_turns += 1;
+            }
+        }
+        total_shown_turns += trace.turns.len();
+    }
+
+    assert!(total_shown_turns > 0);
+    assert!(
+        unflagged_turns > 0,
+        "200-seed sweep must include unflagged turns that still invoke the narrator"
+    );
+    assert_eq!(counting.count(), total_shown_turns);
+}
+
+#[test]
+fn narrator_every_turn_mechanics_untouched_across_null_counting_and_placeholder_200_seeds() {
+    let pack = embedded_content_pack();
+    let seeds = &build_1000_seeds()[..200];
+    assert_eq!(seeds.len(), 200);
+
+    let counting = CountingNarrator::new();
+    let placeholder = PlaceholderNarrator;
+
+    for (idx, &seed) in seeds.iter().enumerate() {
+        let null_trace = run_tier2_seed_trace_with_narrator(seed, idx, pack, 40, &NullNarrator);
+        let counting_trace = run_tier2_seed_trace_with_narrator(seed, idx, pack, 40, &counting);
+        let placeholder_trace =
+            run_tier2_seed_trace_with_narrator(seed, idx, pack, 40, &placeholder);
+
+        assert_eq!(null_trace.turns.len(), counting_trace.turns.len());
+        assert_eq!(null_trace.turns.len(), placeholder_trace.turns.len());
+
+        for i in 0..null_trace.turns.len() {
+            let nt = &null_trace.turns[i];
+            let ct = &counting_trace.turns[i];
+            let pt = &placeholder_trace.turns[i];
+
+            assert_eq!(nt.turn, ct.turn);
+            assert_eq!(nt.turn, pt.turn);
+            assert_eq!(
+                nt.mechanics_state_hash, ct.mechanics_state_hash,
+                "CountingNarrator mechanics_state_hash diverged from NullNarrator on seed {seed} turn {}",
+                nt.turn
+            );
+            assert_eq!(
+                nt.mechanics_state_hash, pt.mechanics_state_hash,
+                "PlaceholderNarrator mechanics_state_hash diverged from NullNarrator on seed {seed} turn {}",
+                nt.turn
+            );
+            assert_eq!(nt.presentation_record.narrator_calls, i + 1);
+            assert_eq!(ct.presentation_record.narrator_calls, i + 1);
+            assert_eq!(pt.presentation_record.narrator_calls, i + 1);
+            assert_eq!(nt.presentation_record.narrator_text, None);
+            assert_eq!(
+                pt.presentation_record.narrator_text.as_deref(),
+                Some("PLACEHOLDER")
+            );
+        }
+    }
+}
+
+#[test]
+fn narrator_every_turn_context_build_is_pure_on_run_state_rng_and_memory_marks() {
+    let pack = embedded_content_pack();
+    for &seed in &[0_i128, 1, 42, -42, 7] {
+        let mut state = create_new_run_with_content(seed, pack);
+        // Seed memory cards with expired cooldown (`cooldown_until == 0`) and matching tags so a
+        // non-pure `retrieve_memories(..., true)` call would mutate `day_last_seen` and
+        // `cooldown_until`.
+        state.memory_cards.push(MemoryCard {
+            id: "test_mem_river".to_string(),
+            kind: "omen".to_string(),
+            title: "PLACEHOLDER_TITLE".to_string(),
+            text: "PLACEHOLDER_TEXT".to_string(),
+            tags: vec![
+                "river".to_string(),
+                "food_low".to_string(),
+                "folklore".to_string(),
+            ],
+            day_created: 1,
+            day_last_seen: 1,
+            entities: Vec::new(),
+            salience: 0.9,
+            cooldown_until: 0,
+            source: "engine".to_string(),
+        });
+        state.recent_event_tags = vec!["river".to_string(), "folklore".to_string()];
+
+        let mut engine = StepEngine::with_content(state, pack);
+        let counting = CountingNarrator::new();
+
+        for turn in 1..=30 {
+            if engine.phase == GamePhase::GameOver || engine.state.game_over {
+                break;
+            }
+            let pre_obs = PreTurnObservation::capture(engine.phase, &engine.state);
+            let intent = match engine.phase {
+                GamePhase::Event => PlayerIntent::new(IntentAction::Choose).with_choice("A"),
+                GamePhase::Route => PlayerIntent::new(IntentAction::Choose).with_choice("A"),
+                GamePhase::Camp => {
+                    if turn % 4 == 0 {
+                        PlayerIntent::new(IntentAction::Rest)
+                    } else {
+                        PlayerIntent::new(IntentAction::Travel)
+                    }
+                }
+                GamePhase::GameOver => break,
+            };
+            let msgs = engine.step(&intent);
+            engine.state.rng_counter = engine.rng.counter;
+            engine.state.rng_state = Some(engine.rng.getstate());
+
+            let state_before = engine.state.clone();
+            let rng_state_before = engine.rng.getstate();
+            let rng_counter_before = engine.rng.counter;
+            let cards_before = engine.state.memory_cards.clone();
+
+            let flags = evaluate_turn_matters(&pre_obs, &intent, &msgs, &engine.state);
+            let ctx = build_narration_context_with_phase(
+                &engine.state,
+                engine.phase,
+                "",
+                "",
+                &msgs,
+                flags,
+            );
+            let _ = counting.narrate(&ctx);
+
+            assert_eq!(
+                engine.state, state_before,
+                "RunState mutated during context build on seed {seed} turn {turn}"
+            );
+            assert_eq!(
+                engine.rng.getstate(),
+                rng_state_before,
+                "RNG state mutated during context build on seed {seed} turn {turn}"
+            );
+            assert_eq!(
+                engine.rng.counter, rng_counter_before,
+                "RNG counter mutated during context build on seed {seed} turn {turn}"
+            );
+            assert_eq!(
+                engine.state.memory_cards, cards_before,
+                "memory_cards mutated during context build on seed {seed} turn {turn}"
+            );
+            for (before_card, after_card) in
+                cards_before.iter().zip(engine.state.memory_cards.iter())
+            {
+                assert_eq!(before_card.day_last_seen, after_card.day_last_seen);
+                assert_eq!(before_card.cooldown_until, after_card.cooldown_until);
+            }
+        }
+    }
+}
+
+#[test]
+fn narrator_every_turn_context_facts_match_engine_values() {
+    let pack = embedded_content_pack();
+    let mut state = create_new_run_with_content(42, pack);
+    state.gm_profile = GMProfile::Lantern;
+    state.weirdness_level = 3;
+    state.uncanny_tokens = 2;
+    state.supplies.set_food(4);
+    state.supplies.set_water(6);
+    state.recent_event_tags = vec!["river".to_string(), "folklore".to_string()];
+
+    let mut engine = StepEngine::with_content(state, pack);
+    let pre_obs = PreTurnObservation::capture(engine.phase, &engine.state);
+    let intent = PlayerIntent::new(IntentAction::Rest);
+    let msgs = engine.step(&intent);
+    let flags = evaluate_turn_matters(&pre_obs, &intent, &msgs, &engine.state);
+
+    let ctx = build_narration_context_with_phase(
+        &engine.state,
+        engine.phase,
+        "ev_test",
+        "A",
+        &msgs,
+        flags,
+    );
+
+    let expected_brief = build_gm_brief_readonly(&engine.state);
+    let mut state_for_mut_brief = engine.state.clone();
+    let expected_mut_brief = build_gm_brief(&mut state_for_mut_brief, false);
+    assert_eq!(expected_brief.situation, expected_mut_brief.situation);
+    assert_eq!(expected_brief.pressures, expected_mut_brief.pressures);
+    assert_eq!(expected_brief.themes, expected_mut_brief.themes);
+    assert_eq!(expected_brief.tone_profile, expected_mut_brief.tone_profile);
+    assert_eq!(
+        expected_brief.weirdness_allowance,
+        expected_mut_brief.weirdness_allowance
+    );
+
+    let expected_node = current_node(&engine.state).expect("current node");
+    let expected_fallback = if !msgs.outcome_narration.is_empty() {
+        msgs.outcome_narration.clone()
+    } else {
+        msgs.lines.join(" ")
+    };
+    let expected_pressures: Vec<String> = compute_pressures(&engine.state)
+        .into_iter()
+        .take(3)
+        .collect();
+    let expected_themes = compute_themes(&engine.state);
+
+    assert_eq!(ctx.fallback_line(), expected_fallback);
+    assert_eq!(ctx.time_of_day(), engine.state.time_of_day);
+    assert_eq!(ctx.phase(), engine.phase);
+    assert_eq!(ctx.biome(), expected_node.biome.as_str());
+    assert_eq!(ctx.place(), expected_node.name);
+    assert_eq!(ctx.day(), engine.state.day);
+    assert_eq!(ctx.band(), journey_band(&engine.state));
+    assert_eq!(ctx.pressures(), expected_pressures.as_slice());
+    assert_eq!(ctx.themes(), expected_themes.as_slice());
+    assert_eq!(
+        ctx.weirdness_allowance(),
+        expected_brief.weirdness_allowance
+    );
+    assert_eq!(ctx.gm_profile(), engine.state.gm_profile);
+    assert_eq!(ctx.situation(), expected_brief.situation);
+    assert_eq!(
+        ctx.party_status(),
+        &PartyStatusFacts::from_state(&engine.state)
+    );
+    assert_eq!(
+        ctx.party_status().alive_count(),
+        engine.state.party.alive_count()
+    );
+    assert_eq!(
+        ctx.party_status().total_count(),
+        engine.state.party.members.len()
+    );
+    assert_eq!(ctx.flags(), &flags);
+}
+
+#[test]
+fn narrator_every_turn_party_status_contains_no_member_names() {
+    let pack = embedded_content_pack();
+    for &seed in &[0_i128, 1, 2, 42, -42, 99] {
+        let mut state = create_new_run_with_content(seed, pack);
+        // Exercise injured, sick, exhausted, critical-health, and dead member states.
+        if state.party.members.len() >= 4 {
+            state.party.members[0].condition = Condition::Sick;
+            state.party.members[0].health = 22;
+            state.party.members[1].condition = Condition::Injured;
+            state.party.members[1].health = 55;
+            state.party.members[2].condition = Condition::Exhausted;
+            state.party.members[2].health = 70;
+            state.party.members[3].health = 0;
+            state.party.members[3].death_cause = "Exposure".to_string();
+        }
+        let member_names: Vec<String> =
+            state.party.members.iter().map(|m| m.name.clone()).collect();
+        assert!(!member_names.is_empty());
+
+        let msgs = StepMessages::default();
+        let flags = evaluate_turn_matters(
+            &PreTurnObservation::capture(GamePhase::Camp, &state),
+            &PlayerIntent::new(IntentAction::Rest),
+            &msgs,
+            &state,
+        );
+        let ctx = build_narration_context_with_phase(&state, GamePhase::Camp, "", "", &msgs, flags);
+
+        let party_json =
+            serde_json::to_string(ctx.party_status()).expect("serialize PartyStatusFacts");
+        let party_debug = format!("{:?}", ctx.party_status());
+        let situation_str = ctx.situation();
+
+        for name in &member_names {
+            assert!(
+                !name.is_empty(),
+                "generated party member name must not be empty"
+            );
+            assert!(
+                !party_json.contains(name),
+                "party_status JSON must not contain member name '{name}': {party_json}"
+            );
+            assert!(
+                !party_debug.contains(name),
+                "party_status Debug output must not contain member name '{name}': {party_debug}"
+            );
+            assert!(
+                !ctx.party_status().health_band().contains(name),
+                "health_band must not contain member name '{name}'"
+            );
+            assert!(
+                !ctx.party_status().morale_band().contains(name),
+                "morale_band must not contain member name '{name}'"
+            );
+            assert!(
+                !situation_str.contains(name),
+                "situation must not contain member name '{name}': {situation_str}"
+            );
+        }
+    }
 }

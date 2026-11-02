@@ -10,7 +10,8 @@ use crate::events::EVENT_ID_COOLDOWN_WINDOW;
 use crate::ledger::trail_ledger;
 use crate::model::{BackpackState, GamePhase, IntentAction, MapNode, PlayerIntent, RunState};
 use crate::narrator::{
-    build_narration_context, evaluate_turn_matters, Narrator, NullNarrator, PreTurnObservation,
+    build_narration_context_with_phase, evaluate_turn_matters, Narrator, NullNarrator,
+    PreTurnObservation,
 };
 use crate::worldgen::create_new_run_with_content;
 
@@ -398,11 +399,12 @@ pub fn run_tier2_seed_trace(
 /// Run a single seed under `content` for up to `max_turns` turns with a plugged-in [`Narrator`]
 /// and return its [`Tier2SeedTrace`].
 ///
-/// The narrator is invoked only when `turn_matters` is `true`, receives an owned read-only
-/// [`crate::narrator::NarrationContext`], and its call count and returned text are recorded in
-/// [`PresentationRecord`] only — never in [`MechanicsStateRecord`] or `mechanics_state_hash`.
-/// When the run reaches `GameOver`, the Trail Ledger lines are also recorded in
-/// `presentation_record.trail_ledger_lines` only.
+/// The narrator is invoked once on every shown turn (every loop iteration that executes a turn
+/// step and shows the player a turn result), receives an owned read-only
+/// [`crate::narrator::NarrationContext`] built from the engine's facts, and its call count and
+/// returned text are recorded in [`PresentationRecord`] only — never in [`MechanicsStateRecord`]
+/// or `mechanics_state_hash`. When the run reaches `GameOver`, the Trail Ledger lines are also
+/// recorded in `presentation_record.trail_ledger_lines` only.
 pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
     seed: i128,
     seed_idx: usize,
@@ -415,6 +417,7 @@ pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
     let mut turns = Vec::with_capacity(max_turns);
     let mut narrator_calls: usize = 0;
 
+    #[allow(clippy::explicit_counter_loop)]
     for turn in 1..=max_turns {
         if engine.phase == GamePhase::GameOver || engine.state.game_over {
             break;
@@ -444,19 +447,16 @@ pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
 
         let flags = evaluate_turn_matters(&pre_obs, &intent, &msgs, &engine.state);
         let turn_matters = flags.any();
-        let narrator_text = if turn_matters {
-            narrator_calls += 1;
-            let ctx = build_narration_context(
-                &engine.state,
-                &post_event_id,
-                &chosen_choice_id,
-                &msgs,
-                flags,
-            );
-            narrator.narrate(&ctx)
-        } else {
-            None
-        };
+        narrator_calls += 1;
+        let ctx = build_narration_context_with_phase(
+            &engine.state,
+            engine.phase,
+            &post_event_id,
+            &chosen_choice_id,
+            &msgs,
+            flags,
+        );
+        let narrator_text = narrator.narrate(&ctx);
 
         let trail_ledger_lines = if engine.phase == GamePhase::GameOver || engine.state.game_over {
             trail_ledger(&engine.state)
