@@ -2,10 +2,10 @@
 //!
 //! Covers:
 //! 1. Narrator off: a full game plays to an ending with every turn showing the fallback line.
-//! 2. Fallback phrase table & composer: 464 choice fallbacks composed from effects, shipped table
-//!    holds only `"PLACEHOLDER-<key>-<dir>"` entries (test fails if any non-placeholder phrase is
-//!    present), and release builds (`cfg(not(debug_assertions))`) refuse to start the
-//!    composed-fallback path while placeholders are present and show the engine's own plain line.
+//! 2. Fallback phrase table & composer: approved phrase table with zero `PLACEHOLDER-` entries and
+//!    pinned SHA-256, equivalence to R&D's source format, 16 `engine_effect_profile` keys + `none`,
+//!    release-build composition + refusal on missing/placeholder tables, post-clamp applied deltas,
+//!    464-choice word/distinct counts (5..=18 words, 0 >20, 3 >15, 88 distinct), and voice-rule check.
 //! 3. Three profiles (`Chronicler`, `Fireside`, `Lantern-Bearer`), prompt construction from shared
 //!    hard rules + `PROFILE_HEADERS` + `NarrationContext` facts, never containing `fallback_line`
 //!    and never leaking literal `"lantern"` into the system prompt.
@@ -21,7 +21,7 @@
 //!    the separate warm-up allowance succeeds; missing-model and connection-error messages at
 //!    startup match legacy plain-words guidance and offer to play with the narrator off.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -32,15 +32,17 @@ use etv_core::content::{embedded_content_pack, EMBEDDED_CONTENT_HASH_HEX};
 use etv_core::engine::{StepEngine, StepMessages};
 use etv_core::model::{GMProfile, GamePhase, IntentAction, PlayerIntent};
 use etv_core::narrator::{
-    build_narration_context_with_phase, build_outcome_prompts, build_scene_prompts,
-    build_system_prompt, check_generated_line, compose_all_464_choice_fallbacks,
-    connect_error_message, evaluate_turn_matters, is_loopback_endpoint, model_missing_error,
+    build_narration_context_from_turn, build_narration_context_with_phase, build_outcome_prompts,
+    build_scene_prompts, build_system_prompt, check_generated_line,
+    compose_all_464_choice_fallbacks, compute_applied_turn_deltas, connect_error_message,
+    evaluate_turn_matters, is_loopback_endpoint, model_missing_error,
     parse_outcome_response_strict, parse_scene_response_strict, profile_header,
     profile_interface_name, resolve_fallback_line_with_mode, validate_endpoint, CheckReasonCode,
     CheckerContext, ComposedFallbackComposer, EndpointError, FallbackComposerError,
     FallbackPhraseTable, LiveNarrator, Narrator, NarratorLength, NarratorSettings,
     NarratorTransport, NullNarrator, PreTurnObservation, TransportError, DEFAULT_OLLAMA_ENDPOINT,
-    RESOURCE_NOUN_TABLE,
+    RESOURCE_NOUN_TABLE, SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256,
+    SHIPPED_FALLBACK_PHRASES_LF_SHA256, SOURCE_PHRASE_TABLE_SHA256,
 };
 use etv_core::notices::embedded_license_allowlist;
 use etv_core::save::state_to_value;
@@ -178,48 +180,180 @@ fn step3_narrator_off_full_game_shows_fallback_line_every_turn() {
 }
 
 // ============================================================================
-// 2. Fallback phrase table & 464 choice composer + release-build refusal
+// 2. Fallback phrase table & 464 choice composer + release-build + applied deltas
 // ============================================================================
 
 #[test]
-fn step3_fallback_table_ships_only_placeholder_entries() {
+fn step3_fallback_table_has_no_placeholders_and_pins_sha256() {
     let table = FallbackPhraseTable::embedded();
     assert!(
-        table.all_placeholders(),
-        "shipped fallback_phrases.json must contain only PLACEHOLDER-<key>-<dir> entries, found non-placeholders: {:?}",
-        table.non_placeholder_entries()
+        !table.has_placeholders(),
+        "shipped fallback_phrases.json must not contain any PLACEHOLDER- entry, found: {:?}",
+        table.placeholder_entries()
     );
-    assert!(table.has_placeholders());
-    assert!(table.non_placeholder_entries().is_empty());
+    assert!(table.placeholder_entries().is_empty());
+    assert!(!table.all_placeholders());
+    assert_eq!(table.non_placeholder_entries().len(), 33);
 
-    // Verify negative check: a table containing any non-placeholder phrase must be caught.
-    let non_placeholder_json = r#"{
-        "schema_version": 1,
-        "phrases": {
-            "food": {
-                "neg": "NOT_A_PLACEHOLDER",
-                "pos": "PLACEHOLDER-food-pos"
-            }
-        }
-    }"#;
-    let tampered =
-        FallbackPhraseTable::from_json_str(non_placeholder_json).expect("parse tampered table");
-    assert!(
-        !tampered.all_placeholders(),
-        "table with non-placeholder entry must fail all_placeholders()"
+    // Pin the SHA-256 of the shipped table (both canonical JSON and LF-normalized file bytes).
+    assert_eq!(
+        table.canonical_sha256_hex().expect("canonical sha256"),
+        SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256,
+        "shipped fallback_phrases.json canonical JSON SHA-256 must match pinned value"
     );
     assert_eq!(
-        tampered.non_placeholder_entries(),
+        FallbackPhraseTable::embedded_lf_sha256_hex(),
+        SHIPPED_FALLBACK_PHRASES_LF_SHA256,
+        "shipped fallback_phrases.json LF-normalized SHA-256 must match pinned value"
+    );
+    assert_eq!(
+        SOURCE_PHRASE_TABLE_SHA256,
+        "ef29eecf13ba985708d21ad9f002ab4a2de5af4aa70dc914f8c1135f4bf12a22"
+    );
+
+    // Verify negative check: any table containing a PLACEHOLDER- entry is caught by has_placeholders().
+    let mut tampered = table.clone();
+    tampered
+        .phrases
+        .get_mut("food")
+        .unwrap()
+        .insert("neg".to_string(), "PLACEHOLDER-food-neg".to_string());
+    assert!(tampered.has_placeholders());
+    assert_eq!(
+        tampered.placeholder_entries(),
         vec![(
             "food".to_string(),
             "neg".to_string(),
-            "NOT_A_PLACEHOLDER".to_string()
+            "PLACEHOLDER-food-neg".to_string()
         )]
     );
 }
 
 #[test]
-fn step3_fallback_composer_464_choices_and_release_build_refusal() {
+fn step3_fallback_table_equivalent_to_source_and_keys_equal_464_choice_effect_profiles() {
+    let pack = embedded_content_pack();
+    let table = FallbackPhraseTable::embedded();
+
+    // 1. Key set equals the 16 engine_effect_profile keys across all 464 choices in event_skeletons.json (+ none).
+    let raw_events = pack
+        .raw_events_value
+        .as_array()
+        .expect("event_skeletons.json top-level value must be an array");
+    let mut choice_count = 0usize;
+    let mut profile_keys: BTreeSet<String> = BTreeSet::new();
+    for skel in raw_events {
+        let choices = skel
+            .get("choices")
+            .and_then(|v| v.as_array())
+            .expect("skeleton must have choices array");
+        for choice in choices {
+            choice_count += 1;
+            let profile = choice
+                .get("engine_effect_profile")
+                .and_then(|v| v.as_object())
+                .expect("choice must have engine_effect_profile object");
+            for key in profile.keys() {
+                profile_keys.insert(key.clone());
+            }
+        }
+    }
+    assert_eq!(
+        choice_count, 464,
+        "event_skeletons.json must have 464 choices"
+    );
+    assert_eq!(
+        profile_keys.len(),
+        16,
+        "event_skeletons.json must have 16 distinct engine_effect_profile keys"
+    );
+
+    let mut expected_table_keys = profile_keys.clone();
+    expected_table_keys.insert("none".to_string());
+    let actual_table_keys: BTreeSet<String> = table.phrases.keys().cloned().collect();
+    assert_eq!(
+        actual_table_keys, expected_table_keys,
+        "shipped table keys must equal the 16 engine_effect_profile keys plus 'none'"
+    );
+
+    // Unused extra keys from Step 3 placeholder table must not be present.
+    for removed_key in ["lantern_oil", "meds", "salt"] {
+        assert!(
+            !table.phrases.contains_key(removed_key),
+            "shipped table must not contain unused key {removed_key:?}"
+        );
+    }
+
+    // key_order has all 16 effect keys with ammo first.
+    assert_eq!(table.key_order.len(), 16);
+    assert_eq!(table.key_order.first().map(String::as_str), Some("ammo"));
+    let key_order_set: BTreeSet<String> = table.key_order.iter().cloned().collect();
+    assert_eq!(key_order_set, profile_keys);
+
+    // Each of the 16 effect keys has exactly {"neg", "pos"}, and "none" has {"neutral"}.
+    for key in &profile_keys {
+        let dirs = table
+            .phrases
+            .get(key)
+            .unwrap_or_else(|| panic!("missing key {key}"));
+        let dir_keys: Vec<&str> = dirs.keys().map(String::as_str).collect();
+        assert_eq!(dir_keys, vec!["neg", "pos"], "directions for {key}");
+    }
+    let none_dirs: Vec<&str> = table
+        .phrases
+        .get("none")
+        .expect("missing none key")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(none_dirs, vec!["neutral"]);
+
+    // 2. Round-trip equivalence between source format ("+" / "-", none_phrase, phrases)
+    // and the shipped FallbackPhraseTable format ("pos" / "neg", none.neutral, key_order, phrases).
+    let (none_phrase, source_entries) = table.to_source_entries().expect("to_source_entries");
+    assert_eq!(source_entries.len(), 32);
+    assert_eq!(source_entries[0].key, "ammo");
+    assert_eq!(source_entries[0].dir, "+");
+    assert_eq!(source_entries[1].key, "ammo");
+    assert_eq!(source_entries[1].dir, "-");
+
+    let reconstructed_source_json = serde_json::json!({
+        "version": "draft-2",
+        "subject": table.subject,
+        "none_phrase": none_phrase,
+        "phrases": source_entries,
+    })
+    .to_string();
+    let roundtripped = FallbackPhraseTable::from_source_table_json(&reconstructed_source_json)
+        .expect("convert from source format");
+    assert_eq!(roundtripped, table);
+    assert_eq!(
+        roundtripped
+            .canonical_sha256_hex()
+            .expect("canonical sha256"),
+        SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256
+    );
+
+    // Verify error handling on invalid source JSON / direction and empty key_order fallback.
+    assert!(FallbackPhraseTable::from_source_table_json("not json").is_err());
+    let bad_dir_json = serde_json::json!({
+        "subject": table.subject,
+        "none_phrase": none_phrase,
+        "phrases": [{"key": "food", "dir": "?", "phrase": table.phrases["food"]["pos"]}],
+    })
+    .to_string();
+    assert!(FallbackPhraseTable::from_source_table_json(&bad_dir_json).is_err());
+
+    let mut no_order = table.clone();
+    no_order.key_order.clear();
+    assert_eq!(no_order.ordered_keys().len(), 16);
+
+    let minimal_json = r#"{"schema_version": 1, "phrases": {"food": {"neg": "a", "pos": "b"}}}"#;
+    let minimal = FallbackPhraseTable::from_json_str(minimal_json).expect("minimal table");
+    assert_eq!(minimal.subject, table.subject);
+}
+
+#[test]
+fn step3_fallback_composer_464_choices_and_release_build_behavior() {
     let pack = embedded_content_pack();
     let table = FallbackPhraseTable::embedded();
 
@@ -229,58 +363,104 @@ fn step3_fallback_composer_464_choices_and_release_build_refusal() {
         464,
         "must compose one fallback sentence for each of the 464 JSON event choices"
     );
+    let subject_prefix = format!("{} ", table.subject);
     for ((event_id, choice_id), sentence) in &composed {
         assert!(
-            sentence.starts_with("PLACEHOLDER-") && sentence.ends_with('.'),
-            "composed fallback for {event_id}:{choice_id} must use placeholder phrases and end with a period, got: {sentence:?}"
+            sentence.starts_with(&subject_prefix) && sentence.ends_with('.'),
+            "composed fallback for {event_id}:{choice_id} must start with subject {:?} and end with a period, got: {sentence:?}",
+            table.subject
+        );
+        assert!(
+            !sentence.contains("PLACEHOLDER-"),
+            "composed fallback for {event_id}:{choice_id} must not contain PLACEHOLDER-, got: {sentence:?}"
         );
     }
 
-    // Release build (`is_release_build = true` / `cfg(not(debug_assertions))`) must refuse to
-    // start the composed-fallback path while the table holds placeholders or is missing, and
-    // must show the engine's own plain line instead.
+    // Release build (`is_release_build = true`) now succeeds and uses the composed fallback
+    // when the approved phrase table is present.
+    let release_composer = ComposedFallbackComposer::try_start_with_mode(Some(&table), true)
+        .expect("release build must start composer when approved table has no placeholders");
+    let food_neg = table.phrases["food"]["neg"].as_str();
+    let expected_food_neg_line = format!("{} {food_neg}.", table.subject);
     assert_eq!(
-        ComposedFallbackComposer::try_start_with_mode(Some(&table), true).unwrap_err(),
-        FallbackComposerError::PlaceholdersInReleaseBuild
+        release_composer.compose_from_effects(&[("food", -2)]),
+        expected_food_neg_line
     );
+
+    // Step 3 refusal path remains intact when the table is missing (`None`) or holds placeholders.
     assert_eq!(
         ComposedFallbackComposer::try_start_with_mode(None, true).unwrap_err(),
         FallbackComposerError::TableMissing
     );
+    let mut placeholder_table = table.clone();
+    placeholder_table
+        .phrases
+        .get_mut("food")
+        .unwrap()
+        .insert("neg".to_string(), "PLACEHOLDER-food-neg".to_string());
+    assert_eq!(
+        ComposedFallbackComposer::try_start_with_mode(Some(&placeholder_table), true).unwrap_err(),
+        FallbackComposerError::PlaceholdersInReleaseBuild
+    );
 
-    let state = create_new_run_with_content(42, pack);
+    let mut state = create_new_run_with_content(42, pack);
+    let pre_obs = PreTurnObservation::capture(GamePhase::Camp, &state);
+    let current_food = state.supplies.food();
+    state.supplies.set_food(current_food - 2);
     let mut msgs = StepMessages {
         outcome_narration: "-2 food, +1 morale".to_string(),
         ..Default::default()
     };
     msgs.outcome_deltas.insert("food".to_string(), -2);
     let flags = evaluate_turn_matters(
-        &PreTurnObservation::capture(GamePhase::Camp, &state),
+        &pre_obs,
         &PlayerIntent::new(IntentAction::Choose).with_choice("A"),
         &msgs,
         &state,
     );
-    let ctx =
-        build_narration_context_with_phase(&state, GamePhase::Camp, "f1_001", "A", &msgs, flags);
+    let ctx = build_narration_context_from_turn(
+        &pre_obs,
+        &state,
+        GamePhase::Camp,
+        "f1_001",
+        "A",
+        &msgs,
+        flags,
+    );
 
-    let release_line = resolve_fallback_line_with_mode(&ctx, Some(&table), true);
+    // With approved table, release build resolves to the composed fallback sentence.
+    let release_approved_line = resolve_fallback_line_with_mode(&ctx, Some(&table), true);
+    assert_eq!(release_approved_line, expected_food_neg_line);
+
+    // With placeholder table, release build refuses and returns the engine's plain fallback_line.
+    let release_placeholder_line =
+        resolve_fallback_line_with_mode(&ctx, Some(&placeholder_table), true);
     assert_eq!(
-        release_line,
+        release_placeholder_line,
         ctx.fallback_line(),
         "release build must refuse placeholder table and return engine's plain fallback_line"
     );
     assert!(
-        !release_line.contains("PLACEHOLDER-"),
+        !release_placeholder_line.contains("PLACEHOLDER-"),
         "placeholders must never reach a player in a release build"
     );
 
-    let missing_table_line = resolve_fallback_line_with_mode(&ctx, None, false);
-    assert_eq!(missing_table_line, ctx.fallback_line());
+    // With missing table (`None`), both debug and release return the engine's plain fallback_line.
+    assert_eq!(
+        resolve_fallback_line_with_mode(&ctx, None, false),
+        ctx.fallback_line()
+    );
+    assert_eq!(
+        resolve_fallback_line_with_mode(&ctx, None, true),
+        ctx.fallback_line()
+    );
 
-    let debug_composed_line = resolve_fallback_line_with_mode(&ctx, Some(&table), false);
+    // In debug mode, placeholder table still composes placeholder text for testing.
+    let debug_placeholder_line =
+        resolve_fallback_line_with_mode(&ctx, Some(&placeholder_table), false);
     assert!(
-        debug_composed_line.contains("PLACEHOLDER-food-neg"),
-        "debug mode with placeholder table composes from effects, got: {debug_composed_line}"
+        debug_placeholder_line.contains("PLACEHOLDER-food-neg"),
+        "debug mode with placeholder table composes from effects, got: {debug_placeholder_line}"
     );
 }
 
@@ -293,30 +473,29 @@ fn step3_zero_effect_choice_composes_table_none_entry() {
         .get("none")
         .and_then(|dirs| dirs.get("neutral"))
         .expect("embedded table must store none -> neutral");
-    assert_eq!(expected_none_entry, "PLACEHOLDER-none-neutral");
+    assert!(!expected_none_entry.starts_with("PLACEHOLDER-"));
+    let expected_none_sentence = format!("{} {expected_none_entry}.", table.subject);
 
-    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&table), false).unwrap();
-    assert_eq!(
-        composer.compose_from_effects(&[]),
-        format!("{expected_none_entry}.")
-    );
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&table), true).unwrap();
+    assert_eq!(composer.compose_from_effects(&[]), expected_none_sentence);
     assert_eq!(
         composer.compose_from_effects(&[("food", 0), ("morale", 0)]),
-        format!("{expected_none_entry}.")
+        expected_none_sentence
     );
 
     // Also verify with a custom table entry for none -> neutral so a missing-entry fallback
-    // ("PLACEHOLDER-...") can never mask a key/direction mismatch.
+    // can never mask a key/direction mismatch.
     let mut custom_table = table.clone();
     custom_table.phrases.get_mut("none").unwrap().insert(
         "neutral".to_string(),
         "SENTINEL-NONE-NEUTRAL-ENTRY".to_string(),
     );
+    let expected_custom_sentence = format!("{} SENTINEL-NONE-NEUTRAL-ENTRY.", custom_table.subject);
     let custom_composer =
         ComposedFallbackComposer::try_start_with_mode(Some(&custom_table), false).unwrap();
     assert_eq!(
         custom_composer.compose_from_effects(&[("water", 0)]),
-        "SENTINEL-NONE-NEUTRAL-ENTRY."
+        expected_custom_sentence
     );
 
     let mut pack_with_zero_choice = pack.clone();
@@ -335,31 +514,331 @@ fn step3_zero_effect_choice_composes_table_none_entry() {
     let all_embedded = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &table);
     assert_eq!(
         all_embedded.get(&(first_event_id.clone(), first_choice_id.clone())),
-        Some(&format!("{expected_none_entry}."))
+        Some(&expected_none_sentence)
     );
     let all_custom = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &custom_table);
     assert_eq!(
         all_custom.get(&(first_event_id, first_choice_id)),
-        Some(&"SENTINEL-NONE-NEUTRAL-ENTRY.".to_string())
+        Some(&expected_custom_sentence)
     );
 
     let state = create_new_run_with_content(42, pack);
+    let pre_obs = PreTurnObservation::capture(GamePhase::Camp, &state);
     let msgs = StepMessages {
         outcome_narration: "No change.".to_string(),
         ..Default::default()
     };
     let flags = evaluate_turn_matters(
-        &PreTurnObservation::capture(GamePhase::Camp, &state),
+        &pre_obs,
         &PlayerIntent::new(IntentAction::Choose).with_choice("A"),
         &msgs,
         &state,
     );
-    let zero_ctx =
-        build_narration_context_with_phase(&state, GamePhase::Camp, "f1_001", "A", &msgs, flags);
+    let zero_ctx = build_narration_context_from_turn(
+        &pre_obs,
+        &state,
+        GamePhase::Camp,
+        "f1_001",
+        "A",
+        &msgs,
+        flags,
+    );
     assert_eq!(
         resolve_fallback_line_with_mode(&zero_ctx, Some(&custom_table), false),
-        "SENTINEL-NONE-NEUTRAL-ENTRY."
+        expected_custom_sentence
     );
+}
+
+#[test]
+fn step3_fallback_composer_uses_applied_deltas_clamped_at_zero_and_upper_cap() {
+    let pack = embedded_content_pack();
+    let table = FallbackPhraseTable::embedded();
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&table), true).unwrap();
+
+    let food_neg = table.phrases["food"]["neg"].as_str();
+    let morale_pos = table.phrases["morale"]["pos"].as_str();
+    let wagon_pos = table.phrases["wagon_condition"]["pos"].as_str();
+    let health_pos = table.phrases["health"]["pos"].as_str();
+    let animals_pos = table.phrases["animals_health"]["pos"].as_str();
+    let time_pos = table.phrases["time_days"]["pos"].as_str();
+
+    // Helper: advance a StepEngine with a single-event library until it enters GamePhase::Event.
+    fn advance_to_pending_event(engine: &mut StepEngine) {
+        while engine.phase != GamePhase::Event {
+            engine.step(&PlayerIntent::new(IntentAction::Travel));
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Case A: Lower clamp at 0 on a supply key (`food = 0` when choice subtracts food).
+    // Configure an event choice on a fixture so it subtracts food (-3), adds morale (+5),
+    // and costs 1 time slot (`time_days` = +1), without an advertised cost label in text.
+    // ------------------------------------------------------------------------
+    let mut custom_pack = pack.clone();
+    let mut target_event = custom_pack.json_events[0].clone();
+    let target_event_id = target_event.event_id.clone();
+    target_event.fallback_choices[0].label = "Press onward carefully".to_string();
+    target_event.fallback_choices[0].cost_hint = String::new();
+    let tpl = target_event
+        .outcome_templates
+        .get_mut("A")
+        .expect("choice A template");
+    tpl.supplies_delta.clear();
+    tpl.supplies_delta.insert("food".to_string(), -3);
+    tpl.morale_delta = 5;
+    tpl.wagon_delta = 0;
+    tpl.health_delta = 0;
+    tpl.animals_health_delta = 0;
+    tpl.distance_delta = 0;
+    tpl.time_cost = 1;
+    custom_pack.all_events = vec![target_event.clone()];
+
+    // Subcase A1: food is already 0 before the event choice turn -> applied food change is 0.
+    let state_zero_food = create_new_run_with_content(0, &custom_pack);
+    let mut engine_zero = StepEngine::with_content(state_zero_food, &custom_pack);
+    advance_to_pending_event(&mut engine_zero);
+    engine_zero.state.supplies.set_food(0);
+    engine_zero.state.party.morale = 50;
+
+    let pre_zero = PreTurnObservation::capture(engine_zero.phase, &engine_zero.state);
+    let choose_a = PlayerIntent::new(IntentAction::Choose).with_choice("A");
+    let msgs_zero = engine_zero.step(&choose_a);
+
+    // Note that pre-clamp `msgs_zero.outcome_deltas` still recorded food: -3,
+    // while `engine_zero.state.supplies.food()` remained 0!
+    assert_eq!(msgs_zero.outcome_deltas.get("food"), Some(&-3));
+    assert_eq!(engine_zero.state.supplies.food(), 0);
+
+    let rng_before = engine_zero.rng.counter;
+    let state_snapshot_before = state_to_value(&engine_zero.state);
+
+    let applied_zero = compute_applied_turn_deltas(&pre_zero, &engine_zero.state);
+    assert_eq!(
+        applied_zero.get("food"),
+        None,
+        "food was already 0 before the turn so applied food delta must be 0 (omitted)"
+    );
+    assert_eq!(applied_zero.get("morale"), Some(&5));
+    assert_eq!(applied_zero.get("time_days"), Some(&1));
+
+    let line_zero = composer.compose_from_turn(&pre_zero, &engine_zero.state);
+    assert!(
+        !line_zero.contains(food_neg),
+        "composed line when food=0 must NOT include food neg phrase {food_neg:?}, got: {line_zero:?}"
+    );
+    assert!(
+        line_zero.contains(morale_pos) && line_zero.contains(time_pos),
+        "composed line must include the non-clamped morale and time phrases, got: {line_zero:?}"
+    );
+
+    let flags_zero = evaluate_turn_matters(&pre_zero, &choose_a, &msgs_zero, &engine_zero.state);
+    let ctx_zero = build_narration_context_from_turn(
+        &pre_zero,
+        &engine_zero.state,
+        engine_zero.phase,
+        &target_event_id,
+        "A",
+        &msgs_zero,
+        flags_zero,
+    );
+    assert_eq!(
+        resolve_fallback_line_with_mode(&ctx_zero, Some(&table), true),
+        line_zero
+    );
+
+    // Zero RNG draws and zero state mutation during delta calculation and composition.
+    assert_eq!(engine_zero.rng.counter, rng_before);
+    assert_eq!(state_to_value(&engine_zero.state), state_snapshot_before);
+
+    // Subcase A2: food is 10 before the turn -> applied food change is -3, so food_neg IS included.
+    let state_with_food = create_new_run_with_content(0, &custom_pack);
+    let mut engine_with_food = StepEngine::with_content(state_with_food, &custom_pack);
+    advance_to_pending_event(&mut engine_with_food);
+    engine_with_food.state.supplies.set_food(10);
+    engine_with_food.state.party.morale = 50;
+
+    let pre_with_food =
+        PreTurnObservation::capture(engine_with_food.phase, &engine_with_food.state);
+    let _msgs_with_food = engine_with_food.step(&choose_a);
+    assert_eq!(engine_with_food.state.supplies.food(), 7);
+    let applied_with_food = compute_applied_turn_deltas(&pre_with_food, &engine_with_food.state);
+    assert_eq!(applied_with_food.get("food"), Some(&-3));
+    let line_with_food = composer.compose_from_turn(&pre_with_food, &engine_with_food.state);
+    assert!(
+        line_with_food.contains(food_neg),
+        "composed line when food=10 -> 7 MUST include food neg phrase {food_neg:?}, got: {line_with_food:?}"
+    );
+
+    // ------------------------------------------------------------------------
+    // Case B: Upper cap at 100 on `wagon_condition`, `morale`, `health`, `animals_health`.
+    // Configure choice A to add +5 to wagon_condition, morale, health, animals_health,
+    // and cost 1 time slot (`time_days` = +1).
+    // ------------------------------------------------------------------------
+    let tpl_cap = target_event.outcome_templates.get_mut("A").unwrap();
+    tpl_cap.supplies_delta.clear();
+    tpl_cap.wagon_delta = 5;
+    tpl_cap.morale_delta = 5;
+    tpl_cap.health_delta = 5;
+    tpl_cap.animals_health_delta = 5;
+    tpl_cap.time_cost = 1;
+    custom_pack.all_events = vec![target_event];
+
+    // Subcase B1: all four capped keys are already at 100 before the turn.
+    let state_capped = create_new_run_with_content(0, &custom_pack);
+    let mut engine_capped = StepEngine::with_content(state_capped, &custom_pack);
+    advance_to_pending_event(&mut engine_capped);
+    engine_capped.state.wagon.condition = 100;
+    engine_capped.state.wagon.animals_health = 100;
+    engine_capped.state.party.morale = 100;
+    for m in &mut engine_capped.state.party.members {
+        m.health = 100;
+    }
+
+    let pre_capped = PreTurnObservation::capture(engine_capped.phase, &engine_capped.state);
+    let _msgs_capped = engine_capped.step(&choose_a);
+    let applied_capped = compute_applied_turn_deltas(&pre_capped, &engine_capped.state);
+    assert_eq!(applied_capped.get("wagon_condition"), None);
+    assert_eq!(applied_capped.get("morale"), None);
+    assert_eq!(applied_capped.get("health"), None);
+    assert_eq!(applied_capped.get("animals_health"), None);
+    assert_eq!(applied_capped.get("time_days"), Some(&1));
+
+    let line_capped = composer.compose_from_turn(&pre_capped, &engine_capped.state);
+    for capped_phrase in [wagon_pos, morale_pos, health_pos, animals_pos] {
+        assert!(
+            !line_capped.contains(capped_phrase),
+            "composed line when stat is already at 100 cap must NOT include {capped_phrase:?}, got: {line_capped:?}"
+        );
+    }
+    assert_eq!(line_capped, format!("{} {time_pos}.", table.subject));
+
+    // Subcase B2: all four keys start at 80 before the turn -> all four increase to 85 and appear.
+    let state_uncapped = create_new_run_with_content(0, &custom_pack);
+    let mut engine_uncapped = StepEngine::with_content(state_uncapped, &custom_pack);
+    advance_to_pending_event(&mut engine_uncapped);
+    engine_uncapped.state.wagon.condition = 80;
+    engine_uncapped.state.wagon.animals_health = 80;
+    engine_uncapped.state.party.morale = 80;
+    for m in &mut engine_uncapped.state.party.members {
+        m.health = 80;
+    }
+
+    let pre_uncapped = PreTurnObservation::capture(engine_uncapped.phase, &engine_uncapped.state);
+    let _msgs_uncapped = engine_uncapped.step(&choose_a);
+    let line_uncapped = composer.compose_from_turn(&pre_uncapped, &engine_uncapped.state);
+    for uncapped_phrase in [wagon_pos, morale_pos, health_pos, animals_pos, time_pos] {
+        assert!(
+            line_uncapped.contains(uncapped_phrase),
+            "composed line when stats rise 80 -> 85 must include {uncapped_phrase:?}, got: {line_uncapped:?}"
+        );
+    }
+}
+
+#[test]
+fn step3_fallback_composer_464_choices_reproduce_word_and_distinct_counts() {
+    let pack = embedded_content_pack();
+    let table = FallbackPhraseTable::embedded();
+    let composed = compose_all_464_choice_fallbacks(pack, &table);
+    assert_eq!(composed.len(), 464);
+
+    let mut min_words = usize::MAX;
+    let mut max_words = 0usize;
+    let mut over_20_words = 0usize;
+    let mut over_15_words = 0usize;
+    let mut distinct_lines: BTreeSet<String> = BTreeSet::new();
+
+    for sentence in composed.values() {
+        let word_count = sentence.split_whitespace().count();
+        min_words = min_words.min(word_count);
+        max_words = max_words.max(word_count);
+        if word_count > 20 {
+            over_20_words += 1;
+        }
+        if word_count > 15 {
+            over_15_words += 1;
+        }
+        distinct_lines.insert(sentence.clone());
+    }
+
+    assert_eq!(
+        min_words, 5,
+        "minimum word count across 464 choices must be 5"
+    );
+    assert_eq!(
+        max_words, 18,
+        "maximum word count across 464 choices must be 18"
+    );
+    assert_eq!(over_20_words, 0, "must have 0 composed lines over 20 words");
+    assert_eq!(
+        over_15_words, 3,
+        "must have exactly 3 composed lines over 15 words"
+    );
+    assert_eq!(
+        distinct_lines.len(),
+        88,
+        "must have exactly 88 distinct composed lines across all 464 choices"
+    );
+}
+
+#[test]
+fn step3_fallback_table_phrases_pass_voice_rules() {
+    let table = FallbackPhraseTable::embedded();
+    assert_eq!(table.non_placeholder_entries().len(), 33);
+
+    let banned_quantifiers = ["one", "both", "pair", "half"];
+    let banned_death_words = [
+        "die", "dies", "died", "dying", "dead", "death", "deaths", "corpse", "corpses", "fatal",
+        "fatally", "perish", "perished", "perishes", "grave", "graves", "buried", "bury", "killed",
+        "kills", "kill",
+    ];
+
+    for (key, dir, phrase) in table.non_placeholder_entries() {
+        assert!(
+            !phrase.is_empty(),
+            "phrase for {key}:{dir} must not be empty"
+        );
+        // Only lowercase ASCII letters, spaces, and commas.
+        for ch in phrase.chars() {
+            assert!(
+                ch.is_ascii_lowercase() || ch == ' ' || ch == ',',
+                "phrase for {key}:{dir} ({phrase:?}) contains disallowed char {ch:?}; only lowercase letters, spaces and commas are permitted"
+            );
+            assert!(
+                !ch.is_ascii_digit(),
+                "phrase for {key}:{dir} ({phrase:?}) must not contain digits"
+            );
+        }
+
+        let words: Vec<&str> = phrase
+            .split(|c: char| !c.is_ascii_alphabetic())
+            .filter(|w| !w.is_empty())
+            .collect();
+        for w in &words {
+            assert!(
+                !banned_quantifiers.contains(w),
+                "phrase for {key}:{dir} ({phrase:?}) contains banned quantifier {w:?}"
+            );
+            assert!(
+                !banned_death_words.contains(w),
+                "phrase for {key}:{dir} ({phrase:?}) contains banned death word {w:?}"
+            );
+        }
+
+        // Also verify the composed single-effect sentence passes the full hard-rule checker
+        // when all resource keys are allowed in the turn's CheckerContext.
+        let sentence = format!("{} {phrase}.", table.subject);
+        let ctx = CheckerContext {
+            allowed_resources: table.key_order.clone(),
+            allowed_landmarks: Vec::new(),
+            weirdness_band: 0,
+            length: NarratorLength::Brief,
+        };
+        assert_eq!(
+            check_generated_line(&sentence, &ctx),
+            Ok(()),
+            "composed sentence {sentence:?} for {key}:{dir} must pass check_generated_line"
+        );
+    }
 }
 
 // ============================================================================

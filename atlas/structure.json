@@ -9905,8 +9905,8 @@
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "bda1dfb3e45cb2df4b16d5f0711eecd16692228e",
-    "tracked": 758
+    "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
+    "tracked": 759
   },
   "landings": [
     {
@@ -10087,6 +10087,11 @@
         {
           "by": "rust/etv-core/src/narrator.rs",
           "call": "include_str",
+          "confidence": "ast"
+        },
+        {
+          "by": "rust/tools/convert_phrase_table.py",
+          "call": "literal",
           "confidence": "ast"
         }
       ],
@@ -10687,7 +10692,7 @@
       "path": "rust/etv-core/content/event_skeletons.json"
     },
     {
-      "hash": "e37aa48514b09c1021f5ec67976e3c6bf7bf18fc97215daf4002fbbfdff956e7",
+      "hash": "42fa23cb0016971cbd7960693880854cc81296b6649af93186c2328ec2067e75",
       "path": "rust/etv-core/content/fallback_phrases.json"
     },
     {
@@ -11052,7 +11057,7 @@
       "path": "rust/etv-core/src/ledger.rs"
     },
     {
-      "hash": "283254036f7ffdced78332bba478e4ff0fe92353c1258952a6606724c8b32e38",
+      "hash": "d95719aaa80c76c2db4be9eeb28f61cc17d928645ddbe922ff5043419c5c1820",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -11126,12 +11131,14 @@
     {
       "exports": [
         "build_narration_context",
+        "build_narration_context_from_turn",
         "build_narration_context_with_phase",
         "build_outcome_prompts",
         "build_scene_prompts",
         "build_system_prompt",
         "check_generated_line",
         "compose_all_464_choice_fallbacks",
+        "compute_applied_turn_deltas",
         "connect_error_message",
         "evaluate_turn_matters",
         "extract_tag_names",
@@ -11154,117 +11161,32 @@
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 900
+          "line": 1138
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 908
+          "line": 1146
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 913
+          "line": 1151
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 923
+          "line": 1161
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 935
+          "line": 1173
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 940
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1398
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1418
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1431
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1443
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1453
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1460
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1480
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1488
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1498
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1515
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1531
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1541
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1574
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1580
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1602
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1611
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 1627
+          "line": 1178
         },
         {
           "in": "check_generated_line",
@@ -11274,130 +11196,220 @@
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1649
+          "line": 1656
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1662
+          "line": 1669
         },
         {
-          "in": "from_json_str",
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1681
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1691
+        },
+        {
+          "in": "check_generated_line",
           "kind": "err",
           "line": 1698
         },
         {
-          "in": "try_start_with_mode",
+          "in": "check_generated_line",
           "kind": "err",
-          "line": 1777
+          "line": 1718
         },
         {
-          "in": "resolve_fallback_line_with_mode",
-          "kind": "match-err",
-          "line": 1873
-        },
-        {
-          "in": "parse_endpoint_host",
+          "in": "check_generated_line",
           "kind": "err",
-          "line": 1896
+          "line": 1726
         },
         {
-          "in": "parse_endpoint_host",
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1736
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1753
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1769
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1779
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1812
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1818
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1841
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1850
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1866
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1875
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 1888
+        },
+        {
+          "in": "check_generated_line",
           "kind": "err",
           "line": 1901
         },
         {
-          "in": "parse_endpoint_host",
+          "in": "from_json_str",
           "kind": "err",
-          "line": 1907
+          "line": 1969
+        },
+        {
+          "in": "from_source_table_json",
+          "kind": "err",
+          "line": 1993
+        },
+        {
+          "in": "try_start_with_mode",
+          "kind": "err",
+          "line": 2172
+        },
+        {
+          "in": "resolve_fallback_line_with_mode",
+          "kind": "match-err",
+          "line": 2321
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 1913
+          "line": 2344
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 2349
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 2355
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 2361
         },
         {
           "in": "is_loopback_endpoint",
           "kind": "match-err",
-          "line": 1923
+          "line": 2371
         },
         {
           "in": "validate_endpoint",
           "kind": "err",
-          "line": 1934
+          "line": 2382
         },
         {
           "in": "get_tags",
           "kind": "err",
-          "line": 2108
+          "line": 2556
         },
         {
           "in": "post_generate",
           "kind": "err",
-          "line": 2119
+          "line": 2567
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 2275
+          "line": 2723
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 2310
+          "line": 2758
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 2345
+          "line": 2793
         },
         {
           "in": "warmup",
           "kind": "match-err",
-          "line": 2346
-        },
-        {
-          "in": "warmup",
-          "kind": "err",
-          "line": 2346
-        },
-        {
-          "in": "warmup",
-          "kind": "match-err",
-          "line": 2347
+          "line": 2794
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 2347
+          "line": 2794
+        },
+        {
+          "in": "warmup",
+          "kind": "match-err",
+          "line": 2795
+        },
+        {
+          "in": "warmup",
+          "kind": "err",
+          "line": 2795
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 2376
+          "line": 2824
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 2381
+          "line": 2829
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 2393
+          "line": 2841
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 2408
+          "line": 2856
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 2417
+          "line": 2865
         }
       ],
-      "hash": "40410d91b67771fb61559f2f5391f4384971259005fa1697cc8b6eacdbf8caa2",
+      "hash": "40b27cc5715f60ae90669cbd704d1cf2f8aca5dec5890ab80a78b5778e24c050",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -12331,7 +12343,7 @@
       "testsInside": true
     },
     {
-      "hash": "b61c9c63c48f59e971bfff33a3874c133376aec7d59fed6168208ad3c775deb0",
+      "hash": "1abd32467423f89c758a61f3720355a220ecb100fdbdab481a400f03d2de65e5",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -12496,6 +12508,26 @@
     {
       "hash": "a7a23801522d469e93021507fc88e9f5651056fce0e6aa22b3d3157c5f3dc6fe",
       "path": "rust/rust-toolchain.toml"
+    },
+    {
+      "exports": [
+        "convert_source_bytes",
+        "main"
+      ],
+      "failurePaths": [
+        {
+          "in": "convert_source_bytes",
+          "kind": "raise",
+          "line": 34
+        },
+        {
+          "in": "convert_source_bytes",
+          "kind": "raise",
+          "line": 58
+        }
+      ],
+      "hash": "c07c4b56af4b78643e1a4b6a633a814d03eac8bd9d0729ec61587832ef69c433",
+      "path": "rust/tools/convert_phrase_table.py"
     },
     {
       "exports": [

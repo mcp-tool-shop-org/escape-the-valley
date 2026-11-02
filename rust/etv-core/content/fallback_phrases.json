@@ -1,84 +1,91 @@
 {
   "schema_version": 1,
+  "subject": "The party",
+  "key_order": [
+    "ammo",
+    "food",
+    "water",
+    "firewood",
+    "cloth",
+    "rope",
+    "oil",
+    "tools",
+    "parts",
+    "boots",
+    "health",
+    "animals_health",
+    "wagon_condition",
+    "morale",
+    "distance",
+    "time_days"
+  ],
   "phrases": {
     "ammo": {
-      "neg": "PLACEHOLDER-ammo-neg",
-      "pos": "PLACEHOLDER-ammo-pos"
+      "neg": "spends ammunition",
+      "pos": "gains ammunition"
     },
     "animals_health": {
-      "neg": "PLACEHOLDER-animals_health-neg",
-      "pos": "PLACEHOLDER-animals_health-pos"
+      "neg": "strains the animals",
+      "pos": "restores the animals"
     },
     "boots": {
-      "neg": "PLACEHOLDER-boots-neg",
-      "pos": "PLACEHOLDER-boots-pos"
+      "neg": "wears down boots",
+      "pos": "gains boots"
     },
     "cloth": {
-      "neg": "PLACEHOLDER-cloth-neg",
-      "pos": "PLACEHOLDER-cloth-pos"
+      "neg": "uses cloth",
+      "pos": "gains cloth"
     },
     "distance": {
-      "neg": "PLACEHOLDER-distance-neg",
-      "pos": "PLACEHOLDER-distance-pos"
+      "neg": "falls back on the trail",
+      "pos": "covers ground on the trail"
     },
     "firewood": {
-      "neg": "PLACEHOLDER-firewood-neg",
-      "pos": "PLACEHOLDER-firewood-pos"
+      "neg": "uses firewood",
+      "pos": "gathers firewood"
     },
     "food": {
-      "neg": "PLACEHOLDER-food-neg",
-      "pos": "PLACEHOLDER-food-pos"
+      "neg": "uses food",
+      "pos": "gains food"
     },
     "health": {
-      "neg": "PLACEHOLDER-health-neg",
-      "pos": "PLACEHOLDER-health-pos"
-    },
-    "lantern_oil": {
-      "neg": "PLACEHOLDER-lantern_oil-neg",
-      "pos": "PLACEHOLDER-lantern_oil-pos"
-    },
-    "meds": {
-      "neg": "PLACEHOLDER-meds-neg",
-      "pos": "PLACEHOLDER-meds-pos"
+      "neg": "loses strength",
+      "pos": "regains strength"
     },
     "morale": {
-      "neg": "PLACEHOLDER-morale-neg",
-      "pos": "PLACEHOLDER-morale-pos"
+      "neg": "loses heart",
+      "pos": "takes heart"
     },
     "none": {
-      "neutral": "PLACEHOLDER-none-neutral"
+      "neutral": "carries on"
     },
     "oil": {
-      "neg": "PLACEHOLDER-oil-neg",
-      "pos": "PLACEHOLDER-oil-pos"
+      "neg": "uses lamp oil",
+      "pos": "gains lamp oil"
     },
     "parts": {
-      "neg": "PLACEHOLDER-parts-neg",
-      "pos": "PLACEHOLDER-parts-pos"
+      "neg": "uses spare parts",
+      "pos": "gains spare parts"
     },
     "rope": {
-      "neg": "PLACEHOLDER-rope-neg",
-      "pos": "PLACEHOLDER-rope-pos"
-    },
-    "salt": {
-      "neg": "PLACEHOLDER-salt-neg",
-      "pos": "PLACEHOLDER-salt-pos"
+      "neg": "uses rope",
+      "pos": "gains rope"
     },
     "time_days": {
-      "neg": "PLACEHOLDER-time_days-neg",
-      "pos": "PLACEHOLDER-time_days-pos"
+      "neg": "saves time",
+      "pos": "loses time"
     },
     "tools": {
-      "neg": "PLACEHOLDER-tools-neg",
-      "pos": "PLACEHOLDER-tools-pos"
+      "neg": "wears down tools",
+      "pos": "gains tools"
     },
     "wagon_condition": {
-      "neg": "PLACEHOLDER-wagon_condition-neg",
-      "pos": "PLACEHOLDER-wagon_condition-pos"
+      "neg": "damages the wagon",
+      "pos": "repairs the wagon"
     },
     "water": {
-      "neg": "PLACEHOLDER-water-neg",
-      "pos": "PLACEHOLDER-water-pos"
+      "neg": "uses water",
+      "pos": "gains water"
     }
   }
 }

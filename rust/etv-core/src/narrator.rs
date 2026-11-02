@@ -13,6 +13,7 @@
 //! - [`Narrator::narrate`] is called once on every turn that shows the player a turn result.
 //! - [`NullNarrator`] is the default implementation and always returns `None`.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -21,8 +22,9 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
-use crate::content::ContentPack;
+use crate::content::{canonicalize_json_value_no_floats, hex_encode_32, ContentPack};
 use crate::engine::StepMessages;
 use crate::memory::build_gm_brief_readonly;
 use crate::model::{
@@ -30,8 +32,21 @@ use crate::model::{
 };
 use crate::physics::{current_node, journey_pressure, HealthEffect};
 
-/// Embedded placeholder fallback phrase table (`rust/etv-core/content/fallback_phrases.json`).
+/// Embedded approved fallback phrase table (`rust/etv-core/content/fallback_phrases.json`).
 pub const EMBEDDED_FALLBACK_PHRASES_JSON: &str = include_str!("../content/fallback_phrases.json");
+
+/// Expected SHA-256 digest of the approved source phrase table (`PHRASE-TABLE-DRAFT-2-2026-11-02.json`).
+pub const SOURCE_PHRASE_TABLE_SHA256: &str =
+    "ef29eecf13ba985708d21ad9f002ab4a2de5af4aa70dc914f8c1135f4bf12a22";
+
+/// Expected SHA-256 digest of the canonical JSON form (`canonicalize_json_value_no_floats`) of
+/// `rust/etv-core/content/fallback_phrases.json`.
+pub const SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256: &str =
+    "7d9c4eb4c86ac3cab2089041e180234ffb403abc7120a542e4fec8b948a6959f";
+
+/// Expected SHA-256 digest of the LF-normalized bytes of `rust/etv-core/content/fallback_phrases.json`.
+pub const SHIPPED_FALLBACK_PHRASES_LF_SHA256: &str =
+    "42fa23cb0016971cbd7960693880854cc81296b6649af93186c2328ec2067e75";
 
 /// Default local loopback Ollama endpoint (`src/escape_the_valley/gm.py:106`).
 pub const DEFAULT_OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
@@ -425,29 +440,158 @@ impl NarrationContext {
     }
 }
 
+thread_local! {
+    static LAST_PRE_TURN_OBSERVATION: RefCell<Option<PreTurnObservation>> = const { RefCell::new(None) };
+}
+
+fn time_of_day_slot(tod: TimeOfDay) -> i32 {
+    match tod {
+        TimeOfDay::Morning => 0,
+        TimeOfDay::Afternoon => 1,
+        TimeOfDay::Evening => 2,
+        TimeOfDay::Night => 3,
+    }
+}
+
 /// Read-only snapshot of pre-step values captured before `StepEngine::step` so post-step changes
-/// (health drop, supply reaching zero, landmark arrival, night at camp) can be detected purely by
-/// reading existing `RunState` fields and `StepMessages` without any new RNG draw or state change.
+/// (health drop, supply reaching zero, landmark arrival, night at camp, and applied deltas across
+/// all 16 effect keys) can be detected purely by reading existing `RunState` fields and
+/// `StepMessages` without any new RNG draw or state change.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreTurnObservation {
+    pub run_id: String,
     pub phase: GamePhase,
+    pub day: i32,
     pub time_of_day: TimeOfDay,
     pub location_id: String,
     pub member_health: Vec<i32>,
     pub supplies: BTreeMap<String, i32>,
+    pub animals_health: i32,
+    pub wagon_condition: i32,
+    pub morale: i32,
+    pub distance_remaining: i32,
+    pub distance_traveled: i32,
+    pub journal_len: usize,
+    pub rng_counter: u64,
 }
 
 impl PreTurnObservation {
     /// Capture pre-turn values from `phase` and `state` prior to `StepEngine::step`.
     pub fn capture(phase: GamePhase, state: &RunState) -> Self {
-        Self {
+        let obs = Self {
+            run_id: state.run_id.clone(),
             phase,
+            day: state.day,
             time_of_day: state.time_of_day,
             location_id: state.location_id.clone(),
             member_health: state.party.members.iter().map(|m| m.health).collect(),
             supplies: state.supplies.items.clone(),
+            animals_health: state.wagon.animals_health,
+            wagon_condition: state.wagon.condition,
+            morale: state.party.morale,
+            distance_remaining: state.distance_remaining,
+            distance_traveled: state.distance_traveled,
+            journal_len: state.journal.len(),
+            rng_counter: state.rng_counter,
+        };
+        LAST_PRE_TURN_OBSERVATION.with(|slot| {
+            *slot.borrow_mut() = Some(obs.clone());
+        });
+        obs
+    }
+}
+
+/// Compute the change actually applied on a turn for each of the 16 phrase-table keys by a pure
+/// read of `pre` (before the turn) and `state` (after the turn), with zero RNG draws and zero
+/// state writes:
+///
+/// - Supplies (`ammo`, `food`, `water`, `firewood`, `cloth`, `rope`, `oil`, `tools`, `parts`,
+///   `boots`): `state.supplies.get(key) - pre.supplies.get(key)` (with `"oil"` reading
+///   `"lantern_oil"` in `SuppliesState`, where `worldgen::resolve_resource_alias` maps `"oil"`).
+/// - `health`: sum across party members of `after.health - before_health` (each member clamped to
+///   `0..=100` in `events::apply_outcome`).
+/// - `animals_health`: `state.wagon.animals_health - pre.animals_health` (clamped to `0..=100`).
+/// - `wagon_condition`: `state.wagon.condition - pre.wagon_condition` (clamped to `0..=100`).
+/// - `morale`: `state.party.morale - pre.morale` (clamped to `0..=100`).
+/// - `distance`: `state.distance_remaining - pre.distance_remaining` on event choice turns
+///   (`pre.phase == GamePhase::Event`), or `state.distance_traveled - pre.distance_traveled` on
+///   non-event turns.
+/// - `time_days`: quarter-day slot delta `(state.day * 4 + slot(state.time_of_day)) -
+///   (pre.day * 4 + slot(pre.time_of_day))` produced by `StepEngine::advance_time`.
+pub fn compute_applied_turn_deltas(
+    pre: &PreTurnObservation,
+    state: &RunState,
+) -> BTreeMap<String, i32> {
+    let mut applied = BTreeMap::new();
+
+    for key in [
+        "ammo", "food", "water", "firewood", "cloth", "rope", "tools", "parts", "boots",
+    ] {
+        let before_val = pre.supplies.get(key).copied().unwrap_or(0);
+        let after_val = state.supplies.get(key);
+        let delta = after_val - before_val;
+        if delta != 0 {
+            applied.insert(key.to_string(), delta);
         }
     }
+
+    let before_lantern = pre.supplies.get("lantern_oil").copied().unwrap_or(0);
+    let after_lantern = state.supplies.get("lantern_oil");
+    let lantern_delta = after_lantern - before_lantern;
+    let before_oil = pre.supplies.get("oil").copied().unwrap_or(0);
+    let after_oil = state.supplies.get("oil");
+    let raw_oil_delta = after_oil - before_oil;
+    let oil_delta = if lantern_delta != 0 {
+        lantern_delta
+    } else {
+        raw_oil_delta
+    };
+    if oil_delta != 0 {
+        applied.insert("oil".to_string(), oil_delta);
+    }
+
+    let health_delta: i32 = pre
+        .member_health
+        .iter()
+        .zip(state.party.members.iter())
+        .map(|(&before, after)| after.health - before)
+        .sum();
+    if health_delta != 0 {
+        applied.insert("health".to_string(), health_delta);
+    }
+
+    let animals_delta = state.wagon.animals_health - pre.animals_health;
+    if animals_delta != 0 {
+        applied.insert("animals_health".to_string(), animals_delta);
+    }
+
+    let wagon_delta = state.wagon.condition - pre.wagon_condition;
+    if wagon_delta != 0 {
+        applied.insert("wagon_condition".to_string(), wagon_delta);
+    }
+
+    let morale_delta = state.party.morale - pre.morale;
+    if morale_delta != 0 {
+        applied.insert("morale".to_string(), morale_delta);
+    }
+
+    let distance_delta = if pre.phase == GamePhase::Event {
+        state.distance_remaining - pre.distance_remaining
+    } else {
+        state.distance_traveled - pre.distance_traveled
+    };
+    if distance_delta != 0 {
+        applied.insert("distance".to_string(), distance_delta);
+    }
+
+    let pre_slots = pre.day * 4 + time_of_day_slot(pre.time_of_day);
+    let post_slots = state.day * 4 + time_of_day_slot(state.time_of_day);
+    let time_delta = post_slots - pre_slots;
+    if time_delta != 0 {
+        applied.insert("time_days".to_string(), time_delta);
+    }
+
+    applied
 }
 
 /// Evaluate the five "turn matters" rules by a pure read of `pre`, `intent`, `msgs`, and
@@ -481,6 +625,10 @@ pub fn evaluate_turn_matters(
     msgs: &StepMessages,
     state: &RunState,
 ) -> TurnMattersFlags {
+    LAST_PRE_TURN_OBSERVATION.with(|slot| {
+        *slot.borrow_mut() = Some(pre.clone());
+    });
+
     let effect_death = msgs
         .effects
         .iter()
@@ -535,7 +683,8 @@ pub fn journey_band(state: &RunState) -> String {
 /// Build an owned, read-only [`NarrationContext`] from a completed step.
 ///
 /// Uses `GamePhase::GameOver` when `state.game_over` is `true`, otherwise `GamePhase::Camp`.
-/// Prefer [`build_narration_context_with_phase`] when the active `StepEngine::phase` is available.
+/// Prefer [`build_narration_context_with_phase`] or [`build_narration_context_from_turn`] when
+/// the active `StepEngine::phase` is available.
 pub fn build_narration_context(
     state: &RunState,
     event_id: &str,
@@ -551,9 +700,58 @@ pub fn build_narration_context(
     build_narration_context_with_phase(state, phase, event_id, choice_id, msgs, flags)
 }
 
+/// Build an owned, read-only [`NarrationContext`] from an explicit pre-turn [`PreTurnObservation`],
+/// post-turn [`RunState`], and [`StepMessages`], computing `shown_deltas` purely from the changes
+/// actually applied on the turn ([`compute_applied_turn_deltas`]).
+pub fn build_narration_context_from_turn(
+    pre: &PreTurnObservation,
+    state: &RunState,
+    phase: GamePhase,
+    event_id: &str,
+    choice_id: &str,
+    msgs: &StepMessages,
+    flags: TurnMattersFlags,
+) -> NarrationContext {
+    let applied = compute_applied_turn_deltas(pre, state);
+    build_narration_context_with_deltas(state, phase, event_id, choice_id, msgs, flags, applied)
+}
+
+fn clamp_static_supply_deltas_against_state(
+    raw_deltas: &BTreeMap<String, i32>,
+    supplies: &BTreeMap<String, i32>,
+) -> BTreeMap<String, i32> {
+    let mut out = BTreeMap::new();
+    for (k, &delta) in raw_deltas {
+        if delta == 0 {
+            continue;
+        }
+        let lookup_key = if k == "oil" {
+            "lantern_oil"
+        } else {
+            k.as_str()
+        };
+        let current = supplies
+            .get(lookup_key)
+            .or_else(|| supplies.get(k.as_str()))
+            .copied()
+            .unwrap_or(0);
+        let applied = (current + delta).max(0) - current;
+        if applied != 0 {
+            let norm_key = if k == "lantern_oil" {
+                "oil"
+            } else {
+                k.as_str()
+            };
+            out.insert(norm_key.to_string(), applied);
+        }
+    }
+    out
+}
+
 /// Build an owned, read-only [`NarrationContext`] from a completed step and its post-step
 /// [`GamePhase`], reading engine facts purely via [`build_gm_brief_readonly`], [`current_node`],
-/// [`journey_band`], and [`PartyStatusFacts::from_state`] (zero RNG draws, zero state mutation).
+/// [`journey_band`], [`PartyStatusFacts::from_state`], and [`compute_applied_turn_deltas`]
+/// (zero RNG draws, zero state mutation).
 pub fn build_narration_context_with_phase(
     state: &RunState,
     phase: GamePhase,
@@ -561,6 +759,46 @@ pub fn build_narration_context_with_phase(
     choice_id: &str,
     msgs: &StepMessages,
     flags: TurnMattersFlags,
+) -> NarrationContext {
+    let shown_deltas = LAST_PRE_TURN_OBSERVATION.with(|slot| {
+        if let Some(pre) = slot.borrow().as_ref() {
+            if pre.run_id == state.run_id {
+                let applied = compute_applied_turn_deltas(pre, state);
+                let turn_stepped = state.journal.len() != pre.journal_len
+                    || state.rng_counter != pre.rng_counter
+                    || state.location_id != pre.location_id
+                    || !applied.is_empty();
+                if turn_stepped {
+                    return applied;
+                }
+                return clamp_static_supply_deltas_against_state(
+                    &msgs.outcome_deltas,
+                    &pre.supplies,
+                );
+            }
+        }
+        clamp_static_supply_deltas_against_state(&msgs.outcome_deltas, &state.supplies.items)
+    });
+
+    build_narration_context_with_deltas(
+        state,
+        phase,
+        event_id,
+        choice_id,
+        msgs,
+        flags,
+        shown_deltas,
+    )
+}
+
+fn build_narration_context_with_deltas(
+    state: &RunState,
+    phase: GamePhase,
+    event_id: &str,
+    choice_id: &str,
+    msgs: &StepMessages,
+    flags: TurnMattersFlags,
+    shown_deltas: BTreeMap<String, i32>,
 ) -> NarrationContext {
     let fallback_line = if !msgs.outcome_narration.is_empty() {
         msgs.outcome_narration.clone()
@@ -583,7 +821,7 @@ pub fn build_narration_context_with_phase(
         event_id.to_string(),
         choice_id.to_string(),
         msgs.effects.clone(),
-        msgs.outcome_deltas.clone(),
+        shown_deltas,
         msgs.lines.clone(),
         place,
         band,
@@ -1594,10 +1832,11 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                 continue;
             }
             if let Some(res_key) = lookup_resource_key_for_noun(&word) {
-                let is_allowed = ctx
-                    .allowed_resources
-                    .iter()
-                    .any(|allowed| allowed == res_key || allowed == &word);
+                let is_allowed = ctx.allowed_resources.iter().any(|allowed| {
+                    allowed == res_key
+                        || allowed == &word
+                        || (res_key == "lantern_oil" && allowed == "oil")
+                });
                 if !is_allowed {
                     return Err(CheckFailure {
                         code: CheckReasonCode::UnauthorisedResourceNoun,
@@ -1674,12 +1913,44 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
 // Fallback Phrase Table & 464-Choice Composer + Release-Build Refusal
 // ============================================================================
 
+fn default_fallback_subject() -> String {
+    "The party".to_string()
+}
+
+/// Source phrase entry (`{key, dir: "+"|"-", phrase}`) in the approved source table format.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourcePhraseEntry {
+    pub key: String,
+    pub dir: String,
+    pub phrase: String,
+}
+
+/// Source phrase table format (`PHRASE-TABLE-DRAFT-2-2026-11-02.json`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourcePhraseTable {
+    #[serde(default)]
+    pub version: String,
+    #[serde(default)]
+    pub author: String,
+    pub subject: String,
+    #[serde(default)]
+    pub compose: String,
+    pub none_phrase: String,
+    pub phrases: Vec<SourcePhraseEntry>,
+    #[serde(default)]
+    pub note: String,
+}
+
 /// Shipped fallback phrase table (`rust/etv-core/content/fallback_phrases.json`), mapping
-/// `(effect_key, direction)` to a short clause (`"PLACEHOLDER-<key>-<dir>"` until the approved
-/// writer's table lands).
+/// `(effect_key, direction)` to its approved clause, with `none.neutral` for "no effect" and
+/// `key_order` preserving the approved source table's key ordering (`ammo` first).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FallbackPhraseTable {
     pub schema_version: u32,
+    #[serde(default = "default_fallback_subject")]
+    pub subject: String,
+    #[serde(default)]
+    pub key_order: Vec<String>,
     pub phrases: BTreeMap<String, BTreeMap<String, String>>,
 }
 
@@ -1701,6 +1972,133 @@ impl FallbackPhraseTable {
             ));
         }
         Ok(table)
+    }
+
+    /// Convert a source phrase table JSON string (`PHRASE-TABLE-DRAFT-2-2026-11-02.json` format)
+    /// into a `FallbackPhraseTable`, mapping `"+"` -> `"pos"`, `"-"` -> `"neg"`, and
+    /// `none_phrase` -> `phrases["none"]["neutral"]`, while preserving `subject` and `key_order`.
+    pub fn from_source_table_json(raw: &str) -> Result<Self, String> {
+        let src: SourcePhraseTable =
+            serde_json::from_str(raw).map_err(|e| format!("invalid source phrase table: {e}"))?;
+        let mut key_order = Vec::new();
+        let mut phrases: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+        for entry in src.phrases {
+            if !key_order.contains(&entry.key) {
+                key_order.push(entry.key.clone());
+            }
+            let dir = match entry.dir.as_str() {
+                "+" => "pos",
+                "-" => "neg",
+                other => {
+                    return Err(format!(
+                        "unexpected direction {other:?} for key {:?}",
+                        entry.key
+                    ))
+                }
+            };
+            phrases
+                .entry(entry.key)
+                .or_default()
+                .insert(dir.to_string(), entry.phrase);
+        }
+        let mut none_map = BTreeMap::new();
+        none_map.insert("neutral".to_string(), src.none_phrase);
+        phrases.insert("none".to_string(), none_map);
+
+        Ok(Self {
+            schema_version: 1,
+            subject: src.subject,
+            key_order,
+            phrases,
+        })
+    }
+
+    /// Extract the ordered `SourcePhraseEntry` list (`"+"` then `"-"`) and `none_phrase` in
+    /// `self.key_order`.
+    pub fn to_source_entries(&self) -> Result<(String, Vec<SourcePhraseEntry>), String> {
+        let none_phrase = self
+            .phrases
+            .get("none")
+            .and_then(|m| m.get("neutral"))
+            .cloned()
+            .ok_or_else(|| "missing none.neutral entry".to_string())?;
+        let mut entries = Vec::new();
+        for key in self.ordered_keys() {
+            let dirs = self
+                .phrases
+                .get(key)
+                .ok_or_else(|| format!("missing key {key:?} in phrases"))?;
+            let pos = dirs
+                .get("pos")
+                .ok_or_else(|| format!("missing pos phrase for key {key:?}"))?;
+            let neg = dirs
+                .get("neg")
+                .ok_or_else(|| format!("missing neg phrase for key {key:?}"))?;
+            entries.push(SourcePhraseEntry {
+                key: key.to_string(),
+                dir: "+".to_string(),
+                phrase: pos.clone(),
+            });
+            entries.push(SourcePhraseEntry {
+                key: key.to_string(),
+                dir: "-".to_string(),
+                phrase: neg.clone(),
+            });
+        }
+        Ok((none_phrase, entries))
+    }
+
+    /// Return the ordered effect keys (`self.key_order` when populated, or `self.phrases.keys()`
+    /// excluding `"none"` as a fallback for minimal test tables).
+    pub fn ordered_keys(&self) -> Vec<&str> {
+        if !self.key_order.is_empty() {
+            self.key_order.iter().map(String::as_str).collect()
+        } else {
+            self.phrases
+                .keys()
+                .filter(|k| k.as_str() != "none")
+                .map(String::as_str)
+                .collect()
+        }
+    }
+
+    /// Compute the SHA-256 hex digest of the LF-normalized embedded `fallback_phrases.json` bytes.
+    pub fn embedded_lf_sha256_hex() -> String {
+        let lf_normalized = EMBEDDED_FALLBACK_PHRASES_JSON.replace("\r\n", "\n");
+        let mut hasher = Sha256::new();
+        hasher.update(lf_normalized.as_bytes());
+        let digest = hasher.finalize();
+        let mut out = [0u8; 32];
+        out.copy_from_slice(&digest);
+        hex_encode_32(&out)
+    }
+
+    /// Compute the SHA-256 hex digest of this table's canonical JSON representation
+    /// (`canonicalize_json_value_no_floats`: compact UTF-8, object keys sorted recursively via
+    /// `BTreeMap`, array order preserved for `key_order`, trailing `\n`).
+    pub fn canonical_sha256_hex(&self) -> Result<String, String> {
+        let val = serde_json::to_value(self)
+            .map_err(|e| format!("failed to serialize FallbackPhraseTable: {e}"))?;
+        let canonical = canonicalize_json_value_no_floats(&val)?;
+        let mut hasher = Sha256::new();
+        hasher.update(canonical.as_bytes());
+        let digest = hasher.finalize();
+        let mut out = [0u8; 32];
+        out.copy_from_slice(&digest);
+        Ok(hex_encode_32(&out))
+    }
+
+    /// Return all `(key, dir, value)` entries whose value starts with `"PLACEHOLDER-"`.
+    pub fn placeholder_entries(&self) -> Vec<(String, String, String)> {
+        let mut found = Vec::new();
+        for (key, dirs) in &self.phrases {
+            for (dir, val) in dirs {
+                if val.starts_with("PLACEHOLDER-") {
+                    found.push((key.clone(), dir.clone(), val.clone()));
+                }
+            }
+        }
+        found
     }
 
     /// Return all `(key, dir, value)` entries whose value does not equal
@@ -1725,10 +2123,7 @@ impl FallbackPhraseTable {
 
     /// Returns `true` if any entry in the table starts with `"PLACEHOLDER-"`.
     pub fn has_placeholders(&self) -> bool {
-        self.phrases
-            .values()
-            .flat_map(|dirs| dirs.values())
-            .any(|v| v.starts_with("PLACEHOLDER-"))
+        !self.placeholder_entries().is_empty()
     }
 
     /// Look up the phrase for `(key, dir)`, falling back to `"PLACEHOLDER-<key>-<dir>"`.
@@ -1779,30 +2174,90 @@ impl<'a> ComposedFallbackComposer<'a> {
         Ok(Self { table: tbl })
     }
 
-    /// Compose a fallback sentence from an ordered list of `(effect_key, delta)` pairs.
+    /// Compose a fallback sentence from a slice of `(effect_key, delta)` pairs, ordering active
+    /// non-zero keys according to `self.table.ordered_keys()` (`ammo` first) and formatting with
+    /// `"<subject> <p1>, <p2> and <pN>."`. A key whose delta is `0` contributes no phrase.
     pub fn compose_from_effects(&self, effects: &[(&str, i32)]) -> String {
-        let mut clauses = Vec::new();
-        for &(key, delta) in effects {
+        let mut delta_by_key: BTreeMap<String, i32> = BTreeMap::new();
+        for &(raw_key, delta) in effects {
             if delta == 0 {
                 continue;
             }
-            let dir = if delta < 0 { "neg" } else { "pos" };
-            clauses.push(self.table.lookup(key, dir));
+            let key = if raw_key == "lantern_oil" {
+                "oil"
+            } else {
+                raw_key
+            };
+            delta_by_key.insert(key.to_string(), delta);
+        }
+        self.compose_from_delta_map(&delta_by_key)
+    }
+
+    /// Compose a fallback sentence from a map of `effect_key -> delta`, ordering active non-zero
+    /// keys according to `self.table.ordered_keys()`.
+    pub fn compose_from_delta_map(&self, delta_by_key: &BTreeMap<String, i32>) -> String {
+        let mut normalized: BTreeMap<String, i32> = BTreeMap::new();
+        for (raw_key, &delta) in delta_by_key {
+            if delta == 0 {
+                continue;
+            }
+            let key = if raw_key == "lantern_oil" {
+                "oil"
+            } else {
+                raw_key.as_str()
+            };
+            normalized.insert(key.to_string(), delta);
+        }
+
+        let mut clauses = Vec::new();
+        let ordered = self.table.ordered_keys();
+        for &key in &ordered {
+            if let Some(&delta) = normalized.get(key) {
+                if delta != 0 {
+                    let dir = if delta < 0 { "neg" } else { "pos" };
+                    clauses.push(self.table.lookup(key, dir));
+                }
+            }
+        }
+        for (key, &delta) in &normalized {
+            if delta != 0 && !ordered.contains(&key.as_str()) {
+                let dir = if delta < 0 { "neg" } else { "pos" };
+                clauses.push(self.table.lookup(key, dir));
+            }
         }
         if clauses.is_empty() {
             clauses.push(self.table.lookup("none", "neutral"));
         }
-        let joined = clauses.join(", ");
-        if joined.ends_with('.') {
-            joined
+
+        let body = match clauses.len() {
+            0 => String::new(),
+            1 => clauses[0].clone(),
+            2 => format!("{} and {}", clauses[0], clauses[1]),
+            n => format!("{} and {}", clauses[..n - 1].join(", "), clauses[n - 1]),
+        };
+        let subject = self.table.subject.trim();
+        let sentence = if subject.is_empty() {
+            body
         } else {
-            format!("{joined}.")
+            format!("{subject} {body}")
+        };
+        if sentence.ends_with('.') {
+            sentence
+        } else {
+            format!("{sentence}.")
         }
+    }
+
+    /// Compose a fallback sentence directly from the post-clamp changes actually applied on a turn
+    /// between `pre` (before the turn) and `state` (after the turn).
+    pub fn compose_from_turn(&self, pre: &PreTurnObservation, state: &RunState) -> String {
+        let applied = compute_applied_turn_deltas(pre, state);
+        self.compose_from_delta_map(&applied)
     }
 }
 
 /// Compose one fallback sentence for each of the 464 choices across the 200 JSON events in
-/// `pack.json_events`.
+/// `pack.json_events` from their static effect profiles.
 pub fn compose_all_464_choice_fallbacks(
     pack: &ContentPack,
     table: &FallbackPhraseTable,
@@ -1862,14 +2317,7 @@ pub fn resolve_fallback_line_with_mode(
     is_release_build: bool,
 ) -> String {
     match ComposedFallbackComposer::try_start_with_mode(table, is_release_build) {
-        Ok(composer) => {
-            let effects: Vec<(&str, i32)> = ctx
-                .shown_deltas()
-                .iter()
-                .map(|(k, &v)| (k.as_str(), v))
-                .collect();
-            composer.compose_from_effects(&effects)
-        }
+        Ok(composer) => composer.compose_from_delta_map(ctx.shown_deltas()),
         Err(_) => ctx.fallback_line().to_string(),
     }
 }
