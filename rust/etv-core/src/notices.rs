@@ -926,6 +926,7 @@ pub fn generate_notices_from_workspace(
         });
     }
 
+    let embedded_fallback = embedded_notices_manifest();
     let mut crates = Vec::with_capacity(compiled_pairs.len());
     for (name, version) in compiled_pairs {
         let lock_pkg = lock_map
@@ -943,6 +944,7 @@ pub fn generate_notices_from_workspace(
                     &repo_root.join("rust/Cargo.toml").to_string_lossy(),
                     "--format-version",
                     "1",
+                    "--all-features",
                     "--locked",
                 ])
                 .stdin(std::process::Stdio::null())
@@ -955,9 +957,21 @@ pub fn generate_notices_from_workspace(
                 .map(|d| d.join(format!("{name}-{version}")))
                 .find(|p| p.is_dir());
         }
-        let crate_dir = crate_dir_opt.ok_or_else(|| {
-            format!("crate directory {name}-{version} not found in local Cargo registry source")
-        })?;
+        let Some(crate_dir) = crate_dir_opt else {
+            let expected_cksum = lock_pkg.checksum.as_deref().unwrap_or_default();
+            if let Some(existing) = embedded_fallback.crates.iter().find(|c| {
+                c.name == name
+                    && c.version == version
+                    && !expected_cksum.is_empty()
+                    && c.cargo_lock_checksum == expected_cksum
+            }) {
+                crates.push(existing.clone());
+                continue;
+            }
+            return Err(format!(
+                "crate directory {name}-{version} not found in local Cargo registry source"
+            ));
+        };
 
         let crate_toml_raw = std::fs::read_to_string(crate_dir.join("Cargo.toml"))
             .map_err(|e| format!("failed to read Cargo.toml for {name}-{version}: {e}"))?;
