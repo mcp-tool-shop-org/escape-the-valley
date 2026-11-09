@@ -21,7 +21,7 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "f1c12193e961816cf1b98a41553bf9543ad6ed7de4a3b594babe21d637f8ba26",
+          "hash": "03f846925e20b15aa0f4206dc69a52e049de3f2e0f942e74c3d98a5e54174684",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
@@ -105,7 +105,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "f4d9f93faac749a910f754dca4267ff234abcc934043c90abdfff5ffbf0621cf",
+          "hash": "28141cdb744daa7bf51543875dbdc7802bdb4148dd591b90ff172a15d1cf37cc",
           "path": "bin/escape-the-valley.js"
         }
       ],
@@ -127,6 +127,10 @@
       "entryPoints": [],
       "externals": 0,
       "files": [
+        {
+          "hash": "39c074f2474dc1c248cc84c2a621f7a265e26207337eeede99d695ae0e8c70f6",
+          "path": "docs/LEGACY-PYTHON.md"
+        },
         {
           "hash": "e226752a0d785525913750cd291a43d3c31c6d8af6c07e9948a3a7f3aee22308",
           "path": "docs/landing-design-brief.md"
@@ -1856,6 +1860,330 @@
           "path": "docs/receipts/1.3.1-live-check/hashes.txt"
         },
         {
+          "hash": "b922b6eafaf678d4a19e53ce56f5a78405e0a8cd11b2ddfa16cf54eb37fbdb0f",
+          "path": "docs/receipts/1.3.2-npm-release/README.md"
+        },
+        {
+          "hash": "dc4a044bee0297cbb5805d29a820416dec66a561f1ebb6d60c93595b5b268ef3",
+          "path": "docs/receipts/1.3.2-npm-release/checksums-1.3.2.txt"
+        },
+        {
+          "hash": "0f0d7bbebd62679d8785008e667d8d75a76bcd0e892c942869fec0e82a3dfeb1",
+          "path": "docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh"
+        },
+        {
+          "hash": "2bc318490b7a7c80605861f62a571e82c347021b709149f911d75aed2fe9b6c7",
+          "path": "docs/receipts/1.3.2-npm-release/harness/_run_npm132_win.sh"
+        },
+        {
+          "hash": "6a6d7ce87fb83b4e142162b6f245b72535f3b58e5c8ced5c36b7b1298abc9e52",
+          "path": "docs/receipts/1.3.2-npm-release/harness/cli_drive.py.txt"
+        },
+        {
+          "hash": "33bc397f2af6b0b81dac4b735d71ca614312596e4e0f165a1b2f99843f1a1cb8",
+          "path": "docs/receipts/1.3.2-npm-release/harness/console_capture.py.txt"
+        },
+        {
+          "hash": "1cb855e4d950a7d146d60b60154749f74539e8b636fd928b5d2e961f67034e01",
+          "path": "docs/receipts/1.3.2-npm-release/harness/line_endings.py.txt"
+        },
+        {
+          "hash": "0eab72fe39e7fecb9e94a7d4fa412d36412252f2fe2e6a668e2c1447f68c0587",
+          "path": "docs/receipts/1.3.2-npm-release/harness/npm_release_check.sh"
+        },
+        {
+          "hash": "0267f11e327ccdd3ecaa4f41e2b62be1e8932b2e448340432ab9e76b577b385e",
+          "path": "docs/receipts/1.3.2-npm-release/linux/01-version.cmd"
+        },
+        {
+          "hash": "8add99a0c600fec82ff2a1446baa35c941b034dc013400e49225b9470bc97bb0",
+          "path": "docs/receipts/1.3.2-npm-release/linux/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/01-version.exit"
+        },
+        {
+          "hash": "b1dd83e0c66434264de86feec6f1d9934ba5666a232ec644f000597d812d679c",
+          "path": "docs/receipts/1.3.2-npm-release/linux/01-version.out"
+        },
+        {
+          "hash": "7c0ec11a703bdc24b3f6eca1422471886608270112358ff6ed812cb20a909b8e",
+          "path": "docs/receipts/1.3.2-npm-release/linux/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/linux/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/02-help.exit"
+        },
+        {
+          "hash": "38bdb0de2742093f06e1ef5bde1ac58c565b0db180b1191169baa37a60ff5809",
+          "path": "docs/receipts/1.3.2-npm-release/linux/02-help.out"
+        },
+        {
+          "hash": "9fd38d70cbf7b814e93a66b363fdf528a93e58fcddde093522beb2898a4c5732",
+          "path": "docs/receipts/1.3.2-npm-release/linux/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/linux/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/03-licenses.exit"
+        },
+        {
+          "hash": "384d67bd7a4116ba842547b345269c6952ca6e161998010aa5895c11aa5c2a68",
+          "path": "docs/receipts/1.3.2-npm-release/linux/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/linux/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/04-licenses-flag.exit"
+        },
+        {
+          "hash": "76263908d47cc077eb7eafe4522fa16587c886e73262d92081ef924f8a271eca",
+          "path": "docs/receipts/1.3.2-npm-release/linux/05-cache-files.txt"
+        },
+        {
+          "hash": "007d4343a0e8c0574a2e214f5809f9b53468b13f1752512aabe16be56a9fe877",
+          "path": "docs/receipts/1.3.2-npm-release/linux/05-cached-sha256.txt"
+        },
+        {
+          "hash": "b633376283cb9b8d214e03c9d98301e5c5ec6d1956ecc35eb3bb3f0f82ccc680",
+          "path": "docs/receipts/1.3.2-npm-release/linux/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.2-npm-release/linux/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/linux/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/07-direct-help.exit"
+        },
+        {
+          "hash": "793ade750623f5c83235e65f765c5326d0b0c80a402fabf5afb7d67975252d07",
+          "path": "docs/receipts/1.3.2-npm-release/linux/07-direct-help.out"
+        },
+        {
+          "hash": "007d4343a0e8c0574a2e214f5809f9b53468b13f1752512aabe16be56a9fe877",
+          "path": "docs/receipts/1.3.2-npm-release/linux/08-release-asset-sha256.txt"
+        },
+        {
+          "hash": "c67077ad39783a97008f2e2e31e4d5a71f65115a6859400988f482bb0ef5b52e",
+          "path": "docs/receipts/1.3.2-npm-release/linux/08-tag-head.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/09-verify-bundle-release-asset.exit"
+        },
+        {
+          "hash": "83176446c77601015341ee6472fdf2226feee6e09a825492017fdc073ee776ee",
+          "path": "docs/receipts/1.3.2-npm-release/linux/09-verify-bundle-release-asset.log"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/10-verify-bundle-launcher-cache.exit"
+        },
+        {
+          "hash": "8ad2926c297b4b6a1dda390804732e744658ec97d3b6a69de17f35e87a2e81d4",
+          "path": "docs/receipts/1.3.2-npm-release/linux/10-verify-bundle-launcher-cache.log"
+        },
+        {
+          "hash": "7757be909f70aa774c4963bf7e8f73fbf0db322f84d0d38b8a3263b15aa51a27",
+          "path": "docs/receipts/1.3.2-npm-release/linux/11-self-check.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/linux/11-self-check.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/11-self-check.exit"
+        },
+        {
+          "hash": "b51c3c9a9e972609f94112d154ce37217df3d041f9ceafa914c6302572c1ec21",
+          "path": "docs/receipts/1.3.2-npm-release/linux/11-self-check.out"
+        },
+        {
+          "hash": "c4edde3f679cf39b9512fdc4d43b64f370656d5a2d3f1ae9f4609ded5ef0d02d",
+          "path": "docs/receipts/1.3.2-npm-release/linux/12-gm-off-run.cmd"
+        },
+        {
+          "hash": "20123da84be1a9e2d36cca08536475726cb44ea8ea7d885f368bdf652a508b00",
+          "path": "docs/receipts/1.3.2-npm-release/linux/12-gm-off-run.driver.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/linux/12-gm-off-run.exit"
+        },
+        {
+          "hash": "3c902b899d210114255c125b710899b2e2a9708205d745a74473ce39227706f9",
+          "path": "docs/receipts/1.3.2-npm-release/linux/12-gm-off-run.log"
+        },
+        {
+          "hash": "d6a9f530140eba265ef85443c26d4624e9ee3507ce23f1d05b0565eb28d5f86e",
+          "path": "docs/receipts/1.3.2-npm-release/linux/13-line-endings.txt"
+        },
+        {
+          "hash": "21710c2b721ce81df424f3178c8786855352321a858f66c93d415e9af084cb52",
+          "path": "docs/receipts/1.3.2-npm-release/linux/node-version.txt"
+        },
+        {
+          "hash": "0267f11e327ccdd3ecaa4f41e2b62be1e8932b2e448340432ab9e76b577b385e",
+          "path": "docs/receipts/1.3.2-npm-release/win/01-version.cmd"
+        },
+        {
+          "hash": "2274890eb34bc83b8f8ed15d8e3d7716ea5babfc9bf2a7611b77c296ed4e5878",
+          "path": "docs/receipts/1.3.2-npm-release/win/01-version.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/01-version.exit"
+        },
+        {
+          "hash": "b1dd83e0c66434264de86feec6f1d9934ba5666a232ec644f000597d812d679c",
+          "path": "docs/receipts/1.3.2-npm-release/win/01-version.out"
+        },
+        {
+          "hash": "7c0ec11a703bdc24b3f6eca1422471886608270112358ff6ed812cb20a909b8e",
+          "path": "docs/receipts/1.3.2-npm-release/win/02-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/win/02-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/02-help.exit"
+        },
+        {
+          "hash": "ec115e856ed073f6540890a0c46936004f017dc3d983b82fa5b408a11be279f3",
+          "path": "docs/receipts/1.3.2-npm-release/win/02-help.out"
+        },
+        {
+          "hash": "9fd38d70cbf7b814e93a66b363fdf528a93e58fcddde093522beb2898a4c5732",
+          "path": "docs/receipts/1.3.2-npm-release/win/03-licenses.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/win/03-licenses.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/03-licenses.exit"
+        },
+        {
+          "hash": "83ec143d6b098d6053f37bd3c1118867c766b832cdee6c4bbc68f7a55f9f7907",
+          "path": "docs/receipts/1.3.2-npm-release/win/03-licenses.out"
+        },
+        {
+          "hash": "384d67bd7a4116ba842547b345269c6952ca6e161998010aa5895c11aa5c2a68",
+          "path": "docs/receipts/1.3.2-npm-release/win/04-licenses-flag.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/win/04-licenses-flag.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/04-licenses-flag.exit"
+        },
+        {
+          "hash": "6c6c1bd593436524a61c15d18edfec4234259e9c6173c624ea37e525cdedfd70",
+          "path": "docs/receipts/1.3.2-npm-release/win/05-cache-files.txt"
+        },
+        {
+          "hash": "926b945b998670b98933d973a9b07594261dca5a1d6554705381a960448aeb3e",
+          "path": "docs/receipts/1.3.2-npm-release/win/05-cached-sha256.txt"
+        },
+        {
+          "hash": "98dca01c2fde34e59178f67a95fb9b5f969f7b3f86b09f4dd8976645c933f3b8",
+          "path": "docs/receipts/1.3.2-npm-release/win/06-licenses-vs-release.txt"
+        },
+        {
+          "hash": "238f96660ee9e482b1c65d84da61661049b51d9a390a00a9bc2de9fc03a3e654",
+          "path": "docs/receipts/1.3.2-npm-release/win/07-direct-help.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/win/07-direct-help.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/07-direct-help.exit"
+        },
+        {
+          "hash": "68bba2bb15617e283d433f6593c5f0b2864b39eb916c621aec89bd81b7a03600",
+          "path": "docs/receipts/1.3.2-npm-release/win/07-direct-help.out"
+        },
+        {
+          "hash": "7757be909f70aa774c4963bf7e8f73fbf0db322f84d0d38b8a3263b15aa51a27",
+          "path": "docs/receipts/1.3.2-npm-release/win/08-self-check.cmd"
+        },
+        {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "docs/receipts/1.3.2-npm-release/win/08-self-check.err"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/08-self-check.exit"
+        },
+        {
+          "hash": "71dc60b3286915b4de578bc905caeab45dc9ecc902da8fe930ba170d62c10412",
+          "path": "docs/receipts/1.3.2-npm-release/win/08-self-check.out"
+        },
+        {
+          "hash": "c4edde3f679cf39b9512fdc4d43b64f370656d5a2d3f1ae9f4609ded5ef0d02d",
+          "path": "docs/receipts/1.3.2-npm-release/win/09-gm-off-run.cmd"
+        },
+        {
+          "hash": "20123da84be1a9e2d36cca08536475726cb44ea8ea7d885f368bdf652a508b00",
+          "path": "docs/receipts/1.3.2-npm-release/win/09-gm-off-run.driver.txt"
+        },
+        {
+          "hash": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+          "path": "docs/receipts/1.3.2-npm-release/win/09-gm-off-run.exit"
+        },
+        {
+          "hash": "91e45a6f8839b3838f036e45822efc459235ef3da21b3ffcf68ebb45cba2b9f6",
+          "path": "docs/receipts/1.3.2-npm-release/win/09-gm-off-run.log"
+        },
+        {
+          "hash": "7321c1ede8c8887e7f4a25a30a8df6522e556bb7bd0ce4972b6856b2ed99ed07",
+          "path": "docs/receipts/1.3.2-npm-release/win/10-console-licenses.meta.txt"
+        },
+        {
+          "hash": "17c8d8523e4060675334768ba3198282ae9df951cb554551f1e7505345994620",
+          "path": "docs/receipts/1.3.2-npm-release/win/10-console-licenses.rows.txt"
+        },
+        {
+          "hash": "1432918abb6382dce454f70bbb6d7131cc6a257449696f7a04f2da4116c7cd90",
+          "path": "docs/receipts/1.3.2-npm-release/win/11-console-licenses-131-control.meta.txt"
+        },
+        {
+          "hash": "4ea83ace044a44cc004989a69ca23615db5e967da14e93ca0ad4a4e7c09e91f8",
+          "path": "docs/receipts/1.3.2-npm-release/win/12-line-endings.txt"
+        },
+        {
+          "hash": "4872709a1c97407e929833b5c9ed1100198e6b650c22be10133f914ec24f3de1",
+          "path": "docs/receipts/1.3.2-npm-release/win/13-line-endings-131-control.txt"
+        },
+        {
+          "hash": "89624f93557cdf694bba5366a1a56f97dead916a011b0ea6650225bce90d0bc8",
+          "path": "docs/receipts/1.3.2-npm-release/win/node-version.txt"
+        },
+        {
           "hash": "8694eee992f51e5e43d1810db9e8050f74b39a84710c199034eb2a8f4cee3542",
           "path": "docs/survival-guide.md"
         }
@@ -1891,7 +2219,7 @@
           "path": ".polyglot-terms.json"
         },
         {
-          "hash": "889557c8183c98bdf4eb56691866c71b6847df3ba5774e3566d68b62576ec078",
+          "hash": "cd4439da880f69291758b7b574cf00e5d8662a170924c9155d05b0398715b376",
           "path": "CHANGELOG.md"
         },
         {
@@ -1899,35 +2227,35 @@
           "path": "LICENSE"
         },
         {
-          "hash": "01129b8eb33d98cb81828f2809258551621bbfe52d8727401b95e3d93eaab945",
+          "hash": "20aa3d6c4f57da4e642c5de880166469d2ee304b2a44ac2b78814b793d1aa4a4",
           "path": "README.es.md"
         },
         {
-          "hash": "34076e676d2c3e902ac16448c9a842934d21426798fff6f214eac771d2f51009",
+          "hash": "7c7cbe050e79eeaf40247c0c4d7a3c68569c91beca7c99b7027b3f7e66ebef3e",
           "path": "README.fr.md"
         },
         {
-          "hash": "49ab761898f15e465d6f681fc3db9828be592c6cc1f0c02b75806e4534b04efb",
+          "hash": "ebc181415408ab0e3f10b46d4e08b52366a44ff33b08e33007bc937e71729c39",
           "path": "README.hi.md"
         },
         {
-          "hash": "78b67aa701cf1d11261a1e3ce85bed3176edc390f185292ee58fa48f5a083080",
+          "hash": "928ac0b2b74fac34fb603006a88ff16edbd643915ce91b896b8e599f9a152879",
           "path": "README.it.md"
         },
         {
-          "hash": "7fb8315201a7429972fc1e5227f5b59a4c705a8ef8750f05ec5a31d6450017db",
+          "hash": "bfd6f60a327830939c366bdec5d85ce95cf0a79711843bbd46baa91a807d9826",
           "path": "README.ja.md"
         },
         {
-          "hash": "f002e69a4bdb1b988eee6cb028b44658d1f2a86b7b7975d0782209a6282ce91f",
+          "hash": "6b3ee6419de87fec48ce3ba7c45091f9d72f96cba47b0a657153ef01b7ff9139",
           "path": "README.md"
         },
         {
-          "hash": "6eba3b7c5ecb127be85dc1ba0291c54a2128b9d49857c95d057bf7226c02e038",
+          "hash": "effeb1a06a34fb74b289adf15cf8c599a650590a0e5d3f6ba0189a2f95f3a880",
           "path": "README.pt-BR.md"
         },
         {
-          "hash": "823f5b0ff2105853ccb4be5df69c0765f1ac24f92fed422773a64e86b3c4119f",
+          "hash": "d31003c601f31c615242e37aa4d3c264f69f49119919b2b9bcd5ba9650edd25a",
           "path": "README.zh.md"
         },
         {
@@ -1947,11 +2275,11 @@
           "path": "codecov.yml"
         },
         {
-          "hash": "45eb3ec454833ddce40738cfa09fb39754d1491b6b12c01a11bf3df1f97a2db8",
+          "hash": "40d0d410a385dc432b9098fed63b07f5296541f0904afc781d8dbc31df1c9820",
           "path": "package.json"
         },
         {
-          "hash": "2eb137d300f04d2b76fcfa99eb127454ab6bb92c82f49696a70a4141c35bf094",
+          "hash": "57bd3d22e225c53f326209e7d7e1d7ec0705c000b8b2d2fd9f70b3cee9fa2096",
           "path": "pyproject.toml"
         }
       ],
@@ -1969,10 +2297,89 @@
       "dynamicReads": 0,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
-      "dynamicWrites": 0,
+      "dynamicWrites": 1,
       "entryPoints": [],
       "externals": 0,
       "files": [
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "check_objdump_floor",
+            "format_floor_report",
+            "format_glibc",
+            "inspect_binary_glibc_floor",
+            "is_so_entry_name",
+            "main",
+            "max_glibc_version",
+            "parse_glibc_versions",
+            "parse_version_arg"
+          ],
+          "failurePaths": [
+            {
+              "in": "parse_version_arg",
+              "kind": "raise",
+              "line": 43
+            },
+            {
+              "in": "check_objdump_floor",
+              "kind": "raise",
+              "line": 85
+            },
+            {
+              "in": "_default_objdump_runner",
+              "kind": "raise",
+              "line": 104
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 130
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 138
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 149
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "except",
+              "line": 160
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "except",
+              "line": 181
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 186
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 249
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 257
+            },
+            {
+              "kind": "raise",
+              "line": 266
+            }
+          ],
+          "hash": "6e118a2fdb9f4e05c45488992dd6b59de9c6d73e4d945752f7c3611f8b46de02",
+          "path": "scripts/check_glibc_floor.py",
+          "sequences": []
+        },
         {
           "entry": "main",
           "entryRule": 1,
@@ -2249,7 +2656,7 @@
       ],
       "outsideWrites": 5,
       "role": "code",
-      "testedBy": 1,
+      "testedBy": 2,
       "unresolvedSites": 0
     },
     {
@@ -2482,7 +2889,7 @@
           "path": "site/src/content/docs/handbook/commands.md"
         },
         {
-          "hash": "aa2e76ff728d1a9014a6fd5a62865bf25aeebe976e6cf73b4f0ad4a463e27bf7",
+          "hash": "01c4b21dfbdadb1269ed1b94b30eb39b86e2a9bc4b01929e188a815710f876c2",
           "path": "site/src/content/docs/handbook/getting-started.md"
         },
         {
@@ -2559,7 +2966,7 @@
       "files": [
         {
           "constantOnly": true,
-          "hash": "5cc31331d1f6bad9a3ee848d8c9af5331f3f50e8a52628222e8529079879336a",
+          "hash": "38e4339cf0741479235f61f098aa22932a0bb3f211f6b903fad623f72792e28f",
           "path": "src/escape_the_valley/__init__.py"
         },
         {
@@ -4425,30 +4832,30 @@
             {
               "in": "__init__",
               "kind": "except",
-              "line": 100
+              "line": 101
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 555
+              "line": 584
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 562
+              "line": 591
             },
             {
               "in": "_settle_checkpoint",
               "kind": "except",
-              "line": 605
+              "line": 634
             },
             {
               "in": "_check_parcels",
               "kind": "except",
-              "line": 654
+              "line": 683
             }
           ],
-          "hash": "371c16bf05bcc43951133081ab953ad57ff319b34fa6db9aed2fc366c6e56723",
+          "hash": "4cb13c9115e297ec188430e568411ed6e379621ac9c7495831d162003e80afb1",
           "importOrder": [
             "src/escape_the_valley/events.py",
             "src/escape_the_valley/gm.py",
@@ -4519,7 +4926,7 @@
             "resolve_event",
             "select_event"
           ],
-          "hash": "7b6d1531d7bf10bd9f289323781844cf709f59c746141a6b47e898a7d54ad5bd",
+          "hash": "8c2f38523a2cc8c82e3edb8c98d6c4a8622ecb50b197f6feedd751d0297a9e18",
           "importsFiles": [
             "src/escape_the_valley/event_loader.py",
             "src/escape_the_valley/models.py",
@@ -4584,7 +4991,7 @@
             {
               "calls": [
                 {
-                  "line": 2194,
+                  "line": 2196,
                   "name": "_proximate_death_cause",
                   "target": {
                     "file": "src/escape_the_valley/physics.py"
@@ -5684,6 +6091,7 @@
             "check_health_effects",
             "check_night_travel_danger",
             "check_spoilage",
+            "collect_new_death_effects",
             "compute_daily_consumption",
             "compute_travel_distance",
             "desperate_repair",
@@ -5694,7 +6102,7 @@
             "rest_day",
             "update_morale"
           ],
-          "hash": "838edd8cfde34ad9a81e0050c0bfc02d6867149b57453bd2326fc284c0ec084b",
+          "hash": "c422247f2823775ebc7face9f0a024769435cdc5516fa66c02f93f1726fcc10f",
           "importsFiles": [
             "src/escape_the_valley/models.py"
           ],
@@ -6563,35 +6971,35 @@
             {
               "in": "__init__",
               "kind": "except",
-              "line": 185
+              "line": 187
             },
             {
               "in": "_do_change_pace",
               "kind": "except",
-              "line": 582
+              "line": 588
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 782
+              "line": 808
             },
             {
               "in": "_apply_memory_proposals",
               "kind": "except",
-              "line": 790
+              "line": 816
             },
             {
               "in": "_settle_checkpoint",
               "kind": "except",
-              "line": 1334
+              "line": 1362
             },
             {
               "in": "_check_parcels",
               "kind": "except",
-              "line": 1388
+              "line": 1416
             }
           ],
-          "hash": "e2334b611b64b9640fde5885a3e4f08368fbbbd954aa18e31d00af4a6f20fa2c",
+          "hash": "1ac46df472cdf414e52f07603775e5fd4ff952f058d268ed81a8893719bd8db7",
           "importsFiles": [
             "src/escape_the_valley/backpack.py",
             "src/escape_the_valley/backpack_models.py",
@@ -6610,7 +7018,7 @@
             {
               "calls": [
                 {
-                  "line": 1640,
+                  "line": 1668,
                   "name": "EndingResult",
                   "target": {
                     "file": "src/escape_the_valley/models.py"
@@ -7272,7 +7680,7 @@
       "outsideReads": 18,
       "outsideWrites": 4,
       "role": "code",
-      "testedBy": 23,
+      "testedBy": 24,
       "unresolvedNamed": [
         {
           "path": "src/escape_the_valley/notices.py",
@@ -7299,6 +7707,10 @@
           "hash": "e5de409d8483e92e42525036e712898715025638d544cf499445051375de1e41",
           "path": "tests/conftest.py",
           "testFramework": "pytest"
+        },
+        {
+          "hash": "a47e9e161dfdbda0f54368d2fcd20a39508739c960df3ab71d42ac466e29d53e",
+          "path": "tests/fixtures/rng_identity_200_ab628aa.json"
         },
         {
           "hash": "2702870271b01b1596a3e501dc4a84b6675f10db249965a65403ccd9a00ee1c6",
@@ -7494,6 +7906,33 @@
         },
         {
           "exports": [
+            "test_death_in_desperate_repair_and_hard_ration",
+            "test_death_in_event_phase",
+            "test_death_in_hunt_phase",
+            "test_death_in_repair_phase",
+            "test_death_in_rest_phase",
+            "test_death_in_travel_phase",
+            "test_fork_arrival_reload_20_seeds_next_30_steps_equal_uninterrupted",
+            "test_fork_arrival_reload_matches_uninterrupted_seed_2",
+            "test_rng_identity_200_seeds_no_death_no_fork_reload",
+            "test_silent_death_invariant_1000_seeds_x_120_steps"
+          ],
+          "hash": "baebea78560629a76034fc5705f9ac518ef58481f0fbdb329a198a9cf0dca8bd",
+          "importsFiles": [
+            "src/escape_the_valley/adapter.py",
+            "src/escape_the_valley/events.py",
+            "src/escape_the_valley/gm.py",
+            "src/escape_the_valley/intent.py",
+            "src/escape_the_valley/models.py",
+            "src/escape_the_valley/physics.py",
+            "src/escape_the_valley/save.py",
+            "src/escape_the_valley/step_engine.py",
+            "src/escape_the_valley/worldgen.py"
+          ],
+          "path": "tests/test_fork_reload_and_silent_deaths.py"
+        },
+        {
+          "exports": [
             "test_live_four_tier_gate"
           ],
           "hash": "092135086249dc2644f816cf7043fa159297f5b2f7ba9be1aea77f3f9c2a9f66",
@@ -7506,6 +7945,20 @@
             "src/escape_the_valley/worldgen.py"
           ],
           "path": "tests/test_four_tier_live.py",
+          "testFramework": "pytest"
+        },
+        {
+          "exports": [
+            "test_check_objdump_floor_refuses_version_above_2_35",
+            "test_cli_main_exits_nonzero_on_violation_and_zero_when_clean",
+            "test_inspect_binary_glibc_floor_refuses_fake_objdump_above_ceiling",
+            "test_parse_and_check_objdump_floor_accepts_up_to_2_35"
+          ],
+          "hash": "4be09ec2bc7972efa1b42931c080044f60407888a87eda82371bcafd22d757d3",
+          "importsFiles": [
+            "scripts/check_glibc_floor.py"
+          ],
+          "path": "tests/test_glibc_floor.py",
           "testFramework": "pytest"
         },
         {
@@ -7808,7 +8261,7 @@
             "test_victory_shows_trail_ledger",
             "test_weathered_all_survive_but_slow"
           ],
-          "hash": "591c7755bf11c3ab764301b736a6bc88595f0ac1491613080ed36cb2888367fb",
+          "hash": "d6acf54179a060cfb8ea239d354695590d0b04d4b2602edb8be9b059f23ef2ce",
           "importOrder": [
             "src/escape_the_valley/adapter.py",
             "src/escape_the_valley/gm.py",
@@ -8067,7 +8520,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -8077,7 +8530,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 26
+          "files": 28
         },
         {
           "boundary": "agents",
@@ -8436,6 +8889,14 @@
           "dir": "",
           "job": "build",
           "programs": [
+            "apt-get"
+          ],
+          "step": "Install container build prerequisites (Linux)"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
             "echo",
             "id",
             "mkdir",
@@ -8449,7 +8910,7 @@
           "programs": [
             "uv"
           ],
-          "step": "3"
+          "step": "4"
         },
         {
           "dir": "",
@@ -8457,7 +8918,7 @@
           "programs": [
             "uv"
           ],
-          "step": "4"
+          "step": "5"
         },
         {
           "dir": "",
@@ -8508,7 +8969,25 @@
           "programs": [
             "uv"
           ],
+          "step": "Check glibc floor (Linux)"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
           "step": "Smoke test binary"
+        },
+        {
+          "dir": "",
+          "job": "smoke-linux",
+          "programs": [
+            "chmod",
+            "echo",
+            "test"
+          ],
+          "step": "Smoke test binary --version in container"
         },
         {
           "dir": "",
@@ -8530,31 +9009,33 @@
           "runsOn": [
             {
               "labels": [
-                "ubuntu-latest"
+                "ubuntu-24.04"
               ],
-              "platform": {
-                "cpu": "x64",
-                "libc": "glibc",
-                "os": "linux"
-              }
+              "unresolved": "container"
             },
             {
               "labels": [
                 "macos-latest"
               ],
-              "platform": {
-                "cpu": "arm64",
-                "os": "darwin"
-              }
+              "unresolved": "container"
             },
             {
               "labels": [
                 "windows-latest"
               ],
-              "platform": {
-                "cpu": "x64",
-                "os": "win32"
-              }
+              "unresolved": "container"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-linux",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-24.04"
+              ],
+              "unresolved": "container"
             }
           ]
         },
@@ -8586,7 +9067,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 2
+          "files": 3
         },
         {
           "boundary": "src",
@@ -8596,6 +9077,11 @@
       ],
       "readers": [],
       "runs": [
+        {
+          "job": "build",
+          "path": "scripts/check_glibc_floor.py",
+          "runKind": "executes"
+        },
         {
           "job": "build",
           "path": "scripts/gen_third_party_notices.py",
@@ -8613,7 +9099,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 3,
+      "runsCount": 4,
       "secrets": [],
       "sends": {
         "assets": [
@@ -8639,6 +9125,11 @@
           ],
           "runner": null,
           "step": "Smoke test binary"
+        },
+        {
+          "job": "smoke-linux",
+          "runner": null,
+          "step": "Smoke test binary --version in container"
         }
       ],
       "triggers": [
@@ -8934,7 +9425,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -8944,7 +9435,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 26
+          "files": 28
         },
         {
           "boundary": "agents",
@@ -9193,13 +9684,19 @@
       "from": "tests",
       "fromTests": true,
       "kind": "file",
+      "to": "scripts"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
+      "kind": "file",
       "to": "src"
     }
   ],
   "engine": "1.24.0",
   "generatedFrom": {
-    "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd",
-    "tracked": 628
+    "commit": "5e0367ff62b62afd60fcbec155a61981ab7097bd",
+    "tracked": 714
   },
   "landings": [
     {
@@ -9293,6 +9790,11 @@
         },
         {
           "by": "docs/receipts/1.3.1-live-check/harness/verify_toc_negative.sh",
+          "call": "literal",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh",
           "call": "literal",
           "confidence": "text"
         }
@@ -9469,12 +9971,24 @@
       ],
       "target": "tests",
       "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "tests/test_fork_reload_and_silent_deaths.py",
+          "call": "read_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "tests/fixtures/rng_identity_200_ab628aa.json",
+      "writers": []
     }
   ],
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 26,
+  "testFiles": 29,
   "testsNotRun": [
     "tests/test_adapter.py",
     "tests/test_backpack.py",
@@ -9485,7 +9999,9 @@
     "tests/test_death_causes.py",
     "tests/test_event_loader.py",
     "tests/test_events.py",
+    "tests/test_fork_reload_and_silent_deaths.py",
     "tests/test_four_tier_live.py",
+    "tests/test_glibc_floor.py",
     "tests/test_gm.py",
     "tests/test_ledger.py",
     "tests/test_ledger_proof.py",

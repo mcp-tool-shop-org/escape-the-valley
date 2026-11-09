@@ -4,6 +4,10 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
+
 ## [1.3.3] - 2026-11-07
 
 ### Fixed
