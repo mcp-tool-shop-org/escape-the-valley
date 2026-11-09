@@ -1,20 +1,24 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-10-23 from commit 407fc3d by Atlas 1.24.0.
+Mapped at 2026-11-09 from commit 5e0367f by Atlas 1.24.0.
 
 ## What this is
 
-10 parts, mostly Python (63 files), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
+10 parts, mostly Python (66 files), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.
 
-## What changed since 2026-10-23 (6abd5d4)
+## What changed since 2026-10-23 (407fc3d)
 
-Nothing structural changed since 2026-10-23; 9 files changed content.
+- tests now imports scripts.
+- Release Binaries now also runs scripts/check_glibc_floor.py.
+- scripts/gen_third_party_notices.py is now also read by docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh.
+- tests/fixtures/rng_identity_200_ab628aa.json is now read by tests/test_fork_reload_and_silent_deaths.py.
+- 86 files added and 20 changed content, across 8 parts.
 
 ## What comes in
 
 1. **CI.** On a pull request; on a push touching 9 paths; on a `workflow_call` event; or by hand. Runs scripts/gen_third_party_notices.py; checks scripts/, src/ and tests/.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs scripts/gen_third_party_notices.py; checks scripts/, src/ and tests/.
-3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
+3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
 6. **escape-the-valley** (a command people run). Runs bin/escape-the-valley.js.
@@ -35,7 +39,7 @@ CI writes nothing this map can see.
 
 **Release** runs scripts/gen_third_party_notices.py, checks scripts/, src/ and tests/, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
 
-**Release Binaries** runs scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
+**Release Binaries** runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
 
 **Deploy site to GitHub Pages** runs site/astro.config.mjs and site/src/, and deploys the site.
 
@@ -51,7 +55,7 @@ CI writes nothing this map can see.
 
 - **src** is imported by 2 parts (agents, scripts), and by 1 more only from tests; it sits on the path of 5 doors.
 - **agents** is imported by 1 part (scripts), and by 1 more only from tests; it sits on the path of 2 doors.
-- **scripts** is imported by no other part and sits on the path of 3 doors.
+- **scripts** is imported only from tests, by 1 part (tests), and sits on the path of 3 doors.
 - **bin** is imported by no other part and sits on the path of 2 doors.
 - **tests** is imported by no other part and sits on the path of 2 doors.
 
@@ -59,9 +63,9 @@ CI writes nothing this map can see.
 
 - **src/escape_the_valley/tui_app.py** and **tests/test_tui_smoke.py** changed together in 13 of 14 commits, and the tests part imports the src part.
 - **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 6 of 7 commits, and the tests part imports the src part.
+- **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 14 of 18 commits, and the tests part imports the src part.
 - **src/escape_the_valley/ui.py** and **tests/test_adapter.py** changed together in 7 of 9 commits, and the tests part imports the src part.
-- **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 13 of 17 commits, and the tests part imports the src part.
-- **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 12 of 16 commits, inside the src part.
+- **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 13 of 17 commits, inside the src part.
 
 8 files changed together with their own tests, as expected.
 
@@ -87,7 +91,7 @@ Every tracked place code writes here is edited by people too; see Hand-authored.
 
 ## Hand-authored
 
-People write .github/, assets/, docs/, the repository root and site/; 1 write with a path built at run time may land here.
+People write .github/, assets/, docs/, the repository root and site/; 2 writes with paths built at run time may land here.
 
 - **src/escape_the_valley/data/event_skeletons.json** is written by scripts/yaml_to_json.py from inputs this repository does not keep, and by people.
 
@@ -100,7 +104,7 @@ Read those in order to follow one pull request end to end.
 ## What this map cannot see
 
 - 1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.
-- 1 write and 7 reads use paths built at run time and are not named here.
+- 2 writes and 7 reads use paths built at run time and are not named here.
 - 4 writes and 19 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.

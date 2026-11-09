@@ -44,7 +44,9 @@
     {
       "doors": 3,
       "importedBy": [],
-      "importedByTests": [],
+      "importedByTests": [
+        "tests"
+      ],
       "kind": "part",
       "name": "scripts",
       "partLabel": "scripts"
@@ -68,24 +70,56 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 9,
+      "added": 86,
+      "changed": 20,
       "moved": 0,
-      "parts": 3,
+      "parts": 8,
       "removed": 0
     },
     "items": [
       {
+        "kind": "import-added",
+        "sentence": "tests now imports scripts.",
+        "subjects": [
+          "tests",
+          "scripts"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Release Binaries now also runs scripts/check_glibc_floor.py.",
+        "subjects": [
+          ".github/workflows/release-binaries.yml",
+          "scripts/check_glibc_floor.py"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "scripts/gen_third_party_notices.py is now also read by docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh.",
+        "subjects": [
+          "scripts/gen_third_party_notices.py",
+          "docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "tests/fixtures/rng_identity_200_ab628aa.json is now read by tests/test_fork_reload_and_silent_deaths.py.",
+        "subjects": [
+          "tests/fixtures/rng_identity_200_ab628aa.json",
+          "tests/test_fork_reload_and_silent_deaths.py"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-23; 9 files changed content.",
+        "sentence": "86 files added and 20 changed content, across 8 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "6abd5d43df1c558090d0526ca8bd8e8fe402e500",
-      "generatedAt": "2026-10-23T14:07:38.291Z"
+      "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd",
+      "generatedAt": "2026-10-23T14:40:40.623Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -119,6 +153,21 @@
       "shared": 6
     },
     {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "tests/test_step_engine.py",
+      "either": 18,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 14
+    },
+    {
       "a": "src/escape_the_valley/ui.py",
       "b": "tests/test_adapter.py",
       "either": 9,
@@ -135,23 +184,8 @@
     },
     {
       "a": "src/escape_the_valley/engine.py",
-      "b": "tests/test_step_engine.py",
-      "either": 17,
-      "partLabels": [
-        "src",
-        "tests"
-      ],
-      "parts": [
-        "src",
-        "tests"
-      ],
-      "relation": "b-imports-a",
-      "shared": 13
-    },
-    {
-      "a": "src/escape_the_valley/engine.py",
       "b": "src/escape_the_valley/step_engine.py",
-      "either": 16,
+      "either": 17,
       "partLabels": [
         "src",
         "src"
@@ -161,7 +195,7 @@
         "src"
       ],
       "relation": "inside",
-      "shared": 12
+      "shared": 13
     }
   ],
   "changesTogetherNote": [
@@ -170,9 +204,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd",
+  "commit": "5e0367ff62b62afd60fcbec155a61981ab7097bd",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (63 files), shell (10), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
+  "derived": "10 parts, mostly Python (66 files), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
     {
       "checks": [
@@ -191,7 +225,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -201,7 +235,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 26
+          "files": 28
         },
         {
           "boundary": "agents",
@@ -242,7 +276,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -252,7 +286,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 26
+          "files": 28
         },
         {
           "boundary": "agents",
@@ -292,7 +326,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 2
+          "files": 3
         },
         {
           "boundary": "src",
@@ -301,10 +335,11 @@
         }
       ],
       "runs": [
+        "scripts/check_glibc_floor.py",
         "scripts/gen_third_party_notices.py",
         "scripts/smoke_test_binary.py"
       ],
-      "runsCount": 2,
+      "runsCount": 3,
       "runsMore": 0,
       "sends": [
         "creates a GitHub release",
@@ -485,15 +520,20 @@
     {
       "from": "tests",
       "fromTests": true,
+      "to": "scripts"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
       "to": "src"
     }
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-10-23T14:40:40.623Z",
+  "generatedAt": "2026-11-09T14:05:35.595Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
-    "1 write and 7 reads use paths built at run time and are not named here.",
+    "2 writes and 7 reads use paths built at run time and are not named here.",
     "4 writes and 19 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -523,14 +563,14 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 26,
+  "testFiles": 29,
   "testedBy": {
     "agents": 1,
     "bin": 0,
-    "scripts": 1,
-    "src": 23
+    "scripts": 2,
+    "src": 24
   },
-  "unnamedWrites": 1,
+  "unnamedWrites": 2,
   "unread": [],
   "unreadFiles": 0,
   "unreadNote": [],
