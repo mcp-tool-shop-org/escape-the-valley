@@ -70,56 +70,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 86,
-      "changed": 20,
+      "added": 0,
+      "changed": 1,
       "moved": 0,
-      "parts": 8,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
-        "kind": "import-added",
-        "sentence": "tests now imports scripts.",
-        "subjects": [
-          "tests",
-          "scripts"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release Binaries now also runs scripts/check_glibc_floor.py.",
-        "subjects": [
-          ".github/workflows/release-binaries.yml",
-          "scripts/check_glibc_floor.py"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "scripts/gen_third_party_notices.py is now also read by docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh.",
-        "subjects": [
-          "scripts/gen_third_party_notices.py",
-          "docs/receipts/1.3.2-npm-release/harness/_run_npm132_linux.sh"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "tests/fixtures/rng_identity_200_ab628aa.json is now read by tests/test_fork_reload_and_silent_deaths.py.",
-        "subjects": [
-          "tests/fixtures/rng_identity_200_ab628aa.json",
-          "tests/test_fork_reload_and_silent_deaths.py"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "86 files added and 20 changed content, across 8 parts.",
+        "sentence": "Nothing structural changed since 2026-11-09; 1 file changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "407fc3d4bed080c60fe6f92fd6e5e9557fd1c3dd",
-      "generatedAt": "2026-10-23T14:40:40.623Z"
+      "commit": "5e0367ff62b62afd60fcbec155a61981ab7097bd",
+      "generatedAt": "2026-11-09T14:05:35.595Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -204,17 +172,16 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "5e0367ff62b62afd60fcbec155a61981ab7097bd",
+  "commit": "714f79ef886759f099df2d1202440621313a017d",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (66 files), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 8 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail.",
   "doors": [
     {
       "checks": [
         "scripts/",
-        "src/",
-        "tests/"
+        "src/"
       ],
-      "checksCount": 3,
+      "checksCount": 2,
       "checksMore": 0,
       "file": ".github/workflows/ci.yml",
       "id": ".github/workflows/ci.yml",
@@ -244,9 +211,10 @@
         }
       ],
       "runs": [
-        "scripts/gen_third_party_notices.py"
+        "scripts/gen_third_party_notices.py",
+        "tests/"
       ],
-      "runsCount": 1,
+      "runsCount": 2,
       "runsMore": 0,
       "sends": [
         "uploads coverage to Codecov"
@@ -262,10 +230,9 @@
     {
       "checks": [
         "scripts/",
-        "src/",
-        "tests/"
+        "src/"
       ],
-      "checksCount": 3,
+      "checksCount": 2,
       "checksMore": 0,
       "file": ".github/workflows/release.yml",
       "id": ".github/workflows/release.yml",
@@ -295,9 +262,10 @@
         }
       ],
       "runs": [
-        "scripts/gen_third_party_notices.py"
+        "scripts/gen_third_party_notices.py",
+        "tests/"
       ],
-      "runsCount": 1,
+      "runsCount": 2,
       "runsMore": 0,
       "sends": [
         "uploads coverage to Codecov",
@@ -528,13 +496,13 @@
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-09T14:05:35.595Z",
+  "generatedAt": "2026-11-11T22:15:56.881Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
-    "2 writes and 7 reads use paths built at run time and are not named here.",
-    "4 writes and 19 reads go to a path their caller passes, not to this repository.",
+    "2 writes and 6 reads use paths built at run time and are not named here.",
+    "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
@@ -570,6 +538,7 @@
     "scripts": 2,
     "src": 24
   },
+  "testedCodeParts": 4,
   "unnamedWrites": 2,
   "unread": [],
   "unreadFiles": 0,
