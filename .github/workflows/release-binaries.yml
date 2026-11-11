@@ -284,7 +284,7 @@ jobs:
           name: binary-linux-x64
           path: dist
 
-      - name: Smoke test binary --version in container
+      - name: Smoke test binary in clean container
         shell: bash
         env:
           REF_NAME_RAW: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}
@@ -293,9 +293,18 @@ jobs:
           VERSION=${REF_NAME#v}
           ASSET="dist/${{ env.TOOL_NAME }}-${VERSION}-linux-x64"
           chmod +x "$ASSET"
-          out="$("$ASSET" --version)"
-          echo "[container-smoke] ${{ matrix.container }}: $out"
+          out="$("$ASSET" --version < /dev/null)"
+          echo "[container-smoke] ${{ matrix.container }} --version: $out"
           test -n "$out"
+          selfcheck_out="$("$ASSET" --selfcheck < /dev/null)"
+          echo "[container-smoke] ${{ matrix.container }} --selfcheck: $selfcheck_out"
+          case "$selfcheck_out" in
+            *"selfcheck ok:"*"textual="*"xrpl="*) ;;
+            *)
+              echo "Unexpected --selfcheck output: $selfcheck_out" >&2
+              exit 1
+              ;;
+          esac
 
   release:
     needs: [build, smoke-linux]
