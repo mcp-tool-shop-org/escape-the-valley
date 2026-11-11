@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "81880db39d666650261e4a832afd2d55b09649007d2c8f89cffb8db6d9f98bfb",
+          "hash": "63fa11c336fe590d4cbaa2165211e0f52891d2bc5a0ecc54a368b45bbd0add2d",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -68,6 +68,9 @@
       "name": "agents",
       "origin": "authored",
       "role": "code",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 1,
       "unresolvedSites": 0
     },
@@ -2656,6 +2659,9 @@
       ],
       "outsideWrites": 5,
       "role": "code",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 2,
       "unresolvedSites": 0
     },
@@ -2955,7 +2961,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 7,
+      "dynamicReads": 6,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -7670,16 +7676,19 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 18,
+          "reads": 19,
           "where": [
             "caller"
           ],
           "writes": 4
         }
       ],
-      "outsideReads": 18,
+      "outsideReads": 19,
       "outsideWrites": 4,
       "role": "code",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 24,
       "unresolvedNamed": [
         {
@@ -8382,13 +8391,16 @@
       "name": "tests",
       "origin": "authored",
       "role": "test",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 0,
       "unresolvedSites": 0
     }
   ],
   "doors": [
     {
-      "checksCount": 3,
+      "checksCount": 2,
       "commands": [
         {
           "dir": "",
@@ -8565,7 +8577,7 @@
           "directory": true,
           "job": "test",
           "path": "tests/",
-          "runKind": "checks"
+          "runKind": "executes"
         }
       ],
       "runsCount": 4,
@@ -8584,7 +8596,7 @@
       "tests": [
         {
           "config": "pyproject.toml",
-          "files": 0,
+          "files": 28,
           "job": "test",
           "junit": true,
           "runner": "pytest",
@@ -8614,6 +8626,13 @@
         },
         {
           "event": "workflow_dispatch"
+        }
+      ],
+      "unresolvedExpressions": [
+        {
+          "adds": "flags",
+          "job": "test",
+          "step": "Test"
         }
       ],
       "uses": [
@@ -9173,7 +9192,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 3,
+      "checksCount": 2,
       "commands": [
         {
           "dir": "",
@@ -9470,7 +9489,7 @@
           "directory": true,
           "job": "gate/test",
           "path": "tests/",
-          "runKind": "checks"
+          "runKind": "executes"
         }
       ],
       "runsCount": 4,
@@ -9500,7 +9519,7 @@
       "tests": [
         {
           "config": "pyproject.toml",
-          "files": 0,
+          "files": 28,
           "job": "gate/test",
           "junit": true,
           "runner": "pytest",
@@ -9519,6 +9538,13 @@
         },
         {
           "event": "workflow_dispatch"
+        }
+      ],
+      "unresolvedExpressions": [
+        {
+          "adds": "flags",
+          "job": "gate/test",
+          "step": "Test"
         }
       ],
       "uses": [
@@ -9693,9 +9719,9 @@
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "5e0367ff62b62afd60fcbec155a61981ab7097bd",
+    "commit": "714f79ef886759f099df2d1202440621313a017d",
     "tracked": 714
   },
   "landings": [
@@ -9989,33 +10015,5 @@
   "submodules": [],
   "symlinks": [],
   "testFiles": 29,
-  "testsNotRun": [
-    "tests/test_adapter.py",
-    "tests/test_backpack.py",
-    "tests/test_backpack_ledger.py",
-    "tests/test_backpack_models.py",
-    "tests/test_backpack_save.py",
-    "tests/test_cli_stats.py",
-    "tests/test_death_causes.py",
-    "tests/test_event_loader.py",
-    "tests/test_events.py",
-    "tests/test_fork_reload_and_silent_deaths.py",
-    "tests/test_four_tier_live.py",
-    "tests/test_glibc_floor.py",
-    "tests/test_gm.py",
-    "tests/test_ledger.py",
-    "tests/test_ledger_proof.py",
-    "tests/test_memory.py",
-    "tests/test_memory_emitters.py",
-    "tests/test_models.py",
-    "tests/test_narration.py",
-    "tests/test_npx_launcher.py",
-    "tests/test_physics.py",
-    "tests/test_save.py",
-    "tests/test_step_engine.py",
-    "tests/test_tui_smoke.py",
-    "tests/test_voice.py",
-    "tests/test_worldgen.py"
-  ],
   "unassigned": []
 }
