@@ -335,6 +335,13 @@ impl NarrationContext {
         self
     }
 
+    /// The same context with `gm_profile` set to `profile`. For a recorded context that is
+    /// replayed under each profile in turn.
+    pub fn with_gm_profile(mut self, profile: GMProfile) -> Self {
+        self.gm_profile = profile;
+        self
+    }
+
     /// Attach what else the narrator is told about the turn: the event's title, the labels on
     /// offer, and the camp action taken.
     pub fn with_event_facts(
