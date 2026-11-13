@@ -20,6 +20,7 @@ pub mod events_builtin;
 pub mod ledger;
 pub mod ledger_proof;
 pub mod measure;
+pub mod measure_stats;
 pub mod memory;
 pub mod model;
 pub mod narrator;
