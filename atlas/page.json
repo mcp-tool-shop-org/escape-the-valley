@@ -31,7 +31,7 @@
   ],
   "breaks": [
     {
-      "doors": 5,
+      "doors": 2,
       "importedBy": [
         "agents",
         "scripts"
@@ -56,20 +56,14 @@
       "partLabel": "agents"
     },
     {
-      "doors": 3,
+      "doors": 2,
       "importedBy": [],
-      "importedByTests": [],
+      "importedByTests": [
+        "tests"
+      ],
       "kind": "part",
       "name": "scripts",
       "partLabel": "scripts"
-    },
-    {
-      "doors": 2,
-      "importedBy": [],
-      "importedByTests": [],
-      "kind": "part",
-      "name": "bin",
-      "partLabel": "bin"
     },
     {
       "doors": 2,
@@ -82,37 +76,84 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 4,
+      "added": 2,
+      "changed": 1,
       "moved": 0,
-      "parts": 0,
-      "removed": 0
+      "parts": 7,
+      "removed": 17
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "rust/etv-core/content/fallback_phrases.json is now also read by rust/tools/convert_phrase_table.py.",
+        "kind": "import-added",
+        "sentence": "tests now imports scripts.",
         "subjects": [
-          "rust/etv-core/content/fallback_phrases.json",
-          "rust/tools/convert_phrase_table.py"
+          "tests",
+          "scripts"
         ]
       },
       {
-        "kind": "unassigned",
-        "sentence": "rust/tools/convert_phrase_table.py is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "kind": "door",
+        "sentence": "CI now also runs tests/test_adapter.py, tests/test_backpack.py, tests/test_backpack_ledger.py and 24 more.",
         "subjects": [
-          "rust/tools/convert_phrase_table.py"
+          ".github/workflows/ci.yml",
+          "tests/test_adapter.py",
+          "tests/test_backpack.py",
+          "tests/test_backpack_ledger.py",
+          "tests/test_backpack_models.py",
+          "tests/test_backpack_save.py",
+          "tests/test_cli_stats.py",
+          "tests/test_death_causes.py",
+          "tests/test_event_loader.py",
+          "tests/test_events.py",
+          "tests/test_fork_reload_and_silent_deaths.py",
+          "tests/test_four_tier_live.py",
+          "tests/test_glibc_floor.py",
+          "tests/test_gm.py",
+          "tests/test_ledger.py",
+          "tests/test_ledger_proof.py",
+          "tests/test_memory.py",
+          "tests/test_memory_emitters.py",
+          "tests/test_models.py",
+          "tests/test_narration.py",
+          "tests/test_npx_launcher.py",
+          "tests/test_oracle_generator.py",
+          "tests/test_physics.py",
+          "tests/test_save.py",
+          "tests/test_step_engine.py",
+          "tests/test_tui_smoke.py",
+          "tests/test_voice.py",
+          "tests/test_worldgen.py"
         ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Publish to PyPI no longer checks src/escape_the_valley/.",
+        "subjects": [
+          ".github/workflows/publish.yml",
+          "src/escape_the_valley/"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Release Binaries (.github/workflows/release-binaries.yml) is no longer a door.",
+        "subjects": [
+          ".github/workflows/release-binaries.yml"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "And 4 more changes to doors.",
+        "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "1 file added and 4 changed content.",
+        "sentence": "2 files added, 17 removed and 1 changed content, across 7 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "bda1dfb3e45cb2df4b16d5f0711eecd16692228e",
-      "generatedAt": "2026-11-02T08:59:56.254Z"
+      "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
+      "generatedAt": "2026-11-02T09:47:57.991Z"
     },
     "unchanged": false
   },
@@ -199,9 +240,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
+  "commit": "73f78f1140e619db344e424addea06f35621d6a1",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (68 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
+  "derived": "10 parts, mostly Python (69 files), Rust (21), shell (13), CSS (2), TypeScript (2), HTML (1) and JavaScript (1). Work enters through 5 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
     {
       "checks": [
@@ -222,17 +263,17 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
           "depth": 0,
-          "files": 28
+          "files": 27
         },
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -250,10 +291,37 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
         "rust/etv-core/src/worldgen.rs",
-        "rust/etv-core/tests/"
+        "rust/etv-core/tests/",
+        "tests/test_adapter.py",
+        "tests/test_backpack.py",
+        "tests/test_backpack_ledger.py",
+        "tests/test_backpack_models.py",
+        "tests/test_backpack_save.py",
+        "tests/test_cli_stats.py",
+        "tests/test_death_causes.py",
+        "tests/test_event_loader.py",
+        "tests/test_events.py",
+        "tests/test_fork_reload_and_silent_deaths.py",
+        "tests/test_four_tier_live.py",
+        "tests/test_glibc_floor.py",
+        "tests/test_gm.py",
+        "tests/test_ledger.py",
+        "tests/test_ledger_proof.py",
+        "tests/test_memory.py",
+        "tests/test_memory_emitters.py",
+        "tests/test_models.py",
+        "tests/test_narration.py",
+        "tests/test_npx_launcher.py",
+        "tests/test_oracle_generator.py",
+        "tests/test_physics.py",
+        "tests/test_save.py",
+        "tests/test_step_engine.py",
+        "tests/test_tui_smoke.py",
+        "tests/test_voice.py",
+        "tests/test_worldgen.py"
       ],
-      "runsCount": 10,
-      "runsMore": 10,
+      "runsCount": 37,
+      "runsMore": 37,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -284,17 +352,17 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
           "depth": 0,
-          "files": 28
+          "files": 27
         },
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -312,10 +380,37 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/save.rs",
         "rust/etv-core/src/worldgen.rs",
-        "rust/etv-core/tests/"
+        "rust/etv-core/tests/",
+        "tests/test_adapter.py",
+        "tests/test_backpack.py",
+        "tests/test_backpack_ledger.py",
+        "tests/test_backpack_models.py",
+        "tests/test_backpack_save.py",
+        "tests/test_cli_stats.py",
+        "tests/test_death_causes.py",
+        "tests/test_event_loader.py",
+        "tests/test_events.py",
+        "tests/test_fork_reload_and_silent_deaths.py",
+        "tests/test_four_tier_live.py",
+        "tests/test_glibc_floor.py",
+        "tests/test_gm.py",
+        "tests/test_ledger.py",
+        "tests/test_ledger_proof.py",
+        "tests/test_memory.py",
+        "tests/test_memory_emitters.py",
+        "tests/test_models.py",
+        "tests/test_narration.py",
+        "tests/test_npx_launcher.py",
+        "tests/test_oracle_generator.py",
+        "tests/test_physics.py",
+        "tests/test_save.py",
+        "tests/test_step_engine.py",
+        "tests/test_tui_smoke.py",
+        "tests/test_voice.py",
+        "tests/test_worldgen.py"
       ],
-      "runsCount": 10,
-      "runsMore": 10,
+      "runsCount": 37,
+      "runsMore": 37,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -324,47 +419,6 @@
       "stages": [],
       "triggers": [
         "when a tag matching `v*` is pushed",
-        "or by hand"
-      ]
-    },
-    {
-      "builds": [
-        "src/escape_the_valley/__main__.py"
-      ],
-      "checks": [],
-      "checksCount": 0,
-      "checksMore": 0,
-      "file": ".github/workflows/release-binaries.yml",
-      "id": ".github/workflows/release-binaries.yml",
-      "landings": [],
-      "name": "Release Binaries",
-      "pushes": false,
-      "reach": [
-        {
-          "boundary": "scripts",
-          "depth": 0,
-          "files": 2
-        },
-        {
-          "boundary": "src",
-          "depth": 0,
-          "files": 27
-        }
-      ],
-      "runs": [
-        "scripts/gen_third_party_notices.py",
-        "scripts/smoke_test_binary.py"
-      ],
-      "runsCount": 2,
-      "runsMore": 0,
-      "sends": [
-        "creates a GitHub release",
-        "builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release"
-      ],
-      "stages": [],
-      "triggers": [
-        "when a release is published",
-        "when the workflow Release completes",
         "or by hand"
       ]
     },
@@ -400,23 +454,15 @@
       ]
     },
     {
-      "checks": [
-        "src/escape_the_valley/"
-      ],
-      "checksCount": 1,
+      "checks": [],
+      "checksCount": 0,
       "checksMore": 0,
       "file": ".github/workflows/publish.yml",
       "id": ".github/workflows/publish.yml",
       "landings": [],
       "name": "Publish to PyPI",
       "pushes": false,
-      "reach": [
-        {
-          "boundary": "src",
-          "depth": 0,
-          "files": 28
-        }
-      ],
+      "reach": [],
       "runs": [],
       "runsCount": 0,
       "runsMore": 0,
@@ -429,84 +475,6 @@
         "when the workflow Release completes",
         "or by hand"
       ]
-    },
-    {
-      "checks": [],
-      "checksCount": 0,
-      "checksMore": 0,
-      "file": "package.json",
-      "id": "package.json#escape-the-valley",
-      "kind": "command",
-      "landings": [],
-      "name": "escape-the-valley",
-      "pushes": false,
-      "reach": [
-        {
-          "boundary": "bin",
-          "depth": 0,
-          "files": 1
-        }
-      ],
-      "runs": [
-        "bin/escape-the-valley.js"
-      ],
-      "runsCount": 1,
-      "runsMore": 0,
-      "sends": [],
-      "stages": [],
-      "triggers": []
-    },
-    {
-      "checks": [],
-      "checksCount": 0,
-      "checksMore": 0,
-      "file": "package.json",
-      "id": "package.json#trail",
-      "kind": "command",
-      "landings": [],
-      "name": "trail",
-      "pushes": false,
-      "reach": [
-        {
-          "boundary": "bin",
-          "depth": 0,
-          "files": 1
-        }
-      ],
-      "runs": [
-        "bin/escape-the-valley.js"
-      ],
-      "runsCount": 1,
-      "runsMore": 0,
-      "sends": [],
-      "stages": [],
-      "triggers": []
-    },
-    {
-      "checks": [],
-      "checksCount": 0,
-      "checksMore": 0,
-      "file": "pyproject.toml",
-      "id": "pyproject.toml#trail",
-      "kind": "command",
-      "landings": [],
-      "name": "trail",
-      "pushes": false,
-      "reach": [
-        {
-          "boundary": "src",
-          "depth": 0,
-          "files": 26
-        }
-      ],
-      "runs": [
-        "src/escape_the_valley/cli.py"
-      ],
-      "runsCount": 1,
-      "runsMore": 0,
-      "sends": [],
-      "stages": [],
-      "triggers": []
     },
     {
       "builtFrom": "rust/etv-core",
@@ -558,16 +526,21 @@
     {
       "from": "tests",
       "fromTests": true,
+      "to": "scripts"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-02T09:47:57.991Z",
+  "generatedAt": "2026-11-13T01:13:36.094Z",
   "limits": [
-    "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
-    "1 write and 7 reads use paths built at run time and are not named here.",
-    "4 writes and 19 reads go to a path their caller passes, not to this repository.",
+    "3 imports could not be resolved: `src/escape_the_valley/cli.py` imports `.`, which is no module on its import path and no declared dependency; `src/escape_the_valley/notices.py` imports a path built at run time; `src/escape_the_valley/notices.py` imports `.`, which is no module on its import path and no declared dependency.",
+    "2 writes and 6 reads use paths built at run time and are not named here.",
+    "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "46 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 43 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -597,24 +570,18 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 33,
+  "testFiles": 34,
   "testedBy": {
     "agents": 1,
-    "bin": 0,
-    "scripts": 1,
+    "scripts": 2,
     "src": 25
   },
-  "unnamedWrites": 1,
+  "testedCodeParts": 3,
+  "unnamedWrites": 2,
   "unread": [],
   "unreadFiles": 0,
   "unreadNote": [],
-  "untested": [
-    {
-      "part": "bin",
-      "partLabel": "bin",
-      "testedBy": 0
-    }
-  ],
+  "untested": [],
   "untestedNote": [],
   "written": 3
 }
