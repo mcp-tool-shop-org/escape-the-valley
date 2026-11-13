@@ -1,0 +1,4128 @@
+{
+  "schema": "etv-turn-set-1",
+  "turns": [
+    {
+      "id": "w0-001",
+      "seed": 1,
+      "event_id": "f5_092",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "The water shines like spilled mercury under the moon.",
+      "choice_label": "Wait for dawn",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w0-002",
+      "seed": 1,
+      "event_id": "f4_069",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -2
+      },
+      "effects": {
+        "cloth": -2,
+        "time_days": 1
+      },
+      "event_seed": "Stakes and string bar the narrow path.",
+      "choice_label": "Pay for right of way",
+      "fallback_line": "The party uses cloth and loses time."
+    },
+    {
+      "id": "w0-003",
+      "seed": 1,
+      "event_id": "f3_015",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1
+      },
+      "event_seed": "The world ends ten feet from the wagon.",
+      "choice_label": "Rest until it burns off",
+      "fallback_line": "The party uses food and loses time."
+    },
+    {
+      "id": "w0-004",
+      "seed": 1,
+      "event_id": "traveling_healer",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 2
+      },
+      "event_seed": "A woman with a heavy pack waves from the roadside. She carries herbs.",
+      "choice_label": "Ask for advice, trade nothing.",
+      "fallback_line": "The party takes heart."
+    },
+    {
+      "id": "w0-005",
+      "seed": 2,
+      "event_id": "f2_022",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The gale tears at the canvas like a thing starved.",
+      "choice_label": "Fight the wind onward",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-006",
+      "seed": 2,
+      "event_id": "hostile_locals",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3
+      },
+      "event_seed": "The settlement watches you approach with visible suspicion. No one offers a greeting.",
+      "choice_label": "Keep moving through quietly.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w0-007",
+      "seed": 2,
+      "event_id": "f3_022",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "A man with a rusty musket stands before a fallen tree across the path.",
+      "choice_label": "Refuse and ford",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w0-008",
+      "seed": 2,
+      "event_id": "f1_001",
+      "choice_id": "C",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "time_days": 3
+      },
+      "event_seed": "The river runs low but the mud pulls at the wheels with sullen persistence.",
+      "choice_label": "Detour upstream for calmer waters",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-009",
+      "seed": 3,
+      "event_id": "spoiled_food",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -10
+      },
+      "effects": {
+        "food": -10,
+        "morale": -3
+      },
+      "event_seed": "Something smells wrong in the provisions. Mold has taken hold.",
+      "choice_label": "Throw out all suspect food.",
+      "fallback_line": "The party uses food and loses heart."
+    },
+    {
+      "id": "w0-010",
+      "seed": 3,
+      "event_id": "f2_031",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -3
+      },
+      "effects": {
+        "food": -3,
+        "morale": 4,
+        "time_days": 1
+      },
+      "event_seed": "Lanterns glow within the circled wagons, voices low and careful.",
+      "choice_label": "Join their fire for the night",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w0-011",
+      "seed": 3,
+      "event_id": "f1_026",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 1,
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "Masked figures block the path, hands out for a share of your provisions.",
+      "choice_label": "Attempt to detour around them",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-012",
+      "seed": 3,
+      "event_id": "f5_083",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Small flames dance above the water, leading nowhere.",
+      "choice_label": "Ford toward the lights",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w0-013",
+      "seed": 4,
+      "event_id": "f2_015",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Continue despite the fall",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-014",
+      "seed": 4,
+      "event_id": "f5_102",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 3
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 1,
+        "water": 3
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Hunker down",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w0-015",
+      "seed": 4,
+      "event_id": "f3_010",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "time_days": 1
+      },
+      "event_seed": "Trees lie piled like the bones of forgotten giants.",
+      "choice_label": "Ford around the jam",
+      "fallback_line": "The party strains the animals and loses time."
+    },
+    {
+      "id": "w0-016",
+      "seed": 4,
+      "event_id": "f5_106",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2
+      },
+      "event_seed": "Small hands reach out beside the rutted path.",
+      "choice_label": "Offer nothing",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w0-017",
+      "seed": 5,
+      "event_id": "f2_039",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -2
+      },
+      "event_seed": "Something matches your pace just beyond the trees.",
+      "choice_label": "Walk faster without looking",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w0-018",
+      "seed": 5,
+      "event_id": "f1_031",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -2
+      },
+      "effects": {
+        "food": -2,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "Smoke rises from wagons drawn in circle, voices carrying on the evening air.",
+      "choice_label": "Share camp and news",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w0-019",
+      "seed": 5,
+      "event_id": "f3_006",
+      "choice_id": "C",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -2
+      },
+      "effects": {
+        "rope": -2,
+        "time_days": 2
+      },
+      "event_seed": "The bridge moves with every step like a living thing.",
+      "choice_label": "Reinforce the ropes",
+      "fallback_line": "The party uses rope and loses time."
+    },
+    {
+      "id": "w0-020",
+      "seed": 5,
+      "event_id": "f4_050",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -2
+      },
+      "effects": {
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Logs lie crossed like a deliberate snare.",
+      "choice_label": "Hack a passage",
+      "fallback_line": "The party wears down tools and loses time."
+    },
+    {
+      "id": "w0-021",
+      "seed": 6,
+      "event_id": "f3_004",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The water speaks louder as light fails.",
+      "choice_label": "Ford before full dark",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w0-022",
+      "seed": 6,
+      "event_id": "the_stranger",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2
+      },
+      "event_seed": "A traveler shares your fire. He knows your names and where you are headed.",
+      "choice_label": "Share the fire and say nothing.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w0-023",
+      "seed": 6,
+      "event_id": "f3_017",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": -4
+      },
+      "effects": {
+        "distance": 5,
+        "morale": -2,
+        "water": -4
+      },
+      "event_seed": "The air shimmers above the trail like bad spirits.",
+      "choice_label": "Travel in the heat",
+      "fallback_line": "The party uses water, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w0-024",
+      "seed": 6,
+      "event_id": "wild_game",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "Fresh tracks. Something large passed through recently.",
+      "choice_label": "Keep moving.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w0-025",
+      "seed": 7,
+      "event_id": "river_crossing",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "time_days": 1
+      },
+      "event_seed": "A river blocks the trail. The current looks strong.",
+      "choice_label": "Search for a shallow crossing.",
+      "fallback_line": "The party loses time."
+    },
+    {
+      "id": "w0-026",
+      "seed": 7,
+      "event_id": "f2_028",
+      "choice_id": "C",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "A man with a long rifle nods once, eyes measuring the wagon.",
+      "choice_label": "Ask of the ridges ahead",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w0-027",
+      "seed": 7,
+      "event_id": "f1_018",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+      "choice_label": "Seek cover and wait",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w0-028",
+      "seed": 7,
+      "event_id": "f4_048",
+      "choice_id": "C",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Old chains rattle like bones in the wind.",
+      "choice_label": "Test the chains first",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w0-029",
+      "seed": 8,
+      "event_id": "f5_089",
+      "choice_id": "C",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 2
+      },
+      "event_seed": "The banks drink deep as the light fails.",
+      "choice_label": "Climb to higher ground",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-030",
+      "seed": 8,
+      "event_id": "f2_015",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Camp and kindle fire",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w0-031",
+      "seed": 8,
+      "event_id": "f2_016",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The wind sings through the trees in a language best ignored.",
+      "choice_label": "Lean into the gusts",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-032",
+      "seed": 8,
+      "event_id": "f4_064",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -4
+      },
+      "effects": {
+        "food": -4,
+        "morale": 3
+      },
+      "event_seed": "Eyes hollow, hands outstretched beside the trail.",
+      "choice_label": "Share what you can",
+      "fallback_line": "The party uses food and takes heart."
+    },
+    {
+      "id": "w0-033",
+      "seed": 9,
+      "event_id": "f1_024",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "time_days": 1
+      },
+      "event_seed": "The trader's wagon appears from the mist with goods that seem too well preserved.",
+      "choice_label": "Decline and continue",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-034",
+      "seed": 9,
+      "event_id": "f1_022",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "health": -20,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "Winds tear at the canvas as if seeking entry to the soul.",
+      "choice_label": "Push against the gale",
+      "fallback_line": "The party loses strength, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-035",
+      "seed": 9,
+      "event_id": "f5_093",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The sky throws frozen needles without mercy.",
+      "choice_label": "Find shelter",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w0-036",
+      "seed": 9,
+      "event_id": "f1_005",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "distance": 7,
+        "health": -28,
+        "time_days": 1,
+        "wagon_condition": -3
+      },
+      "event_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible.",
+      "choice_label": "Ford straight through the current",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w0-037",
+      "seed": 10,
+      "event_id": "f5_102",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Continue",
+      "fallback_line": "The party damages the wagon, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w0-038",
+      "seed": 10,
+      "event_id": "f5_081",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "time_days": 1,
+        "wagon_condition": -1
+      },
+      "event_seed": "The gravel shifts under the wheels like loose promises.",
+      "choice_label": "Drive across the gravel",
+      "fallback_line": "The party strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w0-039",
+      "seed": 10,
+      "event_id": "f4_063",
+      "choice_id": "B",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5
+      },
+      "event_seed": "He speaks of lanterns that walk alone at night.",
+      "choice_label": "Pass without pause",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w0-040",
+      "seed": 10,
+      "event_id": "f2_034",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -1,
+        "food": 5
+      },
+      "effects": {
+        "ammo": -1,
+        "food": 5,
+        "time_days": 1
+      },
+      "event_seed": "Hoof prints cut fresh across the mud, promising supper.",
+      "choice_label": "Track the game",
+      "fallback_line": "The party spends ammunition, gains food and loses time."
+    },
+    {
+      "id": "w1-001",
+      "seed": 1,
+      "event_id": "f5_092",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "The water shines like spilled mercury under the moon.",
+      "choice_label": "Wait for dawn",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w1-002",
+      "seed": 1,
+      "event_id": "f4_069",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -2
+      },
+      "effects": {
+        "cloth": -2,
+        "time_days": 1
+      },
+      "event_seed": "Stakes and string bar the narrow path.",
+      "choice_label": "Pay for right of way",
+      "fallback_line": "The party uses cloth and loses time."
+    },
+    {
+      "id": "w1-003",
+      "seed": 1,
+      "event_id": "f3_015",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1
+      },
+      "event_seed": "The world ends ten feet from the wagon.",
+      "choice_label": "Rest until it burns off",
+      "fallback_line": "The party uses food and loses time."
+    },
+    {
+      "id": "w1-004",
+      "seed": 1,
+      "event_id": "traveling_healer",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 2
+      },
+      "event_seed": "A woman with a heavy pack waves from the roadside. She carries herbs.",
+      "choice_label": "Ask for advice, trade nothing.",
+      "fallback_line": "The party takes heart."
+    },
+    {
+      "id": "w1-005",
+      "seed": 2,
+      "event_id": "f2_022",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The gale tears at the canvas like a thing starved.",
+      "choice_label": "Fight the wind onward",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-006",
+      "seed": 2,
+      "event_id": "hostile_locals",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3
+      },
+      "event_seed": "The settlement watches you approach with visible suspicion. No one offers a greeting.",
+      "choice_label": "Keep moving through quietly.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w1-007",
+      "seed": 2,
+      "event_id": "f3_022",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "A man with a rusty musket stands before a fallen tree across the path.",
+      "choice_label": "Refuse and ford",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w1-008",
+      "seed": 2,
+      "event_id": "f1_001",
+      "choice_id": "C",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "time_days": 3
+      },
+      "event_seed": "The river runs low but the mud pulls at the wheels with sullen persistence.",
+      "choice_label": "Detour upstream for calmer waters",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-009",
+      "seed": 3,
+      "event_id": "spoiled_food",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -10
+      },
+      "effects": {
+        "food": -10,
+        "morale": -3
+      },
+      "event_seed": "Something smells wrong in the provisions. Mold has taken hold.",
+      "choice_label": "Throw out all suspect food.",
+      "fallback_line": "The party uses food and loses heart."
+    },
+    {
+      "id": "w1-010",
+      "seed": 3,
+      "event_id": "f2_031",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -3
+      },
+      "effects": {
+        "food": -3,
+        "morale": 4,
+        "time_days": 1
+      },
+      "event_seed": "Lanterns glow within the circled wagons, voices low and careful.",
+      "choice_label": "Join their fire for the night",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w1-011",
+      "seed": 3,
+      "event_id": "f1_026",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 1,
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "Masked figures block the path, hands out for a share of your provisions.",
+      "choice_label": "Attempt to detour around them",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-012",
+      "seed": 3,
+      "event_id": "f5_083",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Small flames dance above the water, leading nowhere.",
+      "choice_label": "Ford toward the lights",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w1-013",
+      "seed": 4,
+      "event_id": "f2_015",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Continue despite the fall",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-014",
+      "seed": 4,
+      "event_id": "f5_102",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 3
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 1,
+        "water": 3
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Hunker down",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w1-015",
+      "seed": 4,
+      "event_id": "f3_010",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "time_days": 1
+      },
+      "event_seed": "Trees lie piled like the bones of forgotten giants.",
+      "choice_label": "Ford around the jam",
+      "fallback_line": "The party strains the animals and loses time."
+    },
+    {
+      "id": "w1-016",
+      "seed": 4,
+      "event_id": "f5_106",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2
+      },
+      "event_seed": "Small hands reach out beside the rutted path.",
+      "choice_label": "Offer nothing",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w1-017",
+      "seed": 5,
+      "event_id": "f2_039",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -2
+      },
+      "event_seed": "Something matches your pace just beyond the trees.",
+      "choice_label": "Walk faster without looking",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w1-018",
+      "seed": 5,
+      "event_id": "f1_031",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -2
+      },
+      "effects": {
+        "food": -2,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "Smoke rises from wagons drawn in circle, voices carrying on the evening air.",
+      "choice_label": "Share camp and news",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w1-019",
+      "seed": 5,
+      "event_id": "f3_006",
+      "choice_id": "C",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -2
+      },
+      "effects": {
+        "rope": -2,
+        "time_days": 2
+      },
+      "event_seed": "The bridge moves with every step like a living thing.",
+      "choice_label": "Reinforce the ropes",
+      "fallback_line": "The party uses rope and loses time."
+    },
+    {
+      "id": "w1-020",
+      "seed": 5,
+      "event_id": "f4_050",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -2
+      },
+      "effects": {
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Logs lie crossed like a deliberate snare.",
+      "choice_label": "Hack a passage",
+      "fallback_line": "The party wears down tools and loses time."
+    },
+    {
+      "id": "w1-021",
+      "seed": 6,
+      "event_id": "f3_004",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The water speaks louder as light fails.",
+      "choice_label": "Ford before full dark",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w1-022",
+      "seed": 6,
+      "event_id": "the_stranger",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2
+      },
+      "event_seed": "A traveler shares your fire. He knows your names and where you are headed.",
+      "choice_label": "Share the fire and say nothing.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w1-023",
+      "seed": 6,
+      "event_id": "f3_017",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": -4
+      },
+      "effects": {
+        "distance": 5,
+        "morale": -2,
+        "water": -4
+      },
+      "event_seed": "The air shimmers above the trail like bad spirits.",
+      "choice_label": "Travel in the heat",
+      "fallback_line": "The party uses water, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w1-024",
+      "seed": 6,
+      "event_id": "wild_game",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "Fresh tracks. Something large passed through recently.",
+      "choice_label": "Keep moving.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w1-025",
+      "seed": 7,
+      "event_id": "river_crossing",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "time_days": 1
+      },
+      "event_seed": "A river blocks the trail. The current looks strong.",
+      "choice_label": "Search for a shallow crossing.",
+      "fallback_line": "The party loses time."
+    },
+    {
+      "id": "w1-026",
+      "seed": 7,
+      "event_id": "f2_028",
+      "choice_id": "C",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "A man with a long rifle nods once, eyes measuring the wagon.",
+      "choice_label": "Ask of the ridges ahead",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w1-027",
+      "seed": 7,
+      "event_id": "f1_018",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+      "choice_label": "Seek cover and wait",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w1-028",
+      "seed": 7,
+      "event_id": "f4_048",
+      "choice_id": "C",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Old chains rattle like bones in the wind.",
+      "choice_label": "Test the chains first",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w1-029",
+      "seed": 8,
+      "event_id": "f5_089",
+      "choice_id": "C",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 2
+      },
+      "event_seed": "The banks drink deep as the light fails.",
+      "choice_label": "Climb to higher ground",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-030",
+      "seed": 8,
+      "event_id": "f2_015",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Camp and kindle fire",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w1-031",
+      "seed": 8,
+      "event_id": "f2_016",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The wind sings through the trees in a language best ignored.",
+      "choice_label": "Lean into the gusts",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-032",
+      "seed": 8,
+      "event_id": "f4_064",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -4
+      },
+      "effects": {
+        "food": -4,
+        "morale": 3
+      },
+      "event_seed": "Eyes hollow, hands outstretched beside the trail.",
+      "choice_label": "Share what you can",
+      "fallback_line": "The party uses food and takes heart."
+    },
+    {
+      "id": "w1-033",
+      "seed": 9,
+      "event_id": "f1_024",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "time_days": 1
+      },
+      "event_seed": "The trader's wagon appears from the mist with goods that seem too well preserved.",
+      "choice_label": "Decline and continue",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-034",
+      "seed": 9,
+      "event_id": "f1_022",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "health": -20,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "Winds tear at the canvas as if seeking entry to the soul.",
+      "choice_label": "Push against the gale",
+      "fallback_line": "The party loses strength, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-035",
+      "seed": 9,
+      "event_id": "f5_093",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The sky throws frozen needles without mercy.",
+      "choice_label": "Find shelter",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w1-036",
+      "seed": 9,
+      "event_id": "f1_005",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "distance": 7,
+        "health": -28,
+        "time_days": 1,
+        "wagon_condition": -3
+      },
+      "event_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible.",
+      "choice_label": "Ford straight through the current",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w1-037",
+      "seed": 10,
+      "event_id": "f5_102",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Continue",
+      "fallback_line": "The party damages the wagon, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w1-038",
+      "seed": 10,
+      "event_id": "f5_081",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "time_days": 1,
+        "wagon_condition": -1
+      },
+      "event_seed": "The gravel shifts under the wheels like loose promises.",
+      "choice_label": "Drive across the gravel",
+      "fallback_line": "The party strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w1-039",
+      "seed": 10,
+      "event_id": "f4_063",
+      "choice_id": "B",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5
+      },
+      "event_seed": "He speaks of lanterns that walk alone at night.",
+      "choice_label": "Pass without pause",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w1-040",
+      "seed": 10,
+      "event_id": "f2_034",
+      "choice_id": "A",
+      "weirdness_level": 1,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -1,
+        "food": 5
+      },
+      "effects": {
+        "ammo": -1,
+        "food": 5,
+        "time_days": 1
+      },
+      "event_seed": "Hoof prints cut fresh across the mud, promising supper.",
+      "choice_label": "Track the game",
+      "fallback_line": "The party spends ammunition, gains food and loses time."
+    },
+    {
+      "id": "w2-001",
+      "seed": 1,
+      "event_id": "f5_091",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "wagon_condition": -3
+      },
+      "event_seed": "The ropes sway like a hanged man’s last breath.",
+      "choice_label": "Ford below",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w2-002",
+      "seed": 1,
+      "event_id": "f4_069",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -2
+      },
+      "effects": {
+        "cloth": -2,
+        "time_days": 1
+      },
+      "event_seed": "Stakes and string bar the narrow path.",
+      "choice_label": "Pay for right of way",
+      "fallback_line": "The party uses cloth and loses time."
+    },
+    {
+      "id": "w2-003",
+      "seed": 1,
+      "event_id": "f3_016",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "The snow comes sideways and angry.",
+      "choice_label": "Camp immediately",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w2-004",
+      "seed": 1,
+      "event_id": "saints_footprints",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "Footprints in the mud lead away from camp. They end abruptly at dry ground.",
+      "choice_label": "Ignore them and move on.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w2-005",
+      "seed": 2,
+      "event_id": "f2_024",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": 2,
+        "cloth": -2,
+        "food": 5
+      },
+      "effects": {
+        "ammo": 2,
+        "cloth": -2,
+        "food": 5
+      },
+      "event_seed": "A bent figure offers needles and salt from a sack older than the trail.",
+      "choice_label": "Trade goods for his wares",
+      "fallback_line": "The party gains ammunition, gains food and uses cloth."
+    },
+    {
+      "id": "w2-006",
+      "seed": 2,
+      "event_id": "superstitious_town",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": 5,
+        "water": 5
+      },
+      "effects": {
+        "food": 5,
+        "morale": -2,
+        "water": 5
+      },
+      "event_seed": "The town will trade, but they insist you leave before nightfall. They won't say why.",
+      "choice_label": "Trade quickly and leave.",
+      "fallback_line": "The party gains food, gains water and loses heart."
+    },
+    {
+      "id": "w2-007",
+      "seed": 2,
+      "event_id": "f3_020",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -1,
+        "distance": 5,
+        "time_days": 1
+      },
+      "event_seed": "Frost makes the grass brittle underfoot.",
+      "choice_label": "Travel despite the cold",
+      "fallback_line": "The party strains the animals, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-008",
+      "seed": 2,
+      "event_id": "the_stranger",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -5
+      },
+      "event_seed": "A traveler shares your fire. He knows your names and where you are headed.",
+      "choice_label": "Ask him to leave.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w2-009",
+      "seed": 3,
+      "event_id": "spoiled_food",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -10
+      },
+      "effects": {
+        "food": -10,
+        "morale": -3
+      },
+      "event_seed": "Something smells wrong in the provisions. Mold has taken hold.",
+      "choice_label": "Throw out all suspect food.",
+      "fallback_line": "The party uses food and loses heart."
+    },
+    {
+      "id": "w2-010",
+      "seed": 3,
+      "event_id": "f2_037",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Flames burn blue among the roots, giving no heat.",
+      "choice_label": "Approach the dancing lights",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w2-011",
+      "seed": 3,
+      "event_id": "f1_027",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 2
+      },
+      "event_seed": "A grizzled ferryman poles his raft, naming a price in salt and cloth for passage.",
+      "choice_label": "Decline and detour",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-012",
+      "seed": 3,
+      "event_id": "f4_078",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "food": 2
+      },
+      "effects": {
+        "food": 2,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Cold ashes and one lone boot.",
+      "choice_label": "Search the ashes",
+      "fallback_line": "The party gains food, loses heart and loses time."
+    },
+    {
+      "id": "w2-013",
+      "seed": 4,
+      "event_id": "f2_016",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The wind sings through the trees in a language best ignored.",
+      "choice_label": "Lean into the gusts",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-014",
+      "seed": 4,
+      "event_id": "f5_101",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The dust dances like it has somewhere better to be.",
+      "choice_label": "Wait it out",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w2-015",
+      "seed": 4,
+      "event_id": "f3_011",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Moss hangs thick inside the covered bridge, swallowing sound.",
+      "choice_label": "Enter the dark span",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-016",
+      "seed": 4,
+      "event_id": "f5_106",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2
+      },
+      "event_seed": "Small hands reach out beside the rutted path.",
+      "choice_label": "Offer nothing",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-017",
+      "seed": 5,
+      "event_id": "f2_039",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -2
+      },
+      "event_seed": "Something matches your pace just beyond the trees.",
+      "choice_label": "Walk faster without looking",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-018",
+      "seed": 5,
+      "event_id": "f1_031",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -2
+      },
+      "effects": {
+        "food": -2,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "Smoke rises from wagons drawn in circle, voices carrying on the evening air.",
+      "choice_label": "Share camp and news",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w2-019",
+      "seed": 5,
+      "event_id": "f5_102",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 3
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 1,
+        "water": 3
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Hunker down",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w2-020",
+      "seed": 5,
+      "event_id": "f3_006",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -2
+      },
+      "effects": {
+        "rope": -2,
+        "time_days": 2
+      },
+      "event_seed": "The bridge moves with every step like a living thing.",
+      "choice_label": "Reinforce the ropes",
+      "fallback_line": "The party uses rope and loses time."
+    },
+    {
+      "id": "w2-021",
+      "seed": 6,
+      "event_id": "f3_005",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "health": -36,
+        "time_days": 1,
+        "wagon_condition": -4
+      },
+      "event_seed": "The riverbed gives way beneath the wheels like wet bread.",
+      "choice_label": "Push the wagon through",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w2-022",
+      "seed": 6,
+      "event_id": "f3_007",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "time_days": 3
+      },
+      "event_seed": "The ice groans a warning with every yard gained.",
+      "choice_label": "Detour to open water",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-023",
+      "seed": 6,
+      "event_id": "f4_063",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "He speaks of lanterns that walk alone at night.",
+      "choice_label": "Listen to his words",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w2-024",
+      "seed": 6,
+      "event_id": "f4_058",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -2
+      },
+      "effects": {
+        "firewood": -2,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Every blade of grass is edged in white.",
+      "choice_label": "Warm by fire",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-025",
+      "seed": 7,
+      "event_id": "river_crossing",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "time_days": 1
+      },
+      "event_seed": "A river blocks the trail. The current looks strong.",
+      "choice_label": "Search for a shallow crossing.",
+      "fallback_line": "The party loses time."
+    },
+    {
+      "id": "w2-026",
+      "seed": 7,
+      "event_id": "f2_030",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Smoke curls from a single chimney; the door opens before you knock.",
+      "choice_label": "Ask why he lives apart",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w2-027",
+      "seed": 7,
+      "event_id": "f1_018",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+      "choice_label": "Seek cover and wait",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w2-028",
+      "seed": 7,
+      "event_id": "f3_016",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 1,
+        "health": -16,
+        "morale": -4,
+        "time_days": 1
+      },
+      "event_seed": "The snow comes sideways and angry.",
+      "choice_label": "Press on regardless",
+      "fallback_line": "The party loses strength, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-029",
+      "seed": 8,
+      "event_id": "f5_088",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The iron groans like an old man remembering better days.",
+      "choice_label": "Test the rust first",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w2-030",
+      "seed": 8,
+      "event_id": "f2_015",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Camp and kindle fire",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w2-031",
+      "seed": 8,
+      "event_id": "f2_017",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "Rain falls without pause, as though the sky has forgotten how to stop.",
+      "choice_label": "Keep moving in the wet",
+      "fallback_line": "The party damages the wagon, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-032",
+      "seed": 8,
+      "event_id": "abandoned_camp",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "A camp left in a hurry. Supplies scattered. No sign of the owners.",
+      "choice_label": "Leave it alone.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w2-033",
+      "seed": 9,
+      "event_id": "f1_025",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "morale": 2,
+        "time_days": 1
+      },
+      "event_seed": "A lone wanderer shares stories of the trail ahead, some too strange to dismiss outright.",
+      "choice_label": "Listen to his tales and share food",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w2-034",
+      "seed": 9,
+      "event_id": "f1_026",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -1,
+        "cloth": -2
+      },
+      "effects": {
+        "ammo": -1,
+        "cloth": -2
+      },
+      "event_seed": "Masked figures block the path, hands out for a share of your provisions.",
+      "choice_label": "Pay the demanded toll",
+      "fallback_line": "The party spends ammunition and uses cloth."
+    },
+    {
+      "id": "w2-035",
+      "seed": 9,
+      "event_id": "f4_075",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -1
+      },
+      "event_seed": "Blue flames burn among the roots and give no heat.",
+      "choice_label": "Leave them be",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-036",
+      "seed": 9,
+      "event_id": "f2_001",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "health": -12,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "The river bends sharp here, pulling at the wheels like a thing with purpose.",
+      "choice_label": "Drive straight into the current",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w2-037",
+      "seed": 10,
+      "event_id": "f5_102",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Continue",
+      "fallback_line": "The party damages the wagon, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-038",
+      "seed": 10,
+      "event_id": "f5_087",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -1
+      },
+      "effects": {
+        "distance": 3,
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Small hands have built a stubborn wall across the trail.",
+      "choice_label": "Break a narrow gap",
+      "fallback_line": "The party wears down tools, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-039",
+      "seed": 10,
+      "event_id": "f4_080",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -1
+      },
+      "effects": {
+        "cloth": -1,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "He stands in the road and speaks so low the wind almost steals the words.",
+      "choice_label": "Pay his whispered price",
+      "fallback_line": "The party uses cloth, takes heart and loses time."
+    },
+    {
+      "id": "w2-040",
+      "seed": 10,
+      "event_id": "f4_056",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1
+      },
+      "event_seed": "The trail disappears ten paces ahead.",
+      "choice_label": "Rest until clear",
+      "fallback_line": "The party uses food and loses time."
+    },
+    {
+      "id": "w2-041",
+      "seed": 11,
+      "event_id": "f1_023",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "A lone figure stands by the rickety bridge demanding passage fee in the old way.",
+      "choice_label": "Investigate his claim to the bridge",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w2-042",
+      "seed": 11,
+      "event_id": "f1_014",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -1,
+        "time_days": 2
+      },
+      "event_seed": "The mist swallows the trail ahead, turning familiar trees into strangers.",
+      "choice_label": "Travel slowly despite poor sight",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-043",
+      "seed": 11,
+      "event_id": "f3_040",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -1
+      },
+      "effects": {
+        "firewood": -1,
+        "morale": 2,
+        "time_days": 1
+      },
+      "event_seed": "The last high ridge stands between you and the open lands beyond.",
+      "choice_label": "Rest the team",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-044",
+      "seed": 11,
+      "event_id": "f3_038",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -4,
+        "time_days": 1
+      },
+      "event_seed": "A shape stands just within the treeline, perfectly still.",
+      "choice_label": "Investigate the figure",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w2-045",
+      "seed": 12,
+      "event_id": "f2_014",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -2,
+        "time_days": 2
+      },
+      "event_seed": "Trees become ghosts ten paces ahead.",
+      "choice_label": "Creep forward through the veil",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-046",
+      "seed": 12,
+      "event_id": "f1_037",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -1
+      },
+      "event_seed": "Cold lights dance among the trunks, neither fire nor star, yet steady as judgment.",
+      "choice_label": "Keep moving past them",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-047",
+      "seed": 12,
+      "event_id": "f3_039",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "food": 2
+      },
+      "effects": {
+        "food": 2,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Cold ashes and a single boot remain.",
+      "choice_label": "Search the site",
+      "fallback_line": "The party gains food, loses heart and loses time."
+    },
+    {
+      "id": "w2-048",
+      "seed": 12,
+      "event_id": "f2_010",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "tools": -1
+      },
+      "effects": {
+        "distance": 3,
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Branches and trunks choke the ford like a barricade of the drowned.",
+      "choice_label": "Clear a path with tools",
+      "fallback_line": "The party wears down tools, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-049",
+      "seed": 13,
+      "event_id": "f2_040",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -2
+      },
+      "effects": {
+        "firewood": -2,
+        "morale": 2,
+        "time_days": 1
+      },
+      "event_seed": "The ridge stands sharp against the sky, the valley falling away behind.",
+      "choice_label": "Rest the team before ascent",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-050",
+      "seed": 13,
+      "event_id": "f5_117",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 6
+      },
+      "effects": {
+        "morale": 2,
+        "time_days": 1,
+        "water": 6
+      },
+      "event_seed": "Water tastes of deep stone and clean snow.",
+      "choice_label": "Fill every barrel",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w2-051",
+      "seed": 13,
+      "event_id": "f3_024",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5
+      },
+      "event_seed": "He speaks of lights that walk the ridges when no man should.",
+      "choice_label": "Pass in silence",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-052",
+      "seed": 13,
+      "event_id": "f3_006",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "wagon_condition": -2
+      },
+      "event_seed": "The bridge moves with every step like a living thing.",
+      "choice_label": "Ford the gorge",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w2-053",
+      "seed": 14,
+      "event_id": "f1_021",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "firewood": -2
+      },
+      "effects": {
+        "firewood": -2,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Frost rims the grass at dawn, the valley reminding all of winter's reach.",
+      "choice_label": "Build fire and wait",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-054",
+      "seed": 14,
+      "event_id": "f4_052",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "water": -4
+      },
+      "effects": {
+        "distance": 5,
+        "morale": -3,
+        "water": -4
+      },
+      "event_seed": "The air itself shimmers with malice.",
+      "choice_label": "Travel in the haze",
+      "fallback_line": "The party uses water, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-055",
+      "seed": 14,
+      "event_id": "f3_002",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "time_days": 2
+      },
+      "event_seed": "The ferry sits half-rotted at the landing, pole still in its place.",
+      "choice_label": "Leave it and detour",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-056",
+      "seed": 14,
+      "event_id": "f5_114",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 1
+      },
+      "event_seed": "The wagon tongue cracks like a dry bone.",
+      "choice_label": "Detour gently",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-057",
+      "seed": 15,
+      "event_id": "f4_073",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 1
+      },
+      "event_seed": "The wood gives with a sound like breaking bone.",
+      "choice_label": "Detour to level ground",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-058",
+      "seed": 15,
+      "event_id": "f2_031",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -3
+      },
+      "effects": {
+        "food": -3,
+        "morale": 4,
+        "time_days": 1
+      },
+      "event_seed": "Lanterns glow within the circled wagons, voices low and careful.",
+      "choice_label": "Join their fire for the night",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w2-059",
+      "seed": 15,
+      "event_id": "f5_096",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "Rain falls as though it has forgotten any other purpose.",
+      "choice_label": "Keep moving",
+      "fallback_line": "The party damages the wagon, loses heart and loses time."
+    },
+    {
+      "id": "w2-060",
+      "seed": 15,
+      "event_id": "merchant_caravan",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -6,
+        "parts": 1
+      },
+      "effects": {
+        "food": -6,
+        "parts": 1
+      },
+      "event_seed": "A string of pack mules rounds the bend. The trader tips his hat.",
+      "choice_label": "Trade food for parts.",
+      "fallback_line": "The party uses food and gains spare parts."
+    },
+    {
+      "id": "w2-061",
+      "seed": 16,
+      "event_id": "good_water",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 4
+      },
+      "effects": {
+        "water": 4
+      },
+      "event_seed": "A clean spring bubbles from the rocks. The water tastes sweet.",
+      "choice_label": "Quick drink and move on.",
+      "fallback_line": "The party gains water."
+    },
+    {
+      "id": "w2-062",
+      "seed": 16,
+      "event_id": "f1_003",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "distance": 6,
+        "health": -28,
+        "time_days": 1,
+        "wagon_condition": -4
+      },
+      "event_seed": "The old bridge lies in ruins, timbers scattered by some past flood or force.",
+      "choice_label": "Attempt to ford nearby",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-063",
+      "seed": 16,
+      "event_id": "f1_029",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5
+      },
+      "event_seed": "A smooth-tongued man offers a map for coin, his smile wider than the valley.",
+      "choice_label": "Decline the offer",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-064",
+      "seed": 16,
+      "event_id": "f4_075",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Blue flames burn among the roots and give no heat.",
+      "choice_label": "Approach the flames",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w2-065",
+      "seed": 17,
+      "event_id": "f2_016",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -1
+      },
+      "effects": {
+        "morale": 1,
+        "rope": -1,
+        "time_days": 1
+      },
+      "event_seed": "The wind sings through the trees in a language best ignored.",
+      "choice_label": "Hunker and mend rigging",
+      "fallback_line": "The party uses rope, takes heart and loses time."
+    },
+    {
+      "id": "w2-066",
+      "seed": 17,
+      "event_id": "f2_015",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 2,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Continue despite the fall",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-067",
+      "seed": 17,
+      "event_id": "saints_footprints",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "morale": -2
+      },
+      "event_seed": "Footprints in the mud lead away from camp. They end abruptly at dry ground.",
+      "choice_label": "Ask if anyone left camp in the night.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w2-068",
+      "seed": 17,
+      "event_id": "f1_034",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 5
+      },
+      "event_seed": "Fresh prints cross the path, a promise of meat if the shot holds true.",
+      "choice_label": "Ignore and continue",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-069",
+      "seed": 18,
+      "event_id": "f1_008",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -3
+      },
+      "event_seed": "The path vanishes beneath brown water, the river claiming its due for the season.",
+      "choice_label": "Ford the flooded stretch",
+      "fallback_line": "The party damages the wagon, loses heart and loses time."
+    },
+    {
+      "id": "w2-070",
+      "seed": 18,
+      "event_id": "f2_033",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 1
+      },
+      "event_seed": "A lantern bobs along the river, no hand to hold it.",
+      "choice_label": "Keep to the marked trail",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-071",
+      "seed": 18,
+      "event_id": "f2_013",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -1
+      },
+      "event_seed": "The sky turns angry without ceremony.",
+      "choice_label": "Push onward in the wind",
+      "fallback_line": "The party damages the wagon, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-072",
+      "seed": 18,
+      "event_id": "dry_spring",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "morale": -5
+      },
+      "event_seed": "The spring marked on your map is bone dry. Cracked mud and nothing else.",
+      "choice_label": "Ration water strictly.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w2-073",
+      "seed": 19,
+      "event_id": "road_gang",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "time_days": 1
+      },
+      "event_seed": "Men clearing a fallen tree from the road. They wave you over.",
+      "choice_label": "Wait for them to finish.",
+      "fallback_line": "The party loses time."
+    },
+    {
+      "id": "w2-074",
+      "seed": 19,
+      "event_id": "f2_040",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -1,
+        "distance": 9,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "The ridge stands sharp against the sky, the valley falling away behind.",
+      "choice_label": "Climb the final slope",
+      "fallback_line": "The party strains the animals, takes heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-075",
+      "seed": 19,
+      "event_id": "counting_crows",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "A line of crows watches from a fence. Someone counts them and goes pale.",
+      "choice_label": "Take it as a sign to rest.",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w2-076",
+      "seed": 19,
+      "event_id": "f1_002",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "food": -2,
+        "water": 3
+      },
+      "effects": {
+        "food": -2,
+        "time_days": 1,
+        "water": 3
+      },
+      "event_seed": "Recent rains have turned the gentle stream into a churning beast.",
+      "choice_label": "Wait a day for the waters to fall",
+      "fallback_line": "The party uses food, gains water and loses time."
+    },
+    {
+      "id": "w2-077",
+      "seed": 20,
+      "event_id": "f3_008",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -3
+      },
+      "event_seed": "The trail has become part of the river.",
+      "choice_label": "Ford the shallows",
+      "fallback_line": "The party damages the wagon, loses heart and loses time."
+    },
+    {
+      "id": "w2-078",
+      "seed": 20,
+      "event_id": "f1_006",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -2
+      },
+      "effects": {
+        "distance": 5,
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "The bridge sways in the breeze, planks missing like teeth in an old grin.",
+      "choice_label": "Repair the bridge planks",
+      "fallback_line": "The party wears down tools, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-079",
+      "seed": 20,
+      "event_id": "f4_077",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -4,
+        "time_days": 1
+      },
+      "event_seed": "Something keeps pace just beyond the trees.",
+      "choice_label": "Turn and face it",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w2-080",
+      "seed": 20,
+      "event_id": "f5_100",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "Snow piles on the canvas like unpaid wages.",
+      "choice_label": "Camp and wait",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w2-081",
+      "seed": 21,
+      "event_id": "f2_031",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 7
+      },
+      "event_seed": "Lanterns glow within the circled wagons, voices low and careful.",
+      "choice_label": "Pass the camp in silence",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-082",
+      "seed": 21,
+      "event_id": "f4_049",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1,
+        "water": 4
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1,
+        "water": 4
+      },
+      "event_seed": "The water climbs the banks as the light dies.",
+      "choice_label": "Wait the night",
+      "fallback_line": "The party uses food, gains water and loses time."
+    },
+    {
+      "id": "w2-083",
+      "seed": 21,
+      "event_id": "f3_036",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 2
+      },
+      "event_seed": "Cold flames dance above the bog, beckoning.",
+      "choice_label": "Avoid the marsh",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-084",
+      "seed": 21,
+      "event_id": "f5_084",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "health": -32,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "The river runs thick with winter’s last anger.",
+      "choice_label": "Ford the rushing water",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w2-085",
+      "seed": 22,
+      "event_id": "friendly_travelers",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -3,
+        "meds": 1
+      },
+      "effects": {
+        "food": -3
+      },
+      "event_seed": "Another party camps nearby. They share a fire and news of the road ahead.",
+      "choice_label": "Trade supplies.",
+      "fallback_line": "The party uses food."
+    },
+    {
+      "id": "w2-086",
+      "seed": 22,
+      "event_id": "f1_020",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -1
+      },
+      "effects": {
+        "firewood": -1,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Lightning splits the sky nearby, the thunder a warning best heeded.",
+      "choice_label": "Wait for the storm to pass",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-087",
+      "seed": 22,
+      "event_id": "f1_036",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "boots": -1
+      },
+      "effects": {
+        "boots": -1,
+        "distance": 4,
+        "morale": -1
+      },
+      "event_seed": "The soles thin with every mile, each step a reminder of the miles yet to come.",
+      "choice_label": "Press on despite the wear",
+      "fallback_line": "The party wears down boots, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-088",
+      "seed": 22,
+      "event_id": "con_artist",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": 3
+      },
+      "effects": {
+        "food": 3,
+        "morale": -3
+      },
+      "event_seed": "A smooth-talking stranger offers a deal that seems too good.",
+      "choice_label": "Confront the swindle.",
+      "fallback_line": "The party gains food and loses heart."
+    },
+    {
+      "id": "w2-089",
+      "seed": 23,
+      "event_id": "f5_116",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "time_days": 2
+      },
+      "event_seed": "Cold green flames hover above the water.",
+      "choice_label": "Avoid the bog",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-090",
+      "seed": 23,
+      "event_id": "f4_055",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The wind carries sounds that are not quite voices.",
+      "choice_label": "Lean into it",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-091",
+      "seed": 23,
+      "event_id": "f4_078",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 6
+      },
+      "event_seed": "Cold ashes and one lone boot.",
+      "choice_label": "Leave untouched",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-092",
+      "seed": 23,
+      "event_id": "f3_030",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 0,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -2
+      },
+      "event_seed": "A man with stakes and string bars the narrow trail.",
+      "choice_label": "Force passage",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w2-093",
+      "seed": 24,
+      "event_id": "f4_054",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "The sky throws stones without warning.",
+      "choice_label": "Press on",
+      "fallback_line": "The party strains the animals, loses heart and loses time."
+    },
+    {
+      "id": "w2-094",
+      "seed": 24,
+      "event_id": "f3_031",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -3,
+        "food": 4
+      },
+      "effects": {
+        "ammo": -3,
+        "food": 4
+      },
+      "event_seed": "He smells of smoke and old blood.",
+      "choice_label": "Trade powder for pelts",
+      "fallback_line": "The party spends ammunition and gains food."
+    },
+    {
+      "id": "w2-095",
+      "seed": 24,
+      "event_id": "hostile_locals",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3
+      },
+      "event_seed": "The settlement watches you approach with visible suspicion. No one offers a greeting.",
+      "choice_label": "Keep moving through quietly.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w2-096",
+      "seed": 24,
+      "event_id": "f1_014",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1
+      },
+      "event_seed": "The mist swallows the trail ahead, turning familiar trees into strangers.",
+      "choice_label": "Rest until the fog lifts",
+      "fallback_line": "The party uses food and loses time."
+    },
+    {
+      "id": "w2-097",
+      "seed": 25,
+      "event_id": "f5_119",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6
+      },
+      "event_seed": "One boot remains beside the dead fire.",
+      "choice_label": "Leave it be",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-098",
+      "seed": 25,
+      "event_id": "f2_007",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "health": -24,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "The river wears a thin white mask, cracking softly under weight.",
+      "choice_label": "Test the ice with the team",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w2-099",
+      "seed": 25,
+      "event_id": "f5_098",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -3
+      },
+      "effects": {
+        "firewood": -3,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Every leaf and blade stands rigid in the cold.",
+      "choice_label": "Kindle a fire",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w2-100",
+      "seed": 25,
+      "event_id": "spoiled_food",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -5
+      },
+      "effects": {
+        "food": -5,
+        "health": -24
+      },
+      "event_seed": "Something smells wrong in the provisions. Mold has taken hold.",
+      "choice_label": "Sort carefully, keep what looks safe.",
+      "fallback_line": "The party uses food and loses strength."
+    },
+    {
+      "id": "w2-101",
+      "seed": 26,
+      "event_id": "f4_042",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -2
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Each plank groans a separate complaint as the wheels roll over.",
+      "choice_label": "Patch the worst gaps",
+      "fallback_line": "The party wears down tools, takes heart and loses time."
+    },
+    {
+      "id": "w2-102",
+      "seed": 26,
+      "event_id": "f4_064",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -4
+      },
+      "effects": {
+        "food": -4,
+        "morale": 3
+      },
+      "event_seed": "Eyes hollow, hands outstretched beside the trail.",
+      "choice_label": "Share what you can",
+      "fallback_line": "The party uses food and takes heart."
+    },
+    {
+      "id": "w2-103",
+      "seed": 26,
+      "event_id": "f5_105",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": -2
+      },
+      "effects": {
+        "morale": 3,
+        "time_days": 1,
+        "water": -2
+      },
+      "event_seed": "He speaks of lanterns that walk without bearers.",
+      "choice_label": "Share water and listen",
+      "fallback_line": "The party uses water, takes heart and loses time."
+    },
+    {
+      "id": "w2-104",
+      "seed": 26,
+      "event_id": "f3_011",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -1,
+        "wagon_condition": -1
+      },
+      "event_seed": "Moss hangs thick inside the covered bridge, swallowing sound.",
+      "choice_label": "Ford beside it",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w2-105",
+      "seed": 27,
+      "event_id": "f3_014",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "The sky throws needles instead of rain.",
+      "choice_label": "Continue through the ice",
+      "fallback_line": "The party strains the animals, loses heart and loses time."
+    },
+    {
+      "id": "w2-106",
+      "seed": 27,
+      "event_id": "f3_035",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "boots": -2
+      },
+      "effects": {
+        "boots": -2,
+        "morale": -2
+      },
+      "event_seed": "The soles have grown thin as paper.",
+      "choice_label": "Walk through the pain",
+      "fallback_line": "The party wears down boots and loses heart."
+    },
+    {
+      "id": "w2-107",
+      "seed": 27,
+      "event_id": "f3_032",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "A lantern drifts between the trees with no hand to guide it.",
+      "choice_label": "Follow the light",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w2-108",
+      "seed": 27,
+      "event_id": "f4_048",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "wagon_condition": -2
+      },
+      "event_seed": "Old chains rattle like bones in the wind.",
+      "choice_label": "Ford the shallows",
+      "fallback_line": "The party damages the wagon."
+    },
+    {
+      "id": "w2-109",
+      "seed": 28,
+      "event_id": "f5_119",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": 2
+      },
+      "effects": {
+        "food": 2,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "One boot remains beside the dead fire.",
+      "choice_label": "Search the site",
+      "fallback_line": "The party gains food, loses heart and loses time."
+    },
+    {
+      "id": "w2-110",
+      "seed": 28,
+      "event_id": "f3_029",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6
+      },
+      "event_seed": "He speaks of a lantern that walks without bearer.",
+      "choice_label": "Continue on",
+      "fallback_line": "The party covers ground on the trail."
+    },
+    {
+      "id": "w2-111",
+      "seed": 28,
+      "event_id": "f1_037",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -2,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Cold lights dance among the trunks, neither fire nor star, yet steady as judgment.",
+      "choice_label": "Investigate the lights",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w2-112",
+      "seed": 28,
+      "event_id": "f1_005",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "water": 4
+      },
+      "effects": {
+        "morale": -2,
+        "time_days": 1,
+        "water": 4
+      },
+      "event_seed": "Muddy waters rush past where the trail meets the river, the ford barely visible.",
+      "choice_label": "Wait for the waters to recede",
+      "fallback_line": "The party gains water, loses heart and loses time."
+    },
+    {
+      "id": "w2-113",
+      "seed": 29,
+      "event_id": "f5_092",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "time_days": 2
+      },
+      "event_seed": "The water shines like spilled mercury under the moon.",
+      "choice_label": "Detour to known stones",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w2-114",
+      "seed": 29,
+      "event_id": "f4_049",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The water climbs the banks as the light dies.",
+      "choice_label": "Ford before full dark",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w2-115",
+      "seed": 29,
+      "event_id": "bounty_hunters",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -2
+      },
+      "effects": {
+        "ammo": -2,
+        "health": -52,
+        "morale": 3
+      },
+      "event_seed": "Armed riders block the trail. They claim someone in your party is wanted.",
+      "choice_label": "Stand your ground.",
+      "fallback_line": "The party spends ammunition, loses strength and takes heart."
+    },
+    {
+      "id": "w2-116",
+      "seed": 29,
+      "event_id": "f3_019",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "Thunder rolls like judgment down the valley.",
+      "choice_label": "Move after each flash",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w2-117",
+      "seed": 30,
+      "event_id": "f2_025",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -2
+      },
+      "effects": {
+        "food": -2,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "The stranger speaks of safe fords that may or may not exist.",
+      "choice_label": "Share bread for his news",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w2-118",
+      "seed": 30,
+      "event_id": "whispering_tree",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "morale": -5
+      },
+      "event_seed": "A great oak at the trail fork. Wind through its branches sounds like speech.",
+      "choice_label": "Listen carefully.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w2-119",
+      "seed": 30,
+      "event_id": "f5_096",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "water": 5
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 1,
+        "water": 5
+      },
+      "event_seed": "Rain falls as though it has forgotten any other purpose.",
+      "choice_label": "Pitch camp",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w2-120",
+      "seed": 30,
+      "event_id": "f1_018",
+      "choice_id": "A",
+      "weirdness_level": 2,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "health": -4,
+        "morale": -2,
+        "time_days": 1
+      },
+      "event_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+      "choice_label": "Press on through hail",
+      "fallback_line": "The party loses strength, strains the animals, loses heart and loses time."
+    },
+    {
+      "id": "w3-001",
+      "seed": 1,
+      "event_id": "f5_091",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "wagon_condition": -3
+      },
+      "event_seed": "The ropes sway like a hanged man’s last breath.",
+      "choice_label": "Ford below",
+      "fallback_line": "The party strains the animals and damages the wagon."
+    },
+    {
+      "id": "w3-002",
+      "seed": 1,
+      "event_id": "f4_069",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -2
+      },
+      "effects": {
+        "cloth": -2,
+        "time_days": 1
+      },
+      "event_seed": "Stakes and string bar the narrow path.",
+      "choice_label": "Pay for right of way",
+      "fallback_line": "The party uses cloth and loses time."
+    },
+    {
+      "id": "w3-003",
+      "seed": 1,
+      "event_id": "f3_016",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "The snow comes sideways and angry.",
+      "choice_label": "Camp immediately",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w3-004",
+      "seed": 1,
+      "event_id": "saints_footprints",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "Footprints in the mud lead away from camp. They end abruptly at dry ground.",
+      "choice_label": "Ignore them and move on.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w3-005",
+      "seed": 2,
+      "event_id": "f2_024",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": 2,
+        "cloth": -2,
+        "food": 5
+      },
+      "effects": {
+        "ammo": 2,
+        "cloth": -2,
+        "food": 5
+      },
+      "event_seed": "A bent figure offers needles and salt from a sack older than the trail.",
+      "choice_label": "Trade goods for his wares",
+      "fallback_line": "The party gains ammunition, gains food and uses cloth."
+    },
+    {
+      "id": "w3-006",
+      "seed": 2,
+      "event_id": "superstitious_town",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": 5,
+        "water": 5
+      },
+      "effects": {
+        "food": 5,
+        "morale": -2,
+        "water": 5
+      },
+      "event_seed": "The town will trade, but they insist you leave before nightfall. They won't say why.",
+      "choice_label": "Trade quickly and leave.",
+      "fallback_line": "The party gains food, gains water and loses heart."
+    },
+    {
+      "id": "w3-007",
+      "seed": 2,
+      "event_id": "f3_020",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -1,
+        "distance": 5,
+        "time_days": 1
+      },
+      "event_seed": "Frost makes the grass brittle underfoot.",
+      "choice_label": "Travel despite the cold",
+      "fallback_line": "The party strains the animals, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-008",
+      "seed": 2,
+      "event_id": "the_stranger",
+      "choice_id": "C",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -5
+      },
+      "event_seed": "A traveler shares your fire. He knows your names and where you are headed.",
+      "choice_label": "Ask him to leave.",
+      "fallback_line": "The party loses heart."
+    },
+    {
+      "id": "w3-009",
+      "seed": 3,
+      "event_id": "spoiled_food",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -10
+      },
+      "effects": {
+        "food": -10,
+        "morale": -3
+      },
+      "event_seed": "Something smells wrong in the provisions. Mold has taken hold.",
+      "choice_label": "Throw out all suspect food.",
+      "fallback_line": "The party uses food and loses heart."
+    },
+    {
+      "id": "w3-010",
+      "seed": 3,
+      "event_id": "f2_037",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "lantern_oil": -1
+      },
+      "effects": {
+        "morale": -3,
+        "oil": -1,
+        "time_days": 1
+      },
+      "event_seed": "Flames burn blue among the roots, giving no heat.",
+      "choice_label": "Approach the dancing lights",
+      "fallback_line": "The party uses lamp oil, loses heart and loses time."
+    },
+    {
+      "id": "w3-011",
+      "seed": 3,
+      "event_id": "f1_027",
+      "choice_id": "C",
+      "weirdness_level": 3,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "time_days": 2
+      },
+      "event_seed": "A grizzled ferryman poles his raft, naming a price in salt and cloth for passage.",
+      "choice_label": "Decline and detour",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-012",
+      "seed": 3,
+      "event_id": "f4_078",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 1,
+      "deltas": {
+        "food": 2
+      },
+      "effects": {
+        "food": 2,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Cold ashes and one lone boot.",
+      "choice_label": "Search the ashes",
+      "fallback_line": "The party gains food, loses heart and loses time."
+    },
+    {
+      "id": "w3-013",
+      "seed": 4,
+      "event_id": "f2_016",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 3,
+        "morale": -3,
+        "time_days": 1
+      },
+      "event_seed": "The wind sings through the trees in a language best ignored.",
+      "choice_label": "Lean into the gusts",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-014",
+      "seed": 4,
+      "event_id": "f5_101",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The dust dances like it has somewhere better to be.",
+      "choice_label": "Wait it out",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w3-015",
+      "seed": 4,
+      "event_id": "f3_011",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Moss hangs thick inside the covered bridge, swallowing sound.",
+      "choice_label": "Enter the dark span",
+      "fallback_line": "The party loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-016",
+      "seed": 4,
+      "event_id": "f5_106",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2
+      },
+      "event_seed": "Small hands reach out beside the rutted path.",
+      "choice_label": "Offer nothing",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w3-017",
+      "seed": 5,
+      "event_id": "f2_039",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "morale": -2
+      },
+      "event_seed": "Something matches your pace just beyond the trees.",
+      "choice_label": "Walk faster without looking",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w3-018",
+      "seed": 5,
+      "event_id": "f1_031",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -2
+      },
+      "effects": {
+        "food": -2,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "Smoke rises from wagons drawn in circle, voices carrying on the evening air.",
+      "choice_label": "Share camp and news",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w3-019",
+      "seed": 5,
+      "event_id": "f5_102",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": 3
+      },
+      "effects": {
+        "morale": 1,
+        "time_days": 1,
+        "water": 3
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Hunker down",
+      "fallback_line": "The party gains water, takes heart and loses time."
+    },
+    {
+      "id": "w3-020",
+      "seed": 5,
+      "event_id": "f3_006",
+      "choice_id": "C",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -2
+      },
+      "effects": {
+        "rope": -2,
+        "time_days": 2
+      },
+      "event_seed": "The bridge moves with every step like a living thing.",
+      "choice_label": "Reinforce the ropes",
+      "fallback_line": "The party uses rope and loses time."
+    },
+    {
+      "id": "w3-021",
+      "seed": 6,
+      "event_id": "f3_005",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "animals_health": -2,
+        "health": -36,
+        "time_days": 1,
+        "wagon_condition": -4
+      },
+      "event_seed": "The riverbed gives way beneath the wheels like wet bread.",
+      "choice_label": "Push the wagon through",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w3-022",
+      "seed": 6,
+      "event_id": "f3_007",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 6,
+        "time_days": 3
+      },
+      "event_seed": "The ice groans a warning with every yard gained.",
+      "choice_label": "Detour to open water",
+      "fallback_line": "The party covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-023",
+      "seed": 6,
+      "event_id": "f4_063",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "morale": 3,
+        "time_days": 1
+      },
+      "event_seed": "He speaks of lanterns that walk alone at night.",
+      "choice_label": "Listen to his words",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w3-024",
+      "seed": 6,
+      "event_id": "f4_058",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -2
+      },
+      "effects": {
+        "firewood": -2,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Every blade of grass is edged in white.",
+      "choice_label": "Warm by fire",
+      "fallback_line": "The party uses firewood, takes heart and loses time."
+    },
+    {
+      "id": "w3-025",
+      "seed": 7,
+      "event_id": "river_crossing",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "time_days": 1
+      },
+      "event_seed": "A river blocks the trail. The current looks strong.",
+      "choice_label": "Search for a shallow crossing.",
+      "fallback_line": "The party loses time."
+    },
+    {
+      "id": "w3-026",
+      "seed": 7,
+      "event_id": "f2_030",
+      "choice_id": "C",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": -1,
+        "time_days": 1
+      },
+      "event_seed": "Smoke curls from a single chimney; the door opens before you knock.",
+      "choice_label": "Ask why he lives apart",
+      "fallback_line": "The party loses heart and loses time."
+    },
+    {
+      "id": "w3-027",
+      "seed": 7,
+      "event_id": "f1_018",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "Stones of ice batter the canvas, the sky pelting its displeasure.",
+      "choice_label": "Seek cover and wait",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w3-028",
+      "seed": 7,
+      "event_id": "f3_016",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 1,
+        "health": -16,
+        "morale": -4,
+        "time_days": 1
+      },
+      "event_seed": "The snow comes sideways and angry.",
+      "choice_label": "Press on regardless",
+      "fallback_line": "The party loses strength, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-029",
+      "seed": 8,
+      "event_id": "f5_088",
+      "choice_id": "C",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "The iron groans like an old man remembering better days.",
+      "choice_label": "Test the rust first",
+      "fallback_line": "The party takes heart and loses time."
+    },
+    {
+      "id": "w3-030",
+      "seed": 8,
+      "event_id": "f2_015",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "firewood": -4
+      },
+      "effects": {
+        "firewood": -4,
+        "time_days": 2
+      },
+      "event_seed": "Snow piles on the canvas like unpaid debts.",
+      "choice_label": "Camp and kindle fire",
+      "fallback_line": "The party uses firewood and loses time."
+    },
+    {
+      "id": "w3-031",
+      "seed": 8,
+      "event_id": "f2_017",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 5,
+        "morale": -2,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "Rain falls without pause, as though the sky has forgotten how to stop.",
+      "choice_label": "Keep moving in the wet",
+      "fallback_line": "The party damages the wagon, loses heart, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-032",
+      "seed": 8,
+      "event_id": "abandoned_camp",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "event_seed": "A camp left in a hurry. Supplies scattered. No sign of the owners.",
+      "choice_label": "Leave it alone.",
+      "fallback_line": "The party carries on."
+    },
+    {
+      "id": "w3-033",
+      "seed": 9,
+      "event_id": "f1_025",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "morale": 2,
+        "time_days": 1
+      },
+      "event_seed": "A lone wanderer shares stories of the trail ahead, some too strange to dismiss outright.",
+      "choice_label": "Listen to his tales and share food",
+      "fallback_line": "The party uses food, takes heart and loses time."
+    },
+    {
+      "id": "w3-034",
+      "seed": 9,
+      "event_id": "f1_026",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "ammo": -1,
+        "cloth": -2
+      },
+      "effects": {
+        "ammo": -1,
+        "cloth": -2
+      },
+      "event_seed": "Masked figures block the path, hands out for a share of your provisions.",
+      "choice_label": "Pay the demanded toll",
+      "fallback_line": "The party spends ammunition and uses cloth."
+    },
+    {
+      "id": "w3-035",
+      "seed": 9,
+      "event_id": "f4_075",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -1
+      },
+      "event_seed": "Blue flames burn among the roots and give no heat.",
+      "choice_label": "Leave them be",
+      "fallback_line": "The party loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w3-036",
+      "seed": 9,
+      "event_id": "f2_001",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 1,
+      "deltas": {},
+      "effects": {
+        "animals_health": -3,
+        "health": -12,
+        "time_days": 1,
+        "wagon_condition": -2
+      },
+      "event_seed": "The river bends sharp here, pulling at the wheels like a thing with purpose.",
+      "choice_label": "Drive straight into the current",
+      "fallback_line": "The party loses strength, strains the animals, damages the wagon and loses time."
+    },
+    {
+      "id": "w3-037",
+      "seed": 10,
+      "event_id": "f5_102",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {},
+      "effects": {
+        "distance": 4,
+        "morale": -2,
+        "wagon_condition": -1
+      },
+      "event_seed": "Rain falls without beginning and without end.",
+      "choice_label": "Continue",
+      "fallback_line": "The party damages the wagon, loses heart and covers ground on the trail."
+    },
+    {
+      "id": "w3-038",
+      "seed": 10,
+      "event_id": "f5_087",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "tools": -1
+      },
+      "effects": {
+        "distance": 3,
+        "time_days": 2,
+        "tools": -1
+      },
+      "event_seed": "Small hands have built a stubborn wall across the trail.",
+      "choice_label": "Break a narrow gap",
+      "fallback_line": "The party wears down tools, covers ground on the trail and loses time."
+    },
+    {
+      "id": "w3-039",
+      "seed": 10,
+      "event_id": "f4_080",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "cloth": -1
+      },
+      "effects": {
+        "cloth": -1,
+        "morale": 1,
+        "time_days": 1
+      },
+      "event_seed": "He stands in the road and speaks so low the wind almost steals the words.",
+      "choice_label": "Pay his whispered price",
+      "fallback_line": "The party uses cloth, takes heart and loses time."
+    },
+    {
+      "id": "w3-040",
+      "seed": 10,
+      "event_id": "f4_056",
+      "choice_id": "B",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "effects": {
+        "food": -1,
+        "time_days": 1
+      },
+      "event_seed": "The trail disappears ten paces ahead.",
+      "choice_label": "Rest until clear",
+      "fallback_line": "The party uses food and loses time."
+    }
+  ]
+}

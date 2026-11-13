@@ -9,7 +9,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::events::{apply_outcome, build_event_library, resolve_event, select_event};
+use crate::events::{
+    apply_outcome, build_event_library, missing_supplies_for_choice, resolve_event_with_ruleset,
+    select_event_with_ruleset,
+};
 use crate::memory::{
     check_resource_crises, emit_arrival_card, emit_escape_valve_card, emit_event_card,
     emit_health_cards, emit_wagon_card,
@@ -27,7 +30,10 @@ use crate::physics::{
     HealthEffect,
 };
 use crate::rng::CpythonRng;
+use crate::ruleset::Ruleset;
 use crate::save::save_game;
+use crate::save::SaveLoadError;
+use crate::save_v5::{save_game_v5, PendingBlock};
 use crate::worldgen::{generate_weather, EventOutcome, EventSkeleton};
 
 const EVENT_CHOICE_LETTERS: [&str; 7] = ["A", "B", "C", "D", "E", "F", "G"];
@@ -41,7 +47,11 @@ fn truncate_chars(s: &str, max_chars: usize) -> String {
 }
 
 /// A single choice the player can pick during an event (`step_engine.py:111-118`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+///
+/// `affordable` and `missing` are Rust-only: under `Ruleset::V2` they say whether the party
+/// holds the supplies the choice requires, and which supply keys it lacks. Under `Legacy` they
+/// are always `true` / empty, and neither is serialised, so Legacy output is unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventChoiceInfo {
     pub id: String,
     pub label: String,
@@ -49,6 +59,31 @@ pub struct EventChoiceInfo {
     pub risk_hint: String,
     #[serde(default)]
     pub cost_hint: String,
+    #[serde(default = "default_affordable", skip_serializing_if = "is_true")]
+    pub affordable: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub missing: Vec<String>,
+}
+
+fn default_affordable() -> bool {
+    true
+}
+
+fn is_true(b: &bool) -> bool {
+    *b
+}
+
+impl Default for EventChoiceInfo {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            label: String::new(),
+            risk_hint: String::new(),
+            cost_hint: String::new(),
+            affordable: true,
+            missing: Vec::new(),
+        }
+    }
 }
 
 /// A fork option in the road (`step_engine.py:121-128`).
@@ -114,6 +149,8 @@ pub struct StepEngine {
     pub phase: GamePhase,
     pub msgs: StepMessages,
     pub diagnostics: BTreeMap<String, i32>,
+    /// Which rules this engine plays by. Runtime only: never saved. Defaults to `Legacy`.
+    pub ruleset: Ruleset,
     autosave: bool,
     base_path: Option<PathBuf>,
     pending_event: Option<EventSkeleton>,
@@ -136,6 +173,103 @@ impl StepEngine {
         let mut engine = Self::with_options(state, false, None);
         engine.event_library = content.all_events.clone();
         engine
+    }
+
+    /// Choose the ruleset this engine plays by (default `Legacy`). Not saved; a resumed run
+    /// must be given the same ruleset it was played under.
+    pub fn set_ruleset(&mut self, ruleset: Ruleset) {
+        self.ruleset = ruleset;
+    }
+
+    /// Rebuild an engine from a loaded save, restoring the event or fork that was on screen.
+    ///
+    /// Under `Ruleset::V2` the `pending` block restores `phase` and the pending fields; an
+    /// event is found by its id in `content`'s event library, and an id not in the library is
+    /// a [`SaveLoadError::Corrupt`] naming it. Under `Ruleset::Legacy` the block is ignored and
+    /// the engine starts at camp, as the Python game does on reload.
+    pub fn resume(
+        state: RunState,
+        pending: Option<PendingBlock>,
+        content: &crate::content::ContentPack,
+        ruleset: Ruleset,
+        autosave: bool,
+        base_path: Option<PathBuf>,
+    ) -> Result<Self, SaveLoadError> {
+        let mut engine = Self::with_options(state, autosave, base_path);
+        engine.event_library = content.all_events.clone();
+        engine.ruleset = ruleset;
+        if ruleset != Ruleset::V2 || engine.phase == GamePhase::GameOver {
+            return Ok(engine);
+        }
+        let Some(block) = pending else {
+            return Ok(engine);
+        };
+        match block.phase {
+            GamePhase::Event => {
+                let event = engine
+                    .event_library
+                    .iter()
+                    .find(|e| e.event_id == block.event_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        SaveLoadError::Corrupt(format!(
+                            "pending event '{}' is not in the event library",
+                            block.event_id
+                        ))
+                    })?;
+                if block.choices.is_empty() {
+                    return Err(SaveLoadError::Corrupt(
+                        "pending event has no choices".to_string(),
+                    ));
+                }
+                engine.msgs.event_title = block.title.clone();
+                engine.msgs.event_narration = block.narration.clone();
+                engine.msgs.event_choices = block.choices.clone();
+                engine.pending_event = Some(event);
+                engine.pending_event_choices = block.choices;
+                engine.pending_event_title = block.title;
+                engine.pending_event_narration = block.narration;
+                engine.phase = GamePhase::Event;
+            }
+            GamePhase::Route => {
+                if block.routes.is_empty() {
+                    return Err(SaveLoadError::Corrupt(
+                        "pending fork has no routes".to_string(),
+                    ));
+                }
+                engine.msgs.route_options = block.routes.clone();
+                engine.pending_routes = block.routes;
+                engine.phase = GamePhase::Route;
+            }
+            GamePhase::Camp | GamePhase::GameOver => {}
+        }
+        Ok(engine)
+    }
+
+    /// The event or fork on screen, for saving. `None` at camp, at game over, and always under
+    /// `Ruleset::Legacy` (the Legacy save has no pending block and resumes at camp).
+    pub fn pending_block(&self) -> Option<PendingBlock> {
+        if self.ruleset != Ruleset::V2 {
+            return None;
+        }
+        match self.phase {
+            GamePhase::Event => {
+                let event = self.pending_event.as_ref()?;
+                Some(PendingBlock::event(
+                    &event.event_id,
+                    self.pending_event_choices.clone(),
+                    &self.pending_event_title,
+                    &self.pending_event_narration,
+                ))
+            }
+            GamePhase::Route => Some(PendingBlock::route(self.pending_routes.clone())),
+            GamePhase::Camp | GamePhase::GameOver => None,
+        }
+    }
+
+    /// The title and narration shown with the pending event (empty when none is pending).
+    pub fn pending_event_text(&self) -> (&str, &str) {
+        (&self.pending_event_title, &self.pending_event_narration)
     }
 
     /// Return the currently pending `EventSkeleton`, if the engine is in `GamePhase::Event`.
@@ -180,6 +314,7 @@ impl StepEngine {
             phase: GamePhase::Camp,
             msgs: StepMessages::default(),
             diagnostics,
+            ruleset: Ruleset::default(),
             autosave,
             base_path,
             pending_event: None,
@@ -727,7 +862,16 @@ impl StepEngine {
         let weather =
             node_biome.map(|biome| generate_weather(&mut self.rng, biome, self.state.day));
 
-        let event = select_event(&mut self.state, &mut self.rng, &self.event_library, weather);
+        let Some(event) = select_event_with_ruleset(
+            &mut self.state,
+            &mut self.rng,
+            &self.event_library,
+            weather,
+            self.ruleset,
+        ) else {
+            // Only V2 can return no event (every candidate excluded); no state changed.
+            return;
+        };
         *self
             .diagnostics
             .entry("events_total".to_string())
@@ -744,11 +888,17 @@ impl StepEngine {
         let choices: Vec<EventChoiceInfo> = event
             .fallback_choices
             .iter()
-            .map(|c| EventChoiceInfo {
-                id: c.choice_id.clone(),
-                label: c.label.clone(),
-                risk_hint: c.risk_hint.clone(),
-                cost_hint: c.cost_hint.clone(),
+            .map(|c| {
+                let missing =
+                    missing_supplies_for_choice(&self.state, &event, &c.choice_id, self.ruleset);
+                EventChoiceInfo {
+                    id: c.choice_id.clone(),
+                    label: c.label.clone(),
+                    risk_hint: c.risk_hint.clone(),
+                    cost_hint: c.cost_hint.clone(),
+                    affordable: missing.is_empty(),
+                    missing,
+                }
             })
             .collect();
 
@@ -767,7 +917,22 @@ impl StepEngine {
         self.msgs.event_choices = choices;
     }
 
+    /// Recompute `affordable` / `missing` of the pending choices from the current state (V2).
+    fn refresh_choice_affordability(&mut self) {
+        let Some(event) = self.pending_event.as_ref() else {
+            return;
+        };
+        for info in &mut self.pending_event_choices {
+            let missing = missing_supplies_for_choice(&self.state, event, &info.id, self.ruleset);
+            info.affordable = missing.is_empty();
+            info.missing = missing;
+        }
+    }
+
     fn re_present_event(&mut self) {
+        if self.ruleset == Ruleset::V2 {
+            self.refresh_choice_affordability();
+        }
         self.msgs.event_title = self.pending_event_title.clone();
         self.msgs.event_narration = self.pending_event_narration.clone();
         self.msgs.event_choices = self.pending_event_choices.clone();
@@ -797,7 +962,13 @@ impl StepEngine {
             return;
         }
 
-        let outcome = resolve_event(&mut self.state, &event, choice_id, &mut self.rng);
+        let outcome = resolve_event_with_ruleset(
+            &mut self.state,
+            &event,
+            choice_id,
+            &mut self.rng,
+            self.ruleset,
+        );
         apply_outcome(&mut self.state, &outcome);
 
         for _ in 0..std::cmp::max(0, outcome.time_cost) {
@@ -1096,7 +1267,16 @@ impl StepEngine {
             return;
         }
         let base = self.base_path.clone().unwrap_or_else(|| PathBuf::from("."));
-        let _ = save_game(&self.state, &base);
+        match self.ruleset {
+            // Legacy keeps the frozen v4 save and resumes at camp.
+            Ruleset::Legacy => {
+                let _ = save_game(&self.state, &base);
+            }
+            Ruleset::V2 => {
+                let pending = self.pending_block();
+                let _ = save_game_v5(&self.state, pending.as_ref(), &base);
+            }
+        }
     }
 }
 
@@ -1696,6 +1876,7 @@ mod tests {
             label: "Shield the wagon".to_string(),
             risk_hint: "Dangerous".to_string(),
             cost_hint: "Health".to_string(),
+            ..Default::default()
         }];
         eng_ev.pending_event_title = ev.title.clone();
         eng_ev.pending_event_narration = ev.fallback_narration.clone();

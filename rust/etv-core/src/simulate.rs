@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::content::ContentPack;
 use crate::engine::{compute_ending, deaths_by_cause, StepEngine};
 use crate::model::{Condition, GamePhase, IntentAction, Pace, PlayerIntent};
+use crate::ruleset::Ruleset;
 use crate::snapshot::compute_mechanics_state_hash;
 use crate::worldgen::create_new_run_with_content;
 
@@ -320,8 +321,21 @@ pub fn run_one(
     max_turns: usize,
     content: &ContentPack,
 ) -> RunRecord {
+    run_one_with_ruleset(seed, seed_idx, policy, max_turns, content, Ruleset::Legacy)
+}
+
+/// [`run_one`] under an explicit [`Ruleset`]. `Legacy` is exactly `run_one`.
+pub fn run_one_with_ruleset(
+    seed: i128,
+    seed_idx: usize,
+    policy: Policy,
+    max_turns: usize,
+    content: &ContentPack,
+    ruleset: Ruleset,
+) -> RunRecord {
     let state = create_new_run_with_content(seed, content);
     let mut engine = StepEngine::with_content(state, content);
+    engine.set_ruleset(ruleset);
 
     let mut events_seen: BTreeMap<String, u64> = BTreeMap::new();
     let mut choices_taken: BTreeMap<String, u64> = BTreeMap::new();
@@ -552,10 +566,21 @@ pub fn simulate(
     max_turns: usize,
     content: &ContentPack,
 ) -> SimReport {
+    simulate_with_ruleset(seeds, policy, max_turns, content, Ruleset::Legacy)
+}
+
+/// [`simulate`] under an explicit [`Ruleset`]. `Legacy` is exactly `simulate`.
+pub fn simulate_with_ruleset(
+    seeds: &[i128],
+    policy: Policy,
+    max_turns: usize,
+    content: &ContentPack,
+    ruleset: Ruleset,
+) -> SimReport {
     let records: Vec<RunRecord> = seeds
         .iter()
         .enumerate()
-        .map(|(idx, &seed)| run_one(seed, idx, policy, max_turns, content))
+        .map(|(idx, &seed)| run_one_with_ruleset(seed, idx, policy, max_turns, content, ruleset))
         .collect();
     aggregate(
         policy.name(),
@@ -574,6 +599,8 @@ pub struct SimOptions {
     pub policies: Vec<Policy>,
     pub turns: usize,
     pub json: bool,
+    /// Which rules the runs play by (`Legacy` unless `--ruleset v2`).
+    pub ruleset: Ruleset,
 }
 
 /// What the command line asked for.
@@ -588,13 +615,15 @@ pub const USAGE: &str = "\
 etv_simulate: balance simulation harness for Escape the Valley
 
 USAGE:
-    etv_simulate [--seeds <n>] [--start <seed>] [--policy <name>|all] [--turns <n>] [--json]
+    etv_simulate [--seeds <n>] [--start <seed>] [--policy <name>|all] [--turns <n>]
+                 [--ruleset legacy|v2] [--json]
 
 OPTIONS:
     --seeds <n>        number of seeds to run (default 100, at least 1)
     --start <seed>     first seed; seeds are start, start+1, ... (default 0)
     --policy <name>    first | last | cautious | reckless | rotating | all (default all)
     --turns <n>        turn cap per run (default 500, at least 1)
+    --ruleset <name>   legacy (default: the frozen rules) | v2 (the rules the game will play)
     --json             print the reports as a JSON array instead of a table
     --help             print this help
 ";
@@ -618,6 +647,7 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
         policies: Policy::ALL.to_vec(),
         turns: DEFAULT_MAX_TURNS,
         json: false,
+        ruleset: Ruleset::Legacy,
     };
     let mut i = 0;
     while i < args.len() {
@@ -625,7 +655,7 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
         match flag {
             "--help" | "-h" => return Ok(SimCommand::Help),
             "--json" => opts.json = true,
-            "--seeds" | "--start" | "--policy" | "--turns" => {
+            "--seeds" | "--start" | "--policy" | "--turns" | "--ruleset" => {
                 i += 1;
                 let Some(value) = args.get(i) else {
                     return Err(format!("flag '{flag}' needs a value"));
@@ -636,6 +666,15 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
                         let n = parse_min_one::<u64>(flag, value)?;
                         opts.turns = usize::try_from(n)
                             .map_err(|_| format!("invalid value for --turns: '{value}'"))?;
+                    }
+                    "--ruleset" => {
+                        opts.ruleset = match value.as_str() {
+                            "legacy" => Ruleset::Legacy,
+                            "v2" => Ruleset::V2,
+                            _ => {
+                                return Err(format!("unknown ruleset '{value}' (use legacy or v2)"))
+                            }
+                        };
                     }
                     "--start" => {
                         opts.start = value.parse::<i128>().map_err(|_| {

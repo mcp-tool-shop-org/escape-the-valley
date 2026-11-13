@@ -286,20 +286,43 @@ pub struct NarrationContext {
     /// prompt material (see [`format_turn_facts_for_prompt`]).
     #[serde(default)]
     check_party_names: Vec<String>,
-    /// The event's `narration_seed` text. Checker-only: resource nouns and draft-animal species
-    /// the event itself names are allowed in prose. Never prompt material.
+    /// The event's `narration_seed` text: the game's own description of the situation. It is
+    /// prompt material (the narrator is told what is happening), and the checker also uses it:
+    /// resource nouns and draft-animal species the event itself names are allowed in prose.
     #[serde(default)]
     check_event_seed: String,
-    /// The chosen option's label. Checker-only: used for the choice-parroting rule.
+    /// The chosen option's label. Prompt material (the narrator is told what the party chose),
+    /// and used by the checker's choice-parroting rule, which stops it being copied.
     #[serde(default)]
     check_choice_label: String,
+    /// The event's title, when the turn has an event on screen or has just resolved one.
+    /// Prompt material: the narrator is told what is happening.
+    #[serde(default)]
+    event_title: String,
+    /// The labels of the choices on offer, when the turn ends with an event on screen.
+    /// Prompt material.
+    #[serde(default)]
+    offered_labels: Vec<String>,
+    /// What the party did at camp on this turn (`travel`, `rest`, `hunt`, ...), or empty on a
+    /// turn that resolved an event choice or took a fork. Prompt material.
+    #[serde(default)]
+    action: String,
+    /// How the run ended, when this turn ended it: the engine's ending grade (`triumphant`,
+    /// `weathered`, `pyrrhic` or `lost`). Empty on every other turn. Prompt material.
+    #[serde(default)]
+    ending: String,
+    /// The run's seed number. Used **only** to derive the sampling seed sent with a narrator
+    /// call, so the same run and turn ask for the same sample. It is a plain number: it gives
+    /// no access to the engine's RNG. Never prompt material.
+    #[serde(default)]
+    run_seed: i128,
 }
 
 impl NarrationContext {
-    /// Attach the checker-only facts (party names, event seed text, chosen option label).
+    /// Attach the party names, the event's seed text and the chosen option's label.
     ///
-    /// These feed [`CheckerContext::from_narration_context`] and nothing else: they are not
-    /// included in any prompt.
+    /// The party names feed the checker only and are never in a prompt. The seed text and the
+    /// label are both prompt material and checker facts.
     pub fn with_check_facts(
         mut self,
         party_names: Vec<String>,
@@ -310,6 +333,64 @@ impl NarrationContext {
         self.check_event_seed = event_seed;
         self.check_choice_label = choice_label;
         self
+    }
+
+    /// The same context with `gm_profile` set to `profile`. For a recorded context that is
+    /// replayed under each profile in turn.
+    pub fn with_gm_profile(mut self, profile: GMProfile) -> Self {
+        self.gm_profile = profile;
+        self
+    }
+
+    /// Attach what else the narrator is told about the turn: the event's title, the labels on
+    /// offer, and the camp action taken.
+    pub fn with_event_facts(
+        mut self,
+        event_title: String,
+        offered_labels: Vec<String>,
+        action: String,
+    ) -> Self {
+        self.event_title = event_title;
+        self.offered_labels = offered_labels;
+        self.action = action;
+        self
+    }
+
+    /// Attach the ending grade of a run that this turn ended.
+    pub fn with_ending(mut self, ending: String) -> Self {
+        self.ending = ending;
+        self
+    }
+
+    /// The ending grade, when this turn ended the run (empty otherwise).
+    pub fn ending(&self) -> &str {
+        &self.ending
+    }
+
+    /// The event's title (empty when the turn has no event).
+    pub fn event_title(&self) -> &str {
+        &self.event_title
+    }
+
+    /// Labels of the choices on offer (empty unless an event is on screen).
+    pub fn offered_labels(&self) -> &[String] {
+        &self.offered_labels
+    }
+
+    /// The camp action taken on this turn (empty on a choice or fork turn).
+    pub fn action(&self) -> &str {
+        &self.action
+    }
+
+    /// Attach the run's seed number (see [`narration_call_seed`]).
+    pub fn with_run_seed(mut self, run_seed: i128) -> Self {
+        self.run_seed = run_seed;
+        self
+    }
+
+    /// The run's seed number (0 unless attached).
+    pub fn run_seed(&self) -> i128 {
+        self.run_seed
     }
 
     /// Party member names (checker-only; empty unless attached).
@@ -373,6 +454,11 @@ impl NarrationContext {
             check_party_names: Vec::new(),
             check_event_seed: String::new(),
             check_choice_label: String::new(),
+            event_title: String::new(),
+            offered_labels: Vec::new(),
+            action: String::new(),
+            ending: String::new(),
+            run_seed: 0,
         }
     }
 
@@ -836,7 +922,10 @@ pub fn build_narration_context_with_phase(
     )
 }
 
-fn build_narration_context_with_deltas(
+/// Build a [`NarrationContext`] whose shown deltas are exactly `shown_deltas`, the changes a
+/// turn applied (all effect keys, not only supplies). For callers that hold a recorded turn
+/// rather than a live pre-turn observation.
+pub fn build_narration_context_with_deltas(
     state: &RunState,
     phase: GamePhase,
     event_id: &str,
@@ -861,6 +950,68 @@ fn build_narration_context_with_deltas(
     let brief = build_gm_brief_readonly(state);
     let party_status = PartyStatusFacts::from_state(state);
 
+    // What the event is and what was chosen. While an event is on screen the step's messages
+    // carry its title, text and choices. On the turn a choice resolves, the messages have moved
+    // on to the outcome, and the journal entry the engine has just written holds them.
+    let resolved_entry = if msgs.outcome_title.is_empty() {
+        None
+    } else {
+        state
+            .journal
+            .last()
+            .filter(|j| j.event_id == event_id && !j.choice_made.is_empty())
+    };
+    let event_title = if !msgs.event_title.is_empty() {
+        msgs.event_title.clone()
+    } else {
+        resolved_entry
+            .map(|j| j.scene_title.clone())
+            .unwrap_or_default()
+    };
+    let event_seed = if !msgs.event_narration.is_empty() {
+        msgs.event_narration.clone()
+    } else {
+        resolved_entry
+            .map(|j| j.narration.clone())
+            .unwrap_or_default()
+    };
+    let choice_label = msgs
+        .event_choices
+        .iter()
+        .find(|c| c.id == choice_id)
+        .map(|c| c.label.clone())
+        .or_else(|| {
+            resolved_entry.and_then(|j| {
+                j.choice_made
+                    .split_once(": ")
+                    .map(|(_, label)| label.to_string())
+            })
+        })
+        .unwrap_or_default();
+    let offered_labels: Vec<String> = if phase == GamePhase::Event {
+        msgs.event_choices.iter().map(|c| c.label.clone()).collect()
+    } else {
+        Vec::new()
+    };
+    // The camp action, from the engine's own record of it. Empty when the step resolved a
+    // choice or took a fork, where the action is the choice itself.
+    let action = if choice_id.is_empty() {
+        state.last_action.to_ascii_lowercase()
+    } else {
+        String::new()
+    };
+
+    // The ending grade, on the turn the run ends.
+    let ending = if state.game_over {
+        state
+            .ending
+            .as_ref()
+            .map(|e| e.tier.clone())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
     NarrationContext::new(
         fallback_line,
         event_id.to_string(),
@@ -879,18 +1030,17 @@ fn build_narration_context_with_deltas(
         brief.themes,
         brief.weirdness_allowance,
         state.gm_profile,
-        brief.situation,
+        situation_for_narrator(&brief.situation),
         party_status,
     )
     .with_check_facts(
         state.party.members.iter().map(|m| m.name.clone()).collect(),
-        msgs.event_narration.clone(),
-        msgs.event_choices
-            .iter()
-            .find(|c| c.id == choice_id)
-            .map(|c| c.label.clone())
-            .unwrap_or_default(),
+        event_seed,
+        choice_label,
     )
+    .with_event_facts(event_title, offered_labels, action)
+    .with_ending(ending)
+    .with_run_seed(state.seed)
 }
 
 // ============================================================================
@@ -918,12 +1068,13 @@ impl NarratorLength {
         }
     }
 
-    /// Inclusive `(min_sentences, max_sentences)` allowed by this length setting.
-    pub fn sentence_bounds(&self) -> (usize, usize) {
+    /// Most words a narration line may run to at this length. The cap is on words, not on
+    /// sentences, so a voice that writes short sentences is not cut off for it.
+    pub fn word_cap(&self) -> usize {
         match self {
-            NarratorLength::Brief => (1, 1),
-            NarratorLength::Standard => (1, 2),
-            NarratorLength::Rich => (2, 3),
+            NarratorLength::Brief => 25,
+            NarratorLength::Standard => 45,
+            NarratorLength::Rich => 70,
         }
     }
 }
@@ -938,6 +1089,9 @@ pub fn profile_interface_name(profile: GMProfile) -> &'static str {
     }
 }
 
+/// The headers state no sentence limit: the length setting is the only authority on sentence
+/// count (the Python headers each carried their own maximum, which contradicted it).
+///
 /// Per-profile voice header ported from `src/escape_the_valley/gm.py:20-56` (`PROFILE_HEADERS`),
 /// with prompt hygiene on `GMProfile::Lantern` so the literal word `"lantern"` never appears in
 /// the system prompt when `lantern_oil` is not in the turn's effects.
@@ -950,8 +1104,7 @@ Voice rules:\n\
 - Focus on weather, terrain, exhaustion, supplies, and practical dilemmas.\n\
 - Keep the uncanny subtle — a strange track, an odd silence, a tool that moved.\n\
 - Never explain the weird. Let it sit alongside the mud and the hunger.\n\
-- Tone: dry, observant, unsentimental, occasionally wry.\n\
-- Maximum 3 sentences for scene narration, 2 for outcomes."
+- Tone: dry, observant, unsentimental, occasionally wry."
         }
         GMProfile::Fireside => {
             "You are \"The Fireside Storyteller,\" a warm, ominous folk narrator for a survival trail game.\n\
@@ -960,8 +1113,7 @@ Voice rules:\n\
 - Notice the human details: how people hold their shoulders, what they don't say, small kindnesses.\n\
 - When the uncanny appears, treat it like old country knowledge — folk warnings, grandmother's rules.\n\
 - Balance warmth and dread. The trail is hard, the people are real, something watches.\n\
-- Tone: empathetic, atmospheric, quietly foreboding.\n\
-- Maximum 4 sentences for scene narration, 2 for outcomes."
+- Tone: empathetic, atmospheric, quietly foreboding."
         }
         GMProfile::Lantern => {
             "You are \"The Uncanny Bearer,\" a serious but uncanny storyteller for a survival trail game.\n\
@@ -970,8 +1122,7 @@ Voice rules:\n\
 - Describe normal things in ways that feel slightly off: geometry that doesn't add up, echoes that arrive early.\n\
 - Still respect the survival game: supplies matter, injuries hurt, distances are real.\n\
 - When uncanny tokens are spent, let the weirdness breathe — a full surreal moment before snapping back.\n\
-- Tone: precise, eerie, deadpan when describing the impossible.\n\
-- Maximum 4 sentences for scene narration, 2 for outcomes."
+- Tone: precise, eerie, deadpan when describing the impossible."
         }
     }
 }
@@ -993,31 +1144,334 @@ pub fn weirdness_band_from_allowance(allowance: &str) -> u8 {
 
 /// Shared voice hard rules from the Prose Voice Guide (`VOICE-GUIDE-v1-DRAFT-2026-11-02.md`).
 pub fn shared_voice_hard_rules(length: NarratorLength, weirdness_band: u8) -> String {
-    let (min_s, max_s) = length.sentence_bounds();
+    shared_voice_hard_rules_for(length, weirdness_band, false)
+}
+
+/// Most `sentences` items an answer may hold. The length cap is on words; this only keeps the
+/// array bounded.
+pub const NARRATION_MAX_SENTENCE_ITEMS: usize = 8;
+
+/// The shared rule on death, as the prompt states it. On a turn where a death happened, or a run
+/// ended lost or pyrrhic, the death may be stated plainly; everywhere else the ban stands.
+pub const DEATH_RULE_BANNED: &str = "- Never state or imply death or total ruin.";
+
+/// The death rule on a turn where the facts report a death or a failed journey.
+pub const DEATH_RULE_ALLOWED: &str = "- A death or the journey's failure reported in the turn facts may be stated plainly: without sentiment, without a name, without gore. Never state or imply any other death or ruin.";
+
+/// [`shared_voice_hard_rules`] with the death rule chosen for the turn (see
+/// [`death_may_be_stated`]).
+pub fn shared_voice_hard_rules_for(
+    length: NarratorLength,
+    weirdness_band: u8,
+    death_allowed: bool,
+) -> String {
+    let cap = length.word_cap();
+    let death_rule = if death_allowed {
+        DEATH_RULE_ALLOWED
+    } else {
+        DEATH_RULE_BANNED
+    };
     format!(
         "SHARED VOICE HARD RULES:\n\
 - Present tense, third-person impersonal camera at wheel-height in mud and weather.\n\
 - Never state digits, counting words of two or more, or measurement/time/currency units.\n\
 - Allowed quantifiers for wagon, team, or body only: one, both, pair (never before a supply noun). Never use half.\n\
-- Never state or imply death or total ruin.\n\
+{death_rule}\n\
 - Never name a party member or invent proper nouns. No mid-sentence capital letters except the current place name.\n\
-- Never mention a supply or resource noun unless that resource key was spent or gained on this turn.\n\
+- Never mention a supply or resource noun unless that resource key was spent or gained on this turn, or the situation names it.\n\
 - Weirdness band ceiling: band {weirdness_band}. Never use horror cliches, magic, monsters, or game/meta terms.\n\
 - Punctuation: periods and commas only. No semicolons, exclamation marks, question marks, colons, quotes, or ellipses.\n\
-- LENGTH CAP: {} ({min_s} to {max_s} sentences).",
+- LENGTH CAP: {} (at most {cap} words in all).",
         length.as_str()
     )
 }
 
-/// Format turn facts strictly from [`NarrationContext`] (never including `fallback_line`,
-/// `shown_lines`, party member names, or unspent resource nouns).
+/// Which wording of the shared rules goes into the system prompt.
+///
+/// The game always sends `Shipped`. `Positive` exists for the measurement harness only: it says
+/// what to do without naming any banned word, so the two can be compared on the same turns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PromptRules {
+    #[default]
+    Shipped,
+    Positive,
+}
+
+impl PromptRules {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PromptRules::Shipped => "shipped",
+            PromptRules::Positive => "positive",
+        }
+    }
+}
+
+/// The shared rules worded as instructions only: no banned word or banned mark is named.
+/// Measurement variant; see [`PromptRules`].
+pub fn shared_voice_rules_positive(length: NarratorLength, weirdness_band: u8) -> String {
+    shared_voice_rules_positive_for(length, weirdness_band, false)
+}
+
+/// [`shared_voice_rules_positive`] with the death rule chosen for the turn.
+pub fn shared_voice_rules_positive_for(
+    length: NarratorLength,
+    weirdness_band: u8,
+    death_allowed: bool,
+) -> String {
+    let cap = length.word_cap();
+    let fate_rule = if death_allowed {
+        "- Tell only what the turn facts support. Where they report a death or a failed journey, say so plainly and briefly."
+    } else {
+        "- Tell only what the turn facts support, and leave every traveller as the facts give them."
+    };
+    format!(
+        "SHARED VOICE RULES:\n\
+- Present tense, third-person impersonal camera at wheel-height in mud and weather.\n\
+- Speak of amounts in general terms only.\n\
+{fate_rule}\n\
+- Refer to people as the party or the travellers. The current place name is the only proper noun.\n\
+- Mention only the supplies listed under resource_directions or named in the situation.\n\
+- Keep to plain physical detail within weirdness band {weirdness_band}.\n\
+- End each sentence with a period, and use commas inside sentences.\n\
+- LENGTH CAP: {} (at most {cap} words in all).",
+        length.as_str()
+    )
+}
+
+/// The engine's situation text states the caravan's doctrine and taboo as plain sentences, one
+/// of which ("Morale holds, but the wagon is lean.") reads as the party's present morale and can
+/// contradict it. For the narrator they are rewritten as what they are: a standing doctrine and
+/// a standing taboo. The engine's own text is left alone (the Python comparison checks it).
+pub const SITUATION_RELABELS: [(&str, &str); 6] = [
+    (
+        "The caravan travels light — less to eat, less to carry.",
+        "Their doctrine: travel light.",
+    ),
+    (
+        "Every repair is deliberate. The caravan moves carefully.",
+        "Their doctrine: careful hands.",
+    ),
+    (
+        "They carry no debts. Morale holds, but the wagon is lean.",
+        "Their doctrine: no debts.",
+    ),
+    (
+        "They will not travel at night.",
+        "Their taboo: no travel at night.",
+    ),
+    (
+        "They refuse to drink river water.",
+        "Their taboo: no river water.",
+    ),
+    (
+        "They leave nothing behind.",
+        "Their taboo: leave nothing behind.",
+    ),
+];
+
+/// The supply the situation text names, if any. The engine's situation speaks of the top
+/// pressure only, and of the supplies only food and water have a pressure line.
+pub fn situation_supply_key(pressures: &[String]) -> Option<&'static str> {
+    match pressures.first().map(String::as_str) {
+        Some("FOOD_GONE" | "FOOD_CRITICAL") => Some("food"),
+        Some("WATER_GONE" | "WATER_CRITICAL") => Some("water"),
+        _ => None,
+    }
+}
+
+/// How many of the party are left, in words with no number the narrator would have to avoid.
+/// `None` when all are alive (the engine says nothing then either).
+pub fn party_loss_phrase(alive: usize, total: usize) -> Option<&'static str> {
+    if alive >= total {
+        None
+    } else if alive == 0 {
+        Some("None of the party is left.")
+    } else if alive == 1 {
+        Some("Only one of the party is left.")
+    } else if total - alive == 1 {
+        Some("One of the party is lost.")
+    } else {
+        Some("Several of the party are lost.")
+    }
+}
+
+/// The situation text as the narrator is given it.
+///
+/// The narrator may not state a number, so it is not handed one: the engine's opening
+/// "Day N, <time of day>." is dropped (the journey band and the time of day are facts of their
+/// own), and "N of M party members alive." becomes a phrase from [`party_loss_phrase`]. The
+/// doctrine and taboo sentences are relabelled (see [`SITUATION_RELABELS`]).
+pub fn situation_for_narrator(situation: &str) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    for (i, sentence) in situation.split(". ").enumerate() {
+        let sentence = sentence.trim().trim_end_matches('.');
+        if sentence.is_empty() {
+            continue;
+        }
+        if i == 0 && day_and_time(sentence) {
+            continue;
+        }
+        if let Some((alive, total)) = alive_of_total(sentence) {
+            if let Some(phrase) = party_loss_phrase(alive, total) {
+                parts.push(phrase.to_string());
+            }
+            continue;
+        }
+        parts.push(format!("{sentence}."));
+    }
+    let mut out = parts.join(" ");
+    for (from, to) in SITUATION_RELABELS {
+        out = out.replace(from, to);
+    }
+    out
+}
+
+/// `true` for the engine's opening "Day N, <time of day>" sentence.
+fn day_and_time(sentence: &str) -> bool {
+    let Some(rest) = sentence.strip_prefix("Day ") else {
+        return false;
+    };
+    let Some((day, _time)) = rest.split_once(", ") else {
+        return false;
+    };
+    !day.is_empty() && day.chars().all(|c| c.is_ascii_digit())
+}
+
+/// Reads the engine's "N of M party members alive" sentence.
+fn alive_of_total(sentence: &str) -> Option<(usize, usize)> {
+    let rest = sentence.strip_suffix(" party members alive")?;
+    let (alive, total) = rest.split_once(" of ")?;
+    Some((alive.parse().ok()?, total.parse().ok()?))
+}
+
+/// Which of a turn's two calls a prompt is for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PromptSlot {
+    /// The scene: where the party is and what it faces.
+    Scene,
+    /// The outcome: the scene's facts, plus what resulted.
+    Outcome,
+}
+
+/// The word for one applied change in `resource_directions`.
+///
+/// Supplies are `spent` or `gained`. Health, morale, the wagon and the animals `fell` or `rose`.
+/// Time is `days passed` (or `time saved`). Distance depends on the turn: at camp a positive
+/// change is miles covered (`travelled`); on a turn that resolved a choice or took a fork the
+/// engine reports the change in miles still to go, so a positive change means the road grew
+/// longer.
+pub fn change_word(key: &str, delta: i32, on_choice: bool) -> &'static str {
+    let up = delta > 0;
+    match key {
+        "distance" => match (on_choice, up) {
+            (false, true) => "travelled",
+            (false, false) => "lost ground",
+            (true, true) => "road longer",
+            (true, false) => "road shorter",
+        },
+        "time_days" => {
+            if up {
+                "days passed"
+            } else {
+                "time saved"
+            }
+        }
+        "health" | "morale" | "wagon_condition" | "animals_health" => {
+            if up {
+                "rose"
+            } else {
+                "fell"
+            }
+        }
+        _ => {
+            if up {
+                "gained"
+            } else {
+                "spent"
+            }
+        }
+    }
+}
+
+fn or_none(text: &str) -> &str {
+    if text.trim().is_empty() {
+        "none"
+    } else {
+        text
+    }
+}
+
+/// The turn's facts for the outcome call: everything the scene call gets, plus what resulted.
+/// Same as [`format_turn_facts_for_slot`] with [`PromptSlot::Outcome`].
 pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
+    format_turn_facts_for_slot(ctx, PromptSlot::Outcome)
+}
+
+/// Format the turn's facts for one call, strictly from [`NarrationContext`].
+///
+/// Both calls are told what is happening: the event's title and its own text, the choices on
+/// offer or the choice taken, the camp action, the place, the journey, the clock and the party's
+/// condition. Only the outcome call is also told what resulted: which resources moved, the
+/// health effects, and whether there was a death, an injury or a supply running out.
+///
+/// Never included: `fallback_line`, `shown_lines`, party member names, any number.
+pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> String {
+    let offered = ctx.offered_labels().join(" | ");
+    let mut out = format!(
+        "TURN FACTS:\n\
+- event_id: {}\n\
+- event_title: {}\n\
+- event_text: {}\n\
+- choices_offered: {}\n\
+- choice_id: {}\n\
+- choice_taken: {}\n\
+- action: {}\n\
+- place: {}\n\
+- journey_band: {}\n\
+- biome: {}\n\
+- time_of_day: {}\n\
+- phase: {}\n\
+- ending: {}\n\
+- weirdness_allowance: {}\n\
+- pressures: {}\n\
+- themes: {}\n\
+- situation: {}\n\
+- party_health_band: {}\n\
+- party_morale_band: {}\n\
+- arrived_at_landmark: {}\n\
+- night_at_camp: {}",
+        ctx.event_id(),
+        or_none(ctx.event_title()),
+        or_none(ctx.check_event_seed()),
+        or_none(&offered),
+        ctx.choice_id(),
+        or_none(ctx.check_choice_label()),
+        or_none(ctx.action()),
+        ctx.place(),
+        ctx.band(),
+        ctx.biome(),
+        ctx.time_of_day().as_str(),
+        ctx.phase().as_str(),
+        or_none(ctx.ending()),
+        ctx.weirdness_allowance(),
+        ctx.pressures().join(", "),
+        ctx.themes().join(", "),
+        ctx.situation(),
+        ctx.party_status().health_band(),
+        ctx.party_status().morale_band(),
+        ctx.flags().landmark_arrival,
+        ctx.flags().night_at_camp,
+    );
+    if slot == PromptSlot::Scene {
+        return out;
+    }
+
+    let on_choice = !ctx.choice_id().is_empty();
     let mut delta_directions = Vec::new();
     for (k, &v) in ctx.shown_deltas() {
-        if v < 0 {
-            delta_directions.push(format!("{k}:spent"));
-        } else if v > 0 {
-            delta_directions.push(format!("{k}:gained"));
+        if v != 0 {
+            delta_directions.push(format!("{k}:{}", change_word(k, v, on_choice)));
         }
     }
     let effects_summary: Vec<&'static str> = ctx
@@ -1032,38 +1486,11 @@ pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
             HealthEffect::Died { .. } => "death",
         })
         .collect();
-
-    format!(
-        "TURN FACTS:\n\
-- event_id: {}\n\
-- choice_id: {}\n\
-- place: {}\n\
-- journey_band: {}\n\
-- biome: {}\n\
-- time_of_day: {}\n\
-- phase: {}\n\
-- weirdness_allowance: {}\n\
-- pressures: {}\n\
-- themes: {}\n\
-- situation: {}\n\
-- party_health_band: {}\n\
-- party_morale_band: {}\n\
+    out.push_str(&format!(
+        "\nWHAT RESULTED:\n\
 - resource_directions: {}\n\
 - health_effects: {}\n\
 - turn_matters: death={}, injury={}, supply_zero={}, landmark_arrival={}, night_at_camp={}",
-        ctx.event_id(),
-        ctx.choice_id(),
-        ctx.place(),
-        ctx.band(),
-        ctx.biome(),
-        ctx.time_of_day().as_str(),
-        ctx.phase().as_str(),
-        ctx.weirdness_allowance(),
-        ctx.pressures().join(", "),
-        ctx.themes().join(", "),
-        ctx.situation(),
-        ctx.party_status().health_band(),
-        ctx.party_status().morale_band(),
         if delta_directions.is_empty() {
             "none".to_string()
         } else {
@@ -1079,7 +1506,8 @@ pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
         ctx.flags().supply_zero,
         ctx.flags().landmark_arrival,
         ctx.flags().night_at_camp,
-    )
+    ));
+    out
 }
 
 /// Build the full narrator system prompt from:
@@ -1091,14 +1519,46 @@ pub fn build_system_prompt(
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> String {
+    build_system_prompt_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_system_prompt`] with an explicit [`PromptRules`] wording (the outcome call's prompt).
+pub fn build_system_prompt_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> String {
+    build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome)
+}
+
+/// Whether this turn's narration may state a death: a member died on the turn, or the run ended
+/// lost or pyrrhic. On every other turn, and on a triumphant or weathered ending, it may not.
+pub fn death_may_be_stated(ctx: &NarrationContext) -> bool {
+    ctx.flags().death || matches!(ctx.ending(), "lost" | "pyrrhic")
+}
+
+/// The system prompt for one of the turn's two calls.
+pub fn build_system_prompt_for_slot(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    slot: PromptSlot,
+) -> String {
     let band = weirdness_band_from_allowance(ctx.weirdness_allowance());
-    let rules = shared_voice_hard_rules(length, band);
+    let death_allowed = death_may_be_stated(ctx);
+    let rules = match rules {
+        PromptRules::Shipped => shared_voice_hard_rules_for(length, band, death_allowed),
+        PromptRules::Positive => shared_voice_rules_positive_for(length, band, death_allowed),
+    };
     let header = profile_header(profile);
-    let facts = format_turn_facts_for_prompt(ctx);
+    let facts = format_turn_facts_for_slot(ctx, slot);
     format!("{header}\n\n{rules}\n\n{facts}")
 }
 
-/// JSON schema instructions for the scene call (`src/escape_the_valley/gm.py:70-80`).
+/// The legacy scene answer shape (`src/escape_the_valley/gm.py:70-80`). No longer sent in the
+/// prompt; kept because [`parse_scene_response_strict`] still reads answers in this shape.
 pub const SCENE_SCHEMA: &str = r#"{
   "scene_id": "string",
   "title": "string (short, evocative, 2-5 words)",
@@ -1113,7 +1573,8 @@ pub const SCENE_SCHEMA: &str = r#"{
   "memory_proposals": []
 }"#;
 
-/// JSON schema instructions for the outcome call (`src/escape_the_valley/gm.py:82-88`).
+/// The legacy outcome answer shape (`src/escape_the_valley/gm.py:82-88`). No longer sent in the
+/// prompt; kept because [`parse_outcome_response_strict`] still reads answers in this shape.
 pub const OUTCOME_SCHEMA: &str = r#"{
   "scene_id": "string",
   "outcome_title": "string (2-4 words)",
@@ -1123,30 +1584,289 @@ pub const OUTCOME_SCHEMA: &str = r#"{
   "memory_proposals": []
 }"#;
 
-/// Build `(system_prompt, user_prompt)` for the per-turn scene call (`SCENE_SCHEMA`).
+/// Sampling temperature sent with every narrator call. Low, so a telling is as repeatable as
+/// the model allows.
+pub const NARRATOR_TEMPERATURE: f64 = 0.15;
+
+/// Context window asked for on every narrator call, in tokens. A narrator call is one
+/// stateless request (no history is carried between calls), so a small window is enough.
+pub const NARRATOR_NUM_CTX: u32 = 2048;
+
+/// Most tokens a narrator answer may run to with the plain schema, at Brief and Standard.
+pub const NARRATOR_NUM_PREDICT: u32 = 110;
+
+/// The same at Rich. A 70-word answer with its JSON wrapper runs past 110 tokens, and an
+/// answer cut off by the budget is unreadable JSON, so Rich gets a budget that covers its cap.
+pub const NARRATOR_NUM_PREDICT_RICH: u32 = 150;
+
+/// Extra tokens the cited-facts schema gets, for the list of fact keys.
+pub const NARRATOR_NUM_PREDICT_CITED_EXTRA: u32 = 50;
+
+/// Most tokens a narrator answer may run to with the cited-facts schema, which also has to
+/// list fact keys, at Brief and Standard.
+pub const NARRATOR_NUM_PREDICT_CITED: u32 = 160;
+
+/// Per-call timeouts in a row after which the narrator is paused for the rest of the session.
+pub const TIMEOUT_BREAKER_STRIKES: usize = 2;
+
+/// Which answer shape the request's `format` schema asks for.
+///
+/// The game always sends `Plain`. `CitedFacts` exists for the measurement harness only: it asks
+/// the model to list the turn-fact keys it used before it writes the sentences, so the two
+/// shapes can be compared on the same turns. The listed keys are not read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FormatSchema {
+    #[default]
+    Plain,
+    #[serde(rename = "cited")]
+    CitedFacts,
+    /// No schema at all: the request carries no `format` field and asks for the sentences
+    /// as plain text; the answer is checked as it stands. Measurement variant, to see
+    /// whether binding the answer to a schema costs anything.
+    #[serde(rename = "text")]
+    PlainText,
+}
+
+impl FormatSchema {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FormatSchema::Plain => "plain",
+            FormatSchema::CitedFacts => "cited",
+            FormatSchema::PlainText => "text",
+        }
+    }
+
+    /// The `num_predict` cap sent with this shape at `length`.
+    pub fn num_predict(&self, length: NarratorLength) -> u32 {
+        let base = match length {
+            NarratorLength::Rich => NARRATOR_NUM_PREDICT_RICH,
+            NarratorLength::Brief | NarratorLength::Standard => NARRATOR_NUM_PREDICT,
+        };
+        match self {
+            FormatSchema::Plain | FormatSchema::PlainText => base,
+            FormatSchema::CitedFacts => base + NARRATOR_NUM_PREDICT_CITED_EXTRA,
+        }
+    }
+}
+
+/// The cited-facts variant of [`narration_format_schema`]: a `cited_fact_keys` string array
+/// that comes before the `sentences` array. Measurement variant; see [`FormatSchema`].
+pub fn narration_format_schema_cited(_length: NarratorLength) -> Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "cited_fact_keys": {
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "sentences": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1,
+                "maxItems": NARRATION_MAX_SENTENCE_ITEMS
+            }
+        },
+        "required": ["cited_fact_keys", "sentences"],
+        "additionalProperties": false
+    })
+}
+
+/// The schema for `schema` and `length`, or `None` for the plain-text variant, which sends no
+/// `format` field.
+pub fn narration_format_schema_for(schema: FormatSchema, length: NarratorLength) -> Option<Value> {
+    match schema {
+        FormatSchema::Plain => Some(narration_format_schema(length)),
+        FormatSchema::CitedFacts => Some(narration_format_schema_cited(length)),
+        FormatSchema::PlainText => None,
+    }
+}
+
+/// The JSON Schema sent in the request's `format` field: an object holding one array of
+/// sentence strings. The length setting caps the words (see [`NarratorLength::word_cap`]); a
+/// schema cannot count words, so the cap is stated in the prompt and enforced by the checker.
+/// A server that supports structured output can then only return that shape.
+pub fn narration_format_schema(_length: NarratorLength) -> Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "sentences": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1,
+                "maxItems": NARRATION_MAX_SENTENCE_ITEMS
+            }
+        },
+        "required": ["sentences"],
+        "additionalProperties": false
+    })
+}
+
+/// The response shape as the user prompt shows it.
+fn sentences_shape_text(length: NarratorLength, schema: FormatSchema) -> String {
+    let cap = length.word_cap();
+    if schema == FormatSchema::CitedFacts {
+        return format!(
+            "{{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds complete sentences, one per item, at most {cap} words in all, each following all the rules."
+        );
+    }
+    format!(
+        "{{\"sentences\": [\"...\"]}}\nThe sentences array holds complete sentences, one per item, at most {cap} words in all, each following all the rules."
+    )
+}
+
+/// The sampling seed sent with one narrator call: a number derived from the run's seed and the
+/// turn's own facts (day, time of day, event, choice, place and shown changes), the profile, the
+/// length and the slot. The same run, turn and settings always give the same seed; it never
+/// touches the engine's RNG. The value fits in 31 bits.
+pub fn narration_call_seed(
+    ctx: &NarrationContext,
+    profile: GMProfile,
+    length: NarratorLength,
+    is_scene: bool,
+) -> u32 {
+    let mut deltas = String::new();
+    for (k, v) in ctx.shown_deltas() {
+        deltas.push_str(&format!("{k}={v};"));
+    }
+    let material = format!(
+        "etv-narration-seed-1|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        ctx.run_seed(),
+        ctx.day(),
+        ctx.time_of_day().as_str(),
+        ctx.event_id(),
+        ctx.choice_id(),
+        ctx.place(),
+        deltas,
+        profile.as_str(),
+        length.as_str(),
+        if is_scene { "scene" } else { "outcome" }
+    );
+    let digest: [u8; 32] = Sha256::digest(material.as_bytes()).into();
+    u32::from_be_bytes([digest[0], digest[1], digest[2], digest[3]]) & 0x7fff_ffff
+}
+
+/// Build `(system_prompt, user_prompt)` for the per-turn scene call.
 pub fn build_scene_prompts(
     profile: GMProfile,
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> (String, String) {
-    let sys = build_system_prompt(profile, length, ctx);
+    build_scene_prompts_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_scene_prompts`] with an explicit [`PromptRules`] wording.
+pub fn build_scene_prompts_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> (String, String) {
+    build_scene_prompts_for(profile, length, ctx, rules, FormatSchema::Plain)
+}
+
+/// [`build_scene_prompts`] with an explicit rules wording and answer shape.
+pub fn build_scene_prompts_for(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    schema: FormatSchema,
+) -> (String, String) {
+    let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Scene);
+    if schema == FormatSchema::PlainText {
+        let cap = length.word_cap();
+        let user = format!(
+            "Generate a scene response as plain text: complete sentences, at most {cap} words in all, each following all the rules. Answer with the sentences only."
+        );
+        return (sys, user);
+    }
     let user = format!(
-        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{SCENE_SCHEMA}"
+        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{}",
+        sentences_shape_text(length, schema)
     );
     (sys, user)
 }
 
-/// Build `(system_prompt, user_prompt)` for the per-turn outcome call (`OUTCOME_SCHEMA`).
+/// Build `(system_prompt, user_prompt)` for the per-turn outcome call.
 pub fn build_outcome_prompts(
     profile: GMProfile,
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> (String, String) {
-    let sys = build_system_prompt(profile, length, ctx);
+    build_outcome_prompts_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_outcome_prompts`] with an explicit [`PromptRules`] wording.
+pub fn build_outcome_prompts_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> (String, String) {
+    build_outcome_prompts_for(profile, length, ctx, rules, FormatSchema::Plain)
+}
+
+/// [`build_outcome_prompts`] with an explicit rules wording and answer shape.
+pub fn build_outcome_prompts_for(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    schema: FormatSchema,
+) -> (String, String) {
+    let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome);
+    if schema == FormatSchema::PlainText {
+        let cap = length.word_cap();
+        let user = format!(
+            "Generate an outcome response as plain text: complete sentences, at most {cap} words in all, each following all the rules. Answer with the sentences only."
+        );
+        return (sys, user);
+    }
     let user = format!(
-        "Generate an outcome response strictly as valid JSON matching OUTCOME_SCHEMA:\n{OUTCOME_SCHEMA}"
+        "Generate an outcome response strictly as valid JSON matching OUTCOME_SCHEMA:\n{}",
+        sentences_shape_text(length, schema)
     );
     (sys, user)
+}
+
+/// Read the prose of one narrator answer.
+///
+/// The requested shape is `{"sentences": ["...", "..."]}`: every item must be a non-empty string,
+/// and the sentences are joined with single spaces. An answer in the older shape (a `narration`
+/// string for a scene, an `outcome_narration` string for an outcome) is still read, through the
+/// strict parsers. Anything else is an error, and the turn falls back.
+pub fn parse_slot_prose(raw: &str, is_scene: bool) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
+        return Err("response is not a raw JSON object".to_string());
+    }
+    let val: Value = serde_json::from_str(trimmed).map_err(|e| format!("invalid JSON: {e}"))?;
+    if let Some(sentences) = val.get("sentences") {
+        let items = sentences
+            .as_array()
+            .ok_or_else(|| "'sentences' is not an array".to_string())?;
+        if items.is_empty() {
+            return Err("'sentences' is empty".to_string());
+        }
+        let mut parts = Vec::with_capacity(items.len());
+        for item in items {
+            let text = item
+                .as_str()
+                .ok_or_else(|| "'sentences' holds a non-string item".to_string())?
+                .trim();
+            if text.is_empty() {
+                return Err("'sentences' holds an empty sentence".to_string());
+            }
+            parts.push(text);
+        }
+        return Ok(parts.join(" "));
+    }
+    if is_scene {
+        parse_scene_response_strict(trimmed).map(|scene| scene.narration)
+    } else {
+        parse_outcome_response_strict(trimmed).map(|outcome| outcome.outcome_narration)
+    }
 }
 
 /// Parsed response for the scene call (`src/escape_the_valley/gm.py:122-168`).
@@ -1387,8 +2107,8 @@ pub const RESOURCE_NOUN_TABLE: &[(&str, &[&str])] = &[
     ),
 ];
 
-const BANNED_NUMBER_OR_UNIT_WORDS: &[&str] = &[
-    // Counting words of two or more ( plus zero)
+/// Counting words of two or more (plus zero). Banned wherever they appear.
+const BANNED_NUMBER_WORDS: &[&str] = &[
     "zero",
     "two",
     "three",
@@ -1428,54 +2148,65 @@ const BANNED_NUMBER_OR_UNIT_WORDS: &[&str] = &[
     "triple",
     "twice",
     "thrice",
-    // Measurement, duration, distance, and count units
-    "day",
-    "days",
-    "mile",
-    "miles",
-    "hour",
-    "hours",
-    "minute",
-    "minutes",
-    "second",
-    "seconds",
-    "week",
-    "weeks",
-    "month",
-    "months",
-    "year",
-    "years",
-    "pound",
-    "pounds",
-    "ounce",
-    "ounces",
-    "gallon",
-    "gallons",
-    "quart",
-    "quarts",
-    "pint",
-    "pints",
-    "inch",
-    "inches",
-    "foot",
-    "feet",
-    "yard",
-    "yards",
-    "meter",
-    "meters",
-    "ration",
-    "rations",
-    "coin",
-    "coins",
-    "dollar",
-    "dollars",
-    "percent",
-    "degree",
-    "degrees",
-    "step",
-    "steps",
-    "turn",
-    "turns",
+];
+
+/// Measurement, duration, distance and count units. A unit word is rejected only when a number
+/// or quantity word comes straight before it ("several days", "one step", "a mile"). On its
+/// own it is an ordinary word ("figures step from the brush", "a turn in the road").
+const UNIT_WORDS: &[&str] = &[
+    "day", "days", "mile", "miles", "hour", "hours", "minute", "minutes", "second", "seconds",
+    "week", "weeks", "month", "months", "year", "years", "pound", "pounds", "ounce", "ounces",
+    "gallon", "gallons", "quart", "quarts", "pint", "pints", "inch", "inches", "foot", "feet",
+    "yard", "yards", "meter", "meters", "ration", "rations", "coin", "coins", "dollar", "dollars",
+    "percent", "degree", "degrees", "step", "steps", "turn", "turns",
+];
+
+/// Quantity words that are not numbers of two or more. One of these straight before a unit
+/// word states a measurement.
+const QUANTITY_WORDS: &[&str] = &[
+    "one",
+    "single",
+    "several",
+    "many",
+    "few",
+    "some",
+    "half",
+    "both",
+    "pair",
+    "countless",
+];
+
+/// Unit words that are also everyday nouns and verbs. "A step" or "a turn" is not a
+/// measurement; "a mile" or "an hour" is.
+const EVERYDAY_UNIT_WORDS: &[&str] = &[
+    "step", "steps", "turn", "turns", "foot", "feet", "second", "seconds", "yard", "yards", "coin",
+    "coins", "ration", "rations", "degree", "degrees", "pound", "pounds",
+];
+
+/// Death words that may be used, plainly, on a turn where a death may be stated. The rest of
+/// [`BANNED_DEATH_WORDS`] (the violent ones, and words of ruin) stay banned on every turn.
+const PLAIN_DEATH_WORDS: &[&str] = &[
+    "dead", "died", "dies", "dying", "death", "deaths", "grave", "graves", "buried", "burial",
+    "perish", "perished", "perishes",
+];
+
+/// Gore. Checked on a turn where a death may be stated: the death is told without it.
+const GORE_WORDS: &[&str] = &[
+    "blood",
+    "bloody",
+    "bloodied",
+    "bleeding",
+    "gore",
+    "gory",
+    "guts",
+    "entrails",
+    "mangled",
+    "severed",
+    "rotting",
+    "rotted",
+    "maggots",
+    "carcass",
+    "carcasses",
 ];
 
 const BANNED_DEATH_WORDS: &[&str] = &[
@@ -1697,6 +2428,10 @@ pub struct CheckerContext {
     /// The chosen option's label, for the choice-parroting rule (empty = rule inactive).
     #[serde(default)]
     pub choice_label: String,
+    /// `true` on a turn where a death may be stated (see [`death_may_be_stated`]). The plain
+    /// death words are then allowed; violent and gory words are not.
+    #[serde(default)]
+    pub death_allowed: bool,
 }
 
 impl Default for CheckerContext {
@@ -1711,6 +2446,7 @@ impl Default for CheckerContext {
             party_names: Vec::new(),
             event_seed: String::new(),
             choice_label: String::new(),
+            death_allowed: false,
         }
     }
 }
@@ -1718,12 +2454,18 @@ impl Default for CheckerContext {
 impl CheckerContext {
     /// Build a [`CheckerContext`] from a [`NarrationContext`] and [`NarratorLength`].
     pub fn from_narration_context(ctx: &NarrationContext, length: NarratorLength) -> Self {
-        let allowed_resources: Vec<String> = ctx
+        let mut allowed_resources: Vec<String> = ctx
             .shown_deltas()
             .iter()
             .filter(|(_, &delta)| delta != 0)
             .map(|(k, _)| k.clone())
             .collect();
+        // A supply the situation text names ("They have no food.") may be mentioned too.
+        if let Some(key) = situation_supply_key(ctx.pressures()) {
+            if !allowed_resources.iter().any(|k| k == key) {
+                allowed_resources.push(key.to_string());
+            }
+        }
         let mut allowed_landmarks = Vec::new();
         if !ctx.place().is_empty() {
             allowed_landmarks.push(ctx.place().to_string());
@@ -1736,6 +2478,7 @@ impl CheckerContext {
             party_names: ctx.check_party_names().to_vec(),
             event_seed: ctx.check_event_seed().to_string(),
             choice_label: ctx.check_choice_label().to_string(),
+            death_allowed: death_may_be_stated(ctx),
         }
     }
 }
@@ -1832,6 +2575,12 @@ fn lookup_resource_key_for_noun(word_lower: &str) -> Option<&'static str> {
     None
 }
 
+/// A model often writes the typographic apostrophe (U+2019, U+2018) where the plain one is
+/// meant. The plain apostrophe is allowed punctuation, so the line is read with plain ones.
+pub fn plain_apostrophes(text: &str) -> String {
+    text.replace(['\u{2019}', '\u{2018}'], "'")
+}
+
 fn clean_word_token(raw: &str) -> String {
     raw.trim_matches(|c: char| !c.is_ascii_alphanumeric())
         .to_ascii_lowercase()
@@ -1890,7 +2639,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 2. Sentence count check against NarratorLength cap (Brief: 1, Standard: 1-2, Rich: 2-3).
+    // 2. Whole sentences, and the word cap of the length setting (Brief 25, Standard 45, Rich 70).
     let raw_sentences: Vec<&str> = trimmed.split('.').collect();
     // Since trimmed ends with '.', the last element after split('.') must be empty, and all prior
     // elements must be non-empty sentences.
@@ -1910,14 +2659,14 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
             detail: "empty sentence segment".to_string(),
         });
     }
-    let (min_s, max_s) = ctx.length.sentence_bounds();
-    if sentences.len() < min_s || sentences.len() > max_s {
+    let cap = ctx.length.word_cap();
+    let words = trimmed.split_whitespace().count();
+    if words > cap {
         return Err(CheckFailure {
             code: CheckReasonCode::LengthCapExceeded,
             detail: format!(
-                "expected {min_s}..={max_s} sentences for {:?}, found {}",
-                ctx.length,
-                sentences.len()
+                "expected at most {cap} words for {:?}, found {words}",
+                ctx.length
             ),
         });
     }
@@ -1963,9 +2712,8 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 4. NumbersDigitsOrUnits: ASCII digits, counting words >= 2 (or zero), and unit words.
-    // Note: "second" is allowed only when followed by "clause" or "sentence" as an ordinal;
-    // standalone unit "second"/"seconds" is rejected.
+    // 4. NumbersDigitsOrUnits: ASCII digits, counting words >= 2 (or zero), and a unit word
+    // that has a number or quantity word straight before it.
     if trimmed.chars().any(|c| c.is_ascii_digit()) {
         return Err(CheckFailure {
             code: CheckReasonCode::NumbersDigitsOrUnits,
@@ -1973,29 +2721,40 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         });
     }
     for (idx, word) in tokens_lower.iter().enumerate() {
-        if word == "second" {
-            let next_is_ordinal_noun = tokens_lower
-                .get(idx + 1)
-                .map(|w| w == "clause" || w == "sentence")
-                .unwrap_or(false);
-            if next_is_ordinal_noun {
-                continue;
-            }
-        }
-        if BANNED_NUMBER_OR_UNIT_WORDS.contains(&word.as_str()) {
+        if BANNED_NUMBER_WORDS.contains(&word.as_str()) {
             return Err(CheckFailure {
                 code: CheckReasonCode::NumbersDigitsOrUnits,
-                detail: format!("banned number or unit word '{word}'"),
+                detail: format!("banned number word '{word}'"),
             });
+        }
+        if UNIT_WORDS.contains(&word.as_str()) && idx > 0 {
+            let prev = tokens_lower[idx - 1].as_str();
+            let article =
+                (prev == "a" || prev == "an") && !EVERYDAY_UNIT_WORDS.contains(&word.as_str());
+            if article || QUANTITY_WORDS.contains(&prev) {
+                return Err(CheckFailure {
+                    code: CheckReasonCode::NumbersDigitsOrUnits,
+                    detail: format!("unit word '{word}' after quantity word '{prev}'"),
+                });
+            }
         }
     }
 
-    // 5. DeathWords
+    // 5. DeathWords. On a turn where a death may be stated, the plain words pass and gore does
+    // not; on every other turn the whole list is banned.
     for word in &tokens_lower {
-        if BANNED_DEATH_WORDS.contains(&word.as_str()) {
+        if BANNED_DEATH_WORDS.contains(&word.as_str())
+            && !(ctx.death_allowed && PLAIN_DEATH_WORDS.contains(&word.as_str()))
+        {
             return Err(CheckFailure {
                 code: CheckReasonCode::DeathWords,
                 detail: format!("banned death word '{word}'"),
+            });
+        }
+        if ctx.death_allowed && GORE_WORDS.contains(&word.as_str()) {
+            return Err(CheckFailure {
+                code: CheckReasonCode::DeathWords,
+                detail: format!("gore word '{word}' on a death turn"),
             });
         }
     }
@@ -2051,8 +2810,8 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         .collect();
 
     // 7. UnauthorisedResourceNoun: resource nouns must belong to `ctx.allowed_resources` (or be
-    // named by the event's seed or label) and may only appear in sentence 1 (index 0).
-    for (s_idx, sentence) in sentences.iter().enumerate() {
+    // named by the event's seed or label). Where in the line they appear does not matter.
+    for sentence in sentences.iter() {
         for raw_token in sentence.split_whitespace() {
             let word = clean_word_token(raw_token);
             if word.is_empty() {
@@ -2070,15 +2829,6 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                         detail: format!(
                             "resource noun '{word}' (key '{res_key}') not in allowed_resources {:?}",
                             ctx.allowed_resources
-                        ),
-                    });
-                }
-                if s_idx > 0 {
-                    return Err(CheckFailure {
-                        code: CheckReasonCode::UnauthorisedResourceNoun,
-                        detail: format!(
-                            "resource noun '{word}' appeared in sentence {} (only allowed in sentence 1)",
-                            s_idx + 1
                         ),
                     });
                 }
@@ -2949,6 +3699,13 @@ pub struct LiveNarrator {
     reject_codes: Mutex<BTreeMap<&'static str, usize>>,
     record_slots: AtomicBool,
     slot_log: Mutex<Vec<SlotRecord>>,
+    /// The seed and body of the call in flight, kept only while slots are being recorded.
+    last_request: Mutex<Option<(u32, String)>>,
+    positive_rules: AtomicBool,
+    format_schema: AtomicUsize,
+    breaker_enabled: AtomicBool,
+    consecutive_timeouts: AtomicUsize,
+    paused: AtomicBool,
 }
 
 /// How one narrator call (scene or outcome) ended.
@@ -2986,6 +3743,10 @@ pub struct SlotRecord {
     pub candidate: Option<String>,
     /// Wall-clock time of the call in milliseconds.
     pub latency_ms: u64,
+    /// The sampling seed sent with the call.
+    pub seed: Option<u32>,
+    /// The request body exactly as it was handed to the transport.
+    pub request: Option<String>,
 }
 
 impl LiveNarrator {
@@ -3012,6 +3773,61 @@ impl LiveNarrator {
             reject_codes: Mutex::new(BTreeMap::new()),
             record_slots: AtomicBool::new(false),
             slot_log: Mutex::new(Vec::new()),
+            last_request: Mutex::new(None),
+            positive_rules: AtomicBool::new(false),
+            format_schema: AtomicUsize::new(0),
+            breaker_enabled: AtomicBool::new(true),
+            consecutive_timeouts: AtomicUsize::new(0),
+            paused: AtomicBool::new(false),
+        }
+    }
+
+    /// Choose the answer shape asked for in `format`. The game never calls this; the
+    /// measurement harness does, to compare the two shapes.
+    pub fn set_format_schema(&self, schema: FormatSchema) {
+        let code = match schema {
+            FormatSchema::Plain => 0,
+            FormatSchema::CitedFacts => 1,
+            FormatSchema::PlainText => 2,
+        };
+        self.format_schema.store(code, Ordering::SeqCst);
+    }
+
+    /// The answer shape this narrator asks for.
+    pub fn format_schema(&self) -> FormatSchema {
+        match self.format_schema.load(Ordering::SeqCst) {
+            1 => FormatSchema::CitedFacts,
+            2 => FormatSchema::PlainText,
+            _ => FormatSchema::Plain,
+        }
+    }
+
+    /// Turn the timeout breaker on or off (on by default). With it on,
+    /// [`TIMEOUT_BREAKER_STRIKES`] per-call timeouts in a row pause the narrator for the rest
+    /// of the session: no further call is made, and every later line is the plain fallback.
+    /// The measurement harness turns it off so every turn of a set is asked for.
+    pub fn set_timeout_breaker(&self, enabled: bool) {
+        self.breaker_enabled.store(enabled, Ordering::SeqCst);
+    }
+
+    /// `true` once the timeout breaker has paused this narrator.
+    pub fn is_paused(&self) -> bool {
+        self.paused.load(Ordering::SeqCst)
+    }
+
+    /// Choose the wording of the shared rules in the system prompt. The game never calls
+    /// this; the measurement harness does, to compare the two wordings.
+    pub fn set_prompt_rules(&self, rules: PromptRules) {
+        self.positive_rules
+            .store(rules == PromptRules::Positive, Ordering::SeqCst);
+    }
+
+    /// The wording of the shared rules this narrator sends.
+    pub fn prompt_rules(&self) -> PromptRules {
+        if self.positive_rules.load(Ordering::SeqCst) {
+            PromptRules::Positive
+        } else {
+            PromptRules::Shipped
         }
     }
 
@@ -3047,6 +3863,11 @@ impl LiveNarrator {
         if !self.record_slots.load(Ordering::SeqCst) {
             return;
         }
+        let sent = self.last_request.lock().ok().and_then(|mut r| r.take());
+        let (seed, request) = match sent {
+            Some((seed, body)) => (Some(seed), Some(body)),
+            None => (None, None),
+        };
         if let Ok(mut log) = self.slot_log.lock() {
             log.push(SlotRecord {
                 is_scene,
@@ -3054,6 +3875,8 @@ impl LiveNarrator {
                 raw_response,
                 candidate,
                 latency_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+                seed,
+                request,
             });
         }
     }
@@ -3157,6 +3980,7 @@ impl LiveNarrator {
             "model": self.settings.model,
             "prompt": "Warm up.",
             "stream": false,
+            "think": false,
             "options": {
                 "num_predict": 1
             }
@@ -3183,28 +4007,50 @@ impl LiveNarrator {
         user_prompt: &str,
         is_scene: bool,
         checker_ctx: &CheckerContext,
+        seed: u32,
     ) -> Option<String> {
+        if self.paused.load(Ordering::SeqCst) {
+            // Paused by the timeout breaker: no call, the plain line shows.
+            self.fallbacks.fetch_add(1, Ordering::SeqCst);
+            return None;
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let started = Instant::now();
         let timeout = Duration::from_millis(self.settings.per_call_timeout_ms);
-        let payload = serde_json::json!({
+        let schema = self.format_schema();
+        let mut payload = serde_json::json!({
             "model": self.settings.model,
             "system": system_prompt,
             "prompt": user_prompt,
-            "format": "json",
             "stream": false,
+            "think": false,
             "options": {
-                "temperature": 0.7,
-                "num_predict": 512
+                "temperature": NARRATOR_TEMPERATURE,
+                "seed": seed,
+                "num_ctx": NARRATOR_NUM_CTX,
+                "num_predict": schema.num_predict(self.settings.length)
             }
-        })
-        .to_string();
+        });
+        if let Some(format) = narration_format_schema_for(schema, self.settings.length) {
+            payload["format"] = format;
+        }
+        let payload = payload.to_string();
+        if self.record_slots.load(Ordering::SeqCst) {
+            if let Ok(mut last) = self.last_request.lock() {
+                *last = Some((seed, payload.clone()));
+            }
+        }
 
         let (status, raw_outer) = match self.transport.post_generate(endpoint, &payload, timeout) {
             Ok(pair) => pair,
             Err(TransportError::Timeout) => {
                 self.timeouts.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
+                if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES
+                {
+                    self.paused.store(true, Ordering::SeqCst);
+                }
                 self.push_record(is_scene, SlotOutcome::Timeout, None, None, started);
                 return None;
             }
@@ -3214,6 +4060,8 @@ impl LiveNarrator {
                 return None;
             }
         };
+        // Any answer at all, good or bad, ends a run of timeouts.
+        self.consecutive_timeouts.store(0, Ordering::SeqCst);
         if status != 200 {
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             self.push_record(
@@ -3242,13 +4090,19 @@ impl LiveNarrator {
             return None;
         };
 
-        let parsed = if is_scene {
-            parse_scene_response_strict(inner_str).map(|scene| scene.narration)
+        let parsed = if schema == FormatSchema::PlainText {
+            // No schema was asked for: the answer is the prose, checked as it stands.
+            let text = inner_str.trim();
+            if text.is_empty() {
+                Err("empty answer".to_string())
+            } else {
+                Ok(text.to_string())
+            }
         } else {
-            parse_outcome_response_strict(inner_str).map(|outcome| outcome.outcome_narration)
+            parse_slot_prose(inner_str, is_scene)
         };
         let candidate_prose = match parsed {
-            Ok(prose) => prose,
+            Ok(prose) => plain_apostrophes(&prose),
             Err(_) => {
                 self.json_errors.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
@@ -3314,11 +4168,28 @@ impl Narrator for LiveNarrator {
         let length = self.settings.length;
         let checker_ctx = CheckerContext::from_narration_context(ctx, length);
 
-        let (scene_sys, scene_user) = build_scene_prompts(profile, length, ctx);
-        let scene = self.call_ollama_slot(&endpoint, &scene_sys, &scene_user, true, &checker_ctx);
+        let rules = self.prompt_rules();
 
-        let (out_sys, out_user) = build_outcome_prompts(profile, length, ctx);
-        let outcome = self.call_ollama_slot(&endpoint, &out_sys, &out_user, false, &checker_ctx);
+        let schema = self.format_schema();
+        let (scene_sys, scene_user) = build_scene_prompts_for(profile, length, ctx, rules, schema);
+        let scene = self.call_ollama_slot(
+            &endpoint,
+            &scene_sys,
+            &scene_user,
+            true,
+            &checker_ctx,
+            narration_call_seed(ctx, profile, length, true),
+        );
+
+        let (out_sys, out_user) = build_outcome_prompts_for(profile, length, ctx, rules, schema);
+        let outcome = self.call_ollama_slot(
+            &endpoint,
+            &out_sys,
+            &out_user,
+            false,
+            &checker_ctx,
+            narration_call_seed(ctx, profile, length, false),
+        );
 
         TurnNarration { scene, outcome }
     }

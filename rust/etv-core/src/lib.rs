@@ -27,11 +27,15 @@ pub mod notices;
 pub mod physics;
 pub mod play;
 pub mod rng;
+pub mod ruleset;
 pub mod save;
+pub mod save_v5;
 pub mod screens;
 pub mod settings;
 pub mod simulate;
 pub mod snapshot;
+pub mod tui;
+pub mod turn_set;
 pub mod validator;
 pub mod worldgen;
 

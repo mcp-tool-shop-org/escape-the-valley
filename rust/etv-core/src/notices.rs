@@ -632,7 +632,23 @@ fn is_non_release_target_only_crate(name: &str) -> bool {
     // `wasip2` (`target_os = "wasi"` -> `wit-bindgen`). None of those targets are in
     // `RELEASE_TARGETS` (`x86_64-pc-windows-msvc`, `x86_64-unknown-linux-gnu`,
     // `aarch64-apple-darwin`).
-    matches!(name, "r-efi" | "wasip2" | "wit-bindgen")
+    //
+    // The terminal front end (`ratatui`, `crossterm`) adds more of the same kind, each reached
+    // only through a target gate no release target satisfies: `redox_syscall` (`parking_lot_core`
+    // on Redox), `wasi` (`mio` on WASI), the two `winapi-*-gnu` import-library crates (`winapi`
+    // on the windows-gnu targets) and `windows-sys` (`errno` and `mio` on Windows, but `errno` is
+    // only reached on the unix release targets and `crossterm` uses `winapi` on Windows).
+    matches!(
+        name,
+        "r-efi"
+            | "wasip2"
+            | "wit-bindgen"
+            | "redox_syscall"
+            | "wasi"
+            | "winapi-i686-pc-windows-gnu"
+            | "winapi-x86_64-pc-windows-gnu"
+            | "windows-sys"
+    )
 }
 
 fn resolve_dep_package<'a>(
@@ -854,18 +870,25 @@ fn parse_package_license_and_repo(crate_toml_text: &str) -> (String, String) {
 }
 
 fn crate_targets_in_build(name: &str) -> Vec<String> {
-    if name == "libc" {
-        vec![
-            "aarch64-apple-darwin".to_string(),
-            "x86_64-unknown-linux-gnu".to_string(),
-        ]
-    } else {
-        vec![
-            "aarch64-apple-darwin".to_string(),
-            "x86_64-pc-windows-msvc".to_string(),
-            "x86_64-unknown-linux-gnu".to_string(),
-        ]
-    }
+    let apple = "aarch64-apple-darwin";
+    let windows = "x86_64-pc-windows-msvc";
+    let linux = "x86_64-unknown-linux-gnu";
+    // Crates reached only through a `cfg(unix)`, `cfg(windows)` or `cfg(target_os)` gate. This
+    // must agree with the target evaluation in `rust/tools/gen_notices.py`.
+    let targets: &[&str] = match name {
+        "libc"
+        | "errno"
+        | "mio"
+        | "num_threads"
+        | "rustix"
+        | "signal-hook"
+        | "signal-hook-mio"
+        | "signal-hook-registry" => &[apple, linux],
+        "linux-raw-sys" => &[linux],
+        "crossterm_winapi" | "winapi" | "windows-link" => &[windows],
+        _ => &[apple, windows, linux],
+    };
+    targets.iter().map(|t| (*t).to_string()).collect()
 }
 
 /// Run the reproducible notices generator from `repo_root`, reading `rust/Cargo.lock`,
