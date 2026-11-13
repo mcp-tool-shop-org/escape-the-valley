@@ -1030,7 +1030,7 @@ pub fn build_narration_context_with_deltas(
         brief.themes,
         brief.weirdness_allowance,
         state.gm_profile,
-        brief.situation,
+        situation_for_narrator(&brief.situation),
         party_status,
     )
     .with_check_facts(
@@ -1143,13 +1143,35 @@ pub fn weirdness_band_from_allowance(allowance: &str) -> u8 {
 
 /// Shared voice hard rules from the Prose Voice Guide (`VOICE-GUIDE-v1-DRAFT-2026-11-02.md`).
 pub fn shared_voice_hard_rules(length: NarratorLength, weirdness_band: u8) -> String {
+    shared_voice_hard_rules_for(length, weirdness_band, false)
+}
+
+/// The shared rule on death, as the prompt states it. On a turn where a death happened, or a run
+/// ended lost or pyrrhic, the death may be stated plainly; everywhere else the ban stands.
+pub const DEATH_RULE_BANNED: &str = "- Never state or imply death or total ruin.";
+
+/// The death rule on a turn where the facts report a death or a failed journey.
+pub const DEATH_RULE_ALLOWED: &str = "- A death or the journey's failure reported in the turn facts may be stated plainly: without sentiment, without a name, without gore. Never state or imply any other death or ruin.";
+
+/// [`shared_voice_hard_rules`] with the death rule chosen for the turn (see
+/// [`death_may_be_stated`]).
+pub fn shared_voice_hard_rules_for(
+    length: NarratorLength,
+    weirdness_band: u8,
+    death_allowed: bool,
+) -> String {
     let (min_s, max_s) = length.sentence_bounds();
+    let death_rule = if death_allowed {
+        DEATH_RULE_ALLOWED
+    } else {
+        DEATH_RULE_BANNED
+    };
     format!(
         "SHARED VOICE HARD RULES:\n\
 - Present tense, third-person impersonal camera at wheel-height in mud and weather.\n\
 - Never state digits, counting words of two or more, or measurement/time/currency units.\n\
 - Allowed quantifiers for wagon, team, or body only: one, both, pair (never before a supply noun). Never use half.\n\
-- Never state or imply death or total ruin.\n\
+{death_rule}\n\
 - Never name a party member or invent proper nouns. No mid-sentence capital letters except the current place name.\n\
 - Never mention a supply or resource noun unless that resource key was spent or gained on this turn.\n\
 - Weirdness band ceiling: band {weirdness_band}. Never use horror cliches, magic, monsters, or game/meta terms.\n\
@@ -1183,12 +1205,26 @@ impl PromptRules {
 /// The shared rules worded as instructions only: no banned word or banned mark is named.
 /// Measurement variant; see [`PromptRules`].
 pub fn shared_voice_rules_positive(length: NarratorLength, weirdness_band: u8) -> String {
+    shared_voice_rules_positive_for(length, weirdness_band, false)
+}
+
+/// [`shared_voice_rules_positive`] with the death rule chosen for the turn.
+pub fn shared_voice_rules_positive_for(
+    length: NarratorLength,
+    weirdness_band: u8,
+    death_allowed: bool,
+) -> String {
     let (min_s, max_s) = length.sentence_bounds();
+    let fate_rule = if death_allowed {
+        "- Tell only what the turn facts support. Where they report a death or a failed journey, say so plainly and briefly."
+    } else {
+        "- Tell only what the turn facts support, and leave every traveller as the facts give them."
+    };
     format!(
         "SHARED VOICE RULES:\n\
 - Present tense, third-person impersonal camera at wheel-height in mud and weather.\n\
 - Speak of amounts in general terms only.\n\
-- Tell only what the turn facts support, and leave every traveller as the facts give them.\n\
+{fate_rule}\n\
 - Refer to people as the party or the travellers. The current place name is the only proper noun.\n\
 - Mention only the supplies listed under resource_directions.\n\
 - Keep to plain physical detail within weirdness band {weirdness_band}.\n\
@@ -1198,6 +1234,46 @@ pub fn shared_voice_rules_positive(length: NarratorLength, weirdness_band: u8) -
     )
 }
 
+/// The engine's situation text states the caravan's doctrine and taboo as plain sentences, one
+/// of which ("Morale holds, but the wagon is lean.") reads as the party's present morale and can
+/// contradict it. For the narrator they are rewritten as what they are: a standing doctrine and
+/// a standing taboo. The engine's own text is left alone (the Python comparison checks it).
+pub const SITUATION_RELABELS: [(&str, &str); 6] = [
+    (
+        "The caravan travels light — less to eat, less to carry.",
+        "Their doctrine: travel light.",
+    ),
+    (
+        "Every repair is deliberate. The caravan moves carefully.",
+        "Their doctrine: careful hands.",
+    ),
+    (
+        "They carry no debts. Morale holds, but the wagon is lean.",
+        "Their doctrine: no debts.",
+    ),
+    (
+        "They will not travel at night.",
+        "Their taboo: no travel at night.",
+    ),
+    (
+        "They refuse to drink river water.",
+        "Their taboo: no river water.",
+    ),
+    (
+        "They leave nothing behind.",
+        "Their taboo: leave nothing behind.",
+    ),
+];
+
+/// The situation text as the narrator is given it (see [`SITUATION_RELABELS`]).
+pub fn situation_for_narrator(situation: &str) -> String {
+    let mut out = situation.to_string();
+    for (from, to) in SITUATION_RELABELS {
+        out = out.replace(from, to);
+    }
+    out
+}
+
 /// Which of a turn's two calls a prompt is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PromptSlot {
@@ -1205,6 +1281,46 @@ pub enum PromptSlot {
     Scene,
     /// The outcome: the scene's facts, plus what resulted.
     Outcome,
+}
+
+/// The word for one applied change in `resource_directions`.
+///
+/// Supplies are `spent` or `gained`. Health, morale, the wagon and the animals `fell` or `rose`.
+/// Time is `days passed` (or `time saved`). Distance depends on the turn: at camp a positive
+/// change is miles covered (`travelled`); on a turn that resolved a choice or took a fork the
+/// engine reports the change in miles still to go, so a positive change means the road grew
+/// longer.
+pub fn change_word(key: &str, delta: i32, on_choice: bool) -> &'static str {
+    let up = delta > 0;
+    match key {
+        "distance" => match (on_choice, up) {
+            (false, true) => "travelled",
+            (false, false) => "lost ground",
+            (true, true) => "road longer",
+            (true, false) => "road shorter",
+        },
+        "time_days" => {
+            if up {
+                "days passed"
+            } else {
+                "time saved"
+            }
+        }
+        "health" | "morale" | "wagon_condition" | "animals_health" => {
+            if up {
+                "rose"
+            } else {
+                "fell"
+            }
+        }
+        _ => {
+            if up {
+                "gained"
+            } else {
+                "spent"
+            }
+        }
+    }
 }
 
 fn or_none(text: &str) -> &str {
@@ -1280,12 +1396,11 @@ pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> S
         return out;
     }
 
+    let on_choice = !ctx.choice_id().is_empty();
     let mut delta_directions = Vec::new();
     for (k, &v) in ctx.shown_deltas() {
-        if v < 0 {
-            delta_directions.push(format!("{k}:spent"));
-        } else if v > 0 {
-            delta_directions.push(format!("{k}:gained"));
+        if v != 0 {
+            delta_directions.push(format!("{k}:{}", change_word(k, v, on_choice)));
         }
     }
     let effects_summary: Vec<&'static str> = ctx
@@ -1346,6 +1461,12 @@ pub fn build_system_prompt_with_rules(
     build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome)
 }
 
+/// Whether this turn's narration may state a death: a member died on the turn, or the run ended
+/// lost or pyrrhic. On every other turn, and on a triumphant or weathered ending, it may not.
+pub fn death_may_be_stated(ctx: &NarrationContext) -> bool {
+    ctx.flags().death || matches!(ctx.ending(), "lost" | "pyrrhic")
+}
+
 /// The system prompt for one of the turn's two calls.
 pub fn build_system_prompt_for_slot(
     profile: GMProfile,
@@ -1355,9 +1476,10 @@ pub fn build_system_prompt_for_slot(
     slot: PromptSlot,
 ) -> String {
     let band = weirdness_band_from_allowance(ctx.weirdness_allowance());
+    let death_allowed = death_may_be_stated(ctx);
     let rules = match rules {
-        PromptRules::Shipped => shared_voice_hard_rules(length, band),
-        PromptRules::Positive => shared_voice_rules_positive(length, band),
+        PromptRules::Shipped => shared_voice_hard_rules_for(length, band, death_allowed),
+        PromptRules::Positive => shared_voice_rules_positive_for(length, band, death_allowed),
     };
     let header = profile_header(profile);
     let facts = format_turn_facts_for_slot(ctx, slot);
@@ -1997,6 +2119,32 @@ const BANNED_NUMBER_OR_UNIT_WORDS: &[&str] = &[
     "turns",
 ];
 
+/// Death words that may be used, plainly, on a turn where a death may be stated. The rest of
+/// [`BANNED_DEATH_WORDS`] (the violent ones, and words of ruin) stay banned on every turn.
+const PLAIN_DEATH_WORDS: &[&str] = &[
+    "dead", "died", "dies", "dying", "death", "deaths", "grave", "graves", "buried", "burial",
+    "perish", "perished", "perishes",
+];
+
+/// Gore. Checked on a turn where a death may be stated: the death is told without it.
+const GORE_WORDS: &[&str] = &[
+    "blood",
+    "bloody",
+    "bloodied",
+    "bleeding",
+    "gore",
+    "gory",
+    "guts",
+    "entrails",
+    "mangled",
+    "severed",
+    "rotting",
+    "rotted",
+    "maggots",
+    "carcass",
+    "carcasses",
+];
+
 const BANNED_DEATH_WORDS: &[&str] = &[
     "dead",
     "died",
@@ -2216,6 +2364,10 @@ pub struct CheckerContext {
     /// The chosen option's label, for the choice-parroting rule (empty = rule inactive).
     #[serde(default)]
     pub choice_label: String,
+    /// `true` on a turn where a death may be stated (see [`death_may_be_stated`]). The plain
+    /// death words are then allowed; violent and gory words are not.
+    #[serde(default)]
+    pub death_allowed: bool,
 }
 
 impl Default for CheckerContext {
@@ -2230,6 +2382,7 @@ impl Default for CheckerContext {
             party_names: Vec::new(),
             event_seed: String::new(),
             choice_label: String::new(),
+            death_allowed: false,
         }
     }
 }
@@ -2255,6 +2408,7 @@ impl CheckerContext {
             party_names: ctx.check_party_names().to_vec(),
             event_seed: ctx.check_event_seed().to_string(),
             choice_label: ctx.check_choice_label().to_string(),
+            death_allowed: death_may_be_stated(ctx),
         }
     }
 }
@@ -2509,12 +2663,21 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 5. DeathWords
+    // 5. DeathWords. On a turn where a death may be stated, the plain words pass and gore does
+    // not; on every other turn the whole list is banned.
     for word in &tokens_lower {
-        if BANNED_DEATH_WORDS.contains(&word.as_str()) {
+        if BANNED_DEATH_WORDS.contains(&word.as_str())
+            && !(ctx.death_allowed && PLAIN_DEATH_WORDS.contains(&word.as_str()))
+        {
             return Err(CheckFailure {
                 code: CheckReasonCode::DeathWords,
                 detail: format!("banned death word '{word}'"),
+            });
+        }
+        if ctx.death_allowed && GORE_WORDS.contains(&word.as_str()) {
+            return Err(CheckFailure {
+                code: CheckReasonCode::DeathWords,
+                detail: format!("gore word '{word}' on a death turn"),
             });
         }
     }

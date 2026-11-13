@@ -8792,7 +8792,7 @@
         },
         {
           "dir": "rust",
-          "files": 29,
+          "files": 30,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9900,7 +9900,7 @@
         },
         {
           "dir": "rust",
-          "files": 29,
+          "files": 30,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10323,8 +10323,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "67df2e760e7d2b67d5dd6972916f697e42862360",
-    "tracked": 826
+    "commit": "3d8fd38b91d8e3961381d31eee84f153a9543a49",
+    "tracked": 827
   },
   "landings": [
     {
@@ -10651,6 +10651,12 @@
     },
     {
       "readers": [
+        {
+          "by": "rust/etv-core/tests/narrator_death_wording_doctrine.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
         {
           "by": "rust/etv-core/tests/narrator_turn_set_v2.rs",
           "call": "include_bytes",
@@ -11144,7 +11150,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 77,
+  "testFiles": 78,
   "unassigned": [
     {
       "hash": "1933527f3fdc9da74685c29d9d85b11224651a30af2343998615557ce4e7282c",
@@ -13416,10 +13422,12 @@
         "build_system_prompt",
         "build_system_prompt_for_slot",
         "build_system_prompt_with_rules",
+        "change_word",
         "check_generated_line",
         "compose_all_464_choice_fallbacks",
         "compute_applied_turn_deltas",
         "connect_error_message",
+        "death_may_be_stated",
         "evaluate_turn_matters",
         "extract_tag_names",
         "format_turn_facts_for_prompt",
@@ -13440,7 +13448,10 @@
         "resolve_fallback_line",
         "resolve_fallback_line_with_mode",
         "shared_voice_hard_rules",
+        "shared_voice_hard_rules_for",
         "shared_voice_rules_positive",
+        "shared_voice_rules_positive_for",
+        "situation_for_narrator",
         "validate_endpoint",
         "weirdness_band_from_allowance"
       ],
@@ -13448,147 +13459,97 @@
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1641
+          "line": 1763
         },
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1649
+          "line": 1771
         },
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1658
+          "line": 1780
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1714
+          "line": 1836
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1722
+          "line": 1844
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1727
+          "line": 1849
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1737
+          "line": 1859
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1749
+          "line": 1871
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1754
+          "line": 1876
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2372
+          "line": 2526
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2392
+          "line": 2546
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2405
+          "line": 2559
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2417
+          "line": 2571
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2427
+          "line": 2581
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2434
+          "line": 2588
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2454
+          "line": 2608
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2462
+          "line": 2616
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2472
+          "line": 2626
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2489
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2505
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2515
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2548
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2554
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2587
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2596
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2612
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2621
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2634
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2647
+          "line": 2643
         },
         {
           "in": "check_generated_line",
@@ -13598,150 +13559,205 @@
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2683
+          "line": 2672
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2694
+          "line": 2678
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2710
+          "line": 2711
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2717
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2750
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2759
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2775
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2784
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2797
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2810
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2822
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2846
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2857
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2873
         },
         {
           "in": "from_json_str",
           "kind": "err",
-          "line": 2782
+          "line": 2945
         },
         {
           "in": "from_source_table_json",
           "kind": "err",
-          "line": 2806
+          "line": 2969
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 2985
+          "line": 3148
         },
         {
           "in": "resolve_fallback_line_with_mode",
           "kind": "match-err",
-          "line": 3134
+          "line": 3297
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3157
+          "line": 3320
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3162
+          "line": 3325
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3168
+          "line": 3331
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3174
+          "line": 3337
         },
         {
           "in": "is_loopback_endpoint",
           "kind": "match-err",
-          "line": 3184
+          "line": 3347
         },
         {
           "in": "validate_endpoint",
           "kind": "err",
-          "line": 3195
+          "line": 3358
         },
         {
           "in": "get_tags",
           "kind": "err",
-          "line": 3369
+          "line": 3532
         },
         {
           "in": "post_generate",
           "kind": "err",
-          "line": 3380
+          "line": 3543
         },
         {
           "in": "take_slot_records",
           "kind": "match-err",
-          "line": 3605
+          "line": 3768
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3681
+          "line": 3844
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3716
+          "line": 3879
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3752
+          "line": 3915
         },
         {
           "in": "warmup",
           "kind": "match-err",
-          "line": 3753
-        },
-        {
-          "in": "warmup",
-          "kind": "err",
-          "line": 3753
-        },
-        {
-          "in": "warmup",
-          "kind": "match-err",
-          "line": 3754
+          "line": 3916
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3754
+          "line": 3916
+        },
+        {
+          "in": "warmup",
+          "kind": "match-err",
+          "line": 3917
+        },
+        {
+          "in": "warmup",
+          "kind": "err",
+          "line": 3917
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3796
+          "line": 3959
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3807
+          "line": 3970
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3829
+          "line": 3992
         },
         {
           "in": "call_ollama_slot",
           "kind": "err",
-          "line": 3847
+          "line": 4010
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3856
+          "line": 4019
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3870
+          "line": 4033
         }
       ],
-      "hash": "2fc0b8ae1f91ca80e1984bdc1012776f8a1a17995b6fa6eace2fbe1855965e32",
+      "hash": "413b26e0c3ebdf70703a13e8171d459a09cdb545fda78be6add6ecff44da788c",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -16303,7 +16319,7 @@
       "path": "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json"
     },
     {
-      "hash": "b446c8be27f036cf1447c9ec1f7706f872b957eb159846274bd315e9a5cf87bf",
+      "hash": "518beeccde989abc20b08ada42b2b3d582755bd5c4bd0f39b05f31204323535e",
       "path": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json"
     },
     {
@@ -16428,7 +16444,17 @@
       "testsInside": true
     },
     {
-      "hash": "adcbc37f19b22297878defb7e2f76549bab1a622d64a42ec46b928a76994ca29",
+      "hash": "88368ee7fb335f1536eb4876c627d65ec29b86b14cbaca8b749fc5a7fcc4b199",
+      "importsFiles": [
+        "rust/etv-core/src/measure.rs",
+        "rust/etv-core/src/narrator.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/narrator_death_wording_doctrine.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "86e1ba4a6afe90dff8a35c88828e2f221fd13ab46d001138faeca0c69f2d3458",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -16456,7 +16482,7 @@
       "testsInside": true
     },
     {
-      "hash": "b87a319491449c2b83985ff006e93bae636bac8b811b73072e4cdc920b9ed6f2",
+      "hash": "7febe4c57bb2b46e71ebe6fdf2db7aebdf579686afc4ad49950f6dc384b64e74",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/measure.rs",
@@ -16513,7 +16539,7 @@
       "testsInside": true
     },
     {
-      "hash": "265cbd93cd31414bd836f9d133e2c9f6b304bdb372743c7201f04fbb28ea4bb3",
+      "hash": "07120400b1f59739caa1241c49bfb29c046b9502fa76526d8941e8106bbad61d",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",

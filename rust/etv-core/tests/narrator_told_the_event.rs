@@ -125,7 +125,7 @@ fn a_turn_that_resolves_a_choice_tells_what_was_chosen_and_only_the_outcome_call
         outcome,
         format!(
             "{scene}\nWHAT RESULTED:\n\
-- resource_directions: distance:gained, morale:spent, time_days:gained, wagon_condition:spent\n\
+- resource_directions: distance:road longer, morale:fell, time_days:days passed, wagon_condition:fell\n\
 - health_effects: none\n\
 - turn_matters: death=false, injury=false, supply_zero=false, landmark_arrival=false, night_at_camp=false"
         )
@@ -421,4 +421,4 @@ fn the_longest_request_fits_the_context_window() {
 }
 
 const EXPECTED_LONGEST_EVENT: &str = "fog_bell";
-const EXPECTED_LONGEST_CHARS: usize = 2623;
+const EXPECTED_LONGEST_CHARS: usize = 2599;
