@@ -186,8 +186,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 24,
-        "lines": 355,
+        "commits": 23,
+        "lines": 353,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -201,8 +201,8 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 17,
-        "lines": 744,
+        "commits": 16,
+        "lines": 676,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -226,48 +226,48 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 32,
-        "lines": 498,
+        "commits": 31,
+        "lines": 487,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 14,
-        "lines": 1433,
+        "commits": 13,
+        "lines": 1323,
         "path": "README.es.md"
       },
       {
-        "commits": 14,
-        "lines": 1341,
+        "commits": 13,
+        "lines": 1259,
         "path": "README.fr.md"
       },
       {
-        "commits": 14,
-        "lines": 1351,
+        "commits": 13,
+        "lines": 1247,
         "path": "README.hi.md"
       },
       {
-        "commits": 14,
-        "lines": 1159,
+        "commits": 13,
+        "lines": 1099,
         "path": "README.it.md"
       },
       {
-        "commits": 14,
-        "lines": 1523,
+        "commits": 13,
+        "lines": 1419,
         "path": "README.ja.md"
       },
       {
-        "commits": 24,
-        "lines": 176,
+        "commits": 23,
+        "lines": 172,
         "path": "README.md"
       },
       {
-        "commits": 14,
-        "lines": 1611,
+        "commits": 13,
+        "lines": 1509,
         "path": "README.pt-BR.md"
       },
       {
-        "commits": 14,
-        "lines": 1123,
+        "commits": 13,
+        "lines": 1051,
         "path": "README.zh.md"
       },
       {
@@ -287,7 +287,7 @@
       },
       {
         "commits": 27,
-        "lines": 986,
+        "lines": 965,
         "path": "atlas/README.md"
       },
       {
@@ -297,17 +297,17 @@
       },
       {
         "commits": 27,
-        "lines": 4115,
+        "lines": 4018,
         "path": "atlas/page.json"
       },
       {
         "commits": 27,
-        "lines": 25126,
+        "lines": 22624,
         "path": "atlas/statistics.json"
       },
       {
         "commits": 27,
-        "lines": 35138,
+        "lines": 35054,
         "path": "atlas/structure.json"
       },
       {
@@ -2901,8 +2901,8 @@
         "path": "package.json"
       },
       {
-        "commits": 19,
-        "lines": 85,
+        "commits": 18,
+        "lines": 80,
         "path": "pyproject.toml"
       },
       {
@@ -3036,6 +3036,11 @@
         "path": "rust/etv-core/src/bin/etv.rs"
       },
       {
+        "commits": 1,
+        "lines": 14,
+        "path": "rust/etv-core/src/bin/etv_content_diff.rs"
+      },
+      {
         "commits": 2,
         "lines": 36,
         "path": "rust/etv-core/src/bin/narrator_measure.rs"
@@ -3044,6 +3049,11 @@
         "commits": 2,
         "lines": 456,
         "path": "rust/etv-core/src/content.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 1004,
+        "path": "rust/etv-core/src/content_diff.rs"
       },
       {
         "commits": 3,
@@ -3066,8 +3076,8 @@
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
-        "commits": 8,
-        "lines": 75,
+        "commits": 9,
+        "lines": 76,
         "path": "rust/etv-core/src/lib.rs"
       },
       {
@@ -3126,14 +3136,14 @@
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
+        "commits": 1,
+        "lines": 596,
+        "path": "rust/etv-core/tests/content_diff_renderer.rs"
+      },
+      {
         "commits": 2,
         "lines": 118,
         "path": "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json"
-      },
-      {
-        "commits": 1,
-        "lines": 476,
-        "path": "rust/etv-core/tests/invariant_sweeps.rs"
       },
       {
         "commits": 5,
@@ -3236,8 +3246,8 @@
         "path": "rust/tools/gen_notices.py"
       },
       {
-        "commits": 4,
-        "lines": 1064,
+        "commits": 3,
+        "lines": 798,
         "path": "scripts/check_glibc_floor.py"
       },
       {
@@ -3531,8 +3541,8 @@
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 11,
-        "lines": 44,
+        "commits": 10,
+        "lines": 42,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -3976,8 +3986,8 @@
         "path": "tests/test_four_tier_live.py"
       },
       {
-        "commits": 4,
-        "lines": 540,
+        "commits": 3,
+        "lines": 405,
         "path": "tests/test_glibc_floor.py"
       },
       {
@@ -4061,9 +4071,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T04:01:24.604Z",
+  "generatedAt": "2026-11-13T04:38:38.287Z",
   "generatedFrom": {
-    "commit": "38602c5813a8264bcdc381fd29ad7aea911e4444"
+    "commit": "bd8716db5a07589881fb6d51c93d01bd711a6143"
   },
   "pairs": [
     {
@@ -4223,43 +4233,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 17,
-      "shared": 17,
+      "either": 18,
+      "shared": 18,
       "strength": 1
     },
     {
@@ -4413,8 +4423,8 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-12T21:20:54-05:00",
-    "inScopeFiles": 777,
+    "headDate": "2026-11-12T21:23:31-05:00",
+    "inScopeFiles": 780,
     "pinnedStart": null,
     "priorFloor": "fallen",
     "qualifyingCommits": 123,
@@ -4422,7 +4432,7 @@
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T02:20:54.000Z",
+    "since": "2026-05-17T02:23:31.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

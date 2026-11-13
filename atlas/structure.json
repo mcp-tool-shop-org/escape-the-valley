@@ -8414,7 +8414,7 @@
   ],
   "doors": [
     {
-      "checksCount": 5,
+      "checksCount": 6,
       "commands": [
         {
           "dir": "",
@@ -8641,6 +8641,13 @@
         {
           "job": "rust",
           "matched": true,
+          "path": "rust/etv-core/src/bin/etv_content_diff.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "rust",
+          "matched": true,
           "path": "rust/etv-core/src/bin/narrator_measure.rs",
           "runKind": "checks",
           "via": "cargo clippy"
@@ -8740,7 +8747,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 16,
+      "runsCount": 17,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -8764,7 +8771,7 @@
         },
         {
           "dir": "rust",
-          "files": 16,
+          "files": 17,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9360,7 +9367,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 5,
+      "checksCount": 6,
       "commands": [
         {
           "dir": "",
@@ -9707,6 +9714,13 @@
         {
           "job": "gate/rust",
           "matched": true,
+          "path": "rust/etv-core/src/bin/etv_content_diff.rs",
+          "runKind": "checks",
+          "via": "cargo clippy"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
           "path": "rust/etv-core/src/bin/narrator_measure.rs",
           "runKind": "checks",
           "via": "cargo clippy"
@@ -9806,7 +9820,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 16,
+      "runsCount": 17,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -9844,7 +9858,7 @@
         },
         {
           "dir": "rust",
-          "files": 16,
+          "files": 17,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10052,6 +10066,43 @@
       "kind": "command",
       "landings": [],
       "mentions": [],
+      "name": "etv_content_diff",
+      "permissions": [],
+      "pushes": false,
+      "reach": [],
+      "readers": [],
+      "runs": [
+        {
+          "path": "rust/etv-core/src/bin/etv_content_diff.rs",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "unshipped": true,
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "rust/etv-core/Cargo.toml",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
       "name": "narrator_measure",
       "permissions": [],
       "pushes": false,
@@ -10119,8 +10170,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "38602c5813a8264bcdc381fd29ad7aea911e4444",
-    "tracked": 772
+    "commit": "bd8716db5a07589881fb6d51c93d01bd711a6143",
+    "tracked": 775
   },
   "landings": [
     {
@@ -10868,7 +10919,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 40,
+  "testFiles": 41,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11571,6 +11622,44 @@
     {
       "entry": "main",
       "entryRule": 1,
+      "hash": "d7aa41cce774d98f0b82e4b9b0b79a83ab0b54a8b950feaf8ed9487675a0ba2a",
+      "importsFiles": [
+        "rust/etv-core/src/content_diff.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/src/bin/etv_content_diff.rs",
+      "sequences": [
+        {
+          "calls": [
+            {
+              "inner": [
+                {
+                  "line": 881,
+                  "name": "from_raw_strings",
+                  "receiver": "ContentPack",
+                  "target": {
+                    "file": "rust/etv-core/src/content.rs"
+                  },
+                  "via": "load_pack_from_dir"
+                }
+              ],
+              "line": 10,
+              "name": "run_cli",
+              "target": {
+                "file": "rust/etv-core/src/content_diff.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": true,
+          "isDefaultExport": false,
+          "name": "main"
+        }
+      ]
+    },
+    {
+      "entry": "main",
+      "entryRule": 1,
       "failurePaths": [
         {
           "in": "main",
@@ -11724,6 +11813,110 @@
       "path": "rust/etv-core/src/content.rs"
     },
     {
+      "entry": "load_pack_from_dir",
+      "entryRule": 4,
+      "exports": [
+        "diff_packs",
+        "html_escape",
+        "load_pack_from_dir",
+        "md_cell",
+        "mechanical_flags",
+        "parse_args",
+        "render_html",
+        "render_markdown",
+        "run_cli",
+        "sentence_count",
+        "word_count"
+      ],
+      "failurePaths": [
+        {
+          "in": "load_pack_from_dir",
+          "kind": "err",
+          "line": 884
+        },
+        {
+          "in": "parse_args",
+          "kind": "err",
+          "line": 919
+        },
+        {
+          "in": "parse_args",
+          "kind": "err",
+          "line": 928
+        },
+        {
+          "in": "parse_args",
+          "kind": "err",
+          "line": 934
+        },
+        {
+          "in": "run_cli",
+          "kind": "match-err",
+          "line": 966
+        },
+        {
+          "in": "run_cli",
+          "kind": "match-err",
+          "line": 978
+        },
+        {
+          "in": "run_cli",
+          "kind": "match-err",
+          "line": 982
+        },
+        {
+          "in": "run_cli",
+          "kind": "match-err",
+          "line": 990
+        },
+        {
+          "in": "run_cli",
+          "kind": "match-err",
+          "line": 995
+        }
+      ],
+      "hash": "50e83adc6034efaf27e1a18b635e0ee0352dadd4c9597d8995cb9db432fb233d",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs"
+      ],
+      "path": "rust/etv-core/src/content_diff.rs",
+      "sequences": [
+        {
+          "calls": [
+            {
+              "line": 881,
+              "name": "from_raw_strings",
+              "receiver": "ContentPack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              }
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "load_pack_from_dir"
+        },
+        {
+          "calls": [
+            {
+              "line": 881,
+              "name": "from_raw_strings",
+              "receiver": "ContentPack",
+              "target": {
+                "file": "rust/etv-core/src/content.rs"
+              },
+              "via": "load_pack_from_dir"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "run_cli"
+        }
+      ]
+    },
+    {
       "exports": [
         "build_fallback_callout",
         "choose_one_of_line",
@@ -11819,9 +12012,10 @@
       "path": "rust/etv-core/src/ledger.rs"
     },
     {
-      "hash": "f827bd1e8097b224750a57a3ac9e2341554ecc59ce3b76c1562944d4d092b897",
+      "hash": "505e646ee1cc4f7d0d16c55ccc6eecf0a890689078abad85fe8ab9449ed5de44",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/content_diff.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/events_builtin.rs",
@@ -14590,6 +14784,22 @@
           "isDefaultExport": false,
           "name": "load_json_events"
         }
+      ],
+      "testsInside": true
+    },
+    {
+      "hash": "63e2e91093dcdd89d71caaaa1de5fd80c47c38bdc0c3f34e9b15d659b31ed6d9",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/content_diff.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/content_diff_renderer.rs",
+      "spawns": [
+        "rust/etv-core/src/bin/etv_content_diff.rs"
+      ],
+      "spawnsInstalled": [
+        "rust/etv-core/src/bin/etv_content_diff.rs"
       ],
       "testsInside": true
     },
