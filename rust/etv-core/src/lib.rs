@@ -22,6 +22,7 @@ pub mod model;
 pub mod narrator;
 pub mod notices;
 pub mod physics;
+pub mod play;
 pub mod rng;
 pub mod save;
 pub mod screens;
