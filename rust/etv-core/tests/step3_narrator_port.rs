@@ -832,6 +832,7 @@ fn step3_fallback_table_phrases_pass_voice_rules() {
             allowed_landmarks: Vec::new(),
             weirdness_band: 0,
             length: NarratorLength::Brief,
+            ..CheckerContext::default()
         };
         assert_eq!(
             check_generated_line(&sentence, &ctx),
@@ -1218,6 +1219,7 @@ fn step3_hard_rule_checker_pass_and_fail_table_and_fallback_on_failure() {
         allowed_landmarks: vec!["Millford".to_string(), "Widow's Pass".to_string()],
         weirdness_band: 0,
         length: NarratorLength::Standard,
+        ..CheckerContext::default()
     };
 
     // Table of lines that MUST PASS

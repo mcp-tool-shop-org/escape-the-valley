@@ -1,0 +1,59 @@
+{
+  "schema": "etv-turn-set-1",
+  "turns": [
+    {
+      "id": "s001",
+      "seed": 42,
+      "event_id": "f1_001",
+      "choice_id": "A",
+      "weirdness_level": 0,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "water": -1
+      },
+      "event_seed": "A shallow ford runs brown across the trail.",
+      "choice_label": "Drive the team through the ford",
+      "fallback_line": "The water runs low."
+    },
+    {
+      "id": "s002",
+      "seed": 7,
+      "event_id": "f1_003",
+      "choice_id": "B",
+      "weirdness_level": 2,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "rope": -1
+      },
+      "event_seed": "A fallen bridge blocks the road.",
+      "choice_label": "Patch a crossing with rope",
+      "fallback_line": "The rope runs low."
+    },
+    {
+      "id": "s003",
+      "seed": 11,
+      "event_id": "f1_004",
+      "choice_id": "A",
+      "weirdness_level": 3,
+      "uncanny_tokens": 2,
+      "deltas": {
+        "food": -1
+      },
+      "event_seed": "Mist hangs over the river.",
+      "choice_label": "Investigate the strange lights",
+      "fallback_line": "The food runs low."
+    },
+    {
+      "id": "s004",
+      "seed": 19,
+      "event_id": "f1_018",
+      "choice_id": "C",
+      "weirdness_level": 2,
+      "uncanny_tokens": 0,
+      "deltas": {},
+      "event_seed": "Hail falls on the open prairie.",
+      "choice_label": "Wait out the storm",
+      "fallback_line": "The wagon waits."
+    }
+  ]
+}
