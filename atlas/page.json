@@ -84,24 +84,31 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 0,
+      "added": 1,
+      "changed": 7,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/save_v5_resume_cooldown.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/save_v5_resume_cooldown.rs"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-13; no file changed.",
+        "sentence": "1 file added and 7 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "02ea88680b4e021fed295fee0bf357f320130637",
-      "generatedAt": "2026-11-13T06:24:47.333Z"
+      "commit": "d271ef3fcb000e757b32beda21c9cadd5d021ddc",
+      "generatedAt": "2026-11-13T06:25:23.423Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -186,9 +193,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 9 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "d271ef3fcb000e757b32beda21c9cadd5d021ddc",
+  "commit": "9b050b01762c785ea49c0b766768ec7a654657ca",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (45), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (46), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -243,7 +250,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 22,
+      "runsMore": 23,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -308,7 +315,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 22,
+      "runsMore": 23,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -628,13 +635,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T06:25:23.423Z",
+  "generatedAt": "2026-11-13T07:21:47.904Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "73 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 70 more.",
+    "74 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 71 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -662,7 +669,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 48,
+  "testFiles": 49,
   "testedBy": {
     "agents": 1,
     "bin": 0,

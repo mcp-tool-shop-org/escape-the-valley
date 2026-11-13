@@ -213,7 +213,7 @@ pub fn repick_if_unaffordable(policy: Policy, engine: &StepEngine, choice_id: &s
         return choice_id.to_string();
     }
     let repick = match policy {
-        Policy::Last | Policy::Reckless => affordable.last(),
+        Policy::Last | Policy::Reckless => affordable.next_back(),
         Policy::Cautious => choices
             .iter()
             .find(|c| c.affordable && c.cost_hint.trim().is_empty())

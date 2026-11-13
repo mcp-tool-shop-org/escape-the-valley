@@ -1,19 +1,20 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit d271ef3 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit 9b050b0 by Atlas 1.26.0.
 
 ## What this is
 
-10 parts, mostly Python (70 files), Rust (45), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).
+10 parts, mostly Python (70 files), Rust (46), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-13 (02ea886)
+## What changed since 2026-11-13 (d271ef3)
 
-Nothing structural changed since 2026-11-13; no file changed.
+- rust/etv-core/tests/save_v5_resume_cooldown.rs is new and belongs to no part, so atlas check fails on it against the previous map.
+- 1 file added and 7 changed content.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 22 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more.
-2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 22 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more.
+1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 23 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more.
+2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 23 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more.
 3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
 4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
@@ -27,7 +28,7 @@ Nothing structural changed since 2026-11-13; no file changed.
 
 ## What happens through CI
 
-1. The workflow runs scripts/gen_third_party_notices.py in scripts, tests/ in tests, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs, and 20 files in 6 more places; it checks scripts/ in scripts, src/ in src, rust/etv-core/src/bin/etv.rs, rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs, and 2 files in 2 more places.
+1. The workflow runs scripts/gen_third_party_notices.py in scripts, tests/ in tests, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs, and 21 files in 6 more places; it checks scripts/ in scripts, src/ in src, rust/etv-core/src/bin/etv.rs, rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs, and 2 files in 2 more places.
 2. That reaches agents (1 file).
 3. It uploads coverage to Codecov.
 
@@ -37,7 +38,7 @@ CI writes nothing this map can see.
 
 ## The other doors
 
-**Release** runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 22 more, checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
+**Release** runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 23 more, checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 4 more, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
 
 **Release Binaries** runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
 
@@ -117,7 +118,7 @@ Read those in order to follow one pull request end to end.
 - 2 writes and 6 reads use paths built at run time and are not named here.
 - 4 writes and 20 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
-- 73 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 70 more.
+- 74 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 71 more.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.
