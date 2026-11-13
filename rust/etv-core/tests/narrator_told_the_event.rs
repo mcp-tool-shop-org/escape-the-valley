@@ -165,6 +165,58 @@ fn a_camp_turn_says_what_the_party_did() {
     assert_eq!(ctx.action(), "rest");
 }
 
+/// On the turn a run ends, both calls are told how it ended, by the engine's own grade.
+#[test]
+fn the_turn_that_ends_a_run_says_how_it_ended() {
+    use etv_core::engine::compute_ending;
+    let content = embedded_content_pack();
+    let ending_line = |state: &etv_core::model::RunState| -> String {
+        let ctx = build_narration_context_with_phase(
+            state,
+            if state.game_over {
+                GamePhase::GameOver
+            } else {
+                GamePhase::Camp
+            },
+            "",
+            "",
+            &StepMessages::default(),
+            TurnMattersFlags::default(),
+        );
+        let scene = format_turn_facts_for_slot(&ctx, PromptSlot::Scene);
+        let outcome = format_turn_facts_for_slot(&ctx, PromptSlot::Outcome);
+        let line = |facts: &str| {
+            facts
+                .lines()
+                .find(|l| l.starts_with("- ending: "))
+                .expect("ending line")
+                .to_string()
+        };
+        assert_eq!(line(&scene), line(&outcome));
+        line(&scene)
+    };
+
+    // An ordinary turn.
+    let mut state = create_new_run_with_content(42, content);
+    assert_eq!(ending_line(&state), "- ending: none");
+
+    // Reached the valley on day 1 with all four alive: triumphant.
+    state.victory = true;
+    state.game_over = true;
+    state.ending = Some(compute_ending(&state));
+    assert_eq!(ending_line(&state), "- ending: triumphant");
+
+    // Reached it with one of the four dead: pyrrhic.
+    state.party.members[0].health = 0;
+    state.ending = Some(compute_ending(&state));
+    assert_eq!(ending_line(&state), "- ending: pyrrhic");
+
+    // Did not reach it: lost.
+    state.victory = false;
+    state.ending = Some(compute_ending(&state));
+    assert_eq!(ending_line(&state), "- ending: lost");
+}
+
 /// Fallback lines still never reach the model, nor do party names or the engine's own lines.
 #[test]
 fn the_fallback_line_party_names_and_engine_lines_stay_out_of_every_prompt() {
@@ -369,4 +421,4 @@ fn the_longest_request_fits_the_context_window() {
 }
 
 const EXPECTED_LONGEST_EVENT: &str = "fog_bell";
-const EXPECTED_LONGEST_CHARS: usize = 2608;
+const EXPECTED_LONGEST_CHARS: usize = 2623;

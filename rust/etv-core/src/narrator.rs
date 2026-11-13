@@ -307,6 +307,10 @@ pub struct NarrationContext {
     /// turn that resolved an event choice or took a fork. Prompt material.
     #[serde(default)]
     action: String,
+    /// How the run ended, when this turn ended it: the engine's ending grade (`triumphant`,
+    /// `weathered`, `pyrrhic` or `lost`). Empty on every other turn. Prompt material.
+    #[serde(default)]
+    ending: String,
     /// The run's seed number. Used **only** to derive the sampling seed sent with a narrator
     /// call, so the same run and turn ask for the same sample. It is a plain number: it gives
     /// no access to the engine's RNG. Never prompt material.
@@ -343,6 +347,17 @@ impl NarrationContext {
         self.offered_labels = offered_labels;
         self.action = action;
         self
+    }
+
+    /// Attach the ending grade of a run that this turn ended.
+    pub fn with_ending(mut self, ending: String) -> Self {
+        self.ending = ending;
+        self
+    }
+
+    /// The ending grade, when this turn ended the run (empty otherwise).
+    pub fn ending(&self) -> &str {
+        &self.ending
     }
 
     /// The event's title (empty when the turn has no event).
@@ -435,6 +450,7 @@ impl NarrationContext {
             event_title: String::new(),
             offered_labels: Vec::new(),
             action: String::new(),
+            ending: String::new(),
             run_seed: 0,
         }
     }
@@ -978,6 +994,17 @@ pub fn build_narration_context_with_deltas(
         String::new()
     };
 
+    // The ending grade, on the turn the run ends.
+    let ending = if state.game_over {
+        state
+            .ending
+            .as_ref()
+            .map(|e| e.tier.clone())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
     NarrationContext::new(
         fallback_line,
         event_id.to_string(),
@@ -1005,6 +1032,7 @@ pub fn build_narration_context_with_deltas(
         choice_label,
     )
     .with_event_facts(event_title, offered_labels, action)
+    .with_ending(ending)
     .with_run_seed(state.seed)
 }
 
@@ -1210,6 +1238,7 @@ pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> S
 - biome: {}\n\
 - time_of_day: {}\n\
 - phase: {}\n\
+- ending: {}\n\
 - weirdness_allowance: {}\n\
 - pressures: {}\n\
 - themes: {}\n\
@@ -1230,6 +1259,7 @@ pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> S
         ctx.biome(),
         ctx.time_of_day().as_str(),
         ctx.phase().as_str(),
+        or_none(ctx.ending()),
         ctx.weirdness_allowance(),
         ctx.pressures().join(", "),
         ctx.themes().join(", "),
