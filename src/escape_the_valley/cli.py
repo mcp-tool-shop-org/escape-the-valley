@@ -55,6 +55,60 @@ def _licenses_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _run_selfcheck() -> str:
+    """Import lazy TUI and XRPL extensions and verify bundled assets offline."""
+    import textual
+    import xrpl
+    from textual.css.errors import StylesheetError
+    from textual.css.tokenizer import TokenError
+    from xrpl.clients import JsonRpcClient
+    from xrpl.core import addresscodec, keypairs
+    from xrpl.wallet import Wallet
+
+    from .backpack import _HAS_XRPL
+    from .events import build_event_library
+    from .tui_app import LedgerTrailApp
+
+    _ = (JsonRpcClient, addresscodec, keypairs, Wallet)
+    if not _HAS_XRPL:
+        raise RuntimeError("xrpl extra is not active (_HAS_XRPL is False)")
+
+    probe = LedgerTrailApp()
+    try:
+        probe.stylesheet.read_all(probe.css_path)
+        probe.stylesheet.parse()
+    except (StylesheetError, TokenError) as exc:
+        raise RuntimeError(f"tui.tcss failed to load: {exc}") from exc
+    rule_count = len(probe.stylesheet.rules)
+    if rule_count == 0:
+        raise RuntimeError("tui.tcss parsed to zero rules")
+
+    event_count = len(build_event_library())
+    if event_count < _EVENT_LIBRARY_FLOOR:
+        raise RuntimeError(
+            f"event library loaded {event_count} events (< {_EVENT_LIBRARY_FLOOR})"
+        )
+
+    textual_ver = getattr(textual, "__version__", None) or "ok"
+    xrpl_ver = getattr(xrpl, "__version__", None) or "ok"
+    return (
+        f"selfcheck ok: {_version_string()} "
+        f"textual={textual_ver} xrpl={xrpl_ver} "
+        f"events={event_count} css_rules={rule_count}"
+    )
+
+
+def _selfcheck_callback(value: bool) -> None:
+    if value:
+        try:
+            summary = _run_selfcheck()
+        except Exception as exc:
+            typer.echo(f"SELFCHECK FAILED: {exc}", err=True)
+            raise typer.Exit(1) from None
+        typer.echo(summary)
+        raise typer.Exit(0)
+
+
 # Classic-address shape: leading 'r', base58 alphabet, 25-35 chars total.
 # Used as a fallback when xrpl-py is not installed (cli-tui-002).
 _CLASSIC_ADDR_RE = re.compile(
@@ -161,6 +215,10 @@ def main_callback(
     _licenses: bool = typer.Option(
         False, "--licenses", callback=_licenses_callback, is_eager=True,
         help="Show third-party license notices and exit.",
+    ),
+    _selfcheck: bool = typer.Option(
+        False, "--selfcheck", callback=_selfcheck_callback, is_eager=True,
+        help="Import TUI and XRPL extensions offline and exit.",
     ),
 ) -> None:
     """Escape the Valley: Ledger Trail — Oregon Trail-style survival game."""
