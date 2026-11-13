@@ -8778,7 +8778,7 @@
         },
         {
           "dir": "rust",
-          "files": 22,
+          "files": 23,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9872,7 +9872,7 @@
         },
         {
           "dir": "rust",
-          "files": 22,
+          "files": 23,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10221,8 +10221,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "bcde40e7086bc95113f73974ade69ca53db5d878",
-    "tracked": 786
+    "commit": "5f3f5f409c8795622aaf574b743a671cf59e43af",
+    "tracked": 787
   },
   "landings": [
     {
@@ -11006,7 +11006,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 47,
+  "testFiles": 48,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11878,7 +11878,7 @@
             {
               "inner": [
                 {
-                  "line": 336,
+                  "line": 352,
                   "name": "create_new_run_with_content",
                   "target": {
                     "file": "rust/etv-core/src/worldgen.rs"
@@ -11886,7 +11886,7 @@
                   "via": "run_one_with_ruleset"
                 },
                 {
-                  "line": 337,
+                  "line": 353,
                   "name": "with_content",
                   "receiver": "StepEngine",
                   "target": {
@@ -11895,7 +11895,7 @@
                   "via": "run_one_with_ruleset"
                 },
                 {
-                  "line": 263,
+                  "line": 279,
                   "name": "new",
                   "receiver": "PlayerIntent",
                   "target": {
@@ -11904,7 +11904,7 @@
                   "via": "rotating_intent"
                 },
                 {
-                  "line": 395,
+                  "line": 411,
                   "name": "compute_mechanics_state_hash",
                   "target": {
                     "file": "rust/etv-core/src/snapshot.rs"
@@ -11912,7 +11912,7 @@
                   "via": "run_one_with_ruleset"
                 },
                 {
-                  "line": 413,
+                  "line": 429,
                   "name": "compute_ending",
                   "target": {
                     "file": "rust/etv-core/src/engine.rs"
@@ -11920,7 +11920,7 @@
                   "via": "run_one_with_ruleset"
                 },
                 {
-                  "line": 428,
+                  "line": 444,
                   "name": "deaths_by_cause",
                   "target": {
                     "file": "rust/etv-core/src/engine.rs"
@@ -14335,20 +14335,20 @@
         {
           "in": "parse_args",
           "kind": "err",
-          "line": 661
+          "line": 678
         },
         {
           "in": "parse_args",
           "kind": "err",
-          "line": 675
+          "line": 692
         },
         {
           "in": "parse_args",
           "kind": "err",
-          "line": 697
+          "line": 714
         }
       ],
-      "hash": "4fb9a34c7e4cc9e454f302b2d55265bf01111829975170095fffa157da897d68",
+      "hash": "b0cdb3069a253274cdb78b944d7e0790f3d7741286f8504d668b22476196cfcc",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -14362,7 +14362,7 @@
         {
           "calls": [
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14379,7 +14379,7 @@
         {
           "calls": [
             {
-              "line": 204,
+              "line": 220,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14395,7 +14395,7 @@
         {
           "calls": [
             {
-              "line": 229,
+              "line": 245,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14411,7 +14411,7 @@
         {
           "calls": [
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14427,7 +14427,7 @@
         {
           "calls": [
             {
-              "line": 336,
+              "line": 352,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -14435,7 +14435,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 337,
+              "line": 353,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -14444,7 +14444,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14453,7 +14453,7 @@
               "via": "rotating_intent"
             },
             {
-              "line": 395,
+              "line": 411,
               "name": "compute_mechanics_state_hash",
               "target": {
                 "file": "rust/etv-core/src/snapshot.rs"
@@ -14461,7 +14461,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 413,
+              "line": 429,
               "name": "compute_ending",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14469,7 +14469,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 428,
+              "line": 444,
               "name": "deaths_by_cause",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14485,14 +14485,14 @@
         {
           "calls": [
             {
-              "line": 336,
+              "line": 352,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
               }
             },
             {
-              "line": 337,
+              "line": 353,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -14500,7 +14500,7 @@
               }
             },
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14509,21 +14509,21 @@
               "via": "rotating_intent"
             },
             {
-              "line": 395,
+              "line": 411,
               "name": "compute_mechanics_state_hash",
               "target": {
                 "file": "rust/etv-core/src/snapshot.rs"
               }
             },
             {
-              "line": 413,
+              "line": 429,
               "name": "compute_ending",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
               }
             },
             {
-              "line": 428,
+              "line": 444,
               "name": "deaths_by_cause",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14538,7 +14538,7 @@
         {
           "calls": [
             {
-              "line": 336,
+              "line": 352,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -14546,7 +14546,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 337,
+              "line": 353,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -14555,7 +14555,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14564,7 +14564,7 @@
               "via": "rotating_intent"
             },
             {
-              "line": 395,
+              "line": 411,
               "name": "compute_mechanics_state_hash",
               "target": {
                 "file": "rust/etv-core/src/snapshot.rs"
@@ -14572,7 +14572,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 413,
+              "line": 429,
               "name": "compute_ending",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14580,7 +14580,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 428,
+              "line": 444,
               "name": "deaths_by_cause",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14596,7 +14596,7 @@
         {
           "calls": [
             {
-              "line": 336,
+              "line": 352,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -14604,7 +14604,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 337,
+              "line": 353,
               "name": "with_content",
               "receiver": "StepEngine",
               "target": {
@@ -14613,7 +14613,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 263,
+              "line": 279,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14622,7 +14622,7 @@
               "via": "rotating_intent"
             },
             {
-              "line": 395,
+              "line": 411,
               "name": "compute_mechanics_state_hash",
               "target": {
                 "file": "rust/etv-core/src/snapshot.rs"
@@ -14630,7 +14630,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 413,
+              "line": 429,
               "name": "compute_ending",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -14638,7 +14638,7 @@
               "via": "run_one_with_ruleset"
             },
             {
-              "line": 428,
+              "line": 444,
               "name": "deaths_by_cause",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
@@ -15729,6 +15729,20 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/ruleset_v2_river_once.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "b02afa00964f815b33ec15ceeebbacf3ae57be844c643068bd21ef2f7bd71963",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/ruleset.rs",
+        "rust/etv-core/src/simulate.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/simulate_cautious_aware.rs",
       "testsInside": true
     },
     {

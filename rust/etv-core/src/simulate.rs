@@ -50,6 +50,11 @@ pub enum Policy {
     /// Rest when hurt or exhausted, repair a damaged wagon, hunt when food is low, else travel;
     /// prefers a choice with no advertised cost.
     Cautious,
+    /// The cautious script, except that it never picks a choice the party cannot afford when an
+    /// affordable one is offered. Under the Legacy rules every choice is shown affordable, so it
+    /// plays exactly as `Cautious` there.
+    #[serde(rename = "cautious-aware")]
+    CautiousAware,
     /// Hard pace, always travel, last choice.
     Reckless,
     /// The Tier 2 snapshot style mix of choices and camp actions.
@@ -58,10 +63,11 @@ pub enum Policy {
 
 impl Policy {
     /// Every policy, in report order.
-    pub const ALL: [Policy; 5] = [
+    pub const ALL: [Policy; 6] = [
         Policy::First,
         Policy::Last,
         Policy::Cautious,
+        Policy::CautiousAware,
         Policy::Reckless,
         Policy::Rotating,
     ];
@@ -72,6 +78,7 @@ impl Policy {
             Policy::First => "first",
             Policy::Last => "last",
             Policy::Cautious => "cautious",
+            Policy::CautiousAware => "cautious-aware",
             Policy::Reckless => "reckless",
             Policy::Rotating => "rotating",
         }
@@ -174,9 +181,11 @@ pub fn choose_intent(
 ) -> (PlayerIntent, String) {
     match policy {
         Policy::Rotating => rotating_intent(engine, seed_idx, turn),
-        Policy::First | Policy::Last | Policy::Cautious | Policy::Reckless => {
-            simple_intent(policy, engine)
-        }
+        Policy::First
+        | Policy::Last
+        | Policy::Cautious
+        | Policy::CautiousAware
+        | Policy::Reckless => simple_intent(policy, engine),
     }
 }
 
@@ -190,6 +199,13 @@ fn pick_choice(policy: Policy, engine: &StepEngine) -> String {
         Policy::Cautious => choices
             .iter()
             .find(|c| c.cost_hint.trim().is_empty())
+            .unwrap_or(first),
+        // The same preference, among the choices the party can afford; if none is affordable
+        // (the engine keeps one open under V2, so this is Legacy-proof only), the first.
+        Policy::CautiousAware => choices
+            .iter()
+            .find(|c| c.affordable && c.cost_hint.trim().is_empty())
+            .or_else(|| choices.iter().find(|c| c.affordable))
             .unwrap_or(first),
         Policy::First | Policy::Rotating => first,
     };
@@ -228,7 +244,7 @@ fn camp_intent(policy: Policy, engine: &StepEngine) -> PlayerIntent {
         Policy::Reckless if st.wagon.pace != Pace::Hard => {
             PlayerIntent::new(IntentAction::ChangePace).with_pace("hard")
         }
-        Policy::Cautious => {
+        Policy::Cautious | Policy::CautiousAware => {
             let hurt = st.party.members.iter().any(|m| {
                 m.is_alive()
                     && (m.health < CAUTIOUS_REST_HEALTH_BELOW
@@ -621,7 +637,8 @@ USAGE:
 OPTIONS:
     --seeds <n>        number of seeds to run (default 100, at least 1)
     --start <seed>     first seed; seeds are start, start+1, ... (default 0)
-    --policy <name>    first | last | cautious | reckless | rotating | all (default all)
+    --policy <name>    first | last | cautious | cautious-aware | reckless | rotating | all
+                       (default all)
     --turns <n>        turn cap per run (default 500, at least 1)
     --ruleset <name>   legacy (default: the frozen rules) | v2 (the rules the game will play)
     --json             print the reports as a JSON array instead of a table
@@ -687,7 +704,7 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
                         } else {
                             vec![Policy::parse(value).ok_or_else(|| {
                                 format!(
-                                    "unknown policy '{value}' (use first, last, cautious, reckless, rotating or all)"
+                                    "unknown policy '{value}' (use first, last, cautious, cautious-aware, reckless, rotating or all)"
                                 )
                             })?]
                         };
