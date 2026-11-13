@@ -869,6 +869,26 @@ impl StepEngine {
             return;
         }
 
+        // V2: a choice the party cannot afford cannot be picked while an affordable one is
+        // offered. It is refused like an unoffered letter: no turn passes, nothing is spent
+        // and no random draw is made. When no choice is affordable, the one kept open shows
+        // none missing (see `events::v2_kept_open_choice`), so it is the only one that can
+        // be picked, and it resolves normally.
+        if self.ruleset == Ruleset::V2 {
+            let affordable_ids: Vec<String> = offered_ids
+                .iter()
+                .filter(|id| {
+                    missing_supplies_for_choice(&self.state, &event, id, self.ruleset).is_empty()
+                })
+                .cloned()
+                .collect();
+            if !affordable_ids.is_empty() && !affordable_ids.contains(choice_id) {
+                self.msgs.lines.push(choose_one_of_line(&affordable_ids));
+                self.re_present_event();
+                return;
+            }
+        }
+
         let outcome = resolve_event_with_ruleset(
             &mut self.state,
             &event,

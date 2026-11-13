@@ -196,6 +196,35 @@ fn pick_choice(policy: Policy, engine: &StepEngine) -> String {
     chosen.id.clone()
 }
 
+/// Under the V2 rules the engine refuses a choice the party cannot afford while an affordable
+/// one is offered. A script that asked for such a choice picks again, as a player would:
+/// `last` and `reckless` take the last affordable choice; `cautious` takes the first affordable
+/// choice with no advertised cost, else the first affordable; the others take the first
+/// affordable. A choice that is affordable, or an event with no affordable choice shown, is
+/// left as picked.
+pub fn repick_if_unaffordable(policy: Policy, engine: &StepEngine, choice_id: &str) -> String {
+    let choices = engine.pending_event_choices();
+    let picked_ok = choices
+        .iter()
+        .find(|c| c.id == choice_id)
+        .is_none_or(|c| c.affordable);
+    let mut affordable = choices.iter().filter(|c| c.affordable);
+    if picked_ok {
+        return choice_id.to_string();
+    }
+    let repick = match policy {
+        Policy::Last | Policy::Reckless => affordable.last(),
+        Policy::Cautious => choices
+            .iter()
+            .find(|c| c.affordable && c.cost_hint.trim().is_empty())
+            .or_else(|| affordable.next()),
+        Policy::First | Policy::Rotating => affordable.next(),
+    };
+    repick
+        .map(|c| c.id.clone())
+        .unwrap_or_else(|| choice_id.to_string())
+}
+
 fn simple_intent(policy: Policy, engine: &StepEngine) -> (PlayerIntent, String) {
     match engine.phase {
         GamePhase::Event => {
@@ -357,7 +386,18 @@ pub fn run_one_with_ruleset(
             .pending_event()
             .map(|e| e.event_id.clone())
             .unwrap_or_default();
-        let (intent, chosen_choice_id) = choose_intent(policy, &engine, seed_idx, turn);
+        let (mut intent, mut chosen_choice_id) = choose_intent(policy, &engine, seed_idx, turn);
+        if ruleset == Ruleset::V2
+            && phase_before == GamePhase::Event
+            && intent.action == IntentAction::Choose
+        {
+            // The V2 engine refuses a choice the party cannot afford; the script picks again.
+            let repick = repick_if_unaffordable(policy, &engine, &chosen_choice_id);
+            if repick != chosen_choice_id {
+                intent = PlayerIntent::new(IntentAction::Choose).with_choice(&repick);
+                chosen_choice_id = repick;
+            }
+        }
         let msgs = engine.step(&intent);
         turns_run += 1;
         let post_event_id = engine
