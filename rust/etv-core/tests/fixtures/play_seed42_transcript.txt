@@ -1,0 +1,101 @@
+ESCAPE THE VALLEY
+version TEST
+
+When a narrator model is running, the story is written and voiced by AI, live, as you play, and every telling is new. Without one, the game shows plain text lines instead.
+
+Day 1, morning. Coldspring (plains). 0 of 396 miles, 21 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 70.
+Wagon 80, animals 90, pace steady.
+Supplies: ammo 20, boots 2, cloth 5, firewood 15, food 50, lantern_oil 6, meds 5, parts 4, rope 2, salt 8, tools 1, water 50.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Traveled 5 miles. 16 miles remaining.
+
+== Persistent Rain ==
+Rain falls steady as judgment, soaking every seam and hope alike.
+  A. Continue despite the wet
+  B. Wait under canvas
+> Choose one of: A, B.
+> [Continue despite the wet] The party damages the wagon, loses heart, covers ground on the trail and loses time.
+  distance +4, morale -2, time_days +1, wagon_condition -2
+
+Day 1, evening. Coldspring (plains). 5 of 396 miles, 20 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 69.
+Wagon 78, animals 90, pace steady.
+Supplies: ammo 20, boots 2, cloth 5, firewood 15, food 49, lantern_oil 6, meds 5, parts 4, rope 2, salt 8, tools 1, water 49.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Traveled 5 miles. 15 miles remaining.
+
+Day 1, night. Coldspring (plains). 10 of 396 miles, 15 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 70.
+Wagon 78, animals 90, pace steady.
+Supplies: ammo 20, boots 2, cloth 5, firewood 14, food 48, lantern_oil 5, meds 5, parts 4, rope 2, salt 8, tools 1, water 48.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Traveled 5 miles. 10 miles remaining.
+
+Day 2, morning. Coldspring (plains). 15 of 396 miles, 10 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 71.
+Wagon 78, animals 90, pace steady.
+Supplies: ammo 20, boots 2, cloth 5, firewood 13, food 47, lantern_oil 4, meds 5, parts 4, rope 2, salt 8, tools 1, water 47.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Traveled 5 miles. 5 miles remaining.
+
+Day 2, afternoon. Coldspring (plains). 20 of 396 miles, 5 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 72.
+Wagon 78, animals 90, pace steady.
+Supplies: ammo 20, boots 2, cloth 5, firewood 13, food 46, lantern_oil 4, meds 5, parts 4, rope 2, salt 8, tools 1, water 46.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Hunt successful! +16 food. -1 ammo.
+
+Day 2, afternoon. Coldspring (plains). 20 of 396 miles, 5 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 73.
+Wagon 78, animals 90, pace steady.
+Supplies: ammo 19, boots 2, cloth 5, firewood 13, food 62, lantern_oil 4, meds 5, parts 4, rope 2, salt 8, tools 1, water 46.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Pace set to hard.
+
+Day 2, afternoon. Coldspring (plains). 20 of 396 miles, 5 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 73.
+Wagon 78, animals 90, pace hard.
+Supplies: ammo 19, boots 2, cloth 5, firewood 13, food 62, lantern_oil 4, meds 5, parts 4, rope 2, salt 8, tools 1, water 46.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Arrived at The Switchback!
+Found water. +6 water.
+
+== Whispers from the Depths ==
+The current carries fragments of old conversations.
+  A. Ford while listening
+  B. Cross without pause
+  C. Camp until quiet
+> [Ford while listening] The party loses heart and loses time.
+  morale -4, time_days +1
+
+Day 2, night. The Switchback (plains). 28 of 396 miles, 20 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 68.
+Wagon 78, animals 90, pace hard.
+Supplies: ammo 19, boots 2, cloth 5, firewood 13, food 60, lantern_oil 4, meds 5, parts 4, rope 2, salt 8, tools 1, water 50.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Traveled 8 miles. 12 miles remaining.
+
+== Old Preacher ==
+He speaks of lights that walk the ridges when no man should.
+  A. Hear his warning
+  B. Pass in silence
+> Choose one of: A, B.
+> [Hear his warning] The party uses food, takes heart and loses time.
+  food -1, morale +2, time_days +1
+
+Day 3, afternoon. The Switchback (plains). 36 of 396 miles, 12 to the next stop.
+Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 69.
+Wagon 78, animals 90, pace hard.
+Supplies: ammo 19, boots 2, cloth 5, firewood 12, food 57, lantern_oil 3, meds 5, parts 4, rope 2, salt 8, tools 1, water 48.
+T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
+Last resorts: X abandon cargo   D desperate repair   N hard ration
+> Saved. Come back with: etv continue
