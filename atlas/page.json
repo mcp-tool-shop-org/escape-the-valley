@@ -84,8 +84,8 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 2,
-      "changed": 4,
+      "added": 4,
+      "changed": 9,
       "moved": 0,
       "parts": 0,
       "removed": 0
@@ -93,10 +93,25 @@
     "items": [
       {
         "kind": "landing",
+        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json is now also read by rust/etv-core/tests/narrator_experiment_arms.rs.",
+        "subjects": [
+          "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json",
+          "rust/etv-core/tests/narrator_experiment_arms.rs"
+        ]
+      },
+      {
+        "kind": "landing",
         "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now also read by rust/etv-core/tests/ledger_proof_memo_body.rs.",
         "subjects": [
           "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
           "rust/etv-core/tests/ledger_proof_memo_body.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/narrator_experiment.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/narrator_experiment.rs"
         ]
       },
       {
@@ -114,8 +129,13 @@
         ]
       },
       {
+        "kind": "unassigned",
+        "sentence": "And 1 more new file that belongs to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "2 files added and 4 changed content.",
+        "sentence": "4 files added and 9 changed content.",
         "subjects": []
       }
     ],
@@ -208,9 +228,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 10 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ee3641d427fac51f02b97283bdd5c012acdcc74e",
+  "commit": "b12ca6d39ef840cb2678c6a5bc35ca1d64730936",
   "defaultBranch": "main",
-  "derived": "10 parts, in Python (70 files), Rust (68 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Python (70 files), Rust (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -267,7 +287,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 35,
+      "runsMore": 36,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -334,7 +354,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 35,
+      "runsMore": 36,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -698,13 +718,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T14:48:54.389Z",
+  "generatedAt": "2026-11-13T15:13:56.930Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "119 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 116 more.",
+    "121 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 118 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -732,7 +752,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 84,
+  "testFiles": 85,
   "testedBy": {
     "agents": 1,
     "bin": 0,

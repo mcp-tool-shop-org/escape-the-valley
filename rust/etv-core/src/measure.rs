@@ -61,6 +61,7 @@ use crate::narrator::{
     NarratorSettings, NarratorTransport, PromptRules, SlotOutcome, SlotRecord, TurnMattersFlags,
     DEFAULT_OLLAMA_ENDPOINT,
 };
+use crate::narrator_experiment::{ExperimentArms, MAX_CANDIDATES};
 use crate::worldgen::create_new_run_with_content;
 
 /// Schema tag of the turn-set file.
@@ -398,6 +399,8 @@ pub struct MeasureConfig {
     /// Answer shape asked for in `format` (`Plain` unless a comparison run asks for
     /// `CitedFacts`).
     pub format_schema: FormatSchema,
+    /// Experiment arms to switch on (all off by default: the shipped narrator).
+    pub experiment: ExperimentArms,
 }
 
 impl MeasureConfig {
@@ -423,6 +426,7 @@ impl MeasureConfig {
             max_turns: None,
             prompt_rules: PromptRules::Shipped,
             format_schema: FormatSchema::Plain,
+            experiment: ExperimentArms::default(),
         }
     }
 }
@@ -496,6 +500,9 @@ pub struct CellReport {
     /// The most repeated openings (those used more than once), most repeated first.
     #[serde(default)]
     pub top_openings: Vec<OpeningCount>,
+    /// Calls made in the cell (more than two a turn only with the candidates arm).
+    #[serde(default)]
+    pub calls_made: usize,
     /// Latency of whole turns (both calls together), in milliseconds.
     #[serde(default)]
     pub latency_turn: LatencySummary,
@@ -523,6 +530,15 @@ pub struct MeasureReport {
     /// Answer shape the run asked for: `plain` or `cited`.
     #[serde(default)]
     pub format_schema: FormatSchema,
+    /// Experiment arms the run had on, as [`ExperimentArms::label`] names them (`shipped` when
+    /// none).
+    #[serde(default)]
+    pub experiment: String,
+    /// The model's digest and quantisation as the server lists them, when it does.
+    #[serde(default)]
+    pub model_digest: Option<String>,
+    #[serde(default)]
+    pub model_quantization: Option<String>,
     pub cells: Vec<CellReport>,
 }
 
@@ -548,6 +564,14 @@ pub struct SlotRow {
     /// stops at the first). Empty for an accepted line and when the model wrote no line.
     #[serde(default)]
     pub all_rule_breaks: Vec<RuleBreak>,
+    /// Calls made for this line (more than one only with the candidates arm; 0 in rows written
+    /// before this field existed). `latency_ms` is all of them together, and the status,
+    /// response and candidate are the last call's.
+    #[serde(default)]
+    pub attempts: usize,
+    /// How each call ended, in order.
+    #[serde(default)]
+    pub attempt_outcomes: Vec<String>,
 }
 
 /// One turn for one profile and length.
@@ -563,6 +587,52 @@ pub struct TurnRow {
     pub latency_ms_turn: Option<u64>,
 }
 
+/// One call's outcome as a short label: `accepted`, `timeout`, ..., or `rule_reject:<code>`.
+fn attempt_label(rec: &SlotRecord) -> String {
+    match &rec.outcome {
+        SlotOutcome::Accepted => "accepted".to_string(),
+        SlotOutcome::Timeout => "timeout".to_string(),
+        SlotOutcome::TransportError => "transport_error".to_string(),
+        SlotOutcome::HttpStatus { .. } => "http_status".to_string(),
+        SlotOutcome::BadEnvelope => "bad_envelope".to_string(),
+        SlotOutcome::BadSlotJson => "bad_slot_json".to_string(),
+        SlotOutcome::RuleReject { code, .. } => format!("rule_reject:{}", code.as_str()),
+    }
+}
+
+/// The digest and quantisation the server lists for the run's model, when it lists them.
+fn model_identity(
+    transport: &dyn NarratorTransport,
+    cfg: &MeasureConfig,
+) -> (Option<String>, Option<String>) {
+    let timeout = std::time::Duration::from_millis(cfg.warmup_timeout_ms);
+    let Ok((200, body)) = transport.get_tags(&cfg.endpoint, timeout) else {
+        return (None, None);
+    };
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&body) else {
+        return (None, None);
+    };
+    let wanted = cfg.model.trim().to_ascii_lowercase();
+    let models = value.get("models").and_then(|m| m.as_array());
+    for m in models.into_iter().flatten() {
+        let name = m
+            .get("name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if name == wanted || name == format!("{wanted}:latest") {
+            let digest = m.get("digest").and_then(|d| d.as_str()).map(str::to_string);
+            let quant = m
+                .get("details")
+                .and_then(|d| d.get("quantization_level"))
+                .and_then(|q| q.as_str())
+                .map(str::to_string);
+            return (digest, quant);
+        }
+    }
+    (None, None)
+}
+
 fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
     let Some(rec) = rec else {
         return SlotRow {
@@ -575,6 +645,8 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             seed: None,
             request: None,
             all_rule_breaks: Vec::new(),
+            attempts: 0,
+            attempt_outcomes: Vec::new(),
         };
     };
     let (status, code, detail) = match &rec.outcome {
@@ -603,6 +675,8 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             .as_deref()
             .and_then(|body| serde_json::from_str(body).ok()),
         all_rule_breaks: Vec::new(),
+        attempts: 1,
+        attempt_outcomes: Vec::new(),
     }
 }
 
@@ -672,6 +746,7 @@ fn run_measurement_on(
         .collect();
     let mut cells = Vec::new();
     let mut rows = Vec::new();
+    let identity = model_identity(transport.as_ref(), cfg);
 
     for &profile in &cfg.profiles {
         for &length in &cfg.lengths {
@@ -688,6 +763,7 @@ fn run_measurement_on(
             let narrator = LiveNarrator::with_transport(settings, transport.clone());
             narrator.set_prompt_rules(cfg.prompt_rules);
             narrator.set_format_schema(cfg.format_schema);
+            narrator.set_experiment(cfg.experiment);
             // Every turn of the set is asked for, so the breaker is off here.
             narrator.set_timeout_breaker(false);
             narrator.enable_slot_recording();
@@ -725,6 +801,7 @@ fn run_measurement_on(
                 unique_opening_share: 0.0,
                 top_openings: Vec::new(),
                 latency_turn: LatencySummary::default(),
+                calls_made: 0,
             };
             let mut latencies = Vec::new();
 
@@ -732,8 +809,21 @@ fn run_measurement_on(
                 let ctx = spec.context(profile);
                 narrator.narrate_turn(&ctx);
                 let recs = narrator.take_slot_records();
-                let scene = recs.iter().find(|r| r.is_scene);
-                let outcome = recs.iter().find(|r| !r.is_scene);
+                // With candidates a line may take several calls; the last one decides it.
+                let scene = recs.iter().rfind(|r| r.is_scene);
+                let outcome = recs.iter().rfind(|r| !r.is_scene);
+                // A line's latency is all of its calls together.
+                for is_scene in [true, false] {
+                    let ms: Vec<u64> = recs
+                        .iter()
+                        .filter(|r| r.is_scene == is_scene)
+                        .map(|r| r.latency_ms)
+                        .collect();
+                    if !ms.is_empty() {
+                        latencies.push(ms.iter().sum());
+                    }
+                }
+                cell.calls_made += recs.len();
                 let mut turn_fell_back = false;
                 for slot in [scene, outcome] {
                     match slot {
@@ -742,34 +832,31 @@ fn run_measurement_on(
                             cell.fallback_slots += 1;
                             turn_fell_back = true;
                         }
-                        Some(rec) => {
-                            latencies.push(rec.latency_ms);
-                            match &rec.outcome {
-                                SlotOutcome::Accepted => cell.accepted_slots += 1,
-                                other => {
-                                    cell.fallback_slots += 1;
-                                    turn_fell_back = true;
-                                    match other {
-                                        SlotOutcome::Timeout => cell.timeouts += 1,
-                                        SlotOutcome::BadEnvelope | SlotOutcome::BadSlotJson => {
-                                            cell.bad_json += 1
-                                        }
-                                        SlotOutcome::TransportError
-                                        | SlotOutcome::HttpStatus { .. } => {
-                                            cell.transport_or_http_errors += 1
-                                        }
-                                        SlotOutcome::RuleReject { code, .. } => {
-                                            cell.rule_rejects += 1;
-                                            *cell
-                                                .rejects_by_code
-                                                .entry(code.as_str().to_string())
-                                                .or_insert(0) += 1;
-                                        }
-                                        SlotOutcome::Accepted => {}
+                        Some(rec) => match &rec.outcome {
+                            SlotOutcome::Accepted => cell.accepted_slots += 1,
+                            other => {
+                                cell.fallback_slots += 1;
+                                turn_fell_back = true;
+                                match other {
+                                    SlotOutcome::Timeout => cell.timeouts += 1,
+                                    SlotOutcome::BadEnvelope | SlotOutcome::BadSlotJson => {
+                                        cell.bad_json += 1
                                     }
+                                    SlotOutcome::TransportError
+                                    | SlotOutcome::HttpStatus { .. } => {
+                                        cell.transport_or_http_errors += 1
+                                    }
+                                    SlotOutcome::RuleReject { code, .. } => {
+                                        cell.rule_rejects += 1;
+                                        *cell
+                                            .rejects_by_code
+                                            .entry(code.as_str().to_string())
+                                            .or_insert(0) += 1;
+                                    }
+                                    SlotOutcome::Accepted => {}
                                 }
                             }
-                        }
+                        },
                     }
                 }
                 if turn_fell_back {
@@ -783,6 +870,16 @@ fn run_measurement_on(
                     outcome: slot_row(outcome),
                     latency_ms_turn: None,
                 };
+                for (slot, is_scene) in [(&mut row.scene, true), (&mut row.outcome, false)] {
+                    let mine: Vec<&SlotRecord> =
+                        recs.iter().filter(|r| r.is_scene == is_scene).collect();
+                    slot.attempts = mine.len();
+                    if !mine.is_empty() {
+                        // The line's time is all its calls together.
+                        slot.latency_ms = Some(mine.iter().map(|r| r.latency_ms).sum());
+                    }
+                    slot.attempt_outcomes = mine.iter().map(|r| attempt_label(r)).collect();
+                }
                 // Measurement only: every rule each line breaks, and the turn's time.
                 for slot in [&mut row.scene, &mut row.outcome] {
                     if let Some(candidate) = &slot.candidate {
@@ -818,6 +915,9 @@ fn run_measurement_on(
             warmup_timeout_ms: cfg.warmup_timeout_ms,
             prompt_rules: cfg.prompt_rules,
             format_schema: cfg.format_schema,
+            experiment: cfg.experiment.label(),
+            model_digest: identity.0,
+            model_quantization: identity.1,
             cells,
         },
         rows,
@@ -845,6 +945,9 @@ USAGE:
   --format-schema     answer shape asked for: plain (default, a sentences array); cited
                       (a cited_fact_keys array before the sentences array); or text
                       (no schema: plain sentences, checked as they stand), to compare
+  --arm NAME          switch on an experiment arm (off by default; may be given more than
+                      once): rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap
+  --candidates N      experiment: up to N calls per line (1 to 3), first accepted wins
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
   --summarise-rows A,B,...  call no model: read rows files already written on this turn
                       set and print their summary, with every rule each line breaks
@@ -945,6 +1048,28 @@ pub fn run_cli(
                         ))
                     }
                 };
+            }
+            "--arm" => {
+                match take_value(args, &mut i, flag)? {
+                    "rulings-prompt" => cfg.experiment.rulings_prompt = true,
+                    "brief-by-stop" => cfg.experiment.brief_by_stop = true,
+                    "model-card-sampling" => cfg.experiment.model_card_sampling = true,
+                    "trim-to-cap" => cfg.experiment.trim_to_cap = true,
+                    other => {
+                        return Err(format!(
+                            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling or trim-to-cap, not {other:?}"
+                        ))
+                    }
+                }
+            }
+            "--candidates" => {
+                let n: u8 = take_value(args, &mut i, flag)?
+                    .parse()
+                    .map_err(|_| "--candidates needs a whole number".to_string())?;
+                if n == 0 || n > MAX_CANDIDATES {
+                    return Err(format!("--candidates must be 1 to {MAX_CANDIDATES}"));
+                }
+                cfg.experiment.candidates = n;
             }
             "--summarise-rows" => {
                 summarise = Some(split_list(take_value(args, &mut i, flag)?));

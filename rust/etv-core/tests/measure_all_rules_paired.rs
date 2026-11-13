@@ -314,6 +314,8 @@ fn slot(accepted: bool) -> SlotRow {
         seed: None,
         request: None,
         all_rule_breaks: Vec::<RuleBreak>::new(),
+        attempts: 1,
+        attempt_outcomes: Vec::new(),
     }
 }
 

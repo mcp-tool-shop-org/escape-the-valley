@@ -2432,6 +2432,10 @@ pub struct CheckerContext {
     /// death words are then allowed; violent and gory words are not.
     #[serde(default)]
     pub death_allowed: bool,
+    /// Draft-animal species words this voice has been told the team is, and so may use. Empty
+    /// in the game; set only by an experiment arm (see `narrator_experiment`).
+    #[serde(default)]
+    pub team_species: Vec<String>,
 }
 
 impl Default for CheckerContext {
@@ -2447,6 +2451,7 @@ impl Default for CheckerContext {
             event_seed: String::new(),
             choice_label: String::new(),
             death_allowed: false,
+            team_species: Vec::new(),
         }
     }
 }
@@ -2479,6 +2484,7 @@ impl CheckerContext {
             event_seed: ctx.check_event_seed().to_string(),
             choice_label: ctx.check_choice_label().to_string(),
             death_allowed: death_may_be_stated(ctx),
+            team_species: Vec::new(),
         }
     }
 }
@@ -2957,7 +2963,10 @@ fn run_checks(line: &str, ctx: &CheckerContext, all: bool) -> Vec<CheckFailure> 
 
     // 11. DraftAnimalSpecies, unless the event's own seed or label names it.
     for word in &tokens_lower {
-        if DRAFT_ANIMAL_SPECIES_WORDS.contains(&word.as_str()) && !event_named.contains(word) {
+        if DRAFT_ANIMAL_SPECIES_WORDS.contains(&word.as_str())
+            && !event_named.contains(word)
+            && !ctx.team_species.contains(word)
+        {
             fail!(CheckFailure {
                 code: CheckReasonCode::DraftAnimalSpecies,
                 detail: format!("draft-animal species '{word}' not named by the event"),
@@ -3739,9 +3748,25 @@ pub struct LiveNarrator {
     last_request: Mutex<Option<(u32, String)>>,
     positive_rules: AtomicBool,
     format_schema: AtomicUsize,
+    /// Experiment arms; all off unless the measurement harness sets them.
+    experiment: Mutex<crate::narrator_experiment::ExperimentArms>,
     breaker_enabled: AtomicBool,
     consecutive_timeouts: AtomicUsize,
     paused: AtomicBool,
+}
+
+/// What one call asks for beyond the prompts: the answer shape and, for experiment arms only,
+/// a sentence-item limit, a stop at the first full stop, the model card's sampling settings,
+/// and trimming to the word cap.
+#[derive(Debug, Clone, Copy)]
+struct SlotCall {
+    /// The sampling seed sent with the call.
+    seed: u32,
+    schema: FormatSchema,
+    max_items: Option<usize>,
+    stop_at_period: bool,
+    model_card_sampling: bool,
+    trim_to_cap: bool,
 }
 
 /// How one narrator call (scene or outcome) ended.
@@ -3810,12 +3835,29 @@ impl LiveNarrator {
             record_slots: AtomicBool::new(false),
             slot_log: Mutex::new(Vec::new()),
             last_request: Mutex::new(None),
+            experiment: Mutex::new(crate::narrator_experiment::ExperimentArms::default()),
             positive_rules: AtomicBool::new(false),
             format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
             consecutive_timeouts: AtomicUsize::new(0),
             paused: AtomicBool::new(false),
         }
+    }
+
+    /// Switch experiment arms on or off. The game never calls this; the measurement harness
+    /// does. `candidates` is clamped to `1..=MAX_CANDIDATES`.
+    pub fn set_experiment(&self, mut arms: crate::narrator_experiment::ExperimentArms) {
+        arms.candidates = arms
+            .candidates
+            .clamp(1, crate::narrator_experiment::MAX_CANDIDATES);
+        if let Ok(mut slot) = self.experiment.lock() {
+            *slot = arms;
+        }
+    }
+
+    /// The experiment arms in force (all off in the game).
+    pub fn experiment(&self) -> crate::narrator_experiment::ExperimentArms {
+        self.experiment.lock().map(|a| *a).unwrap_or_default()
     }
 
     /// Choose the answer shape asked for in `format`. The game never calls this; the
@@ -4043,8 +4085,9 @@ impl LiveNarrator {
         user_prompt: &str,
         is_scene: bool,
         checker_ctx: &CheckerContext,
-        seed: u32,
+        call: SlotCall,
     ) -> Option<String> {
+        let seed = call.seed;
         if self.paused.load(Ordering::SeqCst) {
             // Paused by the timeout breaker: no call, the plain line shows.
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
@@ -4053,7 +4096,7 @@ impl LiveNarrator {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let started = Instant::now();
         let timeout = Duration::from_millis(self.settings.per_call_timeout_ms);
-        let schema = self.format_schema();
+        let schema = call.schema;
         let mut payload = serde_json::json!({
             "model": self.settings.model,
             "system": system_prompt,
@@ -4067,8 +4110,22 @@ impl LiveNarrator {
                 "num_predict": schema.num_predict(self.settings.length)
             }
         });
-        if let Some(format) = narration_format_schema_for(schema, self.settings.length) {
+        if let Some(mut format) = narration_format_schema_for(schema, self.settings.length) {
+            if let Some(limit) = call.max_items {
+                format["properties"]["sentences"]["maxItems"] = serde_json::json!(limit);
+            }
             payload["format"] = format;
+        }
+        if call.stop_at_period {
+            payload["options"]["stop"] = serde_json::json!(["."]);
+        }
+        if call.model_card_sampling {
+            use crate::narrator_experiment::{
+                MODEL_CARD_TEMPERATURE, MODEL_CARD_TOP_K, MODEL_CARD_TOP_P,
+            };
+            payload["options"]["temperature"] = serde_json::json!(MODEL_CARD_TEMPERATURE);
+            payload["options"]["top_p"] = serde_json::json!(MODEL_CARD_TOP_P);
+            payload["options"]["top_k"] = serde_json::json!(MODEL_CARD_TOP_K);
         }
         let payload = payload.to_string();
         if self.record_slots.load(Ordering::SeqCst) {
@@ -4131,6 +4188,9 @@ impl LiveNarrator {
             let text = inner_str.trim();
             if text.is_empty() {
                 Err("empty answer".to_string())
+            } else if call.stop_at_period {
+                // Generation stopped at the first full stop; the period is put back here.
+                Ok(crate::narrator_experiment::restore_stopped_period(text))
             } else {
                 Ok(text.to_string())
             }
@@ -4138,7 +4198,17 @@ impl LiveNarrator {
             parse_slot_prose(inner_str, is_scene)
         };
         let candidate_prose = match parsed {
-            Ok(prose) => plain_apostrophes(&prose),
+            Ok(prose) => {
+                let prose = plain_apostrophes(&prose);
+                if call.trim_to_cap {
+                    crate::narrator_experiment::trim_to_word_cap(
+                        &prose,
+                        self.settings.length.word_cap(),
+                    )
+                } else {
+                    prose
+                }
+            }
             Err(_) => {
                 self.json_errors.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
@@ -4202,30 +4272,76 @@ impl Narrator for LiveNarrator {
 
         let profile = self.settings.profile;
         let length = self.settings.length;
-        let checker_ctx = CheckerContext::from_narration_context(ctx, length);
+        let arms = self.experiment();
+        let mut checker_ctx = CheckerContext::from_narration_context(ctx, length);
+        if arms.rulings_prompt {
+            checker_ctx.team_species = crate::narrator_experiment::rulings_team_species(profile);
+        }
 
         let rules = self.prompt_rules();
 
-        let schema = self.format_schema();
-        let (scene_sys, scene_user) = build_scene_prompts_for(profile, length, ctx, rules, schema);
-        let scene = self.call_ollama_slot(
-            &endpoint,
-            &scene_sys,
-            &scene_user,
-            true,
-            &checker_ctx,
-            narration_call_seed(ctx, profile, length, true),
-        );
+        // In the brief-by-stop arm a Brief line is plain text stopped at its first full stop,
+        // and the other lengths keep the schema with a sentence-item limit.
+        let stop_brief = arms.brief_by_stop && length == NarratorLength::Brief;
+        let schema = if stop_brief {
+            FormatSchema::PlainText
+        } else {
+            self.format_schema()
+        };
+        let call = SlotCall {
+            seed: 0,
+            schema,
+            max_items: if arms.brief_by_stop && !stop_brief {
+                Some(crate::narrator_experiment::schema_item_limit(length))
+            } else {
+                None
+            },
+            stop_at_period: stop_brief,
+            model_card_sampling: arms.model_card_sampling,
+            trim_to_cap: arms.trim_to_cap,
+        };
+        let for_arm = |(sys, user): (String, String)| -> (String, String) {
+            if arms.rulings_prompt {
+                (
+                    crate::narrator_experiment::rulings_system_prompt(&sys, profile, length),
+                    crate::narrator_experiment::rulings_user_prompt(&user, length),
+                )
+            } else {
+                (sys, user)
+            }
+        };
+        // Up to `arms.candidates` calls for a line, one after another, each with its own seed
+        // derived from the turn's; the first accepted line is used. One candidate is the
+        // shipped single call with the turn's own seed.
+        let attempt = |sys: &str, user: &str, is_scene: bool| -> Option<String> {
+            let base = narration_call_seed(ctx, profile, length, is_scene);
+            for k in 0..usize::from(arms.candidates.max(1)) {
+                let seed = crate::narrator_experiment::candidate_seed(base, k);
+                if let Some(line) = self.call_ollama_slot(
+                    &endpoint,
+                    sys,
+                    user,
+                    is_scene,
+                    &checker_ctx,
+                    SlotCall { seed, ..call },
+                ) {
+                    return Some(line);
+                }
+                if self.paused.load(Ordering::SeqCst) {
+                    break;
+                }
+            }
+            None
+        };
 
-        let (out_sys, out_user) = build_outcome_prompts_for(profile, length, ctx, rules, schema);
-        let outcome = self.call_ollama_slot(
-            &endpoint,
-            &out_sys,
-            &out_user,
-            false,
-            &checker_ctx,
-            narration_call_seed(ctx, profile, length, false),
-        );
+        let (scene_sys, scene_user) =
+            for_arm(build_scene_prompts_for(profile, length, ctx, rules, schema));
+        let scene = attempt(&scene_sys, &scene_user, true);
+
+        let (out_sys, out_user) = for_arm(build_outcome_prompts_for(
+            profile, length, ctx, rules, schema,
+        ));
+        let outcome = attempt(&out_sys, &out_user, false);
 
         TurnNarration { scene, outcome }
     }
