@@ -128,18 +128,26 @@ fn every_arm_is_off_by_default_and_the_default_request_is_the_shipped_one() {
 
 #[test]
 fn labels_name_the_arms_that_are_on() {
-    let mut arms = ExperimentArms::default();
-    arms.rulings_prompt = true;
-    assert_eq!(arms.label(), "rulings-prompt");
-    arms.model_card_sampling = true;
-    arms.candidates = 3;
-    arms.trim_to_cap = true;
+    let one = ExperimentArms {
+        rulings_prompt: true,
+        ..ExperimentArms::default()
+    };
+    assert_eq!(one.label(), "rulings-prompt");
+    let several = ExperimentArms {
+        rulings_prompt: true,
+        model_card_sampling: true,
+        candidates: 3,
+        trim_to_cap: true,
+        ..ExperimentArms::default()
+    };
     assert_eq!(
-        arms.label(),
+        several.label(),
         "rulings-prompt+model-card-sampling+candidates-3+trim-to-cap"
     );
-    let mut stop = ExperimentArms::default();
-    stop.brief_by_stop = true;
+    let stop = ExperimentArms {
+        brief_by_stop: true,
+        ..ExperimentArms::default()
+    };
     assert_eq!(stop.label(), "brief-by-stop");
 }
 
