@@ -397,6 +397,7 @@ fn two_turn_set() -> (TurnSet, String) {
         weirdness_level: 0,
         uncanny_tokens: 2,
         deltas: Default::default(),
+        effects: Default::default(),
         event_seed: "Fixture seed.".to_string(),
         choice_label: "Fixture label".to_string(),
         fallback_line: "Fixture fallback.".to_string(),

@@ -853,7 +853,10 @@ pub fn build_narration_context_with_phase(
     )
 }
 
-fn build_narration_context_with_deltas(
+/// Build a [`NarrationContext`] whose shown deltas are exactly `shown_deltas`, the changes a
+/// turn applied (all effect keys, not only supplies). For callers that hold a recorded turn
+/// rather than a live pre-turn observation.
+pub fn build_narration_context_with_deltas(
     state: &RunState,
     phase: GamePhase,
     event_id: &str,

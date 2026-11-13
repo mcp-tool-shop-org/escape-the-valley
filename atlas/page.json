@@ -84,29 +84,124 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 2,
+      "added": 20,
+      "changed": 10,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/narrator_client_request.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "kind": "door",
+        "sentence": "CI now also checks rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs and rust/etv-core/src/bin/etv_turn_set.rs.",
         "subjects": [
-          "rust/etv-core/tests/narrator_client_request.rs"
+          ".github/workflows/ci.yml",
+          "rust/etv-core/src/bin/etv_content_diff.rs",
+          "rust/etv-core/src/bin/etv_simulate.rs",
+          "rust/etv-core/src/bin/etv_turn_set.rs"
         ]
       },
       {
+        "kind": "door",
+        "sentence": "Release now also checks rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs and rust/etv-core/src/bin/etv_turn_set.rs.",
+        "subjects": [
+          ".github/workflows/release.yml",
+          "rust/etv-core/src/bin/etv_content_diff.rs",
+          "rust/etv-core/src/bin/etv_simulate.rs",
+          "rust/etv-core/src/bin/etv_turn_set.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "etv_content_diff (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_content_diff.rs.",
+        "subjects": [
+          "rust/etv-core/Cargo.toml",
+          "rust/etv-core/src/bin/etv_content_diff.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "And 2 more changes to doors.",
+        "subjects": []
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/src/backpack.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
+        "subjects": [
+          "rust/etv-core/src/backpack.rs",
+          "rust/etv-core/tests/phase2b_backpack_proof.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/src/ledger_proof.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
+        "subjects": [
+          "rust/etv-core/src/ledger_proof.rs",
+          "rust/etv-core/tests/phase2b_backpack_proof.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json is now read by rust/etv-core/tests/narrator_turn_set_v1.rs.",
+        "subjects": [
+          "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json",
+          "rust/etv-core/tests/narrator_turn_set_v1.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "And 1 more new writer or reader of a place.",
+        "subjects": []
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/measure.rs, `run_cli` gained a step, `default`, before `build_narration_context_with_deltas`.",
+        "subjects": [
+          "rust/etv-core/src/measure.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/measure.rs, `run_cli` gained a step, `build_narration_context_with_deltas`, before `with_transport`.",
+        "subjects": [
+          "rust/etv-core/src/measure.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/backpack.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/backpack.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/bin/etv_content_diff.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv_content_diff.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/bin/etv_simulate.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv_simulate.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 17 more new files that belong to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "1 file added and 2 changed content.",
+        "sentence": "20 files added and 10 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "38602c5813a8264bcdc381fd29ad7aea911e4444",
-      "generatedAt": "2026-11-13T04:01:24.604Z"
+      "commit": "891d8de02829667d99a9b69acc577c3b721839c4",
+      "generatedAt": "2026-11-13T04:50:34.311Z"
     },
     "unchanged": false
   },
@@ -193,20 +288,23 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "891d8de02829667d99a9b69acc577c3b721839c4",
+  "commit": "0a95673d1535e5cfa74dbddc4052d5ddbe838190",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (31), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (49), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 13 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
         "scripts/",
         "src/",
         "rust/etv-core/src/bin/etv.rs",
+        "rust/etv-core/src/bin/etv_content_diff.rs",
+        "rust/etv-core/src/bin/etv_simulate.rs",
+        "rust/etv-core/src/bin/etv_turn_set.rs",
         "rust/etv-core/src/bin/narrator_measure.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 5,
-      "checksMore": 2,
+      "checksCount": 8,
+      "checksMore": 5,
       "file": ".github/workflows/ci.yml",
       "id": ".github/workflows/ci.yml",
       "landings": [],
@@ -248,7 +346,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 16,
+      "runsMore": 24,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -265,11 +363,14 @@
         "scripts/",
         "src/",
         "rust/etv-core/src/bin/etv.rs",
+        "rust/etv-core/src/bin/etv_content_diff.rs",
+        "rust/etv-core/src/bin/etv_simulate.rs",
+        "rust/etv-core/src/bin/etv_turn_set.rs",
         "rust/etv-core/src/bin/narrator_measure.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 5,
-      "checksMore": 2,
+      "checksCount": 8,
+      "checksMore": 5,
       "file": ".github/workflows/release.yml",
       "id": ".github/workflows/release.yml",
       "landings": [],
@@ -311,7 +412,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 16,
+      "runsMore": 24,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -533,6 +634,72 @@
       "checksCount": 0,
       "checksMore": 0,
       "file": "rust/etv-core/Cargo.toml",
+      "id": "rust/etv-core/Cargo.toml#etv_content_diff",
+      "kind": "command",
+      "landings": [],
+      "name": "etv_content_diff",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust/etv-core/src/bin/etv_content_diff.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
+    },
+    {
+      "builtFrom": "rust/etv-core",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust/etv-core/Cargo.toml",
+      "id": "rust/etv-core/Cargo.toml#etv_simulate",
+      "kind": "command",
+      "landings": [],
+      "name": "etv_simulate",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust/etv-core/src/bin/etv_simulate.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
+    },
+    {
+      "builtFrom": "rust/etv-core",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust/etv-core/Cargo.toml",
+      "id": "rust/etv-core/Cargo.toml#etv_turn_set",
+      "kind": "command",
+      "landings": [],
+      "name": "etv_turn_set",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust/etv-core/src/bin/etv_turn_set.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
+    },
+    {
+      "builtFrom": "rust/etv-core",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust/etv-core/Cargo.toml",
       "id": "rust/etv-core/Cargo.toml#narrator_measure",
       "kind": "command",
       "landings": [],
@@ -587,13 +754,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T04:50:34.311Z",
+  "generatedAt": "2026-11-13T07:23:28.344Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "58 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 55 more.",
+    "78 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 75 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -621,7 +788,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 41,
+  "testFiles": 51,
   "testedBy": {
     "agents": 1,
     "bin": 0,

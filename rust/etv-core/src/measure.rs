@@ -53,9 +53,10 @@ use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
-    build_narration_context_with_phase, profile_interface_name, FormatSchema, LiveNarrator,
-    NarrationContext, Narrator, NarratorLength, NarratorSettings, NarratorTransport, PromptRules,
-    SlotOutcome, SlotRecord, TurnMattersFlags, DEFAULT_OLLAMA_ENDPOINT,
+    build_narration_context_with_deltas, build_narration_context_with_phase,
+    profile_interface_name, FormatSchema, LiveNarrator, NarrationContext, Narrator, NarratorLength,
+    NarratorSettings, NarratorTransport, PromptRules, SlotOutcome, SlotRecord, TurnMattersFlags,
+    DEFAULT_OLLAMA_ENDPOINT,
 };
 use crate::worldgen::create_new_run_with_content;
 
@@ -86,6 +87,12 @@ pub struct TurnSpec {
     /// Applied supply deltas shown on the turn (resource key to signed amount).
     #[serde(default)]
     pub deltas: BTreeMap<String, i32>,
+    /// Every change the turn applied, by effect key (supplies and also morale, wagon, time and
+    /// the rest), as the game's own context carries them. When present it is used as the
+    /// turn's shown effects in place of `deltas`, so the prompt and the checker see what the
+    /// game would show. Absent in turn sets written before it existed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub effects: BTreeMap<String, i32>,
     /// The event's `narration_seed` text.
     pub event_seed: String,
     /// The chosen option's label.
@@ -162,16 +169,28 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
             label: spec.choice_label.clone(),
             risk_hint: String::new(),
             cost_hint: String::new(),
+            ..Default::default()
         }],
         ..StepMessages::default()
     };
-    build_narration_context_with_phase(
+    if spec.effects.is_empty() {
+        return build_narration_context_with_phase(
+            &state,
+            GamePhase::Camp,
+            &spec.event_id,
+            &spec.choice_id,
+            &msgs,
+            TurnMattersFlags::default(),
+        );
+    }
+    build_narration_context_with_deltas(
         &state,
         GamePhase::Camp,
         &spec.event_id,
         &spec.choice_id,
         &msgs,
         TurnMattersFlags::default(),
+        spec.effects.clone(),
     )
 }
 
