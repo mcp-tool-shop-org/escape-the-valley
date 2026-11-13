@@ -103,6 +103,7 @@ fn choice_line_joins_hints_without_doubling_punctuation() {
         label: "Wait it out".to_string(),
         risk_hint: String::new(),
         cost_hint: String::new(),
+        ..Default::default()
     };
     assert_eq!(choice_line(&choice), "  A. Wait it out");
     choice.cost_hint = "A day.".to_string();

@@ -53,9 +53,10 @@ use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
-    build_narration_context_with_phase, profile_interface_name, LiveNarrator, NarrationContext,
-    Narrator, NarratorLength, NarratorSettings, NarratorTransport, SlotOutcome, SlotRecord,
-    TurnMattersFlags, DEFAULT_OLLAMA_ENDPOINT,
+    build_narration_context_with_deltas, build_narration_context_with_phase,
+    profile_interface_name, FormatSchema, LiveNarrator, NarrationContext, Narrator, NarratorLength,
+    NarratorSettings, NarratorTransport, PromptRules, SlotOutcome, SlotRecord, TurnMattersFlags,
+    DEFAULT_OLLAMA_ENDPOINT,
 };
 use crate::worldgen::create_new_run_with_content;
 
@@ -86,6 +87,12 @@ pub struct TurnSpec {
     /// Applied supply deltas shown on the turn (resource key to signed amount).
     #[serde(default)]
     pub deltas: BTreeMap<String, i32>,
+    /// Every change the turn applied, by effect key (supplies and also morale, wagon, time and
+    /// the rest), as the game's own context carries them. When present it is used as the
+    /// turn's shown effects in place of `deltas`, so the prompt and the checker see what the
+    /// game would show. Absent in turn sets written before it existed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub effects: BTreeMap<String, i32>,
     /// The event's `narration_seed` text.
     pub event_seed: String,
     /// The chosen option's label.
@@ -162,16 +169,28 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
             label: spec.choice_label.clone(),
             risk_hint: String::new(),
             cost_hint: String::new(),
+            ..Default::default()
         }],
         ..StepMessages::default()
     };
-    build_narration_context_with_phase(
+    if spec.effects.is_empty() {
+        return build_narration_context_with_phase(
+            &state,
+            GamePhase::Camp,
+            &spec.event_id,
+            &spec.choice_id,
+            &msgs,
+            TurnMattersFlags::default(),
+        );
+    }
+    build_narration_context_with_deltas(
         &state,
         GamePhase::Camp,
         &spec.event_id,
         &spec.choice_id,
         &msgs,
         TurnMattersFlags::default(),
+        spec.effects.clone(),
     )
 }
 
@@ -218,6 +237,12 @@ pub struct MeasureConfig {
     pub per_call_timeout_ms: u64,
     /// Run only the first `n` turns of the set (`None` = all).
     pub max_turns: Option<usize>,
+    /// Wording of the shared rules in the system prompt (`Shipped` unless a comparison run
+    /// asks for `Positive`, which names no banned word).
+    pub prompt_rules: PromptRules,
+    /// Answer shape asked for in `format` (`Plain` unless a comparison run asks for
+    /// `CitedFacts`).
+    pub format_schema: FormatSchema,
 }
 
 impl MeasureConfig {
@@ -241,6 +266,8 @@ impl MeasureConfig {
             warmup_timeout_ms: d.warmup_timeout_ms,
             per_call_timeout_ms: d.per_call_timeout_ms,
             max_turns: None,
+            prompt_rules: PromptRules::Shipped,
+            format_schema: FormatSchema::Plain,
         }
     }
 }
@@ -307,6 +334,12 @@ pub struct MeasureReport {
     pub endpoint: String,
     pub per_call_timeout_ms: u64,
     pub warmup_timeout_ms: u64,
+    /// Wording of the shared rules the run sent: `shipped` or `positive`.
+    #[serde(default)]
+    pub prompt_rules: PromptRules,
+    /// Answer shape the run asked for: `plain` or `cited`.
+    #[serde(default)]
+    pub format_schema: FormatSchema,
     pub cells: Vec<CellReport>,
 }
 
@@ -408,6 +441,10 @@ pub fn run_measurement(
                 per_call_timeout_ms: cfg.per_call_timeout_ms,
             };
             let narrator = LiveNarrator::with_transport(settings, transport.clone());
+            narrator.set_prompt_rules(cfg.prompt_rules);
+            narrator.set_format_schema(cfg.format_schema);
+            // Every turn of the set is asked for, so the breaker is off here.
+            narrator.set_timeout_breaker(false);
             narrator.enable_slot_recording();
             let startup = narrator.check_startup();
             if !startup.available {
@@ -510,6 +547,8 @@ pub fn run_measurement(
             endpoint: cfg.endpoint.clone(),
             per_call_timeout_ms: cfg.per_call_timeout_ms,
             warmup_timeout_ms: cfg.warmup_timeout_ms,
+            prompt_rules: cfg.prompt_rules,
+            format_schema: cfg.format_schema,
             cells,
         },
         rows,
@@ -525,12 +564,18 @@ USAGE:
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --model NAME
                    [--endpoint URL] [--profiles LIST] [--lengths LIST] [--max-turns N]
                    [--warmup-timeout-ms N] [--per-call-timeout-ms N]
+                   [--prompt-rules shipped|positive] [--format-schema plain|cited|text]
                    [--report PATH] [--rows PATH]
 
   --turn-set-sha256   digest the turn set was frozen under; the run is refused on a mismatch
   --check-only        verify the digest and rebuild every turn; makes no model call
   --profiles          comma list of chronicler,fireside,lantern-bearer (default: all)
   --lengths           comma list of brief,standard,rich (default: all)
+  --prompt-rules      wording of the shared rules in the prompt: shipped (default), or
+                      positive (says what to do and names no banned word), to compare
+  --format-schema     answer shape asked for: plain (default, a sentences array); cited
+                      (a cited_fact_keys array before the sentences array); or text
+                      (no schema: plain sentences, checked as they stand), to compare
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
   --rows PATH         write one JSON line per turn with everything the model wrote
 ";
@@ -591,6 +636,29 @@ pub fn run_cli(
                         .parse()
                         .map_err(|_| "--max-turns needs a whole number".to_string())?,
                 );
+            }
+            "--prompt-rules" => {
+                cfg.prompt_rules = match take_value(args, &mut i, flag)? {
+                    "shipped" => PromptRules::Shipped,
+                    "positive" => PromptRules::Positive,
+                    other => {
+                        return Err(format!(
+                            "--prompt-rules must be shipped or positive, not {other:?}"
+                        ))
+                    }
+                };
+            }
+            "--format-schema" => {
+                cfg.format_schema = match take_value(args, &mut i, flag)? {
+                    "plain" => FormatSchema::Plain,
+                    "cited" => FormatSchema::CitedFacts,
+                    "text" => FormatSchema::PlainText,
+                    other => {
+                        return Err(format!(
+                            "--format-schema must be plain, cited or text, not {other:?}"
+                        ))
+                    }
+                };
             }
             "--warmup-timeout-ms" => {
                 cfg.warmup_timeout_ms = take_value(args, &mut i, flag)?

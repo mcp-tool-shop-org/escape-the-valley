@@ -147,6 +147,9 @@ fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>
         &mut out,
     );
     if let Some(live) = &connection.narrator {
+        if live.is_paused() {
+            let _ = writeln!(out, "{}", etv_core::play::NARRATOR_PAUSED_LINE);
+        }
         let _ = writeln!(out, "{}", narrator_summary_line(&live.stats()));
     }
     match result {

@@ -264,6 +264,7 @@ fn context_for(
             label: label.to_string(),
             risk_hint: String::new(),
             cost_hint: String::new(),
+            ..Default::default()
         }],
         ..StepMessages::default()
     };
