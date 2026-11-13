@@ -84,24 +84,69 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 1,
+      "added": 3,
+      "changed": 0,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
+        "kind": "door",
+        "sentence": "CI now also checks rust/etv-core/src/bin/etv_simulate.rs.",
+        "subjects": [
+          ".github/workflows/ci.yml",
+          "rust/etv-core/src/bin/etv_simulate.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Release now also checks rust/etv-core/src/bin/etv_simulate.rs.",
+        "subjects": [
+          ".github/workflows/release.yml",
+          "rust/etv-core/src/bin/etv_simulate.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "etv_simulate (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_simulate.rs.",
+        "subjects": [
+          "rust/etv-core/Cargo.toml",
+          "rust/etv-core/src/bin/etv_simulate.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/bin/etv_simulate.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv_simulate.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/simulate.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/simulate.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/simulate_harness.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/simulate_harness.rs"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-13; 1 file changed content.",
+        "sentence": "3 files added.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ea88cd819d3857283a959336a53cdab89573ade3",
-      "generatedAt": "2026-11-13T01:19:10.396Z"
+      "commit": "e879cf73dfdcfa2033b3cc03ae40128685b9dabb",
+      "generatedAt": "2026-11-13T02:02:48.682Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -186,19 +231,20 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "e879cf73dfdcfa2033b3cc03ae40128685b9dabb",
+  "commit": "da1b101267ec235e76a197d3c2f7e5bf0379ff60",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
+  "derived": "10 parts, mostly Python (70 files), Rust (24), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and etv_simulate are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
         "scripts/",
         "src/",
         "rust/etv-core/src/bin/etv.rs",
+        "rust/etv-core/src/bin/etv_simulate.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 4,
-      "checksMore": 1,
+      "checksCount": 5,
+      "checksMore": 2,
       "file": ".github/workflows/ci.yml",
       "id": ".github/workflows/ci.yml",
       "landings": [],
@@ -240,7 +286,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 11,
+      "runsMore": 12,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -257,10 +303,11 @@
         "scripts/",
         "src/",
         "rust/etv-core/src/bin/etv.rs",
+        "rust/etv-core/src/bin/etv_simulate.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 4,
-      "checksMore": 1,
+      "checksCount": 5,
+      "checksMore": 2,
       "file": ".github/workflows/release.yml",
       "id": ".github/workflows/release.yml",
       "landings": [],
@@ -302,7 +349,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 11,
+      "runsMore": 12,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -517,6 +564,28 @@
       "stages": [],
       "triggers": [],
       "unshipped": true
+    },
+    {
+      "builtFrom": "rust/etv-core",
+      "checks": [],
+      "checksCount": 0,
+      "checksMore": 0,
+      "file": "rust/etv-core/Cargo.toml",
+      "id": "rust/etv-core/Cargo.toml#etv_simulate",
+      "kind": "command",
+      "landings": [],
+      "name": "etv_simulate",
+      "pushes": false,
+      "reach": [],
+      "runs": [
+        "rust/etv-core/src/bin/etv_simulate.rs"
+      ],
+      "runsCount": 1,
+      "runsMore": 0,
+      "sends": [],
+      "stages": [],
+      "triggers": [],
+      "unshipped": true
     }
   ],
   "duplicates": [],
@@ -556,13 +625,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T02:02:48.682Z",
+  "generatedAt": "2026-11-13T02:06:58.614Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "46 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 43 more.",
+    "49 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 46 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -590,7 +659,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 34,
+  "testFiles": 35,
   "testedBy": {
     "agents": 1,
     "bin": 0,
