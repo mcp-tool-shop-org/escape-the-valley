@@ -53,9 +53,9 @@ use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
-    build_narration_context_with_phase, profile_interface_name, LiveNarrator, NarrationContext,
-    Narrator, NarratorLength, NarratorSettings, NarratorTransport, SlotOutcome, SlotRecord,
-    TurnMattersFlags, DEFAULT_OLLAMA_ENDPOINT,
+    build_narration_context_with_phase, profile_interface_name, FormatSchema, LiveNarrator,
+    NarrationContext, Narrator, NarratorLength, NarratorSettings, NarratorTransport, PromptRules,
+    SlotOutcome, SlotRecord, TurnMattersFlags, DEFAULT_OLLAMA_ENDPOINT,
 };
 use crate::worldgen::create_new_run_with_content;
 
@@ -218,6 +218,12 @@ pub struct MeasureConfig {
     pub per_call_timeout_ms: u64,
     /// Run only the first `n` turns of the set (`None` = all).
     pub max_turns: Option<usize>,
+    /// Wording of the shared rules in the system prompt (`Shipped` unless a comparison run
+    /// asks for `Positive`, which names no banned word).
+    pub prompt_rules: PromptRules,
+    /// Answer shape asked for in `format` (`Plain` unless a comparison run asks for
+    /// `CitedFacts`).
+    pub format_schema: FormatSchema,
 }
 
 impl MeasureConfig {
@@ -241,6 +247,8 @@ impl MeasureConfig {
             warmup_timeout_ms: d.warmup_timeout_ms,
             per_call_timeout_ms: d.per_call_timeout_ms,
             max_turns: None,
+            prompt_rules: PromptRules::Shipped,
+            format_schema: FormatSchema::Plain,
         }
     }
 }
@@ -307,6 +315,12 @@ pub struct MeasureReport {
     pub endpoint: String,
     pub per_call_timeout_ms: u64,
     pub warmup_timeout_ms: u64,
+    /// Wording of the shared rules the run sent: `shipped` or `positive`.
+    #[serde(default)]
+    pub prompt_rules: PromptRules,
+    /// Answer shape the run asked for: `plain` or `cited`.
+    #[serde(default)]
+    pub format_schema: FormatSchema,
     pub cells: Vec<CellReport>,
 }
 
@@ -408,6 +422,10 @@ pub fn run_measurement(
                 per_call_timeout_ms: cfg.per_call_timeout_ms,
             };
             let narrator = LiveNarrator::with_transport(settings, transport.clone());
+            narrator.set_prompt_rules(cfg.prompt_rules);
+            narrator.set_format_schema(cfg.format_schema);
+            // Every turn of the set is asked for, so the breaker is off here.
+            narrator.set_timeout_breaker(false);
             narrator.enable_slot_recording();
             let startup = narrator.check_startup();
             if !startup.available {
@@ -510,6 +528,8 @@ pub fn run_measurement(
             endpoint: cfg.endpoint.clone(),
             per_call_timeout_ms: cfg.per_call_timeout_ms,
             warmup_timeout_ms: cfg.warmup_timeout_ms,
+            prompt_rules: cfg.prompt_rules,
+            format_schema: cfg.format_schema,
             cells,
         },
         rows,
@@ -525,12 +545,17 @@ USAGE:
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --model NAME
                    [--endpoint URL] [--profiles LIST] [--lengths LIST] [--max-turns N]
                    [--warmup-timeout-ms N] [--per-call-timeout-ms N]
+                   [--prompt-rules shipped|positive] [--format-schema plain|cited]
                    [--report PATH] [--rows PATH]
 
   --turn-set-sha256   digest the turn set was frozen under; the run is refused on a mismatch
   --check-only        verify the digest and rebuild every turn; makes no model call
   --profiles          comma list of chronicler,fireside,lantern-bearer (default: all)
   --lengths           comma list of brief,standard,rich (default: all)
+  --prompt-rules      wording of the shared rules in the prompt: shipped (default), or
+                      positive (says what to do and names no banned word), to compare
+  --format-schema     answer shape asked for: plain (default, a sentences array), or cited
+                      (a cited_fact_keys array before the sentences array), to compare
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
   --rows PATH         write one JSON line per turn with everything the model wrote
 ";
@@ -591,6 +616,28 @@ pub fn run_cli(
                         .parse()
                         .map_err(|_| "--max-turns needs a whole number".to_string())?,
                 );
+            }
+            "--prompt-rules" => {
+                cfg.prompt_rules = match take_value(args, &mut i, flag)? {
+                    "shipped" => PromptRules::Shipped,
+                    "positive" => PromptRules::Positive,
+                    other => {
+                        return Err(format!(
+                            "--prompt-rules must be shipped or positive, not {other:?}"
+                        ))
+                    }
+                };
+            }
+            "--format-schema" => {
+                cfg.format_schema = match take_value(args, &mut i, flag)? {
+                    "plain" => FormatSchema::Plain,
+                    "cited" => FormatSchema::CitedFacts,
+                    other => {
+                        return Err(format!(
+                            "--format-schema must be plain or cited, not {other:?}"
+                        ))
+                    }
+                };
             }
             "--warmup-timeout-ms" => {
                 cfg.warmup_timeout_ms = take_value(args, &mut i, flag)?

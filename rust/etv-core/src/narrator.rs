@@ -293,6 +293,11 @@ pub struct NarrationContext {
     /// The chosen option's label. Checker-only: used for the choice-parroting rule.
     #[serde(default)]
     check_choice_label: String,
+    /// The run's seed number. Used **only** to derive the sampling seed sent with a narrator
+    /// call, so the same run and turn ask for the same sample. It is a plain number: it gives
+    /// no access to the engine's RNG. Never prompt material.
+    #[serde(default)]
+    run_seed: i128,
 }
 
 impl NarrationContext {
@@ -310,6 +315,17 @@ impl NarrationContext {
         self.check_event_seed = event_seed;
         self.check_choice_label = choice_label;
         self
+    }
+
+    /// Attach the run's seed number (see [`narration_call_seed`]).
+    pub fn with_run_seed(mut self, run_seed: i128) -> Self {
+        self.run_seed = run_seed;
+        self
+    }
+
+    /// The run's seed number (0 unless attached).
+    pub fn run_seed(&self) -> i128 {
+        self.run_seed
     }
 
     /// Party member names (checker-only; empty unless attached).
@@ -373,6 +389,7 @@ impl NarrationContext {
             check_party_names: Vec::new(),
             check_event_seed: String::new(),
             check_choice_label: String::new(),
+            run_seed: 0,
         }
     }
 
@@ -891,6 +908,7 @@ fn build_narration_context_with_deltas(
             .map(|c| c.label.clone())
             .unwrap_or_default(),
     )
+    .with_run_seed(state.seed)
 }
 
 // ============================================================================
@@ -1009,6 +1027,45 @@ pub fn shared_voice_hard_rules(length: NarratorLength, weirdness_band: u8) -> St
     )
 }
 
+/// Which wording of the shared rules goes into the system prompt.
+///
+/// The game always sends `Shipped`. `Positive` exists for the measurement harness only: it says
+/// what to do without naming any banned word, so the two can be compared on the same turns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PromptRules {
+    #[default]
+    Shipped,
+    Positive,
+}
+
+impl PromptRules {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PromptRules::Shipped => "shipped",
+            PromptRules::Positive => "positive",
+        }
+    }
+}
+
+/// The shared rules worded as instructions only: no banned word or banned mark is named.
+/// Measurement variant; see [`PromptRules`].
+pub fn shared_voice_rules_positive(length: NarratorLength, weirdness_band: u8) -> String {
+    let (min_s, max_s) = length.sentence_bounds();
+    format!(
+        "SHARED VOICE RULES:\n\
+- Present tense, third-person impersonal camera at wheel-height in mud and weather.\n\
+- Speak of amounts in general terms only.\n\
+- Tell only what the turn facts support, and leave every traveller as the facts give them.\n\
+- Refer to people as the party or the travellers. The current place name is the only proper noun.\n\
+- Mention only the supplies listed under resource_directions.\n\
+- Keep to plain physical detail within weirdness band {weirdness_band}.\n\
+- End each sentence with a period, and use commas inside sentences.\n\
+- LENGTH CAP: {} ({min_s} to {max_s} sentences).",
+        length.as_str()
+    )
+}
+
 /// Format turn facts strictly from [`NarrationContext`] (never including `fallback_line`,
 /// `shown_lines`, party member names, or unspent resource nouns).
 pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
@@ -1091,14 +1148,28 @@ pub fn build_system_prompt(
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> String {
+    build_system_prompt_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_system_prompt`] with an explicit [`PromptRules`] wording.
+pub fn build_system_prompt_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> String {
     let band = weirdness_band_from_allowance(ctx.weirdness_allowance());
-    let rules = shared_voice_hard_rules(length, band);
+    let rules = match rules {
+        PromptRules::Shipped => shared_voice_hard_rules(length, band),
+        PromptRules::Positive => shared_voice_rules_positive(length, band),
+    };
     let header = profile_header(profile);
     let facts = format_turn_facts_for_prompt(ctx);
     format!("{header}\n\n{rules}\n\n{facts}")
 }
 
-/// JSON schema instructions for the scene call (`src/escape_the_valley/gm.py:70-80`).
+/// The legacy scene answer shape (`src/escape_the_valley/gm.py:70-80`). No longer sent in the
+/// prompt; kept because [`parse_scene_response_strict`] still reads answers in this shape.
 pub const SCENE_SCHEMA: &str = r#"{
   "scene_id": "string",
   "title": "string (short, evocative, 2-5 words)",
@@ -1113,7 +1184,8 @@ pub const SCENE_SCHEMA: &str = r#"{
   "memory_proposals": []
 }"#;
 
-/// JSON schema instructions for the outcome call (`src/escape_the_valley/gm.py:82-88`).
+/// The legacy outcome answer shape (`src/escape_the_valley/gm.py:82-88`). No longer sent in the
+/// prompt; kept because [`parse_outcome_response_strict`] still reads answers in this shape.
 pub const OUTCOME_SCHEMA: &str = r#"{
   "scene_id": "string",
   "outcome_title": "string (2-4 words)",
@@ -1123,30 +1195,258 @@ pub const OUTCOME_SCHEMA: &str = r#"{
   "memory_proposals": []
 }"#;
 
-/// Build `(system_prompt, user_prompt)` for the per-turn scene call (`SCENE_SCHEMA`).
+/// Sampling temperature sent with every narrator call. Low, so a telling is as repeatable as
+/// the model allows.
+pub const NARRATOR_TEMPERATURE: f64 = 0.15;
+
+/// Context window asked for on every narrator call, in tokens. A narrator call is one
+/// stateless request (no history is carried between calls), so a small window is enough.
+pub const NARRATOR_NUM_CTX: u32 = 2048;
+
+/// Most tokens a narrator answer may run to with the plain schema.
+pub const NARRATOR_NUM_PREDICT: u32 = 110;
+
+/// Most tokens a narrator answer may run to with the cited-facts schema, which also has to
+/// list fact keys.
+pub const NARRATOR_NUM_PREDICT_CITED: u32 = 160;
+
+/// Per-call timeouts in a row after which the narrator is paused for the rest of the session.
+pub const TIMEOUT_BREAKER_STRIKES: usize = 2;
+
+/// Which answer shape the request's `format` schema asks for.
+///
+/// The game always sends `Plain`. `CitedFacts` exists for the measurement harness only: it asks
+/// the model to list the turn-fact keys it used before it writes the sentences, so the two
+/// shapes can be compared on the same turns. The listed keys are not read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FormatSchema {
+    #[default]
+    Plain,
+    #[serde(rename = "cited")]
+    CitedFacts,
+}
+
+impl FormatSchema {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FormatSchema::Plain => "plain",
+            FormatSchema::CitedFacts => "cited",
+        }
+    }
+
+    /// The `num_predict` cap sent with this shape.
+    pub fn num_predict(&self) -> u32 {
+        match self {
+            FormatSchema::Plain => NARRATOR_NUM_PREDICT,
+            FormatSchema::CitedFacts => NARRATOR_NUM_PREDICT_CITED,
+        }
+    }
+}
+
+/// The cited-facts variant of [`narration_format_schema`]: a `cited_fact_keys` string array
+/// that comes before the `sentences` array. Measurement variant; see [`FormatSchema`].
+pub fn narration_format_schema_cited(length: NarratorLength) -> Value {
+    let (min_s, max_s) = length.sentence_bounds();
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "cited_fact_keys": {
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "sentences": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": min_s,
+                "maxItems": max_s
+            }
+        },
+        "required": ["cited_fact_keys", "sentences"],
+        "additionalProperties": false
+    })
+}
+
+/// The schema for `schema` and `length`.
+pub fn narration_format_schema_for(schema: FormatSchema, length: NarratorLength) -> Value {
+    match schema {
+        FormatSchema::Plain => narration_format_schema(length),
+        FormatSchema::CitedFacts => narration_format_schema_cited(length),
+    }
+}
+
+/// The JSON Schema sent in the request's `format` field: an object holding one array of
+/// sentence strings, with the array length bounded by the length setting (Brief 1, Standard
+/// 1 to 2, Rich 2 to 3). A server that supports structured output can then only return that
+/// shape.
+pub fn narration_format_schema(length: NarratorLength) -> Value {
+    let (min_s, max_s) = length.sentence_bounds();
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "sentences": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": min_s,
+                "maxItems": max_s
+            }
+        },
+        "required": ["sentences"],
+        "additionalProperties": false
+    })
+}
+
+/// The response shape as the user prompt shows it.
+fn sentences_shape_text(length: NarratorLength, schema: FormatSchema) -> String {
+    let (min_s, max_s) = length.sentence_bounds();
+    if schema == FormatSchema::CitedFacts {
+        return format!(
+            "{{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds {min_s} to {max_s} complete sentences, each following all the rules."
+        );
+    }
+    format!(
+        "{{\"sentences\": [\"...\"]}}\nThe sentences array holds {min_s} to {max_s} complete sentences, each following all the rules."
+    )
+}
+
+/// The sampling seed sent with one narrator call: a number derived from the run's seed and the
+/// turn's own facts (day, time of day, event, choice, place and shown changes), the profile, the
+/// length and the slot. The same run, turn and settings always give the same seed; it never
+/// touches the engine's RNG. The value fits in 31 bits.
+pub fn narration_call_seed(
+    ctx: &NarrationContext,
+    profile: GMProfile,
+    length: NarratorLength,
+    is_scene: bool,
+) -> u32 {
+    let mut deltas = String::new();
+    for (k, v) in ctx.shown_deltas() {
+        deltas.push_str(&format!("{k}={v};"));
+    }
+    let material = format!(
+        "etv-narration-seed-1|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        ctx.run_seed(),
+        ctx.day(),
+        ctx.time_of_day().as_str(),
+        ctx.event_id(),
+        ctx.choice_id(),
+        ctx.place(),
+        deltas,
+        profile.as_str(),
+        length.as_str(),
+        if is_scene { "scene" } else { "outcome" }
+    );
+    let digest: [u8; 32] = Sha256::digest(material.as_bytes()).into();
+    u32::from_be_bytes([digest[0], digest[1], digest[2], digest[3]]) & 0x7fff_ffff
+}
+
+/// Build `(system_prompt, user_prompt)` for the per-turn scene call.
 pub fn build_scene_prompts(
     profile: GMProfile,
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> (String, String) {
-    let sys = build_system_prompt(profile, length, ctx);
+    build_scene_prompts_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_scene_prompts`] with an explicit [`PromptRules`] wording.
+pub fn build_scene_prompts_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> (String, String) {
+    build_scene_prompts_for(profile, length, ctx, rules, FormatSchema::Plain)
+}
+
+/// [`build_scene_prompts`] with an explicit rules wording and answer shape.
+pub fn build_scene_prompts_for(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    schema: FormatSchema,
+) -> (String, String) {
+    let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
     let user = format!(
-        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{SCENE_SCHEMA}"
+        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{}",
+        sentences_shape_text(length, schema)
     );
     (sys, user)
 }
 
-/// Build `(system_prompt, user_prompt)` for the per-turn outcome call (`OUTCOME_SCHEMA`).
+/// Build `(system_prompt, user_prompt)` for the per-turn outcome call.
 pub fn build_outcome_prompts(
     profile: GMProfile,
     length: NarratorLength,
     ctx: &NarrationContext,
 ) -> (String, String) {
-    let sys = build_system_prompt(profile, length, ctx);
+    build_outcome_prompts_with_rules(profile, length, ctx, PromptRules::Shipped)
+}
+
+/// [`build_outcome_prompts`] with an explicit [`PromptRules`] wording.
+pub fn build_outcome_prompts_with_rules(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+) -> (String, String) {
+    build_outcome_prompts_for(profile, length, ctx, rules, FormatSchema::Plain)
+}
+
+/// [`build_outcome_prompts`] with an explicit rules wording and answer shape.
+pub fn build_outcome_prompts_for(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    schema: FormatSchema,
+) -> (String, String) {
+    let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
     let user = format!(
-        "Generate an outcome response strictly as valid JSON matching OUTCOME_SCHEMA:\n{OUTCOME_SCHEMA}"
+        "Generate an outcome response strictly as valid JSON matching OUTCOME_SCHEMA:\n{}",
+        sentences_shape_text(length, schema)
     );
     (sys, user)
+}
+
+/// Read the prose of one narrator answer.
+///
+/// The requested shape is `{"sentences": ["...", "..."]}`: every item must be a non-empty string,
+/// and the sentences are joined with single spaces. An answer in the older shape (a `narration`
+/// string for a scene, an `outcome_narration` string for an outcome) is still read, through the
+/// strict parsers. Anything else is an error, and the turn falls back.
+pub fn parse_slot_prose(raw: &str, is_scene: bool) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
+        return Err("response is not a raw JSON object".to_string());
+    }
+    let val: Value = serde_json::from_str(trimmed).map_err(|e| format!("invalid JSON: {e}"))?;
+    if let Some(sentences) = val.get("sentences") {
+        let items = sentences
+            .as_array()
+            .ok_or_else(|| "'sentences' is not an array".to_string())?;
+        if items.is_empty() {
+            return Err("'sentences' is empty".to_string());
+        }
+        let mut parts = Vec::with_capacity(items.len());
+        for item in items {
+            let text = item
+                .as_str()
+                .ok_or_else(|| "'sentences' holds a non-string item".to_string())?
+                .trim();
+            if text.is_empty() {
+                return Err("'sentences' holds an empty sentence".to_string());
+            }
+            parts.push(text);
+        }
+        return Ok(parts.join(" "));
+    }
+    if is_scene {
+        parse_scene_response_strict(trimmed).map(|scene| scene.narration)
+    } else {
+        parse_outcome_response_strict(trimmed).map(|outcome| outcome.outcome_narration)
+    }
 }
 
 /// Parsed response for the scene call (`src/escape_the_valley/gm.py:122-168`).
@@ -2949,6 +3249,11 @@ pub struct LiveNarrator {
     reject_codes: Mutex<BTreeMap<&'static str, usize>>,
     record_slots: AtomicBool,
     slot_log: Mutex<Vec<SlotRecord>>,
+    positive_rules: AtomicBool,
+    cited_schema: AtomicBool,
+    breaker_enabled: AtomicBool,
+    consecutive_timeouts: AtomicUsize,
+    paused: AtomicBool,
 }
 
 /// How one narrator call (scene or outcome) ended.
@@ -3012,6 +3317,56 @@ impl LiveNarrator {
             reject_codes: Mutex::new(BTreeMap::new()),
             record_slots: AtomicBool::new(false),
             slot_log: Mutex::new(Vec::new()),
+            positive_rules: AtomicBool::new(false),
+            cited_schema: AtomicBool::new(false),
+            breaker_enabled: AtomicBool::new(true),
+            consecutive_timeouts: AtomicUsize::new(0),
+            paused: AtomicBool::new(false),
+        }
+    }
+
+    /// Choose the answer shape asked for in `format`. The game never calls this; the
+    /// measurement harness does, to compare the two shapes.
+    pub fn set_format_schema(&self, schema: FormatSchema) {
+        self.cited_schema
+            .store(schema == FormatSchema::CitedFacts, Ordering::SeqCst);
+    }
+
+    /// The answer shape this narrator asks for.
+    pub fn format_schema(&self) -> FormatSchema {
+        if self.cited_schema.load(Ordering::SeqCst) {
+            FormatSchema::CitedFacts
+        } else {
+            FormatSchema::Plain
+        }
+    }
+
+    /// Turn the timeout breaker on or off (on by default). With it on,
+    /// [`TIMEOUT_BREAKER_STRIKES`] per-call timeouts in a row pause the narrator for the rest
+    /// of the session: no further call is made, and every later line is the plain fallback.
+    /// The measurement harness turns it off so every turn of a set is asked for.
+    pub fn set_timeout_breaker(&self, enabled: bool) {
+        self.breaker_enabled.store(enabled, Ordering::SeqCst);
+    }
+
+    /// `true` once the timeout breaker has paused this narrator.
+    pub fn is_paused(&self) -> bool {
+        self.paused.load(Ordering::SeqCst)
+    }
+
+    /// Choose the wording of the shared rules in the system prompt. The game never calls
+    /// this; the measurement harness does, to compare the two wordings.
+    pub fn set_prompt_rules(&self, rules: PromptRules) {
+        self.positive_rules
+            .store(rules == PromptRules::Positive, Ordering::SeqCst);
+    }
+
+    /// The wording of the shared rules this narrator sends.
+    pub fn prompt_rules(&self) -> PromptRules {
+        if self.positive_rules.load(Ordering::SeqCst) {
+            PromptRules::Positive
+        } else {
+            PromptRules::Shipped
         }
     }
 
@@ -3157,6 +3512,7 @@ impl LiveNarrator {
             "model": self.settings.model,
             "prompt": "Warm up.",
             "stream": false,
+            "think": false,
             "options": {
                 "num_predict": 1
             }
@@ -3183,7 +3539,13 @@ impl LiveNarrator {
         user_prompt: &str,
         is_scene: bool,
         checker_ctx: &CheckerContext,
+        seed: u32,
     ) -> Option<String> {
+        if self.paused.load(Ordering::SeqCst) {
+            // Paused by the timeout breaker: no call, the plain line shows.
+            self.fallbacks.fetch_add(1, Ordering::SeqCst);
+            return None;
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let started = Instant::now();
         let timeout = Duration::from_millis(self.settings.per_call_timeout_ms);
@@ -3191,11 +3553,14 @@ impl LiveNarrator {
             "model": self.settings.model,
             "system": system_prompt,
             "prompt": user_prompt,
-            "format": "json",
+            "format": narration_format_schema_for(self.format_schema(), self.settings.length),
             "stream": false,
+            "think": false,
             "options": {
-                "temperature": 0.7,
-                "num_predict": 512
+                "temperature": NARRATOR_TEMPERATURE,
+                "seed": seed,
+                "num_ctx": NARRATOR_NUM_CTX,
+                "num_predict": self.format_schema().num_predict()
             }
         })
         .to_string();
@@ -3205,6 +3570,11 @@ impl LiveNarrator {
             Err(TransportError::Timeout) => {
                 self.timeouts.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
+                if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES
+                {
+                    self.paused.store(true, Ordering::SeqCst);
+                }
                 self.push_record(is_scene, SlotOutcome::Timeout, None, None, started);
                 return None;
             }
@@ -3214,6 +3584,8 @@ impl LiveNarrator {
                 return None;
             }
         };
+        // Any answer at all, good or bad, ends a run of timeouts.
+        self.consecutive_timeouts.store(0, Ordering::SeqCst);
         if status != 200 {
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             self.push_record(
@@ -3242,11 +3614,7 @@ impl LiveNarrator {
             return None;
         };
 
-        let parsed = if is_scene {
-            parse_scene_response_strict(inner_str).map(|scene| scene.narration)
-        } else {
-            parse_outcome_response_strict(inner_str).map(|outcome| outcome.outcome_narration)
-        };
+        let parsed = parse_slot_prose(inner_str, is_scene);
         let candidate_prose = match parsed {
             Ok(prose) => prose,
             Err(_) => {
@@ -3314,11 +3682,28 @@ impl Narrator for LiveNarrator {
         let length = self.settings.length;
         let checker_ctx = CheckerContext::from_narration_context(ctx, length);
 
-        let (scene_sys, scene_user) = build_scene_prompts(profile, length, ctx);
-        let scene = self.call_ollama_slot(&endpoint, &scene_sys, &scene_user, true, &checker_ctx);
+        let rules = self.prompt_rules();
 
-        let (out_sys, out_user) = build_outcome_prompts(profile, length, ctx);
-        let outcome = self.call_ollama_slot(&endpoint, &out_sys, &out_user, false, &checker_ctx);
+        let schema = self.format_schema();
+        let (scene_sys, scene_user) = build_scene_prompts_for(profile, length, ctx, rules, schema);
+        let scene = self.call_ollama_slot(
+            &endpoint,
+            &scene_sys,
+            &scene_user,
+            true,
+            &checker_ctx,
+            narration_call_seed(ctx, profile, length, true),
+        );
+
+        let (out_sys, out_user) = build_outcome_prompts_for(profile, length, ctx, rules, schema);
+        let outcome = self.call_ollama_slot(
+            &endpoint,
+            &out_sys,
+            &out_user,
+            false,
+            &checker_ctx,
+            narration_call_seed(ctx, profile, length, false),
+        );
 
         TurnNarration { scene, outcome }
     }
