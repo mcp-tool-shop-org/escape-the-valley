@@ -6,13 +6,15 @@
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
+use std::sync::Arc;
 
 use crate::engine::{EventChoiceInfo, StepEngine};
 use crate::ledger::trail_ledger;
 use crate::model::{GamePhase, IntentAction, PlayerIntent, RunState};
 use crate::narrator::{
-    build_narration_context_with_phase, evaluate_turn_matters, resolve_fallback_line,
-    FallbackPhraseTable, Narrator, PreTurnObservation,
+    build_narration_context_with_phase, evaluate_turn_matters, profile_interface_name,
+    resolve_fallback_line, FallbackPhraseTable, LiveNarrator, Narrator, NarratorSettings,
+    NarratorStats, NarratorTransport, PreTurnObservation,
 };
 use crate::physics::current_node;
 use crate::screens::title_screen_lines;
@@ -333,4 +335,79 @@ pub fn run_play<R: BufRead, W: Write>(
         let lines = play_turn(engine, narrator, table, &intent, label.as_deref());
         write_lines(out, &lines)?;
     }
+}
+
+/// The result of trying to connect the live narrator at the start of a session.
+pub struct NarratorConnection {
+    /// The connected narrator, or `None` when the session plays with plain text lines.
+    pub narrator: Option<LiveNarrator>,
+    /// What to tell the player about it, in plain words.
+    pub lines: Vec<String>,
+}
+
+/// Line shown when the narrator is off or could not be used.
+pub const NARRATOR_OFF_LINE: &str =
+    "Playing with plain text lines. Change the narrator with: etv settings";
+
+/// Try to connect the live narrator described by `settings` over `transport`.
+///
+/// `transport` is `None` in a build that has no narrator connection compiled in. The game never
+/// waits on a narrator that is not there: if the narrator is switched off, the service does not
+/// answer, the model is not installed, or the model does not load within the warm-up time, the
+/// session plays with plain text lines and says why.
+pub fn connect_narrator(
+    settings: &NarratorSettings,
+    transport: Option<Arc<dyn NarratorTransport>>,
+) -> NarratorConnection {
+    let off = |reason: String| NarratorConnection {
+        narrator: None,
+        lines: vec![reason, NARRATOR_OFF_LINE.to_string()],
+    };
+    if !settings.enabled {
+        return off("The narrator is switched off in the settings.".to_string());
+    }
+    let Some(transport) = transport else {
+        return off("This build has no narrator connection.".to_string());
+    };
+    let narrator = LiveNarrator::with_transport(settings.clone(), transport);
+    let status = narrator.check_startup();
+    if !status.available {
+        let reason = if status.installed {
+            format!(
+                "The narrator model '{}' is not installed in Ollama. Install it with: ollama pull {}",
+                settings.model, settings.model
+            )
+        } else {
+            format!(
+                "The narrator service did not answer at {}. Start it with: ollama serve",
+                settings.endpoint
+            )
+        };
+        return off(reason);
+    }
+    if narrator.warmup().is_err() {
+        return off(format!(
+            "The narrator model '{}' did not load in time.",
+            settings.model
+        ));
+    }
+    let line = format!(
+        "Narrator: {}, {}, model {}.",
+        profile_interface_name(settings.profile),
+        settings.length.as_str(),
+        settings.model
+    );
+    NarratorConnection {
+        narrator: Some(narrator),
+        lines: vec![line],
+    }
+}
+
+/// One line saying how the narrator did over a session: lines asked for, lines shown, and lines
+/// that fell back to plain text (a timeout, a bad answer, or a line that broke a hard rule).
+pub fn narrator_summary_line(stats: &NarratorStats) -> String {
+    format!(
+        "Narrator: {} lines asked for, {} shown, {} fell back to plain text ({} timed out, {} broke a rule).",
+        stats.calls, stats.successes, stats.fallbacks, stats.timeouts, stats.rule_rejects
+    )
 }
