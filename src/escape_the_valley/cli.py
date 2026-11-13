@@ -1076,9 +1076,13 @@ def parcel_list() -> None:
             status = "pending"
         contents = ", ".join(f"{v} {k}" for k, v in p.contents.items())
         sender_short = p.sender[:8] + "..." if len(p.sender) > 12 else p.sender
+        # Rich reads a bare "[pending]" as markup and drops it (#30 D2):
+        # escape the opening bracket. The id is what `parcel accept` needs
+        # (#30 D3), so show it on pending parcels.
+        id_part = f" id {p.parcel_id}" if status == "pending" else ""
         console.print(
-            f"  [{status}] From {sender_short}: {contents} "
-            f"(day {p.day_received})"
+            f"  \\[{status}] From {sender_short}: {contents} "
+            f"(day {p.day_received}){id_part}"
         )
 
 
@@ -1092,11 +1096,19 @@ def parcel_accept(
         console.print("[red]No saved game found.[/red]")
         raise typer.Exit(1)
 
-    parcel = None
-    for p in state.backpack.parcels:
-        if p.parcel_id == parcel_id and not p.accepted:
-            parcel = p
-            break
+    pending = [p for p in state.backpack.parcels if not p.accepted]
+    parcel = next((p for p in pending if p.parcel_id == parcel_id), None)
+    if parcel is None and parcel_id:
+        # A unique id prefix is enough (#30 D3).
+        matches = [p for p in pending if p.parcel_id.startswith(parcel_id)]
+        if len(matches) > 1:
+            console.print(
+                f"[red]'{escape(parcel_id)}' matches {len(matches)} parcels; "
+                "give more of the id.[/red]"
+            )
+            raise typer.Exit(1)
+        if matches:
+            parcel = matches[0]
 
     if parcel is None:
         console.print("[red]Parcel not found or already accepted.[/red]")
