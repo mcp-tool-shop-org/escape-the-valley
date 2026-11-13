@@ -159,13 +159,13 @@ fn save_every_step_under_v2_matches_the_uninterrupted_run() {
     }
     assert_eq!(total.skipped, 0, "no reload point may be skipped");
     assert_eq!(total.reloads, total.steps, "one reload per step");
-    assert_eq!(total.steps, 5962);
+    assert_eq!(total.steps, 5991);
     assert_eq!(
-        total.in_event, 2107,
+        total.in_event, 2082,
         "reloads taken while an event was on screen"
     );
     assert_eq!(
-        total.in_route, 117,
+        total.in_route, 198,
         "reloads taken while a fork was on screen"
     );
 }
@@ -238,8 +238,9 @@ fn resumed_event_shows_the_same_title_narration_and_choices() {
 #[test]
 fn resumed_fork_offers_the_same_routes_and_chooses_the_same() {
     let pack = embedded_content_pack();
-    // Seed 0 under V2: after turn 14 the trail forks between The Gulch and Dunhollow.
-    let before = seed0_after_turn(pack, 14);
+    // Seed 0 under V2: after turn 12 the trail forks between The Gulch and Dunhollow. (It
+    // was turn 14 before a choice's distance counted as progress under V2.)
+    let before = seed0_after_turn(pack, 12);
     assert_eq!(before.phase, GamePhase::Route);
     let resumed = resume_v2(&before, pack);
     for engine in [&before, &resumed] {

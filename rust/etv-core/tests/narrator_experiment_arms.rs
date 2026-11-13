@@ -22,7 +22,7 @@ use etv_core::narrator_experiment::{
 };
 use serde_json::{json, Value};
 
-const V2_SHA256: &str = "095455fb593311ecdb76b139aa1ad20220807bdf7bcd4d236ec648e276c13769";
+const V2_SHA256: &str = "458d444aae17a37b4247870481a1533585b58e3233670558a9436208182e0016";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 
 /// Records every generation body and answers from a script (repeating its last answer).

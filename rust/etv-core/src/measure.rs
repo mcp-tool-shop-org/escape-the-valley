@@ -339,6 +339,12 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
             TurnMattersFlags::default(),
         );
     }
+    // A version 1 turn stores `distance` as the change in miles still to go. The narrator's
+    // figure is progress, so the sign is turned here.
+    let mut effects = spec.effects.clone();
+    if let Some(distance) = effects.get_mut("distance") {
+        *distance = -*distance;
+    }
     build_narration_context_with_deltas(
         &state,
         GamePhase::Camp,
@@ -346,7 +352,7 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
         &spec.choice_id,
         &msgs,
         TurnMattersFlags::default(),
-        spec.effects.clone(),
+        effects,
     )
 }
 

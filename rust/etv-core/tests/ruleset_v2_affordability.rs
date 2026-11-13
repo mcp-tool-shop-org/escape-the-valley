@@ -9,7 +9,7 @@
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepEngine;
 use etv_core::events::{
-    apply_outcome, build_event_library, missing_supplies_for_choice,
+    apply_outcome, apply_outcome_with_ruleset, build_event_library, missing_supplies_for_choice,
     raw_missing_supplies_for_choice, resolve_event, resolve_event_with_ruleset,
 };
 use etv_core::model::{GamePhase, IntentAction, PlayerIntent, RunState};
@@ -143,21 +143,23 @@ fn v2_denies_a_template_cost_the_party_cannot_pay_and_says_so_up_front() {
 
     let denied = resolve_event_with_ruleset(&mut st, &ev, "A", &mut rng, Ruleset::V2);
     // The denied path (`insufficient_supplies_outcome`): no supply charged, wagon hit kept,
-    // morale min(3, -2) = -2, time max(0, 1) = 1, distance kept, flag appended, no RNG draw.
+    // morale min(3, -2) = -2, time max(0, 1) = 1, flag appended, no RNG draw. The template's
+    // distance of 10 is the denial's penalty: under V2, where a positive distance is progress,
+    // it is turned into ten miles of ground lost.
     assert!(denied.supplies_delta.is_empty());
     assert_eq!(denied.health_delta, 0);
     assert_eq!(denied.wagon_delta, -4);
     assert_eq!(denied.animals_health_delta, 0);
     assert_eq!(denied.morale_delta, -2);
     assert_eq!(denied.time_cost, 1);
-    assert_eq!(denied.distance_delta, 10);
+    assert_eq!(denied.distance_delta, -10);
     assert_eq!(
         denied.special_flags,
         keys(&["flag_a", "insufficient_supplies"])
     );
     assert_eq!(rng.counter, counter);
     let before = st.clone();
-    apply_outcome(&mut st, &denied);
+    apply_outcome_with_ruleset(&mut st, &denied, Ruleset::V2);
     assert_eq!(st.supplies.get("rope"), 0);
     assert_eq!(st.supplies.get("food"), 50);
     assert_eq!(st.distance_remaining, before.distance_remaining + 10);
@@ -538,9 +540,9 @@ fn v2_refuses_unaffordable_picks_over_1000_seeds_and_no_supply_goes_negative() {
     assert!(refused_v2 > 0);
 }
 
-const EXPECTED_RESOLVED: usize = 31_913;
-const EXPECTED_REFUSED: usize = 2_898;
-const EXPECTED_ALL_UNAFFORDABLE: usize = 45;
+const EXPECTED_RESOLVED: usize = 31_381;
+const EXPECTED_REFUSED: usize = 2_856;
+const EXPECTED_ALL_UNAFFORDABLE: usize = 32;
 
 /// The fix in one place: a refused pick changes no state, no RNG position and no phase; the
 /// line names only what can be picked; and the same pick under Legacy still goes through.
@@ -645,7 +647,7 @@ fn win_counts_over_1000_seeds_legacy_vs_v2() {
     // Measured, reported as measured: no explanation is claimed here.
     assert_eq!(
         wins,
-        [2, 3],
+        [2, 26],
         "wins over 1,000 seeds x 120 turns: [Legacy, V2]"
     );
 }

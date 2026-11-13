@@ -198,9 +198,9 @@ fn narrator_off_shows_the_chosen_option_beside_the_fallback_line_once() {
     assert_eq!(
         lines,
         vec![
-            "[Continue despite the wet] The party damages the wagon, loses heart, covers ground on the trail and loses time."
+            "[Continue despite the wet] The party damages the wagon, loses heart, falls back on the trail and loses time."
                 .to_string(),
-            "  distance +4, morale -2, time_days +1, wagon_condition -2".to_string(),
+            "  distance -4, morale -2, time_days +1, wagon_condition -2".to_string(),
         ]
     );
 }
@@ -223,7 +223,7 @@ fn narrated_turn_shows_the_narrator_text_and_the_numbers() {
         lines,
         vec![
             "FIXTURE NARRATION.".to_string(),
-            "  distance +4, morale -2, time_days +1, wagon_condition -2".to_string(),
+            "  distance -4, morale -2, time_days +1, wagon_condition -2".to_string(),
         ]
     );
 }

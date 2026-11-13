@@ -29,7 +29,7 @@ use crate::measure::{
 };
 use crate::model::{GMProfile, GamePhase, IntentAction, PlayerIntent};
 use crate::narrator::{
-    build_narration_context_with_phase, evaluate_turn_matters, resolve_fallback_line_with_mode,
+    build_narration_context_with_phase, evaluate_turn_matters, ComposedFallbackComposer,
     FallbackPhraseTable, NarrationContext, PreTurnObservation,
 };
 use crate::ruleset::Ruleset;
@@ -135,8 +135,20 @@ fn collect_level(
                 &msgs,
                 flags,
             );
+            // Version 1 is frozen with the meaning it was drawn under: on a resolved choice its
+            // `distance` is the change in miles still to go (positive = a longer road). The
+            // narrator's own figure is now progress, the other way round, so it is turned back
+            // here and the file stays byte for byte what it was.
+            let mut v1_effects = ctx.shown_deltas().clone();
+            if let Some(distance) = v1_effects.get_mut("distance") {
+                *distance = -*distance;
+            }
             // The composed line, whatever the build profile, so debug and release agree.
-            let fallback_line = resolve_fallback_line_with_mode(&ctx, Some(table), false);
+            let fallback_line =
+                match ComposedFallbackComposer::try_start_with_mode(Some(table), false) {
+                    Ok(composer) => composer.compose_from_delta_map(&v1_effects),
+                    Err(_) => ctx.fallback_line().to_string(),
+                };
             if fallback_line.trim().is_empty() {
                 continue;
             }
@@ -156,7 +168,7 @@ fn collect_level(
                     .filter(|(_, v)| **v != 0)
                     .map(|(k, v)| (k.clone(), *v))
                     .collect(),
-                effects: ctx.shown_deltas().clone(),
+                effects: v1_effects,
                 event_seed,
                 choice_label,
                 fallback_line,

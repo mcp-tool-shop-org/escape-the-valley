@@ -125,7 +125,7 @@ fn a_turn_that_resolves_a_choice_tells_what_was_chosen_and_only_the_outcome_call
         outcome,
         format!(
             "{scene}\nWHAT RESULTED:\n\
-- resource_directions: distance:road longer, morale:fell, time_days:days passed, wagon_condition:fell\n\
+- resource_directions: distance:lost ground, morale:fell, time_days:days passed, wagon_condition:fell\n\
 - health_effects: none\n\
 - turn_matters: death=false, injury=false, supply_zero=false, landmark_arrival=false, night_at_camp=false"
         )
@@ -296,10 +296,12 @@ fn a_line_copying_the_label_is_rejected_and_one_in_its_own_words_passes() {
     );
 }
 
-/// This is a narrator change, not a rules change: the facts are built the same way under both
-/// rulesets.
+/// The facts are built the same way under both rule sets. They differ only where the rules
+/// do: choice A of Persistent Rain ("Continue despite the wet") carries distance 4. Under
+/// Legacy that lengthens the road, so the narrator is told ground was lost; under V2 it is
+/// progress, so the narrator is told the party travelled.
 #[test]
-fn legacy_and_v2_build_the_same_facts_for_the_same_turn() {
+fn legacy_and_v2_build_the_same_facts_except_where_the_distance_rule_differs() {
     let mut legacy = new_engine(42, Ruleset::Legacy);
     let mut v2 = new_engine(42, Ruleset::V2);
     let (a, _) = turn(&mut legacy, &PlayerIntent::new(IntentAction::Travel));
@@ -310,6 +312,9 @@ fn legacy_and_v2_build_the_same_facts_for_the_same_turn() {
             format_turn_facts_for_slot(&b, slot)
         );
     }
+    let legacy_before = legacy.state.distance_remaining;
+    let v2_before = v2.state.distance_remaining;
+    assert_eq!(legacy_before, v2_before);
     let (a, _) = turn(
         &mut legacy,
         &PlayerIntent::new(IntentAction::Choose).with_choice("A"),
@@ -318,12 +323,31 @@ fn legacy_and_v2_build_the_same_facts_for_the_same_turn() {
         &mut v2,
         &PlayerIntent::new(IntentAction::Choose).with_choice("A"),
     );
-    for slot in [PromptSlot::Scene, PromptSlot::Outcome] {
-        assert_eq!(
-            format_turn_facts_for_slot(&a, slot),
-            format_turn_facts_for_slot(&b, slot)
-        );
-    }
+    // The engines: four miles added under Legacy, four miles covered under V2.
+    assert_eq!(legacy.state.distance_remaining, legacy_before + 4);
+    assert_eq!(v2.state.distance_remaining, v2_before - 4);
+    assert_eq!(a.shown_deltas()["distance"], -4);
+    assert_eq!(b.shown_deltas()["distance"], 4);
+    // The scene call carries no results, so it is the same.
+    assert_eq!(
+        format_turn_facts_for_slot(&a, PromptSlot::Scene),
+        format_turn_facts_for_slot(&b, PromptSlot::Scene)
+    );
+    // The outcome call differs in the one word.
+    let legacy_facts = format_turn_facts_for_slot(&a, PromptSlot::Outcome);
+    let v2_facts = format_turn_facts_for_slot(&b, PromptSlot::Outcome);
+    assert!(has_line(
+        &legacy_facts,
+        "- resource_directions: distance:lost ground, morale:fell, time_days:days passed, wagon_condition:fell"
+    ));
+    assert!(has_line(
+        &v2_facts,
+        "- resource_directions: distance:travelled, morale:fell, time_days:days passed, wagon_condition:fell"
+    ));
+    assert_eq!(
+        legacy_facts.replace("distance:lost ground", "distance:travelled"),
+        v2_facts
+    );
 }
 
 /// A version 1 turn rebuilt by the harness now carries its event text and label too.
