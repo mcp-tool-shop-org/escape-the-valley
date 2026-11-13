@@ -5,9 +5,9 @@ use etv_core::content::{
     embedded_content_pack, parse_cli_args, version_with_content_hash, CliCommand, ContentPack,
 };
 use etv_core::engine::StepEngine;
-use etv_core::narrator::{FallbackPhraseTable, NullNarrator};
+use etv_core::narrator::{FallbackPhraseTable, Narrator, NarratorTransport, NullNarrator};
 use etv_core::notices::third_party_notices_text;
-use etv_core::play::{run_play, PlayExit};
+use etv_core::play::{connect_narrator, narrator_summary_line, run_play, PlayExit};
 use etv_core::save::{has_save, load_game_checked_with_content_hash, save_game};
 use etv_core::screens::{about_screen_lines, run_settings_screen, SettingsExit};
 use etv_core::settings::{load_settings_or_default, save_settings};
@@ -37,10 +37,23 @@ fn random_seed() -> i128 {
     i128::from(u32::from_le_bytes(bytes) >> 1)
 }
 
+/// The narrator transport this build was compiled with: a local Ollama connection with the
+/// `narrator-ollama` feature, none without it.
+fn build_transport() -> Option<std::sync::Arc<dyn NarratorTransport>> {
+    #[cfg(feature = "narrator-ollama")]
+    {
+        Some(std::sync::Arc::new(etv_core::narrator::UreqTransport))
+    }
+    #[cfg(not(feature = "narrator-ollama"))]
+    {
+        None
+    }
+}
+
 /// Play a run on stdin and stdout, saving under the current directory after every turn.
 ///
-/// The narrator is not connected in this build: every turn shows the plain text lines, whatever
-/// the settings file says.
+/// The narrator named in the settings file is connected at the start when this build has a
+/// narrator connection; otherwise every turn shows the plain text lines.
 fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>) -> ExitCode {
     let base = std::path::PathBuf::from(".");
     let state = match new_run {
@@ -78,14 +91,30 @@ fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>
     let table = FallbackPhraseTable::embedded();
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
-    match run_play(
+    let loaded = load_settings_or_default(std::path::Path::new("."));
+    if let Some(warning) = &loaded.warning {
+        let _ = writeln!(out, "{warning}");
+    }
+    let connection = connect_narrator(&loaded.settings, build_transport());
+    for line in &connection.lines {
+        let _ = writeln!(out, "{line}");
+    }
+    let narrator: &dyn Narrator = match &connection.narrator {
+        Some(live) => live,
+        None => &NullNarrator,
+    };
+    let result = run_play(
         &mut engine,
-        &NullNarrator,
+        narrator,
         Some(&table),
         env!("CARGO_PKG_VERSION"),
         std::io::stdin().lock(),
         &mut out,
-    ) {
+    );
+    if let Some(live) = &connection.narrator {
+        let _ = writeln!(out, "{}", narrator_summary_line(&live.stats()));
+    }
+    match result {
         Ok(PlayExit::Finished | PlayExit::Quit | PlayExit::InputEnded) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("error: play: {e}");

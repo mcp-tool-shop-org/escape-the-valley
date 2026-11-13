@@ -84,8 +84,8 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 20,
-      "changed": 10,
+      "added": 21,
+      "changed": 9,
       "moved": 0,
       "parts": 0,
       "removed": 0
@@ -93,20 +93,22 @@
     "items": [
       {
         "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.",
+        "sentence": "CI now also checks rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs and rust/etv-core/src/bin/etv_turn_set.rs.",
         "subjects": [
           ".github/workflows/ci.yml",
           "rust/etv-core/src/bin/etv_content_diff.rs",
-          "rust/etv-core/src/bin/etv_simulate.rs"
+          "rust/etv-core/src/bin/etv_simulate.rs",
+          "rust/etv-core/src/bin/etv_turn_set.rs"
         ]
       },
       {
         "kind": "door",
-        "sentence": "Release now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.",
+        "sentence": "Release now also checks rust/etv-core/src/bin/etv_content_diff.rs, rust/etv-core/src/bin/etv_simulate.rs and rust/etv-core/src/bin/etv_turn_set.rs.",
         "subjects": [
           ".github/workflows/release.yml",
           "rust/etv-core/src/bin/etv_content_diff.rs",
-          "rust/etv-core/src/bin/etv_simulate.rs"
+          "rust/etv-core/src/bin/etv_simulate.rs",
+          "rust/etv-core/src/bin/etv_turn_set.rs"
         ]
       },
       {
@@ -119,7 +121,7 @@
       },
       {
         "kind": "door",
-        "sentence": "And 1 more change to a door.",
+        "sentence": "And 2 more changes to doors.",
         "subjects": []
       },
       {
@@ -140,37 +142,30 @@
       },
       {
         "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
+        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json is now read by rust/etv-core/tests/narrator_turn_set_v1.rs.",
         "subjects": [
-          "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
-          "rust/etv-core/tests/phase2b_backpack_proof.rs"
+          "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json",
+          "rust/etv-core/tests/narrator_turn_set_v1.rs"
         ]
       },
       {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `has_save`, before `create_new_run_with_content`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `create_new_run_with_content`, before `save_game`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_game`, before `load_game_checked_with_content_hash`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "And 4 more changes to the order of work.",
+        "kind": "landing",
+        "sentence": "And 1 more new writer or reader of a place.",
         "subjects": []
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/measure.rs, `run_cli` gained a step, `default`, before `build_narration_context_with_deltas`.",
+        "subjects": [
+          "rust/etv-core/src/measure.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/measure.rs, `run_cli` gained a step, `build_narration_context_with_deltas`, before `with_transport`.",
+        "subjects": [
+          "rust/etv-core/src/measure.rs"
+        ]
       },
       {
         "kind": "unassigned",
@@ -195,18 +190,18 @@
       },
       {
         "kind": "unassigned",
-        "sentence": "And 17 more new files that belong to no part.",
+        "sentence": "And 18 more new files that belong to no part.",
         "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "20 files added and 10 changed content.",
+        "sentence": "21 files added and 9 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "1a782767cfd0df16abf26526ec90eb2e513d1b48",
-      "generatedAt": "2026-11-13T03:26:39.201Z"
+      "commit": "4f332b4f288d02891dac1ab67f1a97b5f07bd60f",
+      "generatedAt": "2026-11-13T04:10:15.062Z"
     },
     "unchanged": false
   },
@@ -293,9 +288,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "70be0698ac4f5d96798bf4d3ed018dfcb27988c4",
+  "commit": "5a9080215974ac7b291a68dcca0f59aa14cc6a60",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (48), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 13 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (49), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 13 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -351,7 +346,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 23,
+      "runsMore": 24,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -417,7 +412,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 23,
+      "runsMore": 24,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -759,13 +754,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T06:53:59.568Z",
+  "generatedAt": "2026-11-13T07:18:32.664Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "77 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 74 more.",
+    "78 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 75 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -793,7 +788,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 50,
+  "testFiles": 51,
   "testedBy": {
     "agents": 1,
     "bin": 0,
