@@ -5,9 +5,11 @@ use etv_core::content::{
     embedded_content_pack, parse_cli_args, version_with_content_hash, CliCommand, ContentPack,
 };
 use etv_core::engine::StepEngine;
-use etv_core::narrator::{FallbackPhraseTable, NullNarrator};
+use etv_core::narrator::{FallbackPhraseTable, Narrator, NarratorTransport, NullNarrator};
 use etv_core::notices::third_party_notices_text;
-use etv_core::play::{run_play, PlayExit};
+use etv_core::play::{
+    connect_narrator, narrator_summary_line, run_play, PlayExit, QUIT_SAVED_LINE,
+};
 use etv_core::save::{has_save, load_game_checked_with_content_hash, save_game};
 use etv_core::screens::{about_screen_lines, run_settings_screen, SettingsExit};
 use etv_core::settings::{load_settings_or_default, save_settings};
@@ -37,25 +39,53 @@ fn random_seed() -> i128 {
     i128::from(u32::from_le_bytes(bytes) >> 1)
 }
 
-/// Play a run on stdin and stdout, saving under the current directory after every turn.
-///
-/// The narrator is not connected in this build: every turn shows the plain text lines, whatever
-/// the settings file says.
-fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>) -> ExitCode {
+/// The narrator transport this build was compiled with: a local Ollama connection with the
+/// `narrator-ollama` feature, none without it.
+fn build_transport() -> Option<std::sync::Arc<dyn NarratorTransport>> {
+    #[cfg(feature = "narrator-ollama")]
+    {
+        Some(std::sync::Arc::new(etv_core::narrator::UreqTransport))
+    }
+    #[cfg(not(feature = "narrator-ollama"))]
+    {
+        None
+    }
+}
+
+/// Which front end is asking for a run, so a refusal names the commands that front end has.
+#[derive(Clone, Copy)]
+enum Front {
+    Line,
+    Tui,
+}
+
+/// Start a new run (saving it under the current directory) or load the saved one, and put an
+/// engine on it that saves after every turn. Shared by line mode and the full-screen interface.
+/// On a refusal the error line is already printed and the exit code is returned.
+fn open_run(
+    content: &ContentPack,
+    new_run: Option<(Option<i128>, bool)>,
+    front: Front,
+) -> Result<StepEngine, ExitCode> {
     let base = std::path::PathBuf::from(".");
     let state = match new_run {
         Some((seed, force)) => {
             if has_save(&base) && !force {
-                eprintln!(
-                    "error: a saved run exists here. Resume it with 'etv continue', or replace it with 'etv new --force'."
-                );
-                return ExitCode::from(1);
+                match front {
+                    Front::Line => eprintln!(
+                        "error: a saved run exists here. Resume it with 'etv continue', or replace it with 'etv new --force'."
+                    ),
+                    Front::Tui => eprintln!(
+                        "error: a saved run exists here. Resume it with 'etv tui --continue', or replace it with 'etv tui --force'."
+                    ),
+                }
+                return Err(ExitCode::from(1));
             }
             let seed = seed.unwrap_or_else(random_seed);
             let state = create_new_run_with_content(seed, content);
             if let Err(e) = save_game(&state, &base) {
                 eprintln!("error: could not write the save file: {e}");
-                return ExitCode::from(1);
+                return Err(ExitCode::from(1));
             }
             println!("New run. Seed {seed}.");
             state
@@ -63,32 +93,133 @@ fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>
         None => match load_game_checked_with_content_hash(&base, &content.content_hash_hex) {
             Ok(state) => state,
             Err(etv_core::save::SaveLoadError::NoSave) => {
-                eprintln!("error: no saved run here. Start one with 'etv new'.");
-                return ExitCode::from(1);
+                match front {
+                    Front::Line => {
+                        eprintln!("error: no saved run here. Start one with 'etv new'.")
+                    }
+                    Front::Tui => {
+                        eprintln!("error: no saved run here. Start one with 'etv tui'.")
+                    }
+                }
+                return Err(ExitCode::from(1));
             }
             Err(e) => {
                 eprintln!("error: the saved run could not be loaded: {e}");
-                return ExitCode::from(1);
+                return Err(ExitCode::from(1));
             }
         },
     };
-
     let mut engine = StepEngine::with_options(state, true, Some(base));
     engine.event_library = content.all_events.clone();
+    Ok(engine)
+}
+
+/// Play a run on stdin and stdout, saving under the current directory after every turn.
+///
+/// The narrator named in the settings file is connected at the start when this build has a
+/// narrator connection; otherwise every turn shows the plain text lines.
+fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>) -> ExitCode {
+    let mut engine = match open_run(content, new_run, Front::Line) {
+        Ok(engine) => engine,
+        Err(code) => return code,
+    };
     let table = FallbackPhraseTable::embedded();
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
-    match run_play(
+    let loaded = load_settings_or_default(std::path::Path::new("."));
+    if let Some(warning) = &loaded.warning {
+        let _ = writeln!(out, "{warning}");
+    }
+    let connection = connect_narrator(&loaded.settings, build_transport());
+    for line in &connection.lines {
+        let _ = writeln!(out, "{line}");
+    }
+    let narrator: &dyn Narrator = match &connection.narrator {
+        Some(live) => live,
+        None => &NullNarrator,
+    };
+    let result = run_play(
         &mut engine,
-        &NullNarrator,
+        narrator,
         Some(&table),
         env!("CARGO_PKG_VERSION"),
         std::io::stdin().lock(),
         &mut out,
-    ) {
+    );
+    if let Some(live) = &connection.narrator {
+        if live.is_paused() {
+            let _ = writeln!(out, "{}", etv_core::play::NARRATOR_PAUSED_LINE);
+        }
+        let _ = writeln!(out, "{}", narrator_summary_line(&live.stats()));
+    }
+    match result {
         Ok(PlayExit::Finished | PlayExit::Quit | PlayExit::InputEnded) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("error: play: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// The plain line printed when `etv tui` is run where there is no terminal to draw on.
+const TUI_NO_TERMINAL_LINE: &str =
+    "error: etv tui needs a terminal. Use 'etv new' or 'etv continue' to play here.";
+
+/// Play a run in the full-screen terminal interface, saving under the current directory after
+/// every turn. Refuses, before touching any save, when stdin or stdout is not a terminal.
+fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>) -> ExitCode {
+    use std::io::IsTerminal;
+    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+        eprintln!("{TUI_NO_TERMINAL_LINE}");
+        return ExitCode::from(1);
+    }
+    let engine = match open_run(content, new_run, Front::Tui) {
+        Ok(engine) => engine,
+        Err(code) => return code,
+    };
+    let base = std::path::PathBuf::from(".");
+    let table = FallbackPhraseTable::embedded();
+    let loaded = load_settings_or_default(&base);
+    let connection = connect_narrator(&loaded.settings, build_transport());
+    let mut log: Vec<String> = Vec::new();
+    if let Some(warning) = &loaded.warning {
+        log.push(warning.clone());
+    }
+    log.extend(connection.lines.iter().cloned());
+    let narrator: &dyn Narrator = match &connection.narrator {
+        Some(live) => live,
+        None => &NullNarrator,
+    };
+    let color = !etv_core::tui::no_color_requested(|k| std::env::var(k).ok());
+    let model = etv_core::tui::Model::new(
+        etv_core::tui::ViewData::from_engine(&engine),
+        loaded.settings,
+        env!("CARGO_PKG_VERSION"),
+        &content.content_hash_hex,
+        log,
+        color,
+    );
+    let mut app = etv_core::tui::App::new(
+        model,
+        engine,
+        narrator,
+        Some(&table),
+        base,
+        connection.narrator.is_some(),
+    );
+    if let Some(live) = &connection.narrator {
+        app = app.with_summary(|| narrator_summary_line(&live.stats()));
+    }
+    let result = etv_core::tui::run_terminal(&mut app);
+    let mut out = std::io::stdout();
+    let _ = writeln!(out, "{QUIT_SAVED_LINE}");
+    if let Some(live) = &connection.narrator {
+        let _ = writeln!(out, "{}", narrator_summary_line(&live.stats()));
+    }
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: tui: {e}");
             ExitCode::from(1)
         }
     }
@@ -168,6 +299,11 @@ fn main() -> ExitCode {
         CliCommand::Notices | CliCommand::Settings => ExitCode::SUCCESS,
         CliCommand::New { seed, force } => run_play_command(&content, Some((seed, force))),
         CliCommand::Continue => run_play_command(&content, None),
+        CliCommand::Tui {
+            seed,
+            force,
+            resume,
+        } => run_tui_command(&content, if resume { None } else { Some((seed, force)) }),
         CliCommand::About => {
             for line in about_screen_lines(env!("CARGO_PKG_VERSION"), &content.content_hash_hex) {
                 println!("{line}");

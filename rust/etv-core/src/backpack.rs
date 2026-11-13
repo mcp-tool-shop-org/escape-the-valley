@@ -150,7 +150,10 @@ pub fn balance_to_int(balance: &str) -> Result<i32, String> {
         return Err(bad());
     }
     let mut digits = format!("{int_part}{frac_part}");
-    let shift = exp - frac_part.len() as i32; // value = digits * 10^shift
+    // value = digits * 10^shift. Widened to i64 and checked: `exp` comes from the ledger, so
+    // `exp - frac_len` must not overflow (it did in i32 for "1.5e-2147483647").
+    let frac_len = i64::try_from(frac_part.len()).map_err(|_| bad())?;
+    let shift = i64::from(exp).checked_sub(frac_len).ok_or_else(bad)?;
     if shift >= 0 {
         if digits.trim_start_matches('0').is_empty() {
             digits = "0".to_string();
@@ -158,10 +161,12 @@ pub fn balance_to_int(balance: &str) -> Result<i32, String> {
             if shift > 12 {
                 return Err(bad());
             }
-            digits.push_str(&"0".repeat(shift as usize));
+            // shift is in 0..=12 here, so the conversion cannot fail.
+            digits.push_str(&"0".repeat(usize::try_from(shift).map_err(|_| bad())?));
         }
     } else {
-        let cut = (-shift) as usize;
+        // `checked_neg` and `try_from` instead of `-shift` / `as usize`: no wrap on any input.
+        let cut = usize::try_from(shift.checked_neg().ok_or_else(bad)?).map_err(|_| bad())?;
         if cut > digits.len() {
             if digits.chars().all(|c| c == '0') {
                 digits = "0".to_string();
@@ -181,7 +186,13 @@ pub fn balance_to_int(balance: &str) -> Result<i32, String> {
         }
     }
     let magnitude: i64 = digits.parse().map_err(|_| bad())?;
-    let signed = if neg { -magnitude } else { magnitude };
+    // magnitude is a non-negative i64 (parsed from digits only), so negating cannot overflow;
+    // checked_neg keeps that true by construction.
+    let signed = if neg {
+        magnitude.checked_neg().ok_or_else(bad)?
+    } else {
+        magnitude
+    };
     i32::try_from(signed).map_err(|_| bad())
 }
 
@@ -339,11 +350,42 @@ pub enum PlanOutcome {
     Batch(SettlementBatch),
 }
 
+/// Per-key sum of the deltas of every outstanding pending record, in the supply sign convention
+/// (a negative number is supplies the player lost). Keys no record names are absent.
+pub fn pending_deltas(bp: &BackpackState) -> BTreeMap<String, i32> {
+    let mut out: BTreeMap<String, i32> = BTreeMap::new();
+    for rec in &bp.pending_settlements {
+        for (key, val) in &rec.deltas {
+            let slot = out.entry(key.clone()).or_insert(0);
+            *slot = slot.saturating_add(*val);
+        }
+    }
+    out
+}
+
+/// The supplies the ledger will hold once every queued payment lands: `last_settled_supplies`
+/// plus the pending deltas, per key (a key absent from either side counts as 0).
+pub fn effective_baseline(bp: &BackpackState) -> BTreeMap<String, i32> {
+    let mut out = bp.last_settled_supplies.clone();
+    for (key, val) in pending_deltas(bp) {
+        let slot = out.entry(key).or_insert(0);
+        *slot = slot.saturating_add(val);
+    }
+    out
+}
+
 /// Plan a checkpoint settlement: the delta since the last settlement, as one batch
 /// (`BackpackManager.settle`, backpack.py:630-675). Pure: it reads, never mutates.
 ///
+/// Planning rule (a deliberate departure from Python, which re-plans a change that is already
+/// queued): the delta is `current - (last_settled + sum of pending deltas)`, per key. A supply
+/// change already covered by a pending record is therefore never queued a second time, however
+/// many checkpoints pass while the transport is offline; if the supply moves back, the new
+/// delta is the move back (pending -3, then +3 gained, plans +3).
+///
 /// Idempotency: once a batch's payments are folded into `last_settled_supplies`, planning again
-/// over the same supplies returns [`PlanOutcome::NoChanges`].
+/// over the same supplies returns [`PlanOutcome::NoChanges`]; so does planning again while the
+/// same batch sits in the pending queue.
 pub fn plan_settlement(
     bp: &BackpackState,
     supplies: &SuppliesState,
@@ -354,7 +396,7 @@ pub fn plan_settlement(
     if !bp.enabled || bp.wallet_address.is_empty() {
         return PlanOutcome::NotEnabled;
     }
-    let deltas = compute_deltas(supplies, &bp.last_settled_supplies);
+    let deltas = compute_deltas(supplies, &effective_baseline(bp));
     if deltas.is_empty() {
         return PlanOutcome::NoChanges;
     }
@@ -854,6 +896,12 @@ pub fn retry_pending<T: LedgerTransport + ?Sized>(
 ) -> usize {
     strip_unknown_pending_keys(bp);
     if bp.pending_settlements.is_empty() {
+        // Departs from Python (`_retry_pending` returns at backpack.py:851 and leaves the flag when
+        // the queue was already empty on entry; it clears it only when stripping emptied the
+        // queue, :873). Rust clears it whenever nothing is pending: the flag drives the "last
+        // settlement failed" notice, and with no unsettled checkpoint left that notice would be
+        // false. A flag stuck on with an empty queue (reachable from a hand-edited or older save)
+        // heals on the next settle instead of nagging the player forever.
         bp.last_settle_failed = false;
         return 0;
     }

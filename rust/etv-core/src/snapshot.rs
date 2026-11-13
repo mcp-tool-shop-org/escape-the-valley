@@ -13,6 +13,7 @@ use crate::narrator::{
     build_narration_context_with_phase, evaluate_turn_matters, Narrator, NullNarrator,
     PreTurnObservation,
 };
+use crate::ruleset::Ruleset;
 use crate::worldgen::create_new_run_with_content;
 
 /// Mechanical projection of a [`crate::model::JournalEntry`], retaining `day`, `location`,
@@ -503,6 +504,64 @@ pub fn run_tier2_seed_trace_with_narrator<N: Narrator + ?Sized>(
     }
 
     Tier2SeedTrace { seed, turns }
+}
+
+/// Play one Tier 2 turn on `engine` with the deterministic Tier 2 policy and return that turn's
+/// `mechanics_state_hash` (the same value `run_tier2_seed_trace` records for the turn).
+///
+/// For ruleset tests: the caller builds the engine (and chooses its [`Ruleset`]) and may save,
+/// rebuild and resume it between turns. Presentation (narration, text) is not computed.
+pub fn tier2_mechanics_turn(engine: &mut StepEngine, seed_idx: usize, turn: usize) -> String {
+    let (intent, chosen_choice_id) = pick_tier2_intent(engine, seed_idx, turn);
+    let pre_event_id = engine
+        .pending_event()
+        .map(|e| e.event_id.clone())
+        .unwrap_or_default();
+    let msgs = engine.step(&intent);
+    let post_event_id = engine
+        .pending_event()
+        .map(|e| e.event_id.clone())
+        .unwrap_or(pre_event_id);
+    engine.state.rng_counter = engine.rng.counter;
+    engine.state.rng_state = Some(engine.rng.getstate());
+    compute_mechanics_state_hash(
+        &engine.state,
+        engine.phase,
+        &post_event_id,
+        &chosen_choice_id,
+        &msgs.outcome_deltas,
+    )
+}
+
+/// Result of [`run_tier2_mechanics_with_ruleset`]: per-turn mechanics hashes and the final state.
+pub struct Tier2MechanicsRun {
+    pub hashes: Vec<String>,
+    pub state: RunState,
+}
+
+/// Run one seed for up to `max_turns` Tier 2 turns under `ruleset`, mechanics only. With
+/// `Ruleset::Legacy` the hashes equal those of [`run_tier2_seed_trace`].
+pub fn run_tier2_mechanics_with_ruleset(
+    seed: i128,
+    seed_idx: usize,
+    content: &ContentPack,
+    max_turns: usize,
+    ruleset: Ruleset,
+) -> Tier2MechanicsRun {
+    let state = create_new_run_with_content(seed, content);
+    let mut engine = StepEngine::with_content(state, content);
+    engine.set_ruleset(ruleset);
+    let mut hashes = Vec::with_capacity(max_turns);
+    for turn in 1..=max_turns {
+        if engine.phase == GamePhase::GameOver || engine.state.game_over {
+            break;
+        }
+        hashes.push(tier2_mechanics_turn(&mut engine, seed_idx, turn));
+    }
+    Tier2MechanicsRun {
+        hashes,
+        state: engine.state,
+    }
 }
 
 /// Run the Tier 2 snapshot generator across the 1,000-seed matrix under `content` using
