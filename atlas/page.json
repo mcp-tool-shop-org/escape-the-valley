@@ -84,66 +84,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 4,
-      "changed": 9,
+      "added": 0,
+      "changed": 1,
       "moved": 0,
-      "parts": 0,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json is now also read by rust/etv-core/tests/narrator_experiment_arms.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json",
-          "rust/etv-core/tests/narrator_experiment_arms.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now also read by rust/etv-core/tests/ledger_proof_memo_body.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
-          "rust/etv-core/tests/ledger_proof_memo_body.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/narrator_experiment.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/narrator_experiment.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/backpack_save_per_payment.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/backpack_save_per_payment.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/ledger_proof_memo_body.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/ledger_proof_memo_body.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 1 more new file that belongs to no part.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "4 files added and 9 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-13; 1 file changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "bd49eb1a9afc61feebc4bbd2dfa3fc2fafb4bdf5",
-      "generatedAt": "2026-11-13T13:59:24.508Z"
+      "commit": "b12ca6d39ef840cb2678c6a5bc35ca1d64730936",
+      "generatedAt": "2026-11-13T15:13:56.930Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -228,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 10 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "b12ca6d39ef840cb2678c6a5bc35ca1d64730936",
+  "commit": "b12cbb851e2953f51acef89c7c74aba3b9e0ce69",
   "defaultBranch": "main",
   "derived": "10 parts, in Python (70 files), Rust (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -718,7 +676,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T15:13:56.930Z",
+  "generatedAt": "2026-11-13T15:43:58.819Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",

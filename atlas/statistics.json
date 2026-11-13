@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 45,
-        "lines": 1569,
+        "commits": 47,
+        "lines": 1615,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 45,
-        "lines": 5645,
+        "commits": 47,
+        "lines": 5779,
         "path": "atlas/page.json"
       },
       {
-        "commits": 45,
-        "lines": 27488,
+        "commits": 47,
+        "lines": 27981,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 45,
-        "lines": 42619,
+        "commits": 47,
+        "lines": 42943,
         "path": "atlas/structure.json"
       },
       {
@@ -3032,7 +3032,7 @@
       },
       {
         "commits": 4,
-        "lines": 1225,
+        "lines": 1705,
         "path": "rust/etv-core/src/backpack.rs"
       },
       {
@@ -3096,8 +3096,8 @@
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
-        "commits": 1,
-        "lines": 599,
+        "commits": 2,
+        "lines": 761,
         "path": "rust/etv-core/src/ledger_proof.rs"
       },
       {
@@ -3242,8 +3242,13 @@
       },
       {
         "commits": 2,
-        "lines": 984,
+        "lines": 546,
         "path": "rust/etv-core/tests/backpack_pending_overlap.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 755,
+        "path": "rust/etv-core/tests/backpack_save_per_payment.rs"
       },
       {
         "commits": 1,
@@ -3386,6 +3391,11 @@
         "path": "rust/etv-core/tests/invariant_sweeps.rs"
       },
       {
+        "commits": 1,
+        "lines": 898,
+        "path": "rust/etv-core/tests/ledger_proof_memo_body.rs"
+      },
+      {
         "commits": 2,
         "lines": 546,
         "path": "rust/etv-core/tests/measure_all_rules_paired.rs"
@@ -3401,8 +3411,8 @@
         "path": "rust/etv-core/tests/narrator_death_wording_doctrine.rs"
       },
       {
-        "commits": 2,
-        "lines": 697,
+        "commits": 1,
+        "lines": 679,
         "path": "rust/etv-core/tests/narrator_experiment_arms.rs"
       },
       {
@@ -3441,8 +3451,8 @@
         "path": "rust/etv-core/tests/phase2a_ledger_notices_seam.rs"
       },
       {
-        "commits": 2,
-        "lines": 1524,
+        "commits": 4,
+        "lines": 1595,
         "path": "rust/etv-core/tests/phase2b_backpack_proof.rs"
       },
       {
@@ -4401,9 +4411,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T15:13:56.930Z",
+  "generatedAt": "2026-11-13T15:43:58.819Z",
   "generatedFrom": {
-    "commit": "b12ca6d39ef840cb2678c6a5bc35ca1d64730936"
+    "commit": "b12cbb851e2953f51acef89c7c74aba3b9e0ce69"
   },
   "pairs": [
     {
@@ -4556,43 +4566,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 36,
-      "shared": 36,
+      "either": 39,
+      "shared": 39,
       "strength": 1
     },
     {
@@ -4753,7 +4763,7 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-13T10:02:26-05:00",
+    "headDate": "2026-11-13T10:40:34-05:00",
     "inScopeFiles": 841,
     "pinnedStart": null,
     "priorFloor": "fallen",
@@ -4762,7 +4772,7 @@
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T15:02:26.000Z",
+    "since": "2026-05-17T15:40:34.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
