@@ -1,22 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit ea88cd8 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit e879cf7 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, mostly Python (70 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-13 (73f78f1)
+## What changed since 2026-11-13 (ea88cd8)
 
-- CI no longer runs tests/test_adapter.py, tests/test_backpack.py, tests/test_backpack_ledger.py and 24 more.
-- Publish to PyPI now also checks src/escape_the_valley/.
-- Release Binaries (.github/workflows/release-binaries.yml) is a new door. It starts when a release is published; when the workflow Release completes; or by hand. It runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py. It builds src/escape_the_valley/__main__.py.
-- And 4 more changes to doors.
-- CHANGELOG.md is now read by .github/workflows/release.yml.
-- README.md is now read by pyproject.toml.
-- package.json is now read by .github/workflows/release.yml.
-- And 2 more new writers and readers of places.
-- 17 files added, across 5 parts.
+Nothing structural changed since 2026-11-13; 1 file changed content.
 
 ## What comes in
 

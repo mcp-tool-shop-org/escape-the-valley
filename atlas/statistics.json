@@ -186,8 +186,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 22,
-        "lines": 351,
+        "commits": 23,
+        "lines": 353,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -201,8 +201,8 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 15,
-        "lines": 608,
+        "commits": 16,
+        "lines": 676,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -226,48 +226,48 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 30,
-        "lines": 476,
+        "commits": 31,
+        "lines": 487,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 12,
-        "lines": 1213,
+        "commits": 13,
+        "lines": 1323,
         "path": "README.es.md"
       },
       {
-        "commits": 12,
-        "lines": 1177,
+        "commits": 13,
+        "lines": 1259,
         "path": "README.fr.md"
       },
       {
-        "commits": 12,
-        "lines": 1143,
+        "commits": 13,
+        "lines": 1247,
         "path": "README.hi.md"
       },
       {
-        "commits": 12,
-        "lines": 1039,
+        "commits": 13,
+        "lines": 1099,
         "path": "README.it.md"
       },
       {
-        "commits": 12,
-        "lines": 1315,
+        "commits": 13,
+        "lines": 1419,
         "path": "README.ja.md"
       },
       {
-        "commits": 22,
-        "lines": 168,
+        "commits": 23,
+        "lines": 172,
         "path": "README.md"
       },
       {
-        "commits": 12,
-        "lines": 1407,
+        "commits": 13,
+        "lines": 1509,
         "path": "README.pt-BR.md"
       },
       {
-        "commits": 12,
-        "lines": 979,
+        "commits": 13,
+        "lines": 1051,
         "path": "README.zh.md"
       },
       {
@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 21,
-        "lines": 754,
+        "commits": 23,
+        "lines": 856,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 21,
-        "lines": 3067,
+        "commits": 23,
+        "lines": 3578,
         "path": "atlas/page.json"
       },
       {
-        "commits": 21,
-        "lines": 17086,
+        "commits": 23,
+        "lines": 22236,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 21,
-        "lines": 28417,
+        "commits": 23,
+        "lines": 33544,
         "path": "atlas/structure.json"
       },
       {
@@ -2901,8 +2901,8 @@
         "path": "package.json"
       },
       {
-        "commits": 17,
-        "lines": 75,
+        "commits": 18,
+        "lines": 80,
         "path": "pyproject.toml"
       },
       {
@@ -3211,8 +3211,8 @@
         "path": "rust/tools/gen_notices.py"
       },
       {
-        "commits": 2,
-        "lines": 532,
+        "commits": 3,
+        "lines": 798,
         "path": "scripts/check_glibc_floor.py"
       },
       {
@@ -3506,8 +3506,8 @@
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 9,
-        "lines": 40,
+        "commits": 10,
+        "lines": 42,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -3951,8 +3951,8 @@
         "path": "tests/test_four_tier_live.py"
       },
       {
-        "commits": 2,
-        "lines": 270,
+        "commits": 3,
+        "lines": 405,
         "path": "tests/test_glibc_floor.py"
       },
       {
@@ -4036,9 +4036,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T01:19:10.396Z",
+  "generatedAt": "2026-11-13T02:02:20.236Z",
   "generatedFrom": {
-    "commit": "ea88cd819d3857283a959336a53cdab89573ade3"
+    "commit": "e879cf73dfdcfa2033b3cc03ae40128685b9dabb"
   },
   "pairs": [
     {
@@ -4198,43 +4198,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 14,
-      "shared": 14,
+      "either": 15,
+      "shared": 15,
       "strength": 1
     },
     {
@@ -4388,16 +4388,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-12T20:18:52-05:00",
+    "headDate": "2026-11-12T20:50:09-05:00",
     "inScopeFiles": 766,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 118,
+    "qualifyingCommits": 119,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T01:18:52.000Z",
+    "since": "2026-05-17T01:50:09.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
