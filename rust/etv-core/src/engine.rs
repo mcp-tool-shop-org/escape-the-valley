@@ -32,6 +32,8 @@ use crate::physics::{
 use crate::rng::CpythonRng;
 use crate::ruleset::Ruleset;
 use crate::save::save_game;
+use crate::save::SaveLoadError;
+use crate::save_v5::{save_game_v5, PendingBlock};
 use crate::worldgen::{generate_weather, EventOutcome, EventSkeleton};
 
 const EVENT_CHOICE_LETTERS: [&str; 7] = ["A", "B", "C", "D", "E", "F", "G"];
@@ -177,6 +179,97 @@ impl StepEngine {
     /// must be given the same ruleset it was played under.
     pub fn set_ruleset(&mut self, ruleset: Ruleset) {
         self.ruleset = ruleset;
+    }
+
+    /// Rebuild an engine from a loaded save, restoring the event or fork that was on screen.
+    ///
+    /// Under `Ruleset::V2` the `pending` block restores `phase` and the pending fields; an
+    /// event is found by its id in `content`'s event library, and an id not in the library is
+    /// a [`SaveLoadError::Corrupt`] naming it. Under `Ruleset::Legacy` the block is ignored and
+    /// the engine starts at camp, as the Python game does on reload.
+    pub fn resume(
+        state: RunState,
+        pending: Option<PendingBlock>,
+        content: &crate::content::ContentPack,
+        ruleset: Ruleset,
+        autosave: bool,
+        base_path: Option<PathBuf>,
+    ) -> Result<Self, SaveLoadError> {
+        let mut engine = Self::with_options(state, autosave, base_path);
+        engine.event_library = content.all_events.clone();
+        engine.ruleset = ruleset;
+        if ruleset != Ruleset::V2 || engine.phase == GamePhase::GameOver {
+            return Ok(engine);
+        }
+        let Some(block) = pending else {
+            return Ok(engine);
+        };
+        match block.phase {
+            GamePhase::Event => {
+                let event = engine
+                    .event_library
+                    .iter()
+                    .find(|e| e.event_id == block.event_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        SaveLoadError::Corrupt(format!(
+                            "pending event '{}' is not in the event library",
+                            block.event_id
+                        ))
+                    })?;
+                if block.choices.is_empty() {
+                    return Err(SaveLoadError::Corrupt(
+                        "pending event has no choices".to_string(),
+                    ));
+                }
+                engine.msgs.event_title = block.title.clone();
+                engine.msgs.event_narration = block.narration.clone();
+                engine.msgs.event_choices = block.choices.clone();
+                engine.pending_event = Some(event);
+                engine.pending_event_choices = block.choices;
+                engine.pending_event_title = block.title;
+                engine.pending_event_narration = block.narration;
+                engine.phase = GamePhase::Event;
+            }
+            GamePhase::Route => {
+                if block.routes.is_empty() {
+                    return Err(SaveLoadError::Corrupt(
+                        "pending fork has no routes".to_string(),
+                    ));
+                }
+                engine.msgs.route_options = block.routes.clone();
+                engine.pending_routes = block.routes;
+                engine.phase = GamePhase::Route;
+            }
+            GamePhase::Camp | GamePhase::GameOver => {}
+        }
+        Ok(engine)
+    }
+
+    /// The event or fork on screen, for saving. `None` at camp, at game over, and always under
+    /// `Ruleset::Legacy` (the Legacy save has no pending block and resumes at camp).
+    pub fn pending_block(&self) -> Option<PendingBlock> {
+        if self.ruleset != Ruleset::V2 {
+            return None;
+        }
+        match self.phase {
+            GamePhase::Event => {
+                let event = self.pending_event.as_ref()?;
+                Some(PendingBlock::event(
+                    &event.event_id,
+                    self.pending_event_choices.clone(),
+                    &self.pending_event_title,
+                    &self.pending_event_narration,
+                ))
+            }
+            GamePhase::Route => Some(PendingBlock::route(self.pending_routes.clone())),
+            GamePhase::Camp | GamePhase::GameOver => None,
+        }
+    }
+
+    /// The title and narration shown with the pending event (empty when none is pending).
+    pub fn pending_event_text(&self) -> (&str, &str) {
+        (&self.pending_event_title, &self.pending_event_narration)
     }
 
     /// Return the currently pending `EventSkeleton`, if the engine is in `GamePhase::Event`.
@@ -1174,7 +1267,16 @@ impl StepEngine {
             return;
         }
         let base = self.base_path.clone().unwrap_or_else(|| PathBuf::from("."));
-        let _ = save_game(&self.state, &base);
+        match self.ruleset {
+            // Legacy keeps the frozen v4 save and resumes at camp.
+            Ruleset::Legacy => {
+                let _ = save_game(&self.state, &base);
+            }
+            Ruleset::V2 => {
+                let pending = self.pending_block();
+                let _ = save_game_v5(&self.state, pending.as_ref(), &base);
+            }
+        }
     }
 }
 
