@@ -84,5 +84,5 @@ fn v2_ruleset_changes_runs_and_its_win_counts_are_pinned() {
 // Measured when this test was written (seeds 0 to 199, cautious policy, turn cap 500). They move
 // whenever a V2 rule changes, on purpose.
 const EXPECTED_LEGACY_WINS: u64 = 20;
-const EXPECTED_V2_WINS: u64 = 11;
-const EXPECTED_DIFFERING: usize = 199;
+const EXPECTED_V2_WINS: u64 = 69;
+const EXPECTED_DIFFERING: usize = 200;

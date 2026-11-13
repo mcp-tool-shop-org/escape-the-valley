@@ -16,8 +16,8 @@ Rain falls steady as judgment, soaking every seam and hope alike.
   A. Continue despite the wet
   B. Wait under canvas
 > Choose one of: A, B.
-> [Continue despite the wet] The party damages the wagon, loses heart, covers ground on the trail and loses time.
-  distance +4, morale -2, time_days +1, wagon_condition -2
+> [Continue despite the wet] The party damages the wagon, loses heart, falls back on the trail and loses time.
+  distance -4, morale -2, time_days +1, wagon_condition -2
 
 Day 1, evening. Coldspring (plains). 5 of 396 miles, 20 to the next stop.
 Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 69.

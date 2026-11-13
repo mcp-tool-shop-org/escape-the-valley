@@ -644,9 +644,10 @@ impl PreTurnObservation {
 /// - `animals_health`: `state.wagon.animals_health - pre.animals_health` (clamped to `0..=100`).
 /// - `wagon_condition`: `state.wagon.condition - pre.wagon_condition` (clamped to `0..=100`).
 /// - `morale`: `state.party.morale - pre.morale` (clamped to `0..=100`).
-/// - `distance`: `state.distance_remaining - pre.distance_remaining` on event choice turns
-///   (`pre.phase == GamePhase::Event`), or `state.distance_traveled - pre.distance_traveled` on
-///   non-event turns.
+/// - `distance`: progress along the road, positive for miles covered. On event choice turns
+///   (`pre.phase == GamePhase::Event`) it is `pre.distance_remaining -
+///   state.distance_remaining`, so a choice that lengthened the road reads as ground lost;
+///   on other turns it is `state.distance_traveled - pre.distance_traveled`.
 /// - `time_days`: quarter-day slot delta `(state.day * 4 + slot(state.time_of_day)) -
 ///   (pre.day * 4 + slot(pre.time_of_day))` produced by `StepEngine::advance_time`.
 pub fn compute_applied_turn_deltas(
@@ -707,7 +708,7 @@ pub fn compute_applied_turn_deltas(
     }
 
     let distance_delta = if pre.phase == GamePhase::Event {
-        state.distance_remaining - pre.distance_remaining
+        pre.distance_remaining - state.distance_remaining
     } else {
         state.distance_traveled - pre.distance_traveled
     };
@@ -1357,19 +1358,18 @@ pub enum PromptSlot {
 /// The word for one applied change in `resource_directions`.
 ///
 /// Supplies are `spent` or `gained`. Health, morale, the wagon and the animals `fell` or `rose`.
-/// Time is `days passed` (or `time saved`). Distance depends on the turn: at camp a positive
-/// change is miles covered (`travelled`); on a turn that resolved a choice or took a fork the
-/// engine reports the change in miles still to go, so a positive change means the road grew
-/// longer.
-pub fn change_word(key: &str, delta: i32, on_choice: bool) -> &'static str {
+/// Time is `days passed` (or `time saved`). Distance is progress on every turn: a positive
+/// change is miles covered (`travelled`) and a negative one is `lost ground`.
+pub fn change_word(key: &str, delta: i32) -> &'static str {
     let up = delta > 0;
     match key {
-        "distance" => match (on_choice, up) {
-            (false, true) => "travelled",
-            (false, false) => "lost ground",
-            (true, true) => "road longer",
-            (true, false) => "road shorter",
-        },
+        "distance" => {
+            if up {
+                "travelled"
+            } else {
+                "lost ground"
+            }
+        }
         "time_days" => {
             if up {
                 "days passed"
@@ -1467,11 +1467,10 @@ pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> S
         return out;
     }
 
-    let on_choice = !ctx.choice_id().is_empty();
     let mut delta_directions = Vec::new();
     for (k, &v) in ctx.shown_deltas() {
         if v != 0 {
-            delta_directions.push(format!("{k}:{}", change_word(k, v, on_choice)));
+            delta_directions.push(format!("{k}:{}", change_word(k, v)));
         }
     }
     let effects_summary: Vec<&'static str> = ctx

@@ -197,8 +197,8 @@ fn play(
     )
 }
 
-const BRACKET_LINE: &str = "[Continue despite the wet] The party damages the wagon, loses heart, covers ground on the trail and loses time.";
-const NUMBERS_LINE: &str = "  distance +4, morale -2, time_days +1, wagon_condition -2";
+const BRACKET_LINE: &str = "[Continue despite the wet] The party damages the wagon, loses heart, falls back on the trail and loses time.";
+const NUMBERS_LINE: &str = "  distance -4, morale -2, time_days +1, wagon_condition -2";
 
 #[test]
 fn a_connected_narrator_tells_every_turn_and_the_numbers_stay() {

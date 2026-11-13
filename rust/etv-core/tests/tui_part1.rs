@@ -277,11 +277,11 @@ fn golden_first_event_on_seed_42_before_and_after_choosing() {
         let flat_after = flat(&after);
         assert!(
             flat_after.contains(
-                "[Continue despite the wet] The party damages the wagon, loses heart, covers ground on the trail and loses time."
+                "[Continue despite the wet] The party damages the wagon, loses heart, falls back on the trail and loses time."
             ),
             "{after}"
         );
-        assert!(flat_after.contains("distance +4, morale -2, time_days +1, wagon_condition -2"));
+        assert!(flat_after.contains("distance -4, morale -2, time_days +1, wagon_condition -2"));
         assert!(flat_after.contains("Persistent Rain"));
         assert!(flat_after.contains("Enter Continue"));
     }
@@ -994,7 +994,7 @@ fn an_outcome_stays_until_a_key_moves_on_and_a_camp_key_both_dismisses_and_acts(
     // The outcome stays in the log.
     let log = app.model.log.join("\n");
     assert!(log.contains("[Continue despite the wet] The party damages the wagon"));
-    assert!(log.contains("distance +4, morale -2, time_days +1, wagon_condition -2"));
+    assert!(log.contains("distance -4, morale -2, time_days +1, wagon_condition -2"));
 
     // Another event, and this time a camp key dismisses and travels.
     let mut app = new_app(42, (80, 24));

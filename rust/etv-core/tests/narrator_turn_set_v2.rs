@@ -24,7 +24,7 @@ use etv_core::turn_set::{
     TURN_SET_V2_QUOTAS,
 };
 
-const V2_SHA256: &str = "095455fb593311ecdb76b139aa1ad20220807bdf7bcd4d236ec648e276c13769";
+const V2_SHA256: &str = "458d444aae17a37b4247870481a1533585b58e3233670558a9436208182e0016";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 const V1_SHA256: &str = "838e4346263507a112b6a161a4107a3647c253a39646b2427236afdd4e526f17";
 const V1_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v1.json");

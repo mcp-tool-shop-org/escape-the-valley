@@ -818,7 +818,12 @@ pub fn resolve_event_with_ruleset(
         unaffordable_costs(state, &costs)
     };
     if !missing.is_empty() {
-        let denied = insufficient_supplies_outcome(template, choice);
+        let mut denied = insufficient_supplies_outcome(template, choice);
+        if ruleset == Ruleset::V2 {
+            // The denial's distance is a penalty. Under V2 a positive distance is progress,
+            // so the penalty is ground lost.
+            denied.distance_delta = -denied.distance_delta.abs();
+        }
         if denied
             .special_flags
             .iter()
@@ -857,10 +862,29 @@ pub fn resolve_event_with_ruleset(
     outcome
 }
 
-/// Apply an event outcome to game state (`events.py:2179-2221`).
+/// Apply an event outcome to game state under the Legacy rules (`events.py:2179-2221`).
 ///
 /// Returns `HealthEffect::Died` entries for any party member whose health dropped to `<= 0`.
 pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) -> Vec<HealthEffect> {
+    apply_outcome_with_ruleset(state, outcome, Ruleset::Legacy)
+}
+
+/// Apply an event outcome to game state.
+///
+/// The two rule sets differ in what an outcome's `distance_delta` does:
+///
+/// - `Ruleset::Legacy` adds it to the miles still to go, as the Python game does. A choice
+///   written with a positive distance ("Push through the gale") makes the road longer.
+/// - `Ruleset::V2` counts it as progress, which is how the content reads: a positive distance
+///   is subtracted from the miles still to go (never below zero) and added to the miles
+///   travelled; a negative distance is ground lost and lengthens the road.
+///
+/// Returns `HealthEffect::Died` entries for any party member whose health dropped to `<= 0`.
+pub fn apply_outcome_with_ruleset(
+    state: &mut RunState,
+    outcome: &EventOutcome,
+    ruleset: Ruleset,
+) -> Vec<HealthEffect> {
     let mut effects = Vec::new();
     state.supplies.apply_delta(&outcome.supplies_delta);
 
@@ -897,7 +921,18 @@ pub fn apply_outcome(state: &mut RunState, outcome: &EventOutcome) -> Vec<Health
     }
 
     if outcome.distance_delta != 0 {
-        state.distance_remaining += outcome.distance_delta;
+        match ruleset {
+            Ruleset::Legacy => state.distance_remaining += outcome.distance_delta,
+            Ruleset::V2 => {
+                if outcome.distance_delta > 0 {
+                    let covered = outcome.distance_delta.min(state.distance_remaining.max(0));
+                    state.distance_remaining -= covered;
+                    state.distance_traveled += covered;
+                } else {
+                    state.distance_remaining -= outcome.distance_delta;
+                }
+            }
+        }
     }
 
     effects

@@ -96,7 +96,13 @@ fn every_turn_rebuilds_with_the_effects_the_game_showed() {
             assert_eq!(ctx.fallback_line(), t.fallback_line);
             assert_eq!(ctx.gm_profile(), profile);
             if !t.effects.is_empty() {
-                assert_eq!(ctx.shown_deltas(), &t.effects, "turn {}", t.id);
+                // The file stores `distance` as the change in miles still to go; the narrator
+                // is given progress, the other way round. Everything else is as stored.
+                let mut expected = t.effects.clone();
+                if let Some(distance) = expected.get_mut("distance") {
+                    *distance = -*distance;
+                }
+                assert_eq!(ctx.shown_deltas(), &expected, "turn {}", t.id);
             }
         }
     }

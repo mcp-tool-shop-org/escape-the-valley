@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::events::{
-    apply_outcome, build_event_library, missing_supplies_for_choice, resolve_event_with_ruleset,
-    select_event_with_ruleset,
+    apply_outcome_with_ruleset, build_event_library, missing_supplies_for_choice,
+    resolve_event_with_ruleset, select_event_with_ruleset,
 };
 use crate::memory::{
     check_resource_crises, emit_arrival_card, emit_escape_valve_card, emit_event_card,
@@ -998,7 +998,7 @@ impl StepEngine {
             &mut self.rng,
             self.ruleset,
         );
-        apply_outcome(&mut self.state, &outcome);
+        apply_outcome_with_ruleset(&mut self.state, &outcome, self.ruleset);
 
         for _ in 0..std::cmp::max(0, outcome.time_cost) {
             self.advance_time();

@@ -17,7 +17,7 @@ use etv_core::narrator::{
     DEATH_RULE_BANNED, SITUATION_RELABELS,
 };
 
-const V2_SHA256: &str = "095455fb593311ecdb76b139aa1ad20220807bdf7bcd4d236ec648e276c13769";
+const V2_SHA256: &str = "458d444aae17a37b4247870481a1533585b58e3233670558a9436208182e0016";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 
 fn turns() -> Vec<TurnSpecV2> {
@@ -250,28 +250,20 @@ fn change_words_by_key() {
     for key in [
         "food", "water", "ammo", "parts", "firewood", "oil", "rope", "tools", "cloth",
     ] {
-        assert_eq!(change_word(key, -1, false), "spent");
-        assert_eq!(change_word(key, 2, false), "gained");
-        assert_eq!(change_word(key, -1, true), "spent");
-        assert_eq!(change_word(key, 2, true), "gained");
+        assert_eq!(change_word(key, -1), "spent");
+        assert_eq!(change_word(key, 2), "gained");
     }
     // Conditions fall and rise.
     for key in ["health", "morale", "wagon_condition", "animals_health"] {
-        assert_eq!(change_word(key, -3, false), "fell");
-        assert_eq!(change_word(key, 3, false), "rose");
-        assert_eq!(change_word(key, -3, true), "fell");
-        assert_eq!(change_word(key, 3, true), "rose");
+        assert_eq!(change_word(key, -3), "fell");
+        assert_eq!(change_word(key, 3), "rose");
     }
     // Days pass.
-    assert_eq!(change_word("time_days", 1, false), "days passed");
-    assert_eq!(change_word("time_days", 1, true), "days passed");
-    assert_eq!(change_word("time_days", -1, true), "time saved");
-    // Distance at camp is miles covered. On a resolved choice the engine reports miles still to
-    // go, so a positive change is a longer road.
-    assert_eq!(change_word("distance", 5, false), "travelled");
-    assert_eq!(change_word("distance", -5, false), "lost ground");
-    assert_eq!(change_word("distance", 5, true), "road longer");
-    assert_eq!(change_word("distance", -5, true), "road shorter");
+    assert_eq!(change_word("time_days", 1), "days passed");
+    assert_eq!(change_word("time_days", -1), "time saved");
+    // Distance is progress on every turn: miles covered, or ground lost.
+    assert_eq!(change_word("distance", 5), "travelled");
+    assert_eq!(change_word("distance", -5), "lost ground");
 }
 
 fn directions_line(t: &TurnSpecV2) -> String {
@@ -330,15 +322,32 @@ fn no_turn_in_the_set_spends_or_gains_anything_but_a_supply() {
                 assert!(NOT_SUPPLIES.contains(&key), "{} {item}", t.id);
             }
             if key == "distance" {
+                // The set is drawn under the Legacy rules, where a choice's positive distance
+                // lengthens the road: every resolved-choice turn that moved the distance reads
+                // as ground lost, and every camp turn as miles travelled.
                 let on_choice = !t.context.choice_id().is_empty();
-                assert_eq!(word.starts_with("road "), on_choice, "{} {item}", t.id);
+                assert_eq!(
+                    word,
+                    if on_choice {
+                        "lost ground"
+                    } else {
+                        "travelled"
+                    }
+                );
+                assert_eq!(
+                    t.context.shown_deltas()["distance"] < 0,
+                    on_choice,
+                    "{} {item}",
+                    t.id
+                );
                 if on_choice {
                     seen_road += 1;
                 }
             }
         }
     }
-    assert!(seen_road > 0);
+    // 27 turns of the set resolve a choice that moved the distance.
+    assert_eq!(seen_road, 27);
 }
 
 // ---- 3. doctrine and taboo lines ---------------------------------------------------------------

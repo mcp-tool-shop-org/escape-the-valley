@@ -101,7 +101,8 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
     // later draws and so which events turn up).
     // 369 once V2 refuses an unaffordable pick: the Tier 2 policy asks again on a later turn, so
     // fewer runs get as far as the river inside 120 turns.
-    assert_eq!(once, 369, "runs with the river event exactly once under V2");
+    // 407 once a choice's distance counts as progress under V2: runs get further in 120 turns.
+    assert_eq!(once, 407, "runs with the river event exactly once under V2");
 
     let legacy = river_counts(Ruleset::Legacy, 1000, 120);
     let twice_plus = legacy.iter().filter(|&&c| c >= 2).count();
@@ -121,7 +122,8 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
 /// The affordability gate (`ruleset_v2_affordability.rs`) also changes V2 outcomes: from the
 /// first choice taken while unaffordable. The invariant that must hold: every turn up to and
 /// including the turn the first river event is resolved, and before the first unaffordable
-/// pick or pick that would spend `tools` (V2 never spends durable supplies), is identical.
+/// pick, pick that would spend `tools` (V2 never spends durable supplies) or pick whose outcome
+/// moves the distance (V2 counts it as progress), is identical.
 #[test]
 fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
     let pack = embedded_content_pack();
@@ -148,7 +150,10 @@ fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
                     .supplies_delta
                     .get("tools")
                     .is_some_and(|v| *v < 0);
+                // Under V2 a choice's distance is progress; under Legacy it lengthens the road.
+                let moves_distance = ev.outcome_templates[&id].distance_delta != 0;
                 if spends_tools
+                    || moves_distance
                     || !missing_supplies_for_choice(&engine.state, &ev, &id, Ruleset::V2).is_empty()
                 {
                     first_unaffordable_pick = Some(turn);
