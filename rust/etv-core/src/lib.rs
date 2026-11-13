@@ -34,6 +34,7 @@ pub mod screens;
 pub mod settings;
 pub mod simulate;
 pub mod snapshot;
+pub mod turn_set;
 pub mod validator;
 pub mod worldgen;
 
