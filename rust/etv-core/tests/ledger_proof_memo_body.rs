@@ -825,3 +825,74 @@ fn the_parser_round_trips_every_fixture_memo_through_the_builder_format() {
         MemoBody::Unparseable(_)
     ));
 }
+
+// ============================================================================
+// The version gate, the partial-batch rule, and the mint claim
+// ============================================================================
+
+#[test]
+fn the_memo_builder_always_writes_the_version_field() {
+    // The body check runs only on memos with a `|V:` field. The builder
+    // (`backpack.rs::settlement_memo_text`) writes `|V:v1` on every memo, whatever the deltas.
+    let cases: [&[(&str, i32)]; 4] = [
+        &[],
+        &[("food", -3)],
+        &[("ammo", 5), ("meds", -1), ("water", 0)],
+        &[("gold", 9)], // a key outside the token map is skipped but the memo is still versioned
+    ];
+    for deltas in cases {
+        let memo = settlement_memo_text("r", 3, &map(deltas));
+        assert!(memo.ends_with("|V:v1"), "{memo}");
+        assert!(memo.starts_with("TRAIL|RUN:r|DAY:3|DELTA:"), "{memo}");
+    }
+    assert_eq!(
+        settlement_memo_text("r", 3, &map(&[("gold", 9)])),
+        "TRAIL|RUN:r|DAY:3|DELTA:|V:v1"
+    );
+}
+
+#[test]
+fn partial_batch_rule_pins_the_excused_and_the_not_excused_cases() {
+    let full = "TRAIL|RUN:run-2b-seed7|DAY:14|DELTA:FOD-10,MED-2,WTR-4|V:v1";
+    let with_pending = |day: i32, water: i32| {
+        let mut i = clean();
+        set_chain(&mut i, "TX2B_D14_FOD", full);
+        set_chain(&mut i, "TX2B_D14_MED", full);
+        let mut p = record(day, "Coldspring", &[("water", water)], &[]);
+        p.status = "pending".to_string();
+        i.pending.push(p);
+        code_strings(&reconcile(&i))
+    };
+    // Excused: same day, same key, same amount.
+    assert_eq!(with_pending(14, -4), ["SETTLEMENTS_PENDING"]);
+    // Not excused: same day, different amount.
+    assert_eq!(
+        with_pending(14, -3),
+        [
+            "ONCHAIN_MEMO_DELTA_EXTRA_KEY",
+            "ONCHAIN_MEMO_DELTA_EXTRA_KEY",
+            "SETTLEMENTS_PENDING"
+        ]
+    );
+    // Not excused: same amount, different day.
+    assert_eq!(
+        with_pending(15, -4),
+        [
+            "ONCHAIN_MEMO_DELTA_EXTRA_KEY",
+            "ONCHAIN_MEMO_DELTA_EXTRA_KEY",
+            "SETTLEMENTS_PENDING"
+        ]
+    );
+}
+
+#[test]
+fn a_lone_mint_edit_still_breaks_conservation() {
+    // The save's mint claim is not checked against the chain directly (no mint evidence is
+    // available), but minted + chain-verified deltas must equal the ledger balance.
+    let mut i = clean();
+    i.minted_initial.insert("food".to_string(), 48);
+    let r = reconcile(&i);
+    assert_eq!(code_strings(&r), ["CONSERVATION_BROKEN"]);
+    assert_eq!(r.notes, ["food: minted 48 + deltas -19 (29) != settled 31"]);
+    assert!(!r.passed);
+}

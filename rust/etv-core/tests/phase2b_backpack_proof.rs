@@ -1187,8 +1187,9 @@ fn proof_tamper_sweep_200_single_field_mutations_never_report_clean() {
         );
         seen.extend(r.codes());
     }
-    // The sweep exercised every failure kind.
-    assert_eq!(seen.len(), 9, "{seen:?}");
+    // The sweep exercised every failure kind. The tenth is ONCHAIN_MEMO_DELTA_MISMATCH: a single
+    // edited saved delta (kind 5) now also disagrees with the on-chain memo body.
+    assert_eq!(seen.len(), 10, "{seen:?}");
 }
 
 // ============================================================================

@@ -1,16 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit 1fc107d by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit 1123761 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, mostly Python (70 files), Rust (40), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-13 (e2c3451)
+## What changed since 2026-11-13 (1fc107d)
 
-- rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now also read by rust/etv-core/tests/ledger_proof_memo_body.rs.
-- rust/etv-core/tests/ledger_proof_memo_body.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- 1 file added and 1 changed content.
+Nothing structural changed since 2026-11-13; 2 files changed content.
 
 ## What comes in
 

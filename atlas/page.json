@@ -84,39 +84,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 1,
+      "added": 0,
+      "changed": 2,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now also read by rust/etv-core/tests/ledger_proof_memo_body.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
-          "rust/etv-core/tests/ledger_proof_memo_body.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/ledger_proof_memo_body.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/ledger_proof_memo_body.rs"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "1 file added and 1 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-13; 2 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "e2c34513d881e25a19aeb2097bdb440021b245b4",
-      "generatedAt": "2026-11-13T05:12:29.225Z"
+      "commit": "1fc107dca1aa8fe1b191f3c765af4326f7062340",
+      "generatedAt": "2026-11-13T05:40:17.003Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -201,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 9 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "1fc107dca1aa8fe1b191f3c765af4326f7062340",
+  "commit": "1123761cf520047ea61ca6bfe2792fcfed8d2ae4",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (70 files), Rust (40), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -643,7 +628,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T05:40:17.003Z",
+  "generatedAt": "2026-11-13T05:42:10.844Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
