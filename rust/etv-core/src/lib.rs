@@ -28,6 +28,7 @@ pub mod rng;
 pub mod save;
 pub mod screens;
 pub mod settings;
+pub mod simulate;
 pub mod snapshot;
 pub mod validator;
 pub mod worldgen;
