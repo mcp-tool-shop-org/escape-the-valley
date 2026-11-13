@@ -977,13 +977,16 @@ Voice rules:\n\
 }
 
 /// Map `NarrationContext::weirdness_allowance` (`"none"`, `"hint"`, `"strong"`) to numeric
-/// weirdness band `0..=3`.
+/// weirdness band `0..=3` of the voice guide (section 5): `"none"` is band 0 (grounded),
+/// `"hint"` is band 2 ("Uncanny hint") and `"strong"` is band 3 ("Strong uncanny"). Band 1
+/// (weather and rumour) has no engine allowance, so it is reachable only as the digit `"1"`.
+/// Anything unrecognised is band 0, the strictest.
 pub fn weirdness_band_from_allowance(allowance: &str) -> u8 {
     match allowance.trim().to_ascii_lowercase().as_str() {
         "none" | "0" => 0,
-        "hint" | "1" => 1,
-        "strong" | "2" => 2,
-        "surreal" | "tokens" | "3" => 3,
+        "1" => 1,
+        "hint" | "2" => 2,
+        "strong" | "surreal" | "tokens" | "3" => 3,
         _ => 0,
     }
 }
