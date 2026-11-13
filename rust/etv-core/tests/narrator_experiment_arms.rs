@@ -22,7 +22,7 @@ use etv_core::narrator_experiment::{
 };
 use serde_json::{json, Value};
 
-const V2_SHA256: &str = "458d444aae17a37b4247870481a1533585b58e3233670558a9436208182e0016";
+const V2_SHA256: &str = "59a3e4f8870474d01b775a52071fae9a12629cec0f225606271e9d77f5f8ca46";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 
 /// Records every generation body and answers from a script (repeating its last answer).
@@ -207,7 +207,7 @@ fn the_rulings_arm_gives_a_target_and_drops_the_cap_and_the_quantifier_line() {
                 assert!(!user.contains(&format!("{cap} words")));
                 // Fireside alone is told about the oxen and the party.
                 assert_eq!(
-                    system.contains("- The wagon is drawn by oxen."),
+                    system.contains("- If the team is mentioned, it is oxen."),
                     profile == GMProfile::Fireside
                 );
                 assert_eq!(
@@ -661,12 +661,12 @@ fn the_command_line_switches_arms_on_and_refuses_bad_values() {
     assert!(body["system"]
         .as_str()
         .unwrap()
-        .contains("- The wagon is drawn by oxen."));
+        .contains("- If the team is mentioned, it is oxen."));
 
     for (extra, message) in [
         (
             vec!["--arm", "faster"],
-            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling or trim-to-cap, not \"faster\"",
+            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening or no-event-copy, not \"faster\"",
         ),
         (vec!["--candidates", "4"], "--candidates must be 1 to 3"),
         (vec!["--candidates", "0"], "--candidates must be 1 to 3"),

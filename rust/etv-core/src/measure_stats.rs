@@ -16,8 +16,12 @@ use serde::{Deserialize, Serialize};
 use crate::measure::{AnyTurnSet, CellReport, LatencySummary, TurnRow};
 use crate::model::GMProfile;
 use crate::narrator::{
-    check_generated_line_all, plain_apostrophes, profile_interface_name, CheckerContext,
-    NarrationContext, NarratorLength,
+    check_generated_line_all, plain_apostrophes, profile_interface_name, NarrationContext,
+    NarratorLength,
+};
+use crate::narrator_experiment::{checker_context_for, ExperimentArms};
+use crate::narrator_truth::{
+    opening_two_words, opens_with_event_text, says_what_happened_failures, TruthFacts,
 };
 
 /// One rule a line breaks, by the checker's reason-code name.
@@ -39,13 +43,20 @@ pub struct OpeningCount {
 pub const TOP_OPENINGS: usize = 5;
 
 /// Every rule `candidate` breaks for this turn at `length`, at most one entry per rule, in the
-/// checker's own order. The first entry is the rule the play-time checker reports.
+/// checker's own order. The first entry is the rule the checker reported when the line was
+/// written.
+///
+/// The line is checked as the run's arms check it (see [`checker_context_for`]), so a voice
+/// an arm lets say "oxen" is not listed as breaking the draft-animal rule. The repeated-
+/// opening rule is left out here: it depends on the line before, which a row does not hold.
 pub fn all_rule_breaks(
     candidate: &str,
     ctx: &NarrationContext,
     length: NarratorLength,
+    arms: ExperimentArms,
+    is_outcome: bool,
 ) -> Vec<RuleBreak> {
-    let checker = CheckerContext::from_narration_context(ctx, length);
+    let checker = checker_context_for(ctx, length, ctx.gm_profile(), arms, is_outcome, None);
     check_generated_line_all(&plain_apostrophes(candidate), &checker)
         .into_iter()
         .map(|f| RuleBreak {
@@ -68,6 +79,54 @@ pub fn opening_key(line: &str) -> String {
         .join(" ")
 }
 
+/// Rules 1a to 1e of `narrator_truth` applied to a line, whatever arm wrote it: does the line
+/// say what happened? Used to score lines already written.
+pub fn truth_breaks(candidate: &str, ctx: &NarrationContext, is_outcome: bool) -> Vec<RuleBreak> {
+    let facts = TruthFacts::from_context(ctx, is_outcome);
+    says_what_happened_failures(&plain_apostrophes(candidate), &facts)
+        .into_iter()
+        .map(|f| RuleBreak {
+            code: f.code.as_str().to_string(),
+            detail: f.detail,
+        })
+        .collect()
+}
+
+/// A word and the number of accepted lines of a cell that contain it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WordCount {
+    pub word: String,
+    pub lines: usize,
+}
+
+/// How many of the most used content words a cell report lists.
+pub const TOP_CONTENT_WORDS: usize = 8;
+
+/// Words left out of the content-word count: articles, pronouns, prepositions, auxiliaries and
+/// other words that carry no image. Everything else of four letters or more counts.
+const STOP_WORDS: [&str; 44] = [
+    "that", "this", "with", "from", "into", "over", "under", "through", "their", "there", "where",
+    "when", "what", "which", "while", "have", "does", "been", "were", "will", "than", "then",
+    "them", "they", "each", "every", "only", "still", "beyond", "behind", "beneath", "before",
+    "after", "above", "below", "between", "against", "toward", "towards", "like", "more", "some",
+    "none", "just",
+];
+
+/// The content words of a line, each once: lowercased, four letters or more, not a stop word.
+pub fn content_words(line: &str) -> Vec<String> {
+    let mut out: Vec<String> = line
+        .split_whitespace()
+        .map(|w| {
+            w.trim_matches(|c: char| !c.is_ascii_alphanumeric())
+                .to_ascii_lowercase()
+        })
+        .filter(|w| w.len() >= 4 && !STOP_WORDS.contains(&w.as_str()))
+        .collect();
+    out.sort();
+    out.dedup();
+    out
+}
+
 /// `true` when a unit-rule break names `coin` or `coins` (counted on its own because coin is
 /// also a supply the turn may have changed).
 pub fn is_coin_unit_break(b: &RuleBreak) -> bool {
@@ -85,7 +144,53 @@ pub fn fill_derived(cell: &mut CellReport, rows: &[TurnRow]) {
     let mut openings: BTreeMap<String, usize> = BTreeMap::new();
     let mut accepted_lines = 0;
     let mut turn_latencies = Vec::new();
+    let mut swh_pass = 0;
+    let mut swh_fail: BTreeMap<String, usize> = BTreeMap::new();
+    let mut copying = 0;
+    let mut repeating = 0;
+    let mut oxen_lines = 0;
+    let mut content: BTreeMap<String, usize> = BTreeMap::new();
+    // The previous accepted line's opening, within one run (rows are in turn-set order).
+    let mut previous: Option<(String, String)> = None;
     for row in rows {
+        for (slot, is_outcome) in [(&row.scene, false), (&row.outcome, true)] {
+            if slot.status == "accepted" {
+                if let Some(candidate) = &slot.candidate {
+                    if slot.truth_breaks.is_empty() {
+                        swh_pass += 1;
+                    }
+                    for b in &slot.truth_breaks {
+                        *swh_fail.entry(b.code.clone()).or_insert(0) += 1;
+                    }
+                    if slot.copies_event_text {
+                        copying += 1;
+                    }
+                    let opening = opening_two_words(candidate);
+                    let same_run = previous
+                        .as_ref()
+                        .is_some_and(|(run, _)| *run == row.run_key);
+                    if is_outcome
+                        && same_run
+                        && previous.as_ref().is_some_and(|(_, open)| *open == opening)
+                    {
+                        repeating += 1;
+                    }
+                    previous = Some((row.run_key.clone(), opening));
+                    let words = content_words(candidate);
+                    if words.iter().any(|w| w == "oxen")
+                        || candidate
+                            .to_ascii_lowercase()
+                            .split(|c: char| !c.is_ascii_alphabetic())
+                            .any(|w| w == "ox")
+                    {
+                        oxen_lines += 1;
+                    }
+                    for w in words {
+                        *content.entry(w).or_insert(0) += 1;
+                    }
+                }
+            }
+        }
         for slot in [&row.scene, &row.outcome] {
             if let Some(candidate) = &slot.candidate {
                 lines_checked += 1;
@@ -134,6 +239,32 @@ pub fn fill_derived(cell: &mut CellReport, rows: &[TurnRow]) {
     };
     cell.top_openings = top;
     cell.latency_turn = LatencySummary::from_samples(&turn_latencies);
+    cell.says_what_happened_pass = swh_pass;
+    cell.says_what_happened_rate = if accepted_lines == 0 {
+        0.0
+    } else {
+        swh_pass as f64 / accepted_lines as f64
+    };
+    cell.says_what_happened_fail_by_code = swh_fail;
+    cell.good_line_rate = if cell.slots == 0 {
+        0.0
+    } else {
+        swh_pass as f64 / cell.slots as f64
+    };
+    cell.accepted_copying_event_text = copying;
+    cell.accepted_repeating_opening = repeating;
+    cell.oxen_share = if accepted_lines == 0 {
+        0.0
+    } else {
+        oxen_lines as f64 / accepted_lines as f64
+    };
+    let mut top_words: Vec<WordCount> = content
+        .into_iter()
+        .map(|(word, lines)| WordCount { word, lines })
+        .collect();
+    top_words.sort_by(|a, b| b.lines.cmp(&a.lines).then(a.word.cmp(&b.word)));
+    top_words.truncate(TOP_CONTENT_WORDS);
+    cell.top_content_words = top_words;
 }
 
 /// The profile for an interface name as rows carry it (`Chronicler`, `Fireside`,
@@ -158,11 +289,16 @@ pub fn length_from_row_name(name: &str) -> Option<NarratorLength> {
     }
 }
 
-/// Recompute `all_rule_breaks` and `latency_ms_turn` for rows read from a file, using the
-/// turn set the run was made on and the checker of this build. Rows written before these
-/// fields existed get them this way. The status and first-rule code of each slot are left as
-/// the run recorded them.
-pub fn recompute_row_details(rows: &mut [TurnRow], set: &AnyTurnSet) -> Result<(), String> {
+/// Recompute the fields read off a line for rows read from a file: every rule it breaks (as
+/// `arms` check it), whether it says what happened, whether it copies the event's text, the
+/// run it belongs to, and the turn's time. The turn set the run was made on and the checker
+/// of this build are used. Rows written before these fields existed get them this way. The
+/// status and first-rule code of each slot are left as the run recorded them.
+pub fn recompute_row_details(
+    rows: &mut [TurnRow],
+    set: &AnyTurnSet,
+    arms: ExperimentArms,
+) -> Result<(), String> {
     let turns = set.measured_turns();
     let by_id: BTreeMap<&str, usize> = turns.iter().enumerate().map(|(i, t)| (t.id(), i)).collect();
     for row in rows.iter_mut() {
@@ -174,11 +310,9 @@ pub fn recompute_row_details(rows: &mut [TurnRow], set: &AnyTurnSet) -> Result<(
             .get(row.turn_id.as_str())
             .ok_or_else(|| format!("turn {:?} is not in the turn set", row.turn_id))?;
         let ctx = turns[*at].context(profile);
-        for slot in [&mut row.scene, &mut row.outcome] {
-            slot.all_rule_breaks = match &slot.candidate {
-                Some(candidate) => all_rule_breaks(candidate, &ctx, length),
-                None => Vec::new(),
-            };
+        row.run_key = turns[*at].run_key();
+        for (slot, is_outcome) in [(&mut row.scene, false), (&mut row.outcome, true)] {
+            fill_slot_details(slot, &ctx, length, arms, is_outcome);
         }
         row.latency_ms_turn = match (row.scene.latency_ms, row.outcome.latency_ms) {
             (None, None) => None,
@@ -186,6 +320,31 @@ pub fn recompute_row_details(rows: &mut [TurnRow], set: &AnyTurnSet) -> Result<(
         };
     }
     Ok(())
+}
+
+/// Fill the fields of one slot that are read off its line: every rule it breaks as `arms`
+/// check it, whether it says what happened (rules 1a to 1e, whatever arm wrote it), and
+/// whether it opens with the event's own text.
+pub fn fill_slot_details(
+    slot: &mut crate::measure::SlotRow,
+    ctx: &NarrationContext,
+    length: NarratorLength,
+    arms: ExperimentArms,
+    is_outcome: bool,
+) {
+    match &slot.candidate {
+        Some(candidate) => {
+            slot.all_rule_breaks = all_rule_breaks(candidate, ctx, length, arms, is_outcome);
+            slot.truth_breaks = truth_breaks(candidate, ctx, is_outcome);
+            slot.copies_event_text =
+                opens_with_event_text(&plain_apostrophes(candidate), ctx.check_event_seed());
+        }
+        None => {
+            slot.all_rule_breaks = Vec::new();
+            slot.truth_breaks = Vec::new();
+            slot.copies_event_text = false;
+        }
+    }
 }
 
 /// Cell reports rebuilt from rows alone, one per profile and length in the order they first
@@ -233,6 +392,14 @@ pub fn cell_reports_from_rows(rows: &[TurnRow]) -> Vec<CellReport> {
             top_openings: Vec::new(),
             latency_turn: LatencySummary::from_samples(&[]),
             calls_made: 0,
+            says_what_happened_pass: 0,
+            says_what_happened_rate: 0.0,
+            says_what_happened_fail_by_code: BTreeMap::new(),
+            good_line_rate: 0.0,
+            accepted_copying_event_text: 0,
+            accepted_repeating_opening: 0,
+            oxen_share: 0.0,
+            top_content_words: Vec::new(),
         };
         let mut latencies = Vec::new();
         for row in &mine {
@@ -423,8 +590,9 @@ pub fn summarise_rows(
     set_sha256: &str,
     mut rows: Vec<TurnRow>,
     paired_with: Option<Vec<TurnRow>>,
+    arms: ExperimentArms,
 ) -> Result<RowsSummary, String> {
-    recompute_row_details(&mut rows, set)?;
+    recompute_row_details(&mut rows, set, arms)?;
     let paired = paired_with.map(|b| paired_difference(&rows, &b));
     Ok(RowsSummary {
         schema: ROWS_SUMMARY_SCHEMA.to_string(),

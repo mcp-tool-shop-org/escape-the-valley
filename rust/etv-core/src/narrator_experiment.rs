@@ -26,7 +26,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::model::GMProfile;
-use crate::narrator::NarratorLength;
+use crate::narrator::{CheckerContext, NarrationContext, NarratorLength};
+use crate::narrator_truth::{what_happened, TruthFacts};
 
 /// Most candidates one line may be given.
 pub const MAX_CANDIDATES: u8 = 3;
@@ -50,6 +51,18 @@ pub struct ExperimentArms {
     /// Calls a line may be given, `1..=MAX_CANDIDATES`. One is the shipped behaviour.
     pub candidates: u8,
     pub trim_to_cap: bool,
+    /// Rules 1a to 1e of `narrator_truth`: a line may not contradict its turn, and the
+    /// outcome line carries the turn's main fact.
+    pub says_what_happened: bool,
+    /// The outcome prompt leads with the turn's one main fact and drops the event's text.
+    pub outcome_lead: bool,
+    /// An outcome line may not open with the same two words as the previous accepted line.
+    pub no_repeat_opening: bool,
+    /// A line may not open with five or more words of the event's own text.
+    pub no_event_copy: bool,
+    /// Measurement only: how many of the model's layers to put on the GPU (`num_gpu`), to
+    /// see latency on a weaker card. `None` leaves the server's own choice.
+    pub num_gpu: Option<u32>,
 }
 
 impl Default for ExperimentArms {
@@ -60,6 +73,11 @@ impl Default for ExperimentArms {
             model_card_sampling: false,
             candidates: 1,
             trim_to_cap: false,
+            says_what_happened: false,
+            outcome_lead: false,
+            no_repeat_opening: false,
+            no_event_copy: false,
+            num_gpu: None,
         }
     }
 }
@@ -87,6 +105,21 @@ impl ExperimentArms {
         }
         if self.trim_to_cap {
             parts.push("trim-to-cap".to_string());
+        }
+        if self.says_what_happened {
+            parts.push("says-what-happened".to_string());
+        }
+        if self.outcome_lead {
+            parts.push("outcome-lead".to_string());
+        }
+        if self.no_repeat_opening {
+            parts.push("no-repeat-opening".to_string());
+        }
+        if self.no_event_copy {
+            parts.push("no-event-copy".to_string());
+        }
+        if let Some(layers) = self.num_gpu {
+            parts.push(format!("num-gpu-{layers}"));
         }
         if parts.is_empty() {
             "shipped".to_string()
@@ -126,7 +159,7 @@ pub const QUANTIFIER_LINE: &str = "- Allowed quantifiers for wagon, team, or bod
 
 /// What the rulings arm adds to the Fireside voice.
 pub const FIRESIDE_OXEN_LINES: &str =
-    "\n- The wagon is drawn by oxen.\n- Speak of the party and the travellers. Address no one.";
+    "\n- If the team is mentioned, it is oxen.\n- Speak of the party and the travellers. Address no one.";
 
 /// The party-loss phrases as shipped, and as the rulings arm words them (no "one").
 pub const PARTY_LOSS_REWORDS: [(&str, &str); 2] = [
@@ -225,4 +258,55 @@ pub fn trim_to_word_cap(line: &str, cap: usize) -> String {
     } else {
         kept.join(" ")
     }
+}
+
+/// The checker context for one line of a turn under `arms`: the shipped context, plus what the
+/// arms add. The narrator and the measurement harness both build it here, so a line is judged
+/// the same way when it is written and when it is re-read.
+pub fn checker_context_for(
+    ctx: &NarrationContext,
+    length: NarratorLength,
+    profile: GMProfile,
+    arms: ExperimentArms,
+    is_outcome: bool,
+    previous_opening: Option<&str>,
+) -> CheckerContext {
+    let mut checker = CheckerContext::from_narration_context(ctx, length);
+    if arms.rulings_prompt {
+        checker.team_species = rulings_team_species(profile);
+    }
+    if arms.says_what_happened || arms.no_event_copy || arms.no_repeat_opening {
+        let mut facts = TruthFacts::from_context(ctx, is_outcome);
+        facts.check_says_what_happened = arms.says_what_happened;
+        facts.check_event_copy = arms.no_event_copy;
+        facts.previous_opening = if arms.no_repeat_opening {
+            previous_opening.map(str::to_string)
+        } else {
+            None
+        };
+        checker.truth = Some(facts);
+    }
+    checker
+}
+
+/// The head of the outcome prompt in the outcome-lead arm.
+pub const OUTCOME_LEAD_HEADING: &str =
+    "WHAT HAPPENED (say this first, plainly, then at most one detail of the place):";
+
+/// The outcome call's system prompt in the outcome-lead arm, made from the one it would have
+/// had: the turn's one main fact is put first, before the turn facts, and the event's own text
+/// and the list of choices on offer are taken out (that is the scene call's material).
+pub fn lead_outcome_system_prompt(outcome_system: &str, ctx: &NarrationContext) -> String {
+    let lead = format!("{OUTCOME_LEAD_HEADING}\n- {}\n\n", what_happened(ctx));
+    let mut out = String::with_capacity(outcome_system.len() + lead.len());
+    for line in outcome_system.split_inclusive('\n') {
+        if line.starts_with("- event_text: ") || line.starts_with("- choices_offered: ") {
+            continue;
+        }
+        if line.starts_with("TURN FACTS:") {
+            out.push_str(&lead);
+        }
+        out.push_str(line);
+    }
+    out
 }

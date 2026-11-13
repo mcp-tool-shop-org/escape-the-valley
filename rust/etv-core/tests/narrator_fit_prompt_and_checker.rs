@@ -29,7 +29,7 @@ use etv_core::narrator::{
 };
 use etv_core::screens::length_description;
 
-const V2_SHA256: &str = "458d444aae17a37b4247870481a1533585b58e3233670558a9436208182e0016";
+const V2_SHA256: &str = "59a3e4f8870474d01b775a52071fae9a12629cec0f225606271e9d77f5f8ca46";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 
 fn turns() -> Vec<TurnSpecV2> {

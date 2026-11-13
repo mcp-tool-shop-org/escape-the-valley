@@ -52,7 +52,8 @@ use sha2::{Digest, Sha256};
 use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
 use crate::measure_stats::{
-    all_rule_breaks, fill_derived, read_rows_files, summarise_rows, OpeningCount, RuleBreak,
+    fill_derived, fill_slot_details, read_rows_files, summarise_rows, OpeningCount, RuleBreak,
+    WordCount,
 };
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
@@ -195,6 +196,15 @@ impl MeasuredTurn<'_> {
         match self {
             MeasuredTurn::V1(t) => &t.id,
             MeasuredTurn::V2(t) => &t.id,
+        }
+    }
+
+    /// The run this turn was drawn from. Version 2 turns of one run (same weirdness level,
+    /// script and seed) share a key; every version 1 turn is its own run.
+    pub fn run_key(&self) -> String {
+        match self {
+            MeasuredTurn::V1(t) => format!("v1-{}", t.id),
+            MeasuredTurn::V2(t) => format!("w{}-{}-{}", t.weirdness_level, t.policy, t.seed),
         }
     }
 
@@ -506,6 +516,32 @@ pub struct CellReport {
     /// The most repeated openings (those used more than once), most repeated first.
     #[serde(default)]
     pub top_openings: Vec<OpeningCount>,
+    /// Of the accepted lines, how many also say what happened (rules 1a to 1e of
+    /// `narrator_truth`, applied whatever arm wrote the line), and that as a share of the
+    /// accepted lines.
+    #[serde(default)]
+    pub says_what_happened_pass: usize,
+    #[serde(default)]
+    pub says_what_happened_rate: f64,
+    /// Accepted lines that break each "says what happened" rule.
+    #[serde(default)]
+    pub says_what_happened_fail_by_code: BTreeMap<String, usize>,
+    /// Lines that pass the rules AND say what happened, as a share of all lines asked for.
+    #[serde(default)]
+    pub good_line_rate: f64,
+    /// Accepted lines that open with five or more words of the event's own text.
+    #[serde(default)]
+    pub accepted_copying_event_text: usize,
+    /// Accepted outcome lines that open with the same two words as the previous accepted
+    /// line of the same run (rows walked in turn-set order).
+    #[serde(default)]
+    pub accepted_repeating_opening: usize,
+    /// Share of accepted lines that mention the oxen.
+    #[serde(default)]
+    pub oxen_share: f64,
+    /// The content words used in most accepted lines, with the number of lines.
+    #[serde(default)]
+    pub top_content_words: Vec<WordCount>,
     /// Calls made in the cell (more than two a turn only with the candidates arm).
     #[serde(default)]
     pub calls_made: usize,
@@ -578,6 +614,13 @@ pub struct SlotRow {
     /// How each call ended, in order.
     #[serde(default)]
     pub attempt_outcomes: Vec<String>,
+    /// The "says what happened" rules (1a to 1e) this line breaks, whatever arm wrote it.
+    /// Empty when it breaks none, and when the model wrote no line.
+    #[serde(default)]
+    pub truth_breaks: Vec<RuleBreak>,
+    /// The line opens with five or more words of the event's own text.
+    #[serde(default)]
+    pub copies_event_text: bool,
 }
 
 /// One turn for one profile and length.
@@ -591,6 +634,10 @@ pub struct TurnRow {
     /// Time of the turn's calls together, in milliseconds (absent when none was made).
     #[serde(default)]
     pub latency_ms_turn: Option<u64>,
+    /// The run the turn was drawn from (see [`MeasuredTurn::run_key`]). Turns of one run are
+    /// next to each other in a version 2 set, in the order they were played.
+    #[serde(default)]
+    pub run_key: String,
 }
 
 /// One call's outcome as a short label: `accepted`, `timeout`, ..., or `rule_reject:<code>`.
@@ -653,6 +700,8 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             all_rule_breaks: Vec::new(),
             attempts: 0,
             attempt_outcomes: Vec::new(),
+            truth_breaks: Vec::new(),
+            copies_event_text: false,
         };
     };
     let (status, code, detail) = match &rec.outcome {
@@ -683,6 +732,8 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
         all_rule_breaks: Vec::new(),
         attempts: 1,
         attempt_outcomes: Vec::new(),
+        truth_breaks: Vec::new(),
+        copies_event_text: false,
     }
 }
 
@@ -808,10 +859,26 @@ fn run_measurement_on(
                 top_openings: Vec::new(),
                 latency_turn: LatencySummary::default(),
                 calls_made: 0,
+                says_what_happened_pass: 0,
+                says_what_happened_rate: 0.0,
+                says_what_happened_fail_by_code: BTreeMap::new(),
+                good_line_rate: 0.0,
+                accepted_copying_event_text: 0,
+                accepted_repeating_opening: 0,
+                oxen_share: 0.0,
+                top_content_words: Vec::new(),
             };
             let mut latencies = Vec::new();
 
+            let mut last_run = String::new();
             for spec in &turns {
+                // The narrator remembers its previous accepted line within a run only. Turns of
+                // one run are next to each other in the set, in the order they were played.
+                let run = spec.run_key();
+                if run != last_run {
+                    narrator.reset_run_memory();
+                    last_run = run;
+                }
                 let ctx = spec.context(profile);
                 narrator.narrate_turn(&ctx);
                 let recs = narrator.take_slot_records();
@@ -875,6 +942,7 @@ fn run_measurement_on(
                     scene: slot_row(scene),
                     outcome: slot_row(outcome),
                     latency_ms_turn: None,
+                    run_key: spec.run_key(),
                 };
                 for (slot, is_scene) in [(&mut row.scene, true), (&mut row.outcome, false)] {
                     let mine: Vec<&SlotRecord> =
@@ -887,10 +955,8 @@ fn run_measurement_on(
                     slot.attempt_outcomes = mine.iter().map(|r| attempt_label(r)).collect();
                 }
                 // Measurement only: every rule each line breaks, and the turn's time.
-                for slot in [&mut row.scene, &mut row.outcome] {
-                    if let Some(candidate) = &slot.candidate {
-                        slot.all_rule_breaks = all_rule_breaks(candidate, &ctx, length);
-                    }
+                for (slot, is_outcome) in [(&mut row.scene, false), (&mut row.outcome, true)] {
+                    fill_slot_details(slot, &ctx, length, cfg.experiment, is_outcome);
                 }
                 row.latency_ms_turn = match (row.scene.latency_ms, row.outcome.latency_ms) {
                     (None, None) => None,
@@ -953,7 +1019,10 @@ USAGE:
                       (no schema: plain sentences, checked as they stand), to compare
   --arm NAME          switch on an experiment arm (off by default; may be given more than
                       once): rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap
+                      says-what-happened, outcome-lead, no-repeat-opening, no-event-copy
   --candidates N      experiment: up to N calls per line (1 to 3), first accepted wins
+  --num-gpu N         measurement: put N of the model's layers on the GPU (0 = CPU only),
+                      to see latency on a weaker card
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
   --summarise-rows A,B,...  call no model: read rows files already written on this turn
                       set and print their summary, with every rule each line breaks
@@ -1061,12 +1130,22 @@ pub fn run_cli(
                     "brief-by-stop" => cfg.experiment.brief_by_stop = true,
                     "model-card-sampling" => cfg.experiment.model_card_sampling = true,
                     "trim-to-cap" => cfg.experiment.trim_to_cap = true,
+                    "says-what-happened" => cfg.experiment.says_what_happened = true,
+                    "outcome-lead" => cfg.experiment.outcome_lead = true,
+                    "no-repeat-opening" => cfg.experiment.no_repeat_opening = true,
+                    "no-event-copy" => cfg.experiment.no_event_copy = true,
                     other => {
                         return Err(format!(
-                            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling or trim-to-cap, not {other:?}"
+                            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening or no-event-copy, not {other:?}"
                         ))
                     }
                 }
+            }
+            "--num-gpu" => {
+                let n: u32 = take_value(args, &mut i, flag)?
+                    .parse()
+                    .map_err(|_| "--num-gpu needs a whole number".to_string())?;
+                cfg.experiment.num_gpu = Some(n);
             }
             "--candidates" => {
                 let n: u8 = take_value(args, &mut i, flag)?
@@ -1127,7 +1206,7 @@ pub fn run_cli(
             Some(files_b) => Some(read_rows_files(&files_b)?),
             None => None,
         };
-        let summary = summarise_rows(&set, &sha, rows, other)?;
+        let summary = summarise_rows(&set, &sha, rows, other, cfg.experiment)?;
         let json =
             serde_json::to_string_pretty(&summary).map_err(|e| format!("summary encode: {e}"))?;
         if let Some(path) = report_path {
