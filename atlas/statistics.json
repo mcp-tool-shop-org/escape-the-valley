@@ -186,8 +186,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 23,
-        "lines": 353,
+        "commits": 24,
+        "lines": 355,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -201,8 +201,8 @@
         "path": ".github/workflows/publish.yml"
       },
       {
-        "commits": 16,
-        "lines": 676,
+        "commits": 17,
+        "lines": 744,
         "path": ".github/workflows/release-binaries.yml"
       },
       {
@@ -226,48 +226,48 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 31,
-        "lines": 487,
+        "commits": 32,
+        "lines": 498,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 13,
-        "lines": 1323,
+        "commits": 14,
+        "lines": 1433,
         "path": "README.es.md"
       },
       {
-        "commits": 13,
-        "lines": 1259,
+        "commits": 14,
+        "lines": 1341,
         "path": "README.fr.md"
       },
       {
-        "commits": 13,
-        "lines": 1247,
+        "commits": 14,
+        "lines": 1351,
         "path": "README.hi.md"
       },
       {
-        "commits": 13,
-        "lines": 1099,
+        "commits": 14,
+        "lines": 1159,
         "path": "README.it.md"
       },
       {
-        "commits": 13,
-        "lines": 1419,
+        "commits": 14,
+        "lines": 1523,
         "path": "README.ja.md"
       },
       {
         "commits": 24,
-        "lines": 174,
+        "lines": 176,
         "path": "README.md"
       },
       {
-        "commits": 13,
-        "lines": 1509,
+        "commits": 14,
+        "lines": 1611,
         "path": "README.pt-BR.md"
       },
       {
-        "commits": 13,
-        "lines": 1051,
+        "commits": 14,
+        "lines": 1123,
         "path": "README.zh.md"
       },
       {
@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 26,
-        "lines": 948,
+        "commits": 27,
+        "lines": 986,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 26,
-        "lines": 3850,
+        "commits": 27,
+        "lines": 4115,
         "path": "atlas/page.json"
       },
       {
-        "commits": 26,
-        "lines": 22606,
+        "commits": 27,
+        "lines": 25126,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 26,
-        "lines": 36240,
+        "commits": 27,
+        "lines": 35138,
         "path": "atlas/structure.json"
       },
       {
@@ -2901,8 +2901,8 @@
         "path": "package.json"
       },
       {
-        "commits": 18,
-        "lines": 80,
+        "commits": 19,
+        "lines": 85,
         "path": "pyproject.toml"
       },
       {
@@ -2996,8 +2996,8 @@
         "path": "rust/deny.toml"
       },
       {
-        "commits": 4,
-        "lines": 31,
+        "commits": 5,
+        "lines": 36,
         "path": "rust/etv-core/Cargo.toml"
       },
       {
@@ -3031,18 +3031,18 @@
         "path": "rust/etv-core/notices/notices_manifest.json"
       },
       {
-        "commits": 4,
-        "lines": 253,
+        "commits": 2,
+        "lines": 131,
         "path": "rust/etv-core/src/bin/etv.rs"
       },
       {
-        "commits": 1,
-        "lines": 18,
+        "commits": 2,
+        "lines": 36,
         "path": "rust/etv-core/src/bin/narrator_measure.rs"
       },
       {
-        "commits": 4,
-        "lines": 506,
+        "commits": 2,
+        "lines": 456,
         "path": "rust/etv-core/src/content.rs"
       },
       {
@@ -3066,13 +3066,13 @@
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
-        "commits": 9,
-        "lines": 68,
+        "commits": 8,
+        "lines": 75,
         "path": "rust/etv-core/src/lib.rs"
       },
       {
-        "commits": 1,
-        "lines": 649,
+        "commits": 2,
+        "lines": 1298,
         "path": "rust/etv-core/src/measure.rs"
       },
       {
@@ -3086,8 +3086,8 @@
         "path": "rust/etv-core/src/model.rs"
       },
       {
-        "commits": 6,
-        "lines": 3491,
+        "commits": 7,
+        "lines": 3956,
         "path": "rust/etv-core/src/narrator.rs"
       },
       {
@@ -3102,11 +3102,6 @@
       },
       {
         "commits": 1,
-        "lines": 336,
-        "path": "rust/etv-core/src/play.rs"
-      },
-      {
-        "commits": 1,
         "lines": 417,
         "path": "rust/etv-core/src/rng.rs"
       },
@@ -3114,16 +3109,6 @@
         "commits": 4,
         "lines": 1779,
         "path": "rust/etv-core/src/save.rs"
-      },
-      {
-        "commits": 1,
-        "lines": 297,
-        "path": "rust/etv-core/src/screens.rs"
-      },
-      {
-        "commits": 1,
-        "lines": 110,
-        "path": "rust/etv-core/src/settings.rs"
       },
       {
         "commits": 4,
@@ -3141,14 +3126,14 @@
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
-        "commits": 1,
-        "lines": 59,
+        "commits": 2,
+        "lines": 118,
         "path": "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json"
       },
       {
         "commits": 1,
-        "lines": 101,
-        "path": "rust/etv-core/tests/fixtures/play_seed42_transcript.txt"
+        "lines": 476,
+        "path": "rust/etv-core/tests/invariant_sweeps.rs"
       },
       {
         "commits": 5,
@@ -3166,23 +3151,13 @@
         "path": "rust/etv-core/tests/phase2a_ledger_notices_seam.rs"
       },
       {
-        "commits": 1,
-        "lines": 532,
-        "path": "rust/etv-core/tests/phase3_play_line_mode.rs"
-      },
-      {
-        "commits": 2,
-        "lines": 487,
-        "path": "rust/etv-core/tests/phase3_settings_disclosure.rs"
-      },
-      {
-        "commits": 3,
-        "lines": 1940,
+        "commits": 4,
+        "lines": 1942,
         "path": "rust/etv-core/tests/step3_narrator_port.rs"
       },
       {
-        "commits": 2,
-        "lines": 1021,
+        "commits": 3,
+        "lines": 2036,
         "path": "rust/etv-core/tests/step4_hard_rule_checker.rs"
       },
       {
@@ -3261,8 +3236,8 @@
         "path": "rust/tools/gen_notices.py"
       },
       {
-        "commits": 3,
-        "lines": 798,
+        "commits": 4,
+        "lines": 1064,
         "path": "scripts/check_glibc_floor.py"
       },
       {
@@ -3556,8 +3531,8 @@
         "path": "site/src/content/docs/handbook/commands.md"
       },
       {
-        "commits": 10,
-        "lines": 42,
+        "commits": 11,
+        "lines": 44,
         "path": "site/src/content/docs/handbook/getting-started.md"
       },
       {
@@ -4001,8 +3976,8 @@
         "path": "tests/test_four_tier_live.py"
       },
       {
-        "commits": 3,
-        "lines": 405,
+        "commits": 4,
+        "lines": 540,
         "path": "tests/test_glibc_floor.py"
       },
       {
@@ -4086,9 +4061,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T03:18:25.772Z",
+  "generatedAt": "2026-11-13T04:01:24.604Z",
   "generatedFrom": {
-    "commit": "5670549b179e13ac0cce2413bdc411ebee67fa57"
+    "commit": "38602c5813a8264bcdc381fd29ad7aea911e4444"
   },
   "pairs": [
     {
@@ -4232,6 +4207,13 @@
       "strength": 1
     },
     {
+      "a": "README.md",
+      "b": "SHIP_GATE.md",
+      "either": 12,
+      "shared": 6,
+      "strength": 0.5
+    },
+    {
       "a": "README.pt-BR.md",
       "b": "README.zh.md",
       "either": 6,
@@ -4241,72 +4223,44 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
-    },
-    {
-      "a": "atlas/README.md",
-      "b": "rust/etv-core/src/lib.rs",
-      "either": 18,
-      "shared": 9,
-      "strength": 0.5
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
-    },
-    {
-      "a": "atlas/page.json",
-      "b": "rust/etv-core/src/lib.rs",
-      "either": 18,
-      "shared": 9,
-      "strength": 0.5
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 17,
+      "shared": 17,
       "strength": 1
-    },
-    {
-      "a": "atlas/statistics.json",
-      "b": "rust/etv-core/src/lib.rs",
-      "either": 18,
-      "shared": 9,
-      "strength": 0.5
-    },
-    {
-      "a": "atlas/structure.json",
-      "b": "rust/etv-core/src/lib.rs",
-      "either": 18,
-      "shared": 9,
-      "strength": 0.5
     },
     {
       "a": "package.json",
@@ -4459,16 +4413,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-12T21:29:03-05:00",
-    "inScopeFiles": 776,
+    "headDate": "2026-11-12T21:20:54-05:00",
+    "inScopeFiles": 777,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 124,
+    "qualifyingCommits": 123,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T02:29:03.000Z",
+    "since": "2026-05-17T02:20:54.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
