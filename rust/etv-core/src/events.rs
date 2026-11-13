@@ -211,10 +211,26 @@ pub fn select_event(
         .expect("Legacy selection always returns an event")
 }
 
+/// The event that, under `Ruleset::V2`, fires at most once per run. Measured: it is the event
+/// that repeats most within a run (see `tests/ruleset_v2_river_once.rs`).
+pub const V2_ONCE_PER_RUN_RIVER_EVENT_ID: &str = "river_crossing";
+
+/// True if the run's journal already holds a resolved entry for `event_id`. Uses only saved
+/// state (resolved events carry a non-empty `choice_made`; milestones do not).
+fn event_already_resolved(state: &RunState, event_id: &str) -> bool {
+    state
+        .journal
+        .iter()
+        .any(|j| !j.choice_made.is_empty() && j.event_id == event_id)
+}
+
 /// [`select_event`] under an explicit [`Ruleset`].
 ///
 /// `Legacy` is identical to [`select_event`] (same candidates, same RNG draws, always `Some`).
-/// `V2` has no rules of its own yet; the `Option` return is for the V2 rules that follow.
+/// Under `V2` the river event (`V2_ONCE_PER_RUN_RIVER_EVENT_ID`) is excluded once it has been
+/// resolved in this run. If that leaves nothing to select (every candidate excluded and the
+/// fallback pool empty once the river event is removed), returns `None`: no event this turn,
+/// and no RNG draw is made for the missing selection.
 pub fn select_event_with_ruleset(
     state: &mut RunState,
     rng: &mut CpythonRng,
@@ -222,13 +238,16 @@ pub fn select_event_with_ruleset(
     weather: Option<Weather>,
     ruleset: Ruleset,
 ) -> Option<EventSkeleton> {
-    // No V2-only rule exists yet; later rules gate on `ruleset == Ruleset::V2`.
-    let _ = ruleset;
+    let exclude_river =
+        ruleset == Ruleset::V2 && event_already_resolved(state, V2_ONCE_PER_RUN_RIVER_EVENT_ID);
     let node_biome = current_node(state).map(|n| n.biome);
     let mut candidates: Vec<&EventSkeleton> = Vec::new();
     let mut weights: Vec<f64> = Vec::new();
 
     for event in library {
+        if exclude_river && event.event_id == V2_ONCE_PER_RUN_RIVER_EVENT_ID {
+            continue;
+        }
         if let (Some(bf), Some(nb)) = (&event.biome_filter, node_biome) {
             if !bf.is_empty() && !bf.contains(&nb) {
                 continue;
@@ -306,14 +325,19 @@ pub fn select_event_with_ruleset(
     }
 
     if candidates.is_empty() {
+        let allowed =
+            |e: &&EventSkeleton| !(exclude_river && e.event_id == V2_ONCE_PER_RUN_RIVER_EVENT_ID);
         let survival: Vec<&EventSkeleton> = library
             .iter()
             .filter(|e| e.category == EventCategory::Survival)
+            .filter(allowed)
             .collect();
         return if !survival.is_empty() {
             Some((**rng.choice(&survival)).clone())
-        } else {
+        } else if allowed(&&library[0]) {
             Some(library[0].clone())
+        } else {
+            None
         };
     }
 
