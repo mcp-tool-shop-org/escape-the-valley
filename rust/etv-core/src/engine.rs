@@ -225,6 +225,15 @@ impl StepEngine {
                 engine.msgs.event_title = block.title.clone();
                 engine.msgs.event_narration = block.narration.clone();
                 engine.msgs.event_choices = block.choices.clone();
+                // The event-id cooldown list is rebuilt from the journal on load, and the journal
+                // holds an event only once it is resolved. Add the pending event, as its
+                // selection did, so a reloaded engine carries the same list as one never saved.
+                let ids = crate::events::recent_event_id_history(&mut engine.state);
+                ids.push(event.event_id.clone());
+                if ids.len() > crate::events::EVENT_ID_COOLDOWN_WINDOW {
+                    let trim = ids.len() - crate::events::EVENT_ID_COOLDOWN_WINDOW;
+                    ids.drain(..trim);
+                }
                 engine.pending_event = Some(event);
                 engine.pending_event_choices = block.choices;
                 engine.pending_event_title = block.title;
@@ -960,6 +969,26 @@ impl StepEngine {
             self.msgs.lines.push(choose_one_of_line(&offered_ids));
             self.re_present_event();
             return;
+        }
+
+        // V2: a choice the party cannot afford cannot be picked while an affordable one is
+        // offered. It is refused like an unoffered letter: no turn passes, nothing is spent
+        // and no random draw is made. When no choice is affordable, the one kept open shows
+        // none missing (see `events::v2_kept_open_choice`), so it is the only one that can
+        // be picked, and it resolves normally.
+        if self.ruleset == Ruleset::V2 {
+            let affordable_ids: Vec<String> = offered_ids
+                .iter()
+                .filter(|id| {
+                    missing_supplies_for_choice(&self.state, &event, id, self.ruleset).is_empty()
+                })
+                .cloned()
+                .collect();
+            if !affordable_ids.is_empty() && !affordable_ids.contains(choice_id) {
+                self.msgs.lines.push(choose_one_of_line(&affordable_ids));
+                self.re_present_event();
+                return;
+            }
         }
 
         let outcome = resolve_event_with_ruleset(

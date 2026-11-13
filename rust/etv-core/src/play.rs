@@ -96,17 +96,24 @@ fn strip_hint(hint: &str) -> &str {
 }
 
 /// One choice line: `  A. Label (cost; risk)`. Empty hints are left out, and a hint's trailing
-/// punctuation is dropped so the joined text never doubles it.
+/// punctuation is dropped so the joined text never doubles it. A choice the party cannot
+/// afford (V2 rules) ends with a plain tag naming the missing supplies:
+/// `  A. Label [cannot afford: rope, parts]`.
 pub fn choice_line(choice: &EventChoiceInfo) -> String {
     let hints: Vec<&str> = [choice.cost_hint.as_str(), choice.risk_hint.as_str()]
         .into_iter()
         .map(strip_hint)
         .filter(|h| !h.is_empty())
         .collect();
-    if hints.is_empty() {
+    let line = if hints.is_empty() {
         format!("  {}. {}", choice.id, choice.label)
     } else {
         format!("  {}. {} ({})", choice.id, choice.label, hints.join("; "))
+    };
+    if choice.affordable {
+        line
+    } else {
+        format!("{line} [cannot afford: {}]", choice.missing.join(", "))
     }
 }
 

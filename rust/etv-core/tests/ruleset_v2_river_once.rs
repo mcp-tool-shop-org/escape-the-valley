@@ -99,7 +99,9 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
     let once = v2.iter().filter(|&&c| c == 1).count();
     // 400 before the affordability gate existed; 404 with the five-key gate; 411 with the all-keys gate (the gate changes outcomes, so
     // later draws and so which events turn up).
-    assert_eq!(once, 411, "runs with the river event exactly once under V2");
+    // 369 once V2 refuses an unaffordable pick: the Tier 2 policy asks again on a later turn, so
+    // fewer runs get as far as the river inside 120 turns.
+    assert_eq!(once, 369, "runs with the river event exactly once under V2");
 
     let legacy = river_counts(Ruleset::Legacy, 1000, 120);
     let twice_plus = legacy.iter().filter(|&&c| c >= 2).count();
