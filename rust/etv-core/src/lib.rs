@@ -23,6 +23,7 @@ pub mod narrator;
 pub mod notices;
 pub mod physics;
 pub mod rng;
+pub mod ruleset;
 pub mod save;
 pub mod screens;
 pub mod settings;

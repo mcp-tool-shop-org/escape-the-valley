@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::events::{apply_outcome, build_event_library, resolve_event, select_event};
+use crate::events::{apply_outcome, build_event_library, resolve_event, select_event_with_ruleset};
 use crate::memory::{
     check_resource_crises, emit_arrival_card, emit_escape_valve_card, emit_event_card,
     emit_health_cards, emit_wagon_card,
@@ -27,6 +27,7 @@ use crate::physics::{
     HealthEffect,
 };
 use crate::rng::CpythonRng;
+use crate::ruleset::Ruleset;
 use crate::save::save_game;
 use crate::worldgen::{generate_weather, EventOutcome, EventSkeleton};
 
@@ -114,6 +115,8 @@ pub struct StepEngine {
     pub phase: GamePhase,
     pub msgs: StepMessages,
     pub diagnostics: BTreeMap<String, i32>,
+    /// Which rules this engine plays by. Runtime only: never saved. Defaults to `Legacy`.
+    pub ruleset: Ruleset,
     autosave: bool,
     base_path: Option<PathBuf>,
     pending_event: Option<EventSkeleton>,
@@ -136,6 +139,12 @@ impl StepEngine {
         let mut engine = Self::with_options(state, false, None);
         engine.event_library = content.all_events.clone();
         engine
+    }
+
+    /// Choose the ruleset this engine plays by (default `Legacy`). Not saved; a resumed run
+    /// must be given the same ruleset it was played under.
+    pub fn set_ruleset(&mut self, ruleset: Ruleset) {
+        self.ruleset = ruleset;
     }
 
     /// Return the currently pending `EventSkeleton`, if the engine is in `GamePhase::Event`.
@@ -180,6 +189,7 @@ impl StepEngine {
             phase: GamePhase::Camp,
             msgs: StepMessages::default(),
             diagnostics,
+            ruleset: Ruleset::default(),
             autosave,
             base_path,
             pending_event: None,
@@ -727,7 +737,16 @@ impl StepEngine {
         let weather =
             node_biome.map(|biome| generate_weather(&mut self.rng, biome, self.state.day));
 
-        let event = select_event(&mut self.state, &mut self.rng, &self.event_library, weather);
+        let Some(event) = select_event_with_ruleset(
+            &mut self.state,
+            &mut self.rng,
+            &self.event_library,
+            weather,
+            self.ruleset,
+        ) else {
+            // Only V2 can return no event (every candidate excluded); no state changed.
+            return;
+        };
         *self
             .diagnostics
             .entry("events_total".to_string())

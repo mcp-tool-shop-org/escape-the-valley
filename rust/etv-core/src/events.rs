@@ -9,6 +9,7 @@ use crate::events_builtin::builtin_hand_authored_events;
 use crate::model::{Biome, GMProfile, RunState, TimeOfDay, TwistModifier, Weather};
 use crate::physics::{current_node, journey_pressure, proximate_death_cause, HealthEffect};
 use crate::rng::CpythonRng;
+use crate::ruleset::Ruleset;
 use crate::worldgen::{
     load_json_events, ChoiceTemplate, EventCategory, EventOutcome, EventSkeleton, FolkloreType,
 };
@@ -198,12 +199,31 @@ fn twist_boosts_tag(twist: TwistModifier, tag: &str) -> bool {
 }
 
 /// Select an event using weighted probabilities with variety guards (`events.py:1782-1876`).
+///
+/// Always plays by the `Legacy` ruleset (the behaviour the Python vectors check).
 pub fn select_event(
     state: &mut RunState,
     rng: &mut CpythonRng,
     library: &[EventSkeleton],
     weather: Option<Weather>,
 ) -> EventSkeleton {
+    select_event_with_ruleset(state, rng, library, weather, Ruleset::Legacy)
+        .expect("Legacy selection always returns an event")
+}
+
+/// [`select_event`] under an explicit [`Ruleset`].
+///
+/// `Legacy` is identical to [`select_event`] (same candidates, same RNG draws, always `Some`).
+/// `V2` has no rules of its own yet; the `Option` return is for the V2 rules that follow.
+pub fn select_event_with_ruleset(
+    state: &mut RunState,
+    rng: &mut CpythonRng,
+    library: &[EventSkeleton],
+    weather: Option<Weather>,
+    ruleset: Ruleset,
+) -> Option<EventSkeleton> {
+    // No V2-only rule exists yet; later rules gate on `ruleset == Ruleset::V2`.
+    let _ = ruleset;
     let node_biome = current_node(state).map(|n| n.biome);
     let mut candidates: Vec<&EventSkeleton> = Vec::new();
     let mut weights: Vec<f64> = Vec::new();
@@ -291,9 +311,9 @@ pub fn select_event(
             .filter(|e| e.category == EventCategory::Survival)
             .collect();
         return if !survival.is_empty() {
-            (**rng.choice(&survival)).clone()
+            Some((**rng.choice(&survival)).clone())
         } else {
-            library[0].clone()
+            Some(library[0].clone())
         };
     }
 
@@ -313,7 +333,7 @@ pub fn select_event(
         }
     }
     record_event_tags(state, &selected);
-    selected
+    Some(selected)
 }
 
 // =========================================================================
