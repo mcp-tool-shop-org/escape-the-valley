@@ -1225,6 +1225,11 @@ pub enum FormatSchema {
     Plain,
     #[serde(rename = "cited")]
     CitedFacts,
+    /// No schema at all: the request carries no `format` field and asks for the sentences
+    /// as plain text; the answer is checked as it stands. Measurement variant, to see
+    /// whether binding the answer to a schema costs anything.
+    #[serde(rename = "text")]
+    PlainText,
 }
 
 impl FormatSchema {
@@ -1232,6 +1237,7 @@ impl FormatSchema {
         match self {
             FormatSchema::Plain => "plain",
             FormatSchema::CitedFacts => "cited",
+            FormatSchema::PlainText => "text",
         }
     }
 
@@ -1240,6 +1246,7 @@ impl FormatSchema {
         match self {
             FormatSchema::Plain => NARRATOR_NUM_PREDICT,
             FormatSchema::CitedFacts => NARRATOR_NUM_PREDICT_CITED,
+            FormatSchema::PlainText => NARRATOR_NUM_PREDICT,
         }
     }
 }
@@ -1267,11 +1274,13 @@ pub fn narration_format_schema_cited(length: NarratorLength) -> Value {
     })
 }
 
-/// The schema for `schema` and `length`.
-pub fn narration_format_schema_for(schema: FormatSchema, length: NarratorLength) -> Value {
+/// The schema for `schema` and `length`, or `None` for the plain-text variant, which sends no
+/// `format` field.
+pub fn narration_format_schema_for(schema: FormatSchema, length: NarratorLength) -> Option<Value> {
     match schema {
-        FormatSchema::Plain => narration_format_schema(length),
-        FormatSchema::CitedFacts => narration_format_schema_cited(length),
+        FormatSchema::Plain => Some(narration_format_schema(length)),
+        FormatSchema::CitedFacts => Some(narration_format_schema_cited(length)),
+        FormatSchema::PlainText => None,
     }
 }
 
@@ -1368,6 +1377,13 @@ pub fn build_scene_prompts_for(
     schema: FormatSchema,
 ) -> (String, String) {
     let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
+    if schema == FormatSchema::PlainText {
+        let (min_s, max_s) = length.sentence_bounds();
+        let user = format!(
+            "Generate a scene response as plain text: {min_s} to {max_s} complete sentences, each following all the rules. Answer with the sentences only."
+        );
+        return (sys, user);
+    }
     let user = format!(
         "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{}",
         sentences_shape_text(length, schema)
@@ -1403,6 +1419,13 @@ pub fn build_outcome_prompts_for(
     schema: FormatSchema,
 ) -> (String, String) {
     let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
+    if schema == FormatSchema::PlainText {
+        let (min_s, max_s) = length.sentence_bounds();
+        let user = format!(
+            "Generate an outcome response as plain text: {min_s} to {max_s} complete sentences, each following all the rules. Answer with the sentences only."
+        );
+        return (sys, user);
+    }
     let user = format!(
         "Generate an outcome response strictly as valid JSON matching OUTCOME_SCHEMA:\n{}",
         sentences_shape_text(length, schema)
@@ -3250,7 +3273,7 @@ pub struct LiveNarrator {
     record_slots: AtomicBool,
     slot_log: Mutex<Vec<SlotRecord>>,
     positive_rules: AtomicBool,
-    cited_schema: AtomicBool,
+    format_schema: AtomicUsize,
     breaker_enabled: AtomicBool,
     consecutive_timeouts: AtomicUsize,
     paused: AtomicBool,
@@ -3318,7 +3341,7 @@ impl LiveNarrator {
             record_slots: AtomicBool::new(false),
             slot_log: Mutex::new(Vec::new()),
             positive_rules: AtomicBool::new(false),
-            cited_schema: AtomicBool::new(false),
+            format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
             consecutive_timeouts: AtomicUsize::new(0),
             paused: AtomicBool::new(false),
@@ -3328,16 +3351,20 @@ impl LiveNarrator {
     /// Choose the answer shape asked for in `format`. The game never calls this; the
     /// measurement harness does, to compare the two shapes.
     pub fn set_format_schema(&self, schema: FormatSchema) {
-        self.cited_schema
-            .store(schema == FormatSchema::CitedFacts, Ordering::SeqCst);
+        let code = match schema {
+            FormatSchema::Plain => 0,
+            FormatSchema::CitedFacts => 1,
+            FormatSchema::PlainText => 2,
+        };
+        self.format_schema.store(code, Ordering::SeqCst);
     }
 
     /// The answer shape this narrator asks for.
     pub fn format_schema(&self) -> FormatSchema {
-        if self.cited_schema.load(Ordering::SeqCst) {
-            FormatSchema::CitedFacts
-        } else {
-            FormatSchema::Plain
+        match self.format_schema.load(Ordering::SeqCst) {
+            1 => FormatSchema::CitedFacts,
+            2 => FormatSchema::PlainText,
+            _ => FormatSchema::Plain,
         }
     }
 
@@ -3549,21 +3576,24 @@ impl LiveNarrator {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let started = Instant::now();
         let timeout = Duration::from_millis(self.settings.per_call_timeout_ms);
-        let payload = serde_json::json!({
+        let schema = self.format_schema();
+        let mut payload = serde_json::json!({
             "model": self.settings.model,
             "system": system_prompt,
             "prompt": user_prompt,
-            "format": narration_format_schema_for(self.format_schema(), self.settings.length),
             "stream": false,
             "think": false,
             "options": {
                 "temperature": NARRATOR_TEMPERATURE,
                 "seed": seed,
                 "num_ctx": NARRATOR_NUM_CTX,
-                "num_predict": self.format_schema().num_predict()
+                "num_predict": schema.num_predict()
             }
-        })
-        .to_string();
+        });
+        if let Some(format) = narration_format_schema_for(schema, self.settings.length) {
+            payload["format"] = format;
+        }
+        let payload = payload.to_string();
 
         let (status, raw_outer) = match self.transport.post_generate(endpoint, &payload, timeout) {
             Ok(pair) => pair,
@@ -3614,7 +3644,17 @@ impl LiveNarrator {
             return None;
         };
 
-        let parsed = parse_slot_prose(inner_str, is_scene);
+        let parsed = if schema == FormatSchema::PlainText {
+            // No schema was asked for: the answer is the prose, checked as it stands.
+            let text = inner_str.trim();
+            if text.is_empty() {
+                Err("empty answer".to_string())
+            } else {
+                Ok(text.to_string())
+            }
+        } else {
+            parse_slot_prose(inner_str, is_scene)
+        };
         let candidate_prose = match parsed {
             Ok(prose) => prose,
             Err(_) => {

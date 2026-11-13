@@ -30,6 +30,8 @@ enum Reply {
     Timeout,
     /// Times out on the first `n` generation calls after warm-up, then answers.
     TimeoutThenOk(usize),
+    /// Answers with bare text, no JSON, as a model does when no schema is asked for.
+    Text(&'static str),
 }
 
 struct Recorder {
@@ -78,12 +80,15 @@ impl NarratorTransport for Recorder {
         }
         let n = self.generate_calls.fetch_add(1, Ordering::SeqCst);
         let timed_out = match self.reply {
-            Reply::Sentences => false,
+            Reply::Sentences | Reply::Text(_) => false,
             Reply::Timeout => true,
             Reply::TimeoutThenOk(first) => n < first,
         };
         if timed_out {
             return Err(TransportError::Timeout);
+        }
+        if let Reply::Text(text) = self.reply {
+            return Ok((200, json!({ "response": text }).to_string()));
         }
         let inner = json!({"sentences": ["The fixture line holds steady."]}).to_string();
         Ok((200, json!({ "response": inner }).to_string()))
@@ -499,7 +504,10 @@ fn harness_flags_for_the_two_variants() {
         &mut out,
     )
     .unwrap_err();
-    assert_eq!(err, "--format-schema must be plain or cited, not \"xml\"");
+    assert_eq!(
+        err,
+        "--format-schema must be plain, cited or text, not \"xml\""
+    );
 }
 
 #[test]
@@ -624,4 +632,98 @@ fn the_name_pool_has_two_names_that_are_ordinary_words() {
         })
         .collect();
     assert_eq!(ordinary, vec!["Mercy", "Patience"]);
+}
+
+/// The third harness arm: no schema at all. The request carries no `format` field, the prompt
+/// asks for plain sentences, and the answer is checked as it stands.
+#[test]
+fn the_plain_text_arm_sends_no_format_and_checks_the_answer_as_it_stands() {
+    let ctx = context(42, 1);
+
+    let rec = Recorder::new(Reply::Text("The fixture line holds steady."));
+    let narrator = LiveNarrator::with_transport(settings(NarratorLength::Brief), rec.clone());
+    narrator.set_format_schema(FormatSchema::PlainText);
+    assert_eq!(narrator.format_schema(), FormatSchema::PlainText);
+    let told = narrator.narrate_turn(&ctx);
+    let line = Some("The fixture line holds steady.");
+    assert_eq!(told.scene.as_deref(), line);
+    assert_eq!(told.outcome.as_deref(), line);
+    let bodies = rec.bodies();
+    assert_eq!(bodies.len(), 2);
+    for body in &bodies {
+        assert!(body.get("format").is_none());
+        let keys: Vec<&str> = body
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            keys,
+            vec!["model", "options", "prompt", "stream", "system", "think"]
+        );
+        // Everything else is as in the other arms.
+        assert_eq!(body["think"], json!(false));
+        assert_eq!(body["options"]["temperature"], json!(0.15));
+        assert_eq!(body["options"]["num_ctx"], json!(2048));
+        assert_eq!(body["options"]["num_predict"], json!(110));
+        assert!(body["options"]["seed"].is_u64());
+    }
+    assert_eq!(
+        bodies[0]["prompt"],
+        json!("Generate a scene response as plain text: 1 to 1 complete sentences, each following all the rules. Answer with the sentences only.")
+    );
+    assert_eq!(
+        bodies[1]["prompt"],
+        json!("Generate an outcome response as plain text: 1 to 1 complete sentences, each following all the rules. Answer with the sentences only.")
+    );
+    // The system prompt is the same as in the schema arm.
+    let (shipped_sys, _) = build_scene_prompts(GMProfile::Chronicler, NarratorLength::Brief, &ctx);
+    assert_eq!(bodies[0]["system"], json!(shipped_sys));
+
+    // A plain-text answer that breaks a hard rule is rejected like any other, and falls back.
+    let rec = Recorder::new(Reply::Text("The fixture line costs 3 days."));
+    let narrator = LiveNarrator::with_transport(settings(NarratorLength::Brief), rec);
+    narrator.set_format_schema(FormatSchema::PlainText);
+    let told = narrator.narrate_turn(&ctx);
+    assert_eq!((told.scene, told.outcome), (None, None));
+    assert_eq!(narrator.stats().rule_rejects, 2);
+
+    // An answer wrapped in JSON is not unwrapped in this arm: it is checked as text, and the
+    // braces and quotes fail the punctuation rule.
+    let rec = Recorder::new(Reply::Text(
+        r#"{"sentences": ["The fixture line holds steady."]}"#,
+    ));
+    let narrator = LiveNarrator::with_transport(settings(NarratorLength::Brief), rec);
+    narrator.set_format_schema(FormatSchema::PlainText);
+    let told = narrator.narrate_turn(&ctx);
+    assert_eq!((told.scene, told.outcome), (None, None));
+    assert_eq!(narrator.stats().rule_rejects, 2);
+    assert_eq!(narrator.stats().json_errors, 0);
+
+    // An empty answer is a bad answer, not a rule reject.
+    let rec = Recorder::new(Reply::Text("   "));
+    let narrator = LiveNarrator::with_transport(settings(NarratorLength::Brief), rec);
+    narrator.set_format_schema(FormatSchema::PlainText);
+    narrator.narrate_turn(&ctx);
+    assert_eq!(narrator.stats().json_errors, 2);
+}
+
+#[test]
+fn the_harness_runs_and_records_the_plain_text_arm() {
+    let (set, sha) = two_turn_set();
+    let mut cfg = one_cell("fixture-model");
+    cfg.lengths = vec![NarratorLength::Brief];
+    cfg.format_schema = FormatSchema::PlainText;
+    let rec = Recorder::new(Reply::Text("The fixture line holds steady."));
+    let (report, _) = run_measurement(&set, &sha, &cfg, rec.clone()).unwrap();
+    assert_eq!(report.format_schema, FormatSchema::PlainText);
+    assert!(serde_json::to_string(&report)
+        .unwrap()
+        .contains(r#""format_schema":"text""#));
+    let generation: Vec<Value> = rec.bodies().into_iter().skip(1).collect();
+    assert_eq!(generation.len(), 4);
+    assert!(generation.iter().all(|b| b.get("format").is_none()));
+    assert_eq!(report.cells[0].accepted_slots, 4);
+    assert_eq!(report.cells[0].fallback_slots, 0);
 }

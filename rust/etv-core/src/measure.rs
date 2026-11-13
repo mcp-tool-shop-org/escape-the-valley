@@ -545,7 +545,7 @@ USAGE:
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --model NAME
                    [--endpoint URL] [--profiles LIST] [--lengths LIST] [--max-turns N]
                    [--warmup-timeout-ms N] [--per-call-timeout-ms N]
-                   [--prompt-rules shipped|positive] [--format-schema plain|cited]
+                   [--prompt-rules shipped|positive] [--format-schema plain|cited|text]
                    [--report PATH] [--rows PATH]
 
   --turn-set-sha256   digest the turn set was frozen under; the run is refused on a mismatch
@@ -554,8 +554,9 @@ USAGE:
   --lengths           comma list of brief,standard,rich (default: all)
   --prompt-rules      wording of the shared rules in the prompt: shipped (default), or
                       positive (says what to do and names no banned word), to compare
-  --format-schema     answer shape asked for: plain (default, a sentences array), or cited
-                      (a cited_fact_keys array before the sentences array), to compare
+  --format-schema     answer shape asked for: plain (default, a sentences array); cited
+                      (a cited_fact_keys array before the sentences array); or text
+                      (no schema: plain sentences, checked as they stand), to compare
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
   --rows PATH         write one JSON line per turn with everything the model wrote
 ";
@@ -632,9 +633,10 @@ pub fn run_cli(
                 cfg.format_schema = match take_value(args, &mut i, flag)? {
                     "plain" => FormatSchema::Plain,
                     "cited" => FormatSchema::CitedFacts,
+                    "text" => FormatSchema::PlainText,
                     other => {
                         return Err(format!(
-                            "--format-schema must be plain or cited, not {other:?}"
+                            "--format-schema must be plain, cited or text, not {other:?}"
                         ))
                     }
                 };
