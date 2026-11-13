@@ -403,6 +403,10 @@ pub fn connect_narrator(
     }
 }
 
+/// Line shown at the end of a session in which the narrator was paused by the timeout breaker.
+pub const NARRATOR_PAUSED_LINE: &str =
+    "The narrator stopped answering in time and was paused. Plain text lines took over.";
+
 /// One line saying how the narrator did over a session: lines asked for, lines shown, and lines
 /// that fell back to plain text (a timeout, a bad answer, or a line that broke a hard rule).
 pub fn narrator_summary_line(stats: &NarratorStats) -> String {
