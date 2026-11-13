@@ -51,7 +51,7 @@ fn enabled_backpack(last_settled: &[(&str, i32)]) -> BackpackState {
     }
 }
 
-/// An in-memory ledger. Each call to `submit_batch` consults, in order: `online`, the per-call
+/// An in-memory ledger. Each batch (its first `submit_payment` call) consults, in order: `online`, the per-call
 /// `script` (popped once per call; `Some(k)` fails the k-th payment of that call, `None` is
 /// clean), and `fail_keys` (a key that always fails while listed). A confirmed payment moves the
 /// simulated balance and records its memo under a fresh txid.
@@ -62,6 +62,8 @@ struct Sim {
     /// Every confirmed payment in order: (game key, signed delta in the supply convention).
     paid: Vec<(String, i32)>,
     calls: usize,
+    /// The script entry popped for the batch now being submitted (one pop per batch).
+    scripted_now: Option<usize>,
     /// Simulated on-ledger balance per game key.
     ledger: BTreeMap<String, i32>,
     /// txid -> on-chain memo text.
@@ -76,6 +78,7 @@ impl Sim {
             fail_keys: BTreeSet::new(),
             paid: Vec::new(),
             calls: 0,
+            scripted_now: None,
             ledger: initial.clone(),
             memos: BTreeMap::new(),
         }
@@ -99,33 +102,32 @@ impl LedgerTransport for Sim {
         Err(TransportError::NoRecording(a.to_string()))
     }
 
-    fn submit_batch(&mut self, batch: &SettlementBatch) -> Vec<PaymentAttempt> {
-        self.calls += 1;
-        let scripted = self.script.pop_front().flatten();
-        let mut out = Vec::new();
-        for (i, p) in batch.payments.iter().enumerate() {
-            let refuse = !self.online || scripted == Some(i) || self.fail_keys.contains(&p.key);
-            if refuse {
-                out.push(PaymentAttempt {
-                    key: p.key.clone(),
-                    result: Err(TransportError::Unreachable("scripted".into())),
-                });
-                break;
-            }
-            let signed = match p.direction {
-                PaymentDirection::PlayerToIssuer => -(p.value as i32),
-                PaymentDirection::IssuerToPlayer => p.value as i32,
-            };
-            *self.ledger.entry(p.key.clone()).or_insert(0) += signed;
-            self.paid.push((p.key.clone(), signed));
-            let txid = format!("TX{:04}", self.paid.len());
-            self.memos.insert(txid.clone(), batch.memo_text.clone());
-            out.push(PaymentAttempt {
-                key: p.key.clone(),
-                result: Ok(json!({ "hash": txid })),
-            });
+    fn submit_payment(&mut self, batch: &SettlementBatch, index: usize) -> PaymentAttempt {
+        if index == 0 {
+            self.calls += 1;
+            self.scripted_now = self.script.pop_front().flatten();
         }
-        out
+        let p = &batch.payments[index];
+        let refuse =
+            !self.online || self.scripted_now == Some(index) || self.fail_keys.contains(&p.key);
+        if refuse {
+            return PaymentAttempt {
+                key: p.key.clone(),
+                result: Err(TransportError::Unreachable("scripted".into())),
+            };
+        }
+        let signed = match p.direction {
+            PaymentDirection::PlayerToIssuer => -(p.value as i32),
+            PaymentDirection::IssuerToPlayer => p.value as i32,
+        };
+        *self.ledger.entry(p.key.clone()).or_insert(0) += signed;
+        self.paid.push((p.key.clone(), signed));
+        let txid = format!("TX{:04}", self.paid.len());
+        self.memos.insert(txid.clone(), batch.memo_text.clone());
+        PaymentAttempt {
+            key: p.key.clone(),
+            result: Ok(json!({ "hash": txid })),
+        }
     }
 
     fn tx_memos(&mut self, a: &str, _m: Option<&Value>) -> Result<Value, TransportError> {
