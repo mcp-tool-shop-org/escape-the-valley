@@ -728,3 +728,70 @@ fn the_harness_runs_and_records_the_plain_text_arm() {
     assert_eq!(report.cells[0].accepted_slots, 4);
     assert_eq!(report.cells[0].fallback_slots, 0);
 }
+
+/// The length setting is the only authority on sentence count: no built prompt states a second
+/// limit, for any profile, length, rules wording or answer shape.
+#[test]
+fn no_prompt_states_a_second_sentence_limit() {
+    use etv_core::narrator::{build_outcome_prompts_for, profile_header};
+    let ctx = context(42, 1);
+    for profile in [
+        GMProfile::Chronicler,
+        GMProfile::Fireside,
+        GMProfile::Lantern,
+    ] {
+        // The profile text itself states no sentence count.
+        let header = profile_header(profile);
+        for n in 1..=9 {
+            assert!(!header.contains(&format!("{n} sentence")), "{header}");
+        }
+        assert!(!header.contains("Maximum"));
+        assert!(!header.to_ascii_lowercase().contains("sentences for"));
+
+        for (length, min, max) in [
+            (NarratorLength::Brief, 1, 1),
+            (NarratorLength::Standard, 1, 2),
+            (NarratorLength::Rich, 2, 3),
+        ] {
+            for rules in [PromptRules::Shipped, PromptRules::Positive] {
+                for schema in [
+                    FormatSchema::Plain,
+                    FormatSchema::CitedFacts,
+                    FormatSchema::PlainText,
+                ] {
+                    let allowed = format!("{min} to {max} ");
+                    for (sys, user) in [
+                        build_scene_prompts_for(profile, length, &ctx, rules, schema),
+                        build_outcome_prompts_for(profile, length, &ctx, rules, schema),
+                    ] {
+                        for text in [&sys, &user] {
+                            assert!(!text.contains("Maximum"), "{text}");
+                            // Wherever "sentences" follows a number, the number is the length
+                            // setting's own range.
+                            for (at, _) in text.match_indices("sentences") {
+                                let lead = text[..at].trim_end_matches("complete ");
+                                let after_number = lead.ends_with(' ')
+                                    && lead
+                                        .trim_end()
+                                        .chars()
+                                        .last()
+                                        .is_some_and(|c| c.is_ascii_digit());
+                                if after_number {
+                                    assert!(
+                                        lead.ends_with(&allowed),
+                                        "a second sentence limit in: {text}"
+                                    );
+                                }
+                            }
+                        }
+                        // The limit is stated once in the rules, as the length cap.
+                        assert_eq!(
+                            sys.matches(&format!("({min} to {max} sentences)")).count(),
+                            1
+                        );
+                    }
+                }
+            }
+        }
+    }
+}

@@ -959,6 +959,9 @@ pub fn profile_interface_name(profile: GMProfile) -> &'static str {
     }
 }
 
+/// The headers state no sentence limit: the length setting is the only authority on sentence
+/// count (the Python headers each carried their own maximum, which contradicted it).
+///
 /// Per-profile voice header ported from `src/escape_the_valley/gm.py:20-56` (`PROFILE_HEADERS`),
 /// with prompt hygiene on `GMProfile::Lantern` so the literal word `"lantern"` never appears in
 /// the system prompt when `lantern_oil` is not in the turn's effects.
@@ -971,8 +974,7 @@ Voice rules:\n\
 - Focus on weather, terrain, exhaustion, supplies, and practical dilemmas.\n\
 - Keep the uncanny subtle — a strange track, an odd silence, a tool that moved.\n\
 - Never explain the weird. Let it sit alongside the mud and the hunger.\n\
-- Tone: dry, observant, unsentimental, occasionally wry.\n\
-- Maximum 3 sentences for scene narration, 2 for outcomes."
+- Tone: dry, observant, unsentimental, occasionally wry."
         }
         GMProfile::Fireside => {
             "You are \"The Fireside Storyteller,\" a warm, ominous folk narrator for a survival trail game.\n\
@@ -981,8 +983,7 @@ Voice rules:\n\
 - Notice the human details: how people hold their shoulders, what they don't say, small kindnesses.\n\
 - When the uncanny appears, treat it like old country knowledge — folk warnings, grandmother's rules.\n\
 - Balance warmth and dread. The trail is hard, the people are real, something watches.\n\
-- Tone: empathetic, atmospheric, quietly foreboding.\n\
-- Maximum 4 sentences for scene narration, 2 for outcomes."
+- Tone: empathetic, atmospheric, quietly foreboding."
         }
         GMProfile::Lantern => {
             "You are \"The Uncanny Bearer,\" a serious but uncanny storyteller for a survival trail game.\n\
@@ -991,8 +992,7 @@ Voice rules:\n\
 - Describe normal things in ways that feel slightly off: geometry that doesn't add up, echoes that arrive early.\n\
 - Still respect the survival game: supplies matter, injuries hurt, distances are real.\n\
 - When uncanny tokens are spent, let the weirdness breathe — a full surreal moment before snapping back.\n\
-- Tone: precise, eerie, deadpan when describing the impossible.\n\
-- Maximum 4 sentences for scene narration, 2 for outcomes."
+- Tone: precise, eerie, deadpan when describing the impossible."
         }
     }
 }
