@@ -331,9 +331,20 @@ impl TrailLedgerHeader {
 pub enum CliCommand {
     Version,
     Notices,
-    ValidateContent { require_outcomes: bool },
-    InspectEvent { event_id: String },
-    RunSeed { seed: i128, turns: usize },
+    ValidateContent {
+        require_outcomes: bool,
+    },
+    InspectEvent {
+        event_id: String,
+    },
+    RunSeed {
+        seed: i128,
+        turns: usize,
+    },
+    /// The interactive settings screen (narrator on or off, profile, length, model).
+    Settings,
+    /// The about (credits) screen.
+    About,
 }
 
 /// Parsed CLI options for the `etv` binary / CLI helper.
@@ -419,12 +430,14 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     }
 
     let sub = positional.first().map(String::as_str).ok_or_else(|| {
-        "expected command: --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
+        "expected command: --version | --notices | settings | about | validate-content | inspect-event <id> | run-seed <seed>"
             .to_string()
     })?;
 
     let command = match sub {
         "notices" | "licenses" => CliCommand::Notices,
+        "settings" => CliCommand::Settings,
+        "about" | "credits" => CliCommand::About,
         "validate-content" => CliCommand::ValidateContent { require_outcomes },
         "inspect-event" => {
             let event_id = positional
