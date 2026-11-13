@@ -1,21 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit 8add791 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit 5670549 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, mostly Python (70 files), Rust (29), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-13 (811d11c)
+## What changed since 2026-11-13 (8add791)
 
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `has_save`, before `create_new_run_with_content`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `create_new_run_with_content`, before `save_game`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_game`, before `load_game_checked_with_content_hash`.
-- And 4 more changes to the order of work.
-- rust/etv-core/src/play.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/tests/fixtures/play_seed42_transcript.txt is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/tests/phase3_play_line_mode.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- 3 files added and 3 changed content.
+Nothing structural changed since 2026-11-13; 1 file changed content.
 
 ## What comes in
 
