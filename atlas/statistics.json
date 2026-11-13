@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 36,
-        "lines": 1266,
+        "commits": 37,
+        "lines": 1290,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 36,
-        "lines": 4745,
+        "commits": 37,
+        "lines": 4790,
         "path": "atlas/page.json"
       },
       {
-        "commits": 36,
-        "lines": 24149,
+        "commits": 37,
+        "lines": 24342,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 36,
-        "lines": 39169,
+        "commits": 37,
+        "lines": 39396,
         "path": "atlas/structure.json"
       },
       {
@@ -3116,8 +3116,8 @@
         "path": "rust/etv-core/src/model.rs"
       },
       {
-        "commits": 8,
-        "lines": 3977,
+        "commits": 10,
+        "lines": 4249,
         "path": "rust/etv-core/src/narrator.rs"
       },
       {
@@ -3226,6 +3226,11 @@
         "path": "rust/etv-core/tests/narrator_client_request.rs"
       },
       {
+        "commits": 2,
+        "lines": 426,
+        "path": "rust/etv-core/tests/narrator_told_the_event.rs"
+      },
+      {
         "commits": 1,
         "lines": 149,
         "path": "rust/etv-core/tests/narrator_turn_set_v1.rs"
@@ -3296,8 +3301,8 @@
         "path": "rust/etv-core/tests/step3_narrator_port.rs"
       },
       {
-        "commits": 3,
-        "lines": 1022,
+        "commits": 4,
+        "lines": 1030,
         "path": "rust/etv-core/tests/step4_hard_rule_checker.rs"
       },
       {
@@ -4201,9 +4206,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T08:29:21.289Z",
+  "generatedAt": "2026-11-13T08:49:23.725Z",
   "generatedFrom": {
-    "commit": "415aff68705232679df5dc0da312cd88a0a612c0"
+    "commit": "6c1bdf7eb3410b156eb6379c1d1e63610fe6762b"
   },
   "pairs": [
     {
@@ -4356,72 +4361,72 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 28,
+      "either": 29,
       "shared": 15,
-      "strength": 0.535714
+      "strength": 0.517241
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 28,
+      "either": 29,
       "shared": 15,
-      "strength": 0.535714
+      "strength": 0.517241
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 28,
-      "shared": 28,
+      "either": 29,
+      "shared": 29,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 28,
+      "either": 29,
       "shared": 15,
-      "strength": 0.535714
+      "strength": 0.517241
     },
     {
       "a": "atlas/structure.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 28,
+      "either": 29,
       "shared": 15,
-      "strength": 0.535714
+      "strength": 0.517241
     },
     {
       "a": "package.json",
@@ -4574,16 +4579,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-13T03:03:39-05:00",
-    "inScopeFiles": 800,
+    "headDate": "2026-11-13T03:49:06-05:00",
+    "inScopeFiles": 828,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 133,
+    "qualifyingCommits": 135,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T08:03:39.000Z",
+    "since": "2026-05-17T08:49:06.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
@@ -4599,7 +4604,7 @@
     ],
     "sourceFileReach": 20,
     "sourceFileRise": 25,
-    "sourceFilesReachingStrongFloor": 9,
+    "sourceFilesReachingStrongFloor": 10,
     "strength": 0.5,
     "windowDays": 180
   },

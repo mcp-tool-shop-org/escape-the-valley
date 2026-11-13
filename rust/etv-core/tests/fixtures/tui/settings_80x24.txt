@@ -1,0 +1,24 @@
+ ESCAPE THE VALLEY                                                     Settings
+┌ Settings ────────────────────────────────────────────────────────────────────┐
+│ SETTINGS                                                                     │
+│   1. Narrator  on                                                            │
+│   2. Profile Fireside - Serious campfire narrator. Subtle uncanny moments.   │
+│      The default.                                                            │
+│   3. Length    Standard (1-2 sentences)                                      │
+│   4. Model     llama3.2                                                      │
+│   S. Save and leave    Q. Leave without saving                               │
+│                                                                              │
+│ When a narrator model is running, the story is written and voiced by AI,     │
+│ live, as you play, and every telling is new. Without one, the game shows     │
+│ plain text lines instead.                                                    │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+1-4 Change  S Save and leave  Q Leave without saving  ? Help
