@@ -8778,7 +8778,7 @@
         },
         {
           "dir": "rust",
-          "files": 19,
+          "files": 20,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9872,7 +9872,7 @@
         },
         {
           "dir": "rust",
-          "files": 19,
+          "files": 20,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10221,8 +10221,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "e2c34513d881e25a19aeb2097bdb440021b245b4",
-    "tracked": 782
+    "commit": "1fc107dca1aa8fe1b191f3c765af4326f7062340",
+    "tracked": 783
   },
   "landings": [
     {
@@ -11006,7 +11006,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 44,
+  "testFiles": 45,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11054,6 +11054,7 @@
         "build_batch",
         "build_memo",
         "compute_deltas",
+        "effective_baseline",
         "encode_minted_txid",
         "fetch_balances",
         "fetch_onchain_memos",
@@ -11064,6 +11065,7 @@
         "parse_account_lines",
         "parse_account_tx_page",
         "parse_submit_result",
+        "pending_deltas",
         "plan_settlement",
         "read_optional",
         "read_required",
@@ -11103,30 +11105,30 @@
         {
           "in": "read_required",
           "kind": "err",
-          "line": 445
+          "line": 476
         },
         {
           "in": "fold_payments",
           "kind": "match-err",
-          "line": 688
+          "line": 719
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1031
+          "line": 1068
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1032
+          "line": 1069
         },
         {
           "in": "submit_batch",
           "kind": "err",
-          "line": 1081
+          "line": 1118
         }
       ],
-      "hash": "040bba73162122129fa6066c92320dedd0430f616a4ab82188f5ee71ced4b7d8",
+      "hash": "97a3627d4a8977d1b0540d05e407e3fbda4a4fc58753249293cd076b02d72fb1",
       "importsFiles": [
         "rust/etv-core/src/model.rs"
       ],
@@ -15310,6 +15312,17 @@
           "name": "load_json_events"
         }
       ],
+      "testsInside": true
+    },
+    {
+      "hash": "de2996ea10c9139c32e0f71b2489c1ebc54e71bfffd2b5e2fcd14693cd7f47a5",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/ledger_proof.rs",
+        "rust/etv-core/src/model.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/backpack_pending_overlap.rs",
       "testsInside": true
     },
     {

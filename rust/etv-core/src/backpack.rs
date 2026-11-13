@@ -339,11 +339,42 @@ pub enum PlanOutcome {
     Batch(SettlementBatch),
 }
 
+/// Per-key sum of the deltas of every outstanding pending record, in the supply sign convention
+/// (a negative number is supplies the player lost). Keys no record names are absent.
+pub fn pending_deltas(bp: &BackpackState) -> BTreeMap<String, i32> {
+    let mut out: BTreeMap<String, i32> = BTreeMap::new();
+    for rec in &bp.pending_settlements {
+        for (key, val) in &rec.deltas {
+            let slot = out.entry(key.clone()).or_insert(0);
+            *slot = slot.saturating_add(*val);
+        }
+    }
+    out
+}
+
+/// The supplies the ledger will hold once every queued payment lands: `last_settled_supplies`
+/// plus the pending deltas, per key (a key absent from either side counts as 0).
+pub fn effective_baseline(bp: &BackpackState) -> BTreeMap<String, i32> {
+    let mut out = bp.last_settled_supplies.clone();
+    for (key, val) in pending_deltas(bp) {
+        let slot = out.entry(key).or_insert(0);
+        *slot = slot.saturating_add(val);
+    }
+    out
+}
+
 /// Plan a checkpoint settlement: the delta since the last settlement, as one batch
 /// (`BackpackManager.settle`, backpack.py:630-675). Pure: it reads, never mutates.
 ///
+/// Planning rule (a deliberate departure from Python, which re-plans a change that is already
+/// queued): the delta is `current - (last_settled + sum of pending deltas)`, per key. A supply
+/// change already covered by a pending record is therefore never queued a second time, however
+/// many checkpoints pass while the transport is offline; if the supply moves back, the new
+/// delta is the move back (pending -3, then +3 gained, plans +3).
+///
 /// Idempotency: once a batch's payments are folded into `last_settled_supplies`, planning again
-/// over the same supplies returns [`PlanOutcome::NoChanges`].
+/// over the same supplies returns [`PlanOutcome::NoChanges`]; so does planning again while the
+/// same batch sits in the pending queue.
 pub fn plan_settlement(
     bp: &BackpackState,
     supplies: &SuppliesState,
@@ -354,7 +385,7 @@ pub fn plan_settlement(
     if !bp.enabled || bp.wallet_address.is_empty() {
         return PlanOutcome::NotEnabled;
     }
-    let deltas = compute_deltas(supplies, &bp.last_settled_supplies);
+    let deltas = compute_deltas(supplies, &effective_baseline(bp));
     if deltas.is_empty() {
         return PlanOutcome::NoChanges;
     }
@@ -854,6 +885,12 @@ pub fn retry_pending<T: LedgerTransport + ?Sized>(
 ) -> usize {
     strip_unknown_pending_keys(bp);
     if bp.pending_settlements.is_empty() {
+        // Departs from Python (`_retry_pending` returns at backpack.py:851 and leaves the flag when
+        // the queue was already empty on entry; it clears it only when stripping emptied the
+        // queue, :873). Rust clears it whenever nothing is pending: the flag drives the "last
+        // settlement failed" notice, and with no unsettled checkpoint left that notice would be
+        // false. A flag stuck on with an empty queue (reachable from a hand-edited or older save)
+        // heals on the next settle instead of nagging the player forever.
         bp.last_settle_failed = false;
         return 0;
     }
