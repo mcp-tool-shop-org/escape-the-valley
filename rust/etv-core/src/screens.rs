@@ -54,6 +54,9 @@ pub fn length_description(length: NarratorLength) -> String {
     }
 }
 
+/// Prompt shown while the settings screen waits for a model name.
+pub const MODEL_PROMPT: &str = "Model name (empty keeps the current one):";
+
 fn on_off(enabled: bool) -> &'static str {
     if enabled {
         "on"
@@ -270,7 +273,7 @@ pub fn run_settings_screen<R: BufRead, W: Write>(
             }
         }
         if screen.awaiting_model() {
-            writeln!(output, "Model name (empty keeps the current one):")?;
+            writeln!(output, "{MODEL_PROMPT}")?;
         }
         write!(output, "> ")?;
         output.flush()?;
