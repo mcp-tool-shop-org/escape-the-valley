@@ -634,8 +634,8 @@ fn turn_contexts_are_rebuilt_from_the_frozen_facts() {
     assert_eq!(ctx.check_choice_label(), "Investigate the strange lights");
     assert_eq!(ctx.gm_profile(), GMProfile::Lantern);
     assert_eq!(ctx.shown_deltas().get("food"), Some(&-1));
-    // The checker band follows the engine allowance: level 3 with tokens is "strong" (band 2),
-    // level 2 with tokens is "hint" (band 1), level 0 is band 0, and level 2 with no tokens left
+    // The checker band follows the engine allowance: level 3 with tokens is "strong" (band 3),
+    // level 2 with tokens is "hint" (band 2), level 0 is band 0, and level 2 with no tokens left
     // is "none" (band 0).
     let band_of = |i: usize| {
         let c = build_turn_context(&set.turns[i], GMProfile::Fireside);
@@ -643,10 +643,43 @@ fn turn_contexts_are_rebuilt_from_the_frozen_facts() {
     };
     assert_eq!(
         (band_of(0), band_of(1), band_of(2), band_of(3)),
-        (0, 1, 2, 0)
+        (0, 2, 3, 0)
     );
     // Rebuilding twice gives the same facts.
     assert_eq!(build_turn_context(s003, GMProfile::Lantern), ctx);
+}
+
+// ---------------------------------------------------------------------------
+// Engine allowance to voice-guide band
+// ---------------------------------------------------------------------------
+
+#[test]
+fn engine_allowance_maps_to_the_voice_guide_bands() {
+    use etv_core::narrator::weirdness_band_from_allowance as band;
+    // Guide section 5: band 2 is "Uncanny hint", band 3 is "Strong uncanny".
+    assert_eq!(band("none"), 0);
+    assert_eq!(band("hint"), 2);
+    assert_eq!(band("strong"), 3);
+    assert_eq!(band(" Strong "), 3);
+    // Digits name a band directly; band 1 has no engine allowance.
+    assert_eq!((band("0"), band("1"), band("2"), band("3")), (0, 1, 2, 3));
+    // Unknown text is the strictest band.
+    assert_eq!(band("whatever"), 0);
+}
+
+#[test]
+fn strong_allowance_lets_a_ghost_through_and_hint_does_not() {
+    // "ghost" is banned at band 2 and below, allowed at band 3 (guide section 5).
+    let line = "A pale ghost stands on the bank.";
+    let hint = ctx_with(|c| c.weirdness_band = 2);
+    let strong = ctx_with(|c| c.weirdness_band = 3);
+    assert_eq!(code_of(line, &hint), CheckReasonCode::BandBannedVocabulary);
+    assert_eq!(check_generated_line(line, &strong), Ok(()));
+    // Monsters stay banned at every band.
+    assert_eq!(
+        code_of("A monster stands on the bank.", &strong),
+        CheckReasonCode::BandBannedVocabulary
+    );
 }
 
 // ---------------------------------------------------------------------------
