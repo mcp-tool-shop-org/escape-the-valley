@@ -84,24 +84,39 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 0,
+      "added": 1,
+      "changed": 14,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
+        "kind": "landing",
+        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json is now also read by rust/etv-core/tests/narrator_fit_prompt_and_checker.rs.",
+        "subjects": [
+          "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json",
+          "rust/etv-core/tests/narrator_fit_prompt_and_checker.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/narrator_fit_prompt_and_checker.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/narrator_fit_prompt_and_checker.rs"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-13; no file changed.",
+        "sentence": "1 file added and 14 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "2d99416c378c3f3aba2fb3f5dac0808f5e46b0b0",
-      "generatedAt": "2026-11-13T09:34:28.848Z"
+      "commit": "3d8fd38b91d8e3961381d31eee84f153a9543a49",
+      "generatedAt": "2026-11-13T09:49:44.658Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -186,9 +201,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 10 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "3d8fd38b91d8e3961381d31eee84f153a9543a49",
+  "commit": "b45cae47f0bf99d654a9563c72824a1240868fbe",
   "defaultBranch": "main",
-  "derived": "10 parts, in Python (70 files), Rust (61 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Python (70 files), Rust (62 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -245,7 +260,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 29,
+      "runsMore": 30,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -312,7 +327,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 29,
+      "runsMore": 30,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -676,13 +691,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T09:49:44.658Z",
+  "generatedAt": "2026-11-13T12:12:47.088Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "112 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 109 more.",
+    "113 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 110 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -710,7 +725,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 78,
+  "testFiles": 79,
   "testedBy": {
     "agents": 1,
     "bin": 0,

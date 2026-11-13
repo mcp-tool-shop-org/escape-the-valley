@@ -17,8 +17,9 @@ use etv_core::narrator::{
     narration_format_schema, narration_format_schema_cited, parse_slot_prose, CheckReasonCode,
     CheckerContext, FormatSchema, LiveNarrator, NarrationContext, Narrator, NarratorLength,
     NarratorSettings, NarratorTransport, PromptRules, TransportError, TurnMattersFlags,
-    DEFAULT_OLLAMA_ENDPOINT, NARRATOR_NUM_CTX, NARRATOR_NUM_PREDICT, NARRATOR_NUM_PREDICT_CITED,
-    NARRATOR_TEMPERATURE, TIMEOUT_BREAKER_STRIKES,
+    DEFAULT_OLLAMA_ENDPOINT, NARRATOR_NUM_CTX, NARRATOR_NUM_PREDICT,
+    NARRATOR_NUM_PREDICT_CITED_EXTRA, NARRATOR_NUM_PREDICT_RICH, NARRATOR_TEMPERATURE,
+    TIMEOUT_BREAKER_STRIKES,
 };
 use etv_core::worldgen::{create_new_run_with_content, FIRST_NAMES};
 use serde_json::{json, Value};
@@ -138,11 +139,12 @@ fn turn_requests(length: NarratorLength, ctx: &NarrationContext) -> (Value, Valu
 }
 
 #[test]
-fn format_is_a_full_json_schema_bounded_by_the_length_setting() {
+fn format_is_a_full_json_schema_with_a_bounded_sentence_array() {
+    // The length setting caps words, which a schema cannot count; the array is only bounded.
     for (length, min, max) in [
-        (NarratorLength::Brief, 1, 1),
-        (NarratorLength::Standard, 1, 2),
-        (NarratorLength::Rich, 2, 3),
+        (NarratorLength::Brief, 1, 8),
+        (NarratorLength::Standard, 1, 8),
+        (NarratorLength::Rich, 1, 8),
     ] {
         let expected = json!({
             "type": "object",
@@ -355,7 +357,7 @@ fn the_shipped_rules_wording_is_unchanged_and_the_positive_wording_names_no_bann
     ] {
         assert!(!rules.contains(banned), "positive rules name {banned:?}");
     }
-    assert!(positive.contains("LENGTH CAP: Standard (1 to 2 sentences)."));
+    assert!(positive.contains("LENGTH CAP: Standard (at most 45 words in all)."));
     // Same profile header and same turn facts either way.
     assert_eq!(
         &shipped[shipped.find("TURN FACTS:").unwrap()..],
@@ -373,7 +375,7 @@ fn the_user_prompt_shows_the_sentence_array_shape() {
     let (_, user) = build_scene_prompts(GMProfile::Fireside, NarratorLength::Rich, &ctx);
     assert_eq!(
         user,
-        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{\"sentences\": [\"...\"]}\nThe sentences array holds 2 to 3 complete sentences, each following all the rules."
+        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{\"sentences\": [\"...\"]}\nThe sentences array holds complete sentences, one per item, at most 70 words in all, each following all the rules."
     );
     let (_, cited) = build_scene_prompts_for(
         GMProfile::Fireside,
@@ -384,7 +386,7 @@ fn the_user_prompt_shows_the_sentence_array_shape() {
     );
     assert_eq!(
         cited,
-        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds 1 to 1 complete sentences, each following all the rules."
+        "Generate a scene response strictly as valid JSON matching SCENE_SCHEMA:\n{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds complete sentences, one per item, at most 25 words in all, each following all the rules."
     );
 }
 
@@ -437,7 +439,10 @@ fn the_harness_can_run_either_rules_wording_and_either_schema_and_records_which(
             body["format"],
             narration_format_schema(NarratorLength::Rich)
         );
-        assert_eq!(body["options"]["num_predict"], json!(NARRATOR_NUM_PREDICT));
+        assert_eq!(
+            body["options"]["num_predict"],
+            json!(NARRATOR_NUM_PREDICT_RICH)
+        );
     }
 
     // The comparison run.
@@ -465,7 +470,7 @@ fn the_harness_can_run_either_rules_wording_and_either_schema_and_records_which(
         );
         assert_eq!(
             body["options"]["num_predict"],
-            json!(NARRATOR_NUM_PREDICT_CITED)
+            json!(NARRATOR_NUM_PREDICT_RICH + NARRATOR_NUM_PREDICT_CITED_EXTRA)
         );
         assert!(body["prompt"].as_str().unwrap().contains("cited_fact_keys"));
     }
@@ -672,11 +677,11 @@ fn the_plain_text_arm_sends_no_format_and_checks_the_answer_as_it_stands() {
     }
     assert_eq!(
         bodies[0]["prompt"],
-        json!("Generate a scene response as plain text: 1 to 1 complete sentences, each following all the rules. Answer with the sentences only.")
+        json!("Generate a scene response as plain text: complete sentences, at most 25 words in all, each following all the rules. Answer with the sentences only.")
     );
     assert_eq!(
         bodies[1]["prompt"],
-        json!("Generate an outcome response as plain text: 1 to 1 complete sentences, each following all the rules. Answer with the sentences only.")
+        json!("Generate an outcome response as plain text: complete sentences, at most 25 words in all, each following all the rules. Answer with the sentences only.")
     );
     // The system prompt is the same as in the schema arm.
     let (shipped_sys, _) = build_scene_prompts(GMProfile::Chronicler, NarratorLength::Brief, &ctx);
@@ -748,26 +753,25 @@ fn no_prompt_states_a_second_sentence_limit() {
         assert!(!header.contains("Maximum"));
         assert!(!header.to_ascii_lowercase().contains("sentences for"));
 
-        for (length, min, max) in [
-            (NarratorLength::Brief, 1, 1),
-            (NarratorLength::Standard, 1, 2),
-            (NarratorLength::Rich, 2, 3),
+        for (length, cap) in [
+            (NarratorLength::Brief, 25),
+            (NarratorLength::Standard, 45),
+            (NarratorLength::Rich, 70),
         ] {
+            assert_eq!(length.word_cap(), cap);
             for rules in [PromptRules::Shipped, PromptRules::Positive] {
                 for schema in [
                     FormatSchema::Plain,
                     FormatSchema::CitedFacts,
                     FormatSchema::PlainText,
                 ] {
-                    let allowed = format!("{min} to {max} ");
                     for (sys, user) in [
                         build_scene_prompts_for(profile, length, &ctx, rules, schema),
                         build_outcome_prompts_for(profile, length, &ctx, rules, schema),
                     ] {
                         for text in [&sys, &user] {
                             assert!(!text.contains("Maximum"), "{text}");
-                            // Wherever "sentences" follows a number, the number is the length
-                            // setting's own range.
+                            // No prompt states a number of sentences any more.
                             for (at, _) in text.match_indices("sentences") {
                                 let lead = text[..at].trim_end_matches("complete ");
                                 let after_number = lead.ends_with(' ')
@@ -776,17 +780,20 @@ fn no_prompt_states_a_second_sentence_limit() {
                                         .chars()
                                         .last()
                                         .is_some_and(|c| c.is_ascii_digit());
-                                if after_number {
-                                    assert!(
-                                        lead.ends_with(&allowed),
-                                        "a second sentence limit in: {text}"
-                                    );
-                                }
+                                assert!(!after_number, "a sentence limit in: {text}");
+                            }
+                            // Wherever a word cap is stated, it is this length's.
+                            for (at, _) in text.match_indices(" words in all") {
+                                assert!(
+                                    text[..at].ends_with(&format!("at most {cap}")),
+                                    "another word cap in: {text}"
+                                );
                             }
                         }
                         // The limit is stated once in the rules, as the length cap.
                         assert_eq!(
-                            sys.matches(&format!("({min} to {max} sentences)")).count(),
+                            sys.matches(&format!("(at most {cap} words in all)"))
+                                .count(),
                             1
                         );
                     }

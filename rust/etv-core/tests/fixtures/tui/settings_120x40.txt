@@ -3,7 +3,7 @@
 │ SETTINGS                                                                                                             │
 │   1. Narrator  on                                                                                                    │
 │   2. Profile   Fireside - Serious campfire narrator. Subtle uncanny moments. The default.                            │
-│   3. Length    Standard (1-2 sentences)                                                                              │
+│   3. Length    Standard (medium)                                                                                     │
 │   4. Model     llama3.2                                                                                              │
 │   S. Save and leave    Q. Leave without saving                                                                       │
 │                                                                                                                      │

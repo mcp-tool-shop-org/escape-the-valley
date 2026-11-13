@@ -1068,12 +1068,13 @@ impl NarratorLength {
         }
     }
 
-    /// Inclusive `(min_sentences, max_sentences)` allowed by this length setting.
-    pub fn sentence_bounds(&self) -> (usize, usize) {
+    /// Most words a narration line may run to at this length. The cap is on words, not on
+    /// sentences, so a voice that writes short sentences is not cut off for it.
+    pub fn word_cap(&self) -> usize {
         match self {
-            NarratorLength::Brief => (1, 1),
-            NarratorLength::Standard => (1, 2),
-            NarratorLength::Rich => (2, 3),
+            NarratorLength::Brief => 25,
+            NarratorLength::Standard => 45,
+            NarratorLength::Rich => 70,
         }
     }
 }
@@ -1146,6 +1147,10 @@ pub fn shared_voice_hard_rules(length: NarratorLength, weirdness_band: u8) -> St
     shared_voice_hard_rules_for(length, weirdness_band, false)
 }
 
+/// Most `sentences` items an answer may hold. The length cap is on words; this only keeps the
+/// array bounded.
+pub const NARRATION_MAX_SENTENCE_ITEMS: usize = 8;
+
 /// The shared rule on death, as the prompt states it. On a turn where a death happened, or a run
 /// ended lost or pyrrhic, the death may be stated plainly; everywhere else the ban stands.
 pub const DEATH_RULE_BANNED: &str = "- Never state or imply death or total ruin.";
@@ -1160,7 +1165,7 @@ pub fn shared_voice_hard_rules_for(
     weirdness_band: u8,
     death_allowed: bool,
 ) -> String {
-    let (min_s, max_s) = length.sentence_bounds();
+    let cap = length.word_cap();
     let death_rule = if death_allowed {
         DEATH_RULE_ALLOWED
     } else {
@@ -1173,10 +1178,10 @@ pub fn shared_voice_hard_rules_for(
 - Allowed quantifiers for wagon, team, or body only: one, both, pair (never before a supply noun). Never use half.\n\
 {death_rule}\n\
 - Never name a party member or invent proper nouns. No mid-sentence capital letters except the current place name.\n\
-- Never mention a supply or resource noun unless that resource key was spent or gained on this turn.\n\
+- Never mention a supply or resource noun unless that resource key was spent or gained on this turn, or the situation names it.\n\
 - Weirdness band ceiling: band {weirdness_band}. Never use horror cliches, magic, monsters, or game/meta terms.\n\
 - Punctuation: periods and commas only. No semicolons, exclamation marks, question marks, colons, quotes, or ellipses.\n\
-- LENGTH CAP: {} ({min_s} to {max_s} sentences).",
+- LENGTH CAP: {} (at most {cap} words in all).",
         length.as_str()
     )
 }
@@ -1214,7 +1219,7 @@ pub fn shared_voice_rules_positive_for(
     weirdness_band: u8,
     death_allowed: bool,
 ) -> String {
-    let (min_s, max_s) = length.sentence_bounds();
+    let cap = length.word_cap();
     let fate_rule = if death_allowed {
         "- Tell only what the turn facts support. Where they report a death or a failed journey, say so plainly and briefly."
     } else {
@@ -1226,10 +1231,10 @@ pub fn shared_voice_rules_positive_for(
 - Speak of amounts in general terms only.\n\
 {fate_rule}\n\
 - Refer to people as the party or the travellers. The current place name is the only proper noun.\n\
-- Mention only the supplies listed under resource_directions.\n\
+- Mention only the supplies listed under resource_directions or named in the situation.\n\
 - Keep to plain physical detail within weirdness band {weirdness_band}.\n\
 - End each sentence with a period, and use commas inside sentences.\n\
-- LENGTH CAP: {} ({min_s} to {max_s} sentences).",
+- LENGTH CAP: {} (at most {cap} words in all).",
         length.as_str()
     )
 }
@@ -1265,13 +1270,79 @@ pub const SITUATION_RELABELS: [(&str, &str); 6] = [
     ),
 ];
 
-/// The situation text as the narrator is given it (see [`SITUATION_RELABELS`]).
+/// The supply the situation text names, if any. The engine's situation speaks of the top
+/// pressure only, and of the supplies only food and water have a pressure line.
+pub fn situation_supply_key(pressures: &[String]) -> Option<&'static str> {
+    match pressures.first().map(String::as_str) {
+        Some("FOOD_GONE" | "FOOD_CRITICAL") => Some("food"),
+        Some("WATER_GONE" | "WATER_CRITICAL") => Some("water"),
+        _ => None,
+    }
+}
+
+/// How many of the party are left, in words with no number the narrator would have to avoid.
+/// `None` when all are alive (the engine says nothing then either).
+pub fn party_loss_phrase(alive: usize, total: usize) -> Option<&'static str> {
+    if alive >= total {
+        None
+    } else if alive == 0 {
+        Some("None of the party is left.")
+    } else if alive == 1 {
+        Some("Only one of the party is left.")
+    } else if total - alive == 1 {
+        Some("One of the party is lost.")
+    } else {
+        Some("Several of the party are lost.")
+    }
+}
+
+/// The situation text as the narrator is given it.
+///
+/// The narrator may not state a number, so it is not handed one: the engine's opening
+/// "Day N, <time of day>." is dropped (the journey band and the time of day are facts of their
+/// own), and "N of M party members alive." becomes a phrase from [`party_loss_phrase`]. The
+/// doctrine and taboo sentences are relabelled (see [`SITUATION_RELABELS`]).
 pub fn situation_for_narrator(situation: &str) -> String {
-    let mut out = situation.to_string();
+    let mut parts: Vec<String> = Vec::new();
+    for (i, sentence) in situation.split(". ").enumerate() {
+        let sentence = sentence.trim().trim_end_matches('.');
+        if sentence.is_empty() {
+            continue;
+        }
+        if i == 0 && day_and_time(sentence) {
+            continue;
+        }
+        if let Some((alive, total)) = alive_of_total(sentence) {
+            if let Some(phrase) = party_loss_phrase(alive, total) {
+                parts.push(phrase.to_string());
+            }
+            continue;
+        }
+        parts.push(format!("{sentence}."));
+    }
+    let mut out = parts.join(" ");
     for (from, to) in SITUATION_RELABELS {
         out = out.replace(from, to);
     }
     out
+}
+
+/// `true` for the engine's opening "Day N, <time of day>" sentence.
+fn day_and_time(sentence: &str) -> bool {
+    let Some(rest) = sentence.strip_prefix("Day ") else {
+        return false;
+    };
+    let Some((day, _time)) = rest.split_once(", ") else {
+        return false;
+    };
+    !day.is_empty() && day.chars().all(|c| c.is_ascii_digit())
+}
+
+/// Reads the engine's "N of M party members alive" sentence.
+fn alive_of_total(sentence: &str) -> Option<(usize, usize)> {
+    let rest = sentence.strip_suffix(" party members alive")?;
+    let (alive, total) = rest.split_once(" of ")?;
+    Some((alive.parse().ok()?, total.parse().ok()?))
 }
 
 /// Which of a turn's two calls a prompt is for.
@@ -1521,11 +1592,18 @@ pub const NARRATOR_TEMPERATURE: f64 = 0.15;
 /// stateless request (no history is carried between calls), so a small window is enough.
 pub const NARRATOR_NUM_CTX: u32 = 2048;
 
-/// Most tokens a narrator answer may run to with the plain schema.
+/// Most tokens a narrator answer may run to with the plain schema, at Brief and Standard.
 pub const NARRATOR_NUM_PREDICT: u32 = 110;
 
+/// The same at Rich. A 70-word answer with its JSON wrapper runs past 110 tokens, and an
+/// answer cut off by the budget is unreadable JSON, so Rich gets a budget that covers its cap.
+pub const NARRATOR_NUM_PREDICT_RICH: u32 = 150;
+
+/// Extra tokens the cited-facts schema gets, for the list of fact keys.
+pub const NARRATOR_NUM_PREDICT_CITED_EXTRA: u32 = 50;
+
 /// Most tokens a narrator answer may run to with the cited-facts schema, which also has to
-/// list fact keys.
+/// list fact keys, at Brief and Standard.
 pub const NARRATOR_NUM_PREDICT_CITED: u32 = 160;
 
 /// Per-call timeouts in a row after which the narrator is paused for the rest of the session.
@@ -1559,20 +1637,22 @@ impl FormatSchema {
         }
     }
 
-    /// The `num_predict` cap sent with this shape.
-    pub fn num_predict(&self) -> u32 {
+    /// The `num_predict` cap sent with this shape at `length`.
+    pub fn num_predict(&self, length: NarratorLength) -> u32 {
+        let base = match length {
+            NarratorLength::Rich => NARRATOR_NUM_PREDICT_RICH,
+            NarratorLength::Brief | NarratorLength::Standard => NARRATOR_NUM_PREDICT,
+        };
         match self {
-            FormatSchema::Plain => NARRATOR_NUM_PREDICT,
-            FormatSchema::CitedFacts => NARRATOR_NUM_PREDICT_CITED,
-            FormatSchema::PlainText => NARRATOR_NUM_PREDICT,
+            FormatSchema::Plain | FormatSchema::PlainText => base,
+            FormatSchema::CitedFacts => base + NARRATOR_NUM_PREDICT_CITED_EXTRA,
         }
     }
 }
 
 /// The cited-facts variant of [`narration_format_schema`]: a `cited_fact_keys` string array
 /// that comes before the `sentences` array. Measurement variant; see [`FormatSchema`].
-pub fn narration_format_schema_cited(length: NarratorLength) -> Value {
-    let (min_s, max_s) = length.sentence_bounds();
+pub fn narration_format_schema_cited(_length: NarratorLength) -> Value {
     serde_json::json!({
         "type": "object",
         "properties": {
@@ -1583,8 +1663,8 @@ pub fn narration_format_schema_cited(length: NarratorLength) -> Value {
             "sentences": {
                 "type": "array",
                 "items": { "type": "string" },
-                "minItems": min_s,
-                "maxItems": max_s
+                "minItems": 1,
+                "maxItems": NARRATION_MAX_SENTENCE_ITEMS
             }
         },
         "required": ["cited_fact_keys", "sentences"],
@@ -1603,19 +1683,18 @@ pub fn narration_format_schema_for(schema: FormatSchema, length: NarratorLength)
 }
 
 /// The JSON Schema sent in the request's `format` field: an object holding one array of
-/// sentence strings, with the array length bounded by the length setting (Brief 1, Standard
-/// 1 to 2, Rich 2 to 3). A server that supports structured output can then only return that
-/// shape.
-pub fn narration_format_schema(length: NarratorLength) -> Value {
-    let (min_s, max_s) = length.sentence_bounds();
+/// sentence strings. The length setting caps the words (see [`NarratorLength::word_cap`]); a
+/// schema cannot count words, so the cap is stated in the prompt and enforced by the checker.
+/// A server that supports structured output can then only return that shape.
+pub fn narration_format_schema(_length: NarratorLength) -> Value {
     serde_json::json!({
         "type": "object",
         "properties": {
             "sentences": {
                 "type": "array",
                 "items": { "type": "string" },
-                "minItems": min_s,
-                "maxItems": max_s
+                "minItems": 1,
+                "maxItems": NARRATION_MAX_SENTENCE_ITEMS
             }
         },
         "required": ["sentences"],
@@ -1625,14 +1704,14 @@ pub fn narration_format_schema(length: NarratorLength) -> Value {
 
 /// The response shape as the user prompt shows it.
 fn sentences_shape_text(length: NarratorLength, schema: FormatSchema) -> String {
-    let (min_s, max_s) = length.sentence_bounds();
+    let cap = length.word_cap();
     if schema == FormatSchema::CitedFacts {
         return format!(
-            "{{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds {min_s} to {max_s} complete sentences, each following all the rules."
+            "{{\"cited_fact_keys\": [\"...\"], \"sentences\": [\"...\"]}}\nFirst list in cited_fact_keys the names of the turn facts the sentences rest on. Then the sentences array holds complete sentences, one per item, at most {cap} words in all, each following all the rules."
         );
     }
     format!(
-        "{{\"sentences\": [\"...\"]}}\nThe sentences array holds {min_s} to {max_s} complete sentences, each following all the rules."
+        "{{\"sentences\": [\"...\"]}}\nThe sentences array holds complete sentences, one per item, at most {cap} words in all, each following all the rules."
     )
 }
 
@@ -1696,9 +1775,9 @@ pub fn build_scene_prompts_for(
 ) -> (String, String) {
     let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Scene);
     if schema == FormatSchema::PlainText {
-        let (min_s, max_s) = length.sentence_bounds();
+        let cap = length.word_cap();
         let user = format!(
-            "Generate a scene response as plain text: {min_s} to {max_s} complete sentences, each following all the rules. Answer with the sentences only."
+            "Generate a scene response as plain text: complete sentences, at most {cap} words in all, each following all the rules. Answer with the sentences only."
         );
         return (sys, user);
     }
@@ -1738,9 +1817,9 @@ pub fn build_outcome_prompts_for(
 ) -> (String, String) {
     let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome);
     if schema == FormatSchema::PlainText {
-        let (min_s, max_s) = length.sentence_bounds();
+        let cap = length.word_cap();
         let user = format!(
-            "Generate an outcome response as plain text: {min_s} to {max_s} complete sentences, each following all the rules. Answer with the sentences only."
+            "Generate an outcome response as plain text: complete sentences, at most {cap} words in all, each following all the rules. Answer with the sentences only."
         );
         return (sys, user);
     }
@@ -2028,8 +2107,8 @@ pub const RESOURCE_NOUN_TABLE: &[(&str, &[&str])] = &[
     ),
 ];
 
-const BANNED_NUMBER_OR_UNIT_WORDS: &[&str] = &[
-    // Counting words of two or more ( plus zero)
+/// Counting words of two or more (plus zero). Banned wherever they appear.
+const BANNED_NUMBER_WORDS: &[&str] = &[
     "zero",
     "two",
     "three",
@@ -2069,54 +2148,39 @@ const BANNED_NUMBER_OR_UNIT_WORDS: &[&str] = &[
     "triple",
     "twice",
     "thrice",
-    // Measurement, duration, distance, and count units
-    "day",
-    "days",
-    "mile",
-    "miles",
-    "hour",
-    "hours",
-    "minute",
-    "minutes",
-    "second",
-    "seconds",
-    "week",
-    "weeks",
-    "month",
-    "months",
-    "year",
-    "years",
-    "pound",
-    "pounds",
-    "ounce",
-    "ounces",
-    "gallon",
-    "gallons",
-    "quart",
-    "quarts",
-    "pint",
-    "pints",
-    "inch",
-    "inches",
-    "foot",
-    "feet",
-    "yard",
-    "yards",
-    "meter",
-    "meters",
-    "ration",
-    "rations",
-    "coin",
-    "coins",
-    "dollar",
-    "dollars",
-    "percent",
-    "degree",
-    "degrees",
-    "step",
-    "steps",
-    "turn",
-    "turns",
+];
+
+/// Measurement, duration, distance and count units. A unit word is rejected only when a number
+/// or quantity word comes straight before it ("several days", "one step", "a mile"). On its
+/// own it is an ordinary word ("figures step from the brush", "a turn in the road").
+const UNIT_WORDS: &[&str] = &[
+    "day", "days", "mile", "miles", "hour", "hours", "minute", "minutes", "second", "seconds",
+    "week", "weeks", "month", "months", "year", "years", "pound", "pounds", "ounce", "ounces",
+    "gallon", "gallons", "quart", "quarts", "pint", "pints", "inch", "inches", "foot", "feet",
+    "yard", "yards", "meter", "meters", "ration", "rations", "coin", "coins", "dollar", "dollars",
+    "percent", "degree", "degrees", "step", "steps", "turn", "turns",
+];
+
+/// Quantity words that are not numbers of two or more. One of these straight before a unit
+/// word states a measurement.
+const QUANTITY_WORDS: &[&str] = &[
+    "one",
+    "single",
+    "several",
+    "many",
+    "few",
+    "some",
+    "half",
+    "both",
+    "pair",
+    "countless",
+];
+
+/// Unit words that are also everyday nouns and verbs. "A step" or "a turn" is not a
+/// measurement; "a mile" or "an hour" is.
+const EVERYDAY_UNIT_WORDS: &[&str] = &[
+    "step", "steps", "turn", "turns", "foot", "feet", "second", "seconds", "yard", "yards", "coin",
+    "coins", "ration", "rations", "degree", "degrees", "pound", "pounds",
 ];
 
 /// Death words that may be used, plainly, on a turn where a death may be stated. The rest of
@@ -2390,12 +2454,18 @@ impl Default for CheckerContext {
 impl CheckerContext {
     /// Build a [`CheckerContext`] from a [`NarrationContext`] and [`NarratorLength`].
     pub fn from_narration_context(ctx: &NarrationContext, length: NarratorLength) -> Self {
-        let allowed_resources: Vec<String> = ctx
+        let mut allowed_resources: Vec<String> = ctx
             .shown_deltas()
             .iter()
             .filter(|(_, &delta)| delta != 0)
             .map(|(k, _)| k.clone())
             .collect();
+        // A supply the situation text names ("They have no food.") may be mentioned too.
+        if let Some(key) = situation_supply_key(ctx.pressures()) {
+            if !allowed_resources.iter().any(|k| k == key) {
+                allowed_resources.push(key.to_string());
+            }
+        }
         let mut allowed_landmarks = Vec::new();
         if !ctx.place().is_empty() {
             allowed_landmarks.push(ctx.place().to_string());
@@ -2505,6 +2575,12 @@ fn lookup_resource_key_for_noun(word_lower: &str) -> Option<&'static str> {
     None
 }
 
+/// A model often writes the typographic apostrophe (U+2019, U+2018) where the plain one is
+/// meant. The plain apostrophe is allowed punctuation, so the line is read with plain ones.
+pub fn plain_apostrophes(text: &str) -> String {
+    text.replace(['\u{2019}', '\u{2018}'], "'")
+}
+
 fn clean_word_token(raw: &str) -> String {
     raw.trim_matches(|c: char| !c.is_ascii_alphanumeric())
         .to_ascii_lowercase()
@@ -2563,7 +2639,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 2. Sentence count check against NarratorLength cap (Brief: 1, Standard: 1-2, Rich: 2-3).
+    // 2. Whole sentences, and the word cap of the length setting (Brief 25, Standard 45, Rich 70).
     let raw_sentences: Vec<&str> = trimmed.split('.').collect();
     // Since trimmed ends with '.', the last element after split('.') must be empty, and all prior
     // elements must be non-empty sentences.
@@ -2583,14 +2659,14 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
             detail: "empty sentence segment".to_string(),
         });
     }
-    let (min_s, max_s) = ctx.length.sentence_bounds();
-    if sentences.len() < min_s || sentences.len() > max_s {
+    let cap = ctx.length.word_cap();
+    let words = trimmed.split_whitespace().count();
+    if words > cap {
         return Err(CheckFailure {
             code: CheckReasonCode::LengthCapExceeded,
             detail: format!(
-                "expected {min_s}..={max_s} sentences for {:?}, found {}",
-                ctx.length,
-                sentences.len()
+                "expected at most {cap} words for {:?}, found {words}",
+                ctx.length
             ),
         });
     }
@@ -2636,9 +2712,8 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 4. NumbersDigitsOrUnits: ASCII digits, counting words >= 2 (or zero), and unit words.
-    // Note: "second" is allowed only when followed by "clause" or "sentence" as an ordinal;
-    // standalone unit "second"/"seconds" is rejected.
+    // 4. NumbersDigitsOrUnits: ASCII digits, counting words >= 2 (or zero), and a unit word
+    // that has a number or quantity word straight before it.
     if trimmed.chars().any(|c| c.is_ascii_digit()) {
         return Err(CheckFailure {
             code: CheckReasonCode::NumbersDigitsOrUnits,
@@ -2646,20 +2721,22 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         });
     }
     for (idx, word) in tokens_lower.iter().enumerate() {
-        if word == "second" {
-            let next_is_ordinal_noun = tokens_lower
-                .get(idx + 1)
-                .map(|w| w == "clause" || w == "sentence")
-                .unwrap_or(false);
-            if next_is_ordinal_noun {
-                continue;
-            }
-        }
-        if BANNED_NUMBER_OR_UNIT_WORDS.contains(&word.as_str()) {
+        if BANNED_NUMBER_WORDS.contains(&word.as_str()) {
             return Err(CheckFailure {
                 code: CheckReasonCode::NumbersDigitsOrUnits,
-                detail: format!("banned number or unit word '{word}'"),
+                detail: format!("banned number word '{word}'"),
             });
+        }
+        if UNIT_WORDS.contains(&word.as_str()) && idx > 0 {
+            let prev = tokens_lower[idx - 1].as_str();
+            let article =
+                (prev == "a" || prev == "an") && !EVERYDAY_UNIT_WORDS.contains(&word.as_str());
+            if article || QUANTITY_WORDS.contains(&prev) {
+                return Err(CheckFailure {
+                    code: CheckReasonCode::NumbersDigitsOrUnits,
+                    detail: format!("unit word '{word}' after quantity word '{prev}'"),
+                });
+            }
         }
     }
 
@@ -2733,8 +2810,8 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         .collect();
 
     // 7. UnauthorisedResourceNoun: resource nouns must belong to `ctx.allowed_resources` (or be
-    // named by the event's seed or label) and may only appear in sentence 1 (index 0).
-    for (s_idx, sentence) in sentences.iter().enumerate() {
+    // named by the event's seed or label). Where in the line they appear does not matter.
+    for sentence in sentences.iter() {
         for raw_token in sentence.split_whitespace() {
             let word = clean_word_token(raw_token);
             if word.is_empty() {
@@ -2752,15 +2829,6 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                         detail: format!(
                             "resource noun '{word}' (key '{res_key}') not in allowed_resources {:?}",
                             ctx.allowed_resources
-                        ),
-                    });
-                }
-                if s_idx > 0 {
-                    return Err(CheckFailure {
-                        code: CheckReasonCode::UnauthorisedResourceNoun,
-                        detail: format!(
-                            "resource noun '{word}' appeared in sentence {} (only allowed in sentence 1)",
-                            s_idx + 1
                         ),
                     });
                 }
@@ -3631,6 +3699,8 @@ pub struct LiveNarrator {
     reject_codes: Mutex<BTreeMap<&'static str, usize>>,
     record_slots: AtomicBool,
     slot_log: Mutex<Vec<SlotRecord>>,
+    /// The seed and body of the call in flight, kept only while slots are being recorded.
+    last_request: Mutex<Option<(u32, String)>>,
     positive_rules: AtomicBool,
     format_schema: AtomicUsize,
     breaker_enabled: AtomicBool,
@@ -3673,6 +3743,10 @@ pub struct SlotRecord {
     pub candidate: Option<String>,
     /// Wall-clock time of the call in milliseconds.
     pub latency_ms: u64,
+    /// The sampling seed sent with the call.
+    pub seed: Option<u32>,
+    /// The request body exactly as it was handed to the transport.
+    pub request: Option<String>,
 }
 
 impl LiveNarrator {
@@ -3699,6 +3773,7 @@ impl LiveNarrator {
             reject_codes: Mutex::new(BTreeMap::new()),
             record_slots: AtomicBool::new(false),
             slot_log: Mutex::new(Vec::new()),
+            last_request: Mutex::new(None),
             positive_rules: AtomicBool::new(false),
             format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
@@ -3788,6 +3863,11 @@ impl LiveNarrator {
         if !self.record_slots.load(Ordering::SeqCst) {
             return;
         }
+        let sent = self.last_request.lock().ok().and_then(|mut r| r.take());
+        let (seed, request) = match sent {
+            Some((seed, body)) => (Some(seed), Some(body)),
+            None => (None, None),
+        };
         if let Ok(mut log) = self.slot_log.lock() {
             log.push(SlotRecord {
                 is_scene,
@@ -3795,6 +3875,8 @@ impl LiveNarrator {
                 raw_response,
                 candidate,
                 latency_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+                seed,
+                request,
             });
         }
     }
@@ -3946,13 +4028,18 @@ impl LiveNarrator {
                 "temperature": NARRATOR_TEMPERATURE,
                 "seed": seed,
                 "num_ctx": NARRATOR_NUM_CTX,
-                "num_predict": schema.num_predict()
+                "num_predict": schema.num_predict(self.settings.length)
             }
         });
         if let Some(format) = narration_format_schema_for(schema, self.settings.length) {
             payload["format"] = format;
         }
         let payload = payload.to_string();
+        if self.record_slots.load(Ordering::SeqCst) {
+            if let Ok(mut last) = self.last_request.lock() {
+                *last = Some((seed, payload.clone()));
+            }
+        }
 
         let (status, raw_outer) = match self.transport.post_generate(endpoint, &payload, timeout) {
             Ok(pair) => pair,
@@ -4015,7 +4102,7 @@ impl LiveNarrator {
             parse_slot_prose(inner_str, is_scene)
         };
         let candidate_prose = match parsed {
-            Ok(prose) => prose,
+            Ok(prose) => plain_apostrophes(&prose),
             Err(_) => {
                 self.json_errors.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);

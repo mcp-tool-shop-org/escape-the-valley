@@ -17,7 +17,7 @@ use etv_core::narrator::{
     DEATH_RULE_BANNED, SITUATION_RELABELS,
 };
 
-const V2_SHA256: &str = "518beeccde989abc20b08ada42b2b3d582755bd5c4bd0f39b05f31204323535e";
+const V2_SHA256: &str = "095455fb593311ecdb76b139aa1ad20220807bdf7bcd4d236ec648e276c13769";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 
 fn turns() -> Vec<TurnSpecV2> {
@@ -381,7 +381,7 @@ fn each_engine_doctrine_and_taboo_sentence_is_relabelled() {
              They have no food. They carry no debts. Morale holds, but the wagon is lean. \
              They refuse to drink river water."
         ),
-        "Day 28, night. Swamp terrain. Well past halfway. 1 of 4 party members alive. \
+        "Swamp terrain. Well past halfway. Only one of the party is left. \
          They have no food. Their doctrine: no debts. Their taboo: no river water."
     );
 }
@@ -395,7 +395,7 @@ fn the_turn_that_showed_the_defect_no_longer_says_morale_holds() {
     assert_eq!(t.context.party_status().morale_band(), "low");
     assert_eq!(
         t.context.situation(),
-        "Day 28, night. Swamp terrain. Well past halfway. 1 of 4 party members alive. \
+        "Swamp terrain. Well past halfway. Only one of the party is left. \
          They have no food. Their doctrine: no debts. Their taboo: no river water."
     );
 }
