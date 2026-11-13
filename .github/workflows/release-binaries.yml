@@ -41,21 +41,39 @@ jobs:
     # Under workflow_run, only build if the upstream Release succeeded (release /
     # workflow_dispatch set workflow_run to null → success check stays truthy).
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
+            container: ubuntu:22.04
             target: linux-x64
             ext: ""
           - os: macos-latest
+            container: ""
             target: darwin-arm64
             ext: ""
           - os: windows-latest
+            container: ""
             target: win-x64
             ext: ".exe"
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
+      - name: Install container build prerequisites (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            binutils \
+            ca-certificates \
+            curl \
+            git \
+            zstd
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref }}
@@ -79,8 +97,12 @@ jobs:
             echo "UV_PYTHON_INSTALL_DIR=C:\\uv-python" >> "$GITHUB_ENV"
           else
             if [ ! -w /opt/uv-python ]; then
-              sudo mkdir -p /opt/uv-python
-              sudo chown "$(id -u):$(id -g)" /opt/uv-python
+              if [ "$(id -u)" -eq 0 ]; then
+                mkdir -p /opt/uv-python
+              else
+                sudo mkdir -p /opt/uv-python
+                sudo chown "$(id -u):$(id -g)" /opt/uv-python
+              fi
             fi
             echo "UV_PYTHON_INSTALL_DIR=/opt/uv-python" >> "$GITHUB_ENV"
           fi
@@ -206,6 +228,11 @@ jobs:
           print(f"[licenses-lf-check] {notices_path} (0 CR bytes, sha256={want_sha[:16]}) matches binary licenses/--licenses byte-for-byte.")
           ' "dist/$ASSET_NAME" "dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt"
 
+      - name: Check glibc floor (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: uv run --no-sync python scripts/check_glibc_floor.py "dist/$ASSET_NAME"
+
       - name: Smoke test binary
         # F-a6fa29e0: the build succeeding is not the same as the binary
         # running -- this is precisely why F-a4d8291c's 100%-reproducible
@@ -239,8 +266,41 @@ jobs:
             dist/THIRD_PARTY_NOTICES-${{ matrix.target }}.txt
           if-no-files-found: ignore
 
-  release:
+  smoke-linux:
     needs: build
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - ubuntu:22.04
+          - ubuntu:24.04
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: binary-linux-x64
+          path: dist
+
+      - name: Smoke test binary --version in container
+        shell: bash
+        env:
+          REF_NAME_RAW: ${{ github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name }}
+        run: |
+          REF_NAME="$REF_NAME_RAW"
+          VERSION=${REF_NAME#v}
+          ASSET="dist/${{ env.TOOL_NAME }}-${VERSION}-linux-x64"
+          chmod +x "$ASSET"
+          out="$("$ASSET" --version)"
+          echo "[container-smoke] ${{ matrix.container }}: $out"
+          test -n "$out"
+
+  release:
+    needs: [build, smoke-linux]
+    if: startsWith(github.event.workflow_run.head_branch || github.event.inputs.tag || github.event.release.tag_name || github.ref_name, 'v')
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     permissions:
       contents: write

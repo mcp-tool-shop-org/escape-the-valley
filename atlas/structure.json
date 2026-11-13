@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "21cdf75e167b96919f06c05581ea0ce3f5869289288f10e84096398e51c20317",
+          "hash": "9304a73509b8761f203a0815b0e3ea00f82060a54bc368ea6e0e5ea0100b83b1",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -21,7 +21,7 @@
           "path": ".github/workflows/publish.yml"
         },
         {
-          "hash": "f1c12193e961816cf1b98a41553bf9543ad6ed7de4a3b594babe21d637f8ba26",
+          "hash": "03f846925e20b15aa0f4206dc69a52e049de3f2e0f942e74c3d98a5e54174684",
           "path": ".github/workflows/release-binaries.yml"
         },
         {
@@ -68,6 +68,9 @@
       "name": "agents",
       "origin": "authored",
       "role": "code",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 1,
       "unresolvedSites": 0
     },
@@ -2219,7 +2222,7 @@
           "path": ".polyglot-terms.json"
         },
         {
-          "hash": "889557c8183c98bdf4eb56691866c71b6847df3ba5774e3566d68b62576ec078",
+          "hash": "cd4439da880f69291758b7b574cf00e5d8662a170924c9155d05b0398715b376",
           "path": "CHANGELOG.md"
         },
         {
@@ -2227,35 +2230,35 @@
           "path": "LICENSE"
         },
         {
-          "hash": "01129b8eb33d98cb81828f2809258551621bbfe52d8727401b95e3d93eaab945",
+          "hash": "8c32c7d347152ccc0820fca4a4b730b2726e3efa73ef2a07c96cc569033dd74f",
           "path": "README.es.md"
         },
         {
-          "hash": "34076e676d2c3e902ac16448c9a842934d21426798fff6f214eac771d2f51009",
+          "hash": "16a27442b6d424cbb24207d244a92d05c2363df8688b579803c3a6e8e7484125",
           "path": "README.fr.md"
         },
         {
-          "hash": "49ab761898f15e465d6f681fc3db9828be592c6cc1f0c02b75806e4534b04efb",
+          "hash": "97db91c3949c16b5ef0ba2f7ba2c733c2cdea97981102fd145fdc1eefee29e9c",
           "path": "README.hi.md"
         },
         {
-          "hash": "78b67aa701cf1d11261a1e3ce85bed3176edc390f185292ee58fa48f5a083080",
+          "hash": "928ac0b2b74fac34fb603006a88ff16edbd643915ce91b896b8e599f9a152879",
           "path": "README.it.md"
         },
         {
-          "hash": "7fb8315201a7429972fc1e5227f5b59a4c705a8ef8750f05ec5a31d6450017db",
+          "hash": "694733b5c2d1155a4e592e76706202ca5a3dff8e219edb90c8f7a92b9c986675",
           "path": "README.ja.md"
         },
         {
-          "hash": "f002e69a4bdb1b988eee6cb028b44658d1f2a86b7b7975d0782209a6282ce91f",
+          "hash": "6b3ee6419de87fec48ce3ba7c45091f9d72f96cba47b0a657153ef01b7ff9139",
           "path": "README.md"
         },
         {
-          "hash": "6eba3b7c5ecb127be85dc1ba0291c54a2128b9d49857c95d057bf7226c02e038",
+          "hash": "cd26f4cb0c278071d4a7bb6ad63b91e5f3eb5b94f2bf24b6a546298060d0d99d",
           "path": "README.pt-BR.md"
         },
         {
-          "hash": "823f5b0ff2105853ccb4be5df69c0765f1ac24f92fed422773a64e86b3c4119f",
+          "hash": "0bce6cbcaff7d71b817f756d5c303f3846088d67cf37cbf3f44558bf6e6ed872",
           "path": "README.zh.md"
         },
         {
@@ -2279,7 +2282,7 @@
           "path": "package.json"
         },
         {
-          "hash": "2eb137d300f04d2b76fcfa99eb127454ab6bb92c82f49696a70a4141c35bf094",
+          "hash": "1aeae4183bfd3144cab3b113be193edab7332abddf506b5a5791cba4933d3fdc",
           "path": "pyproject.toml"
         }
       ],
@@ -2297,10 +2300,89 @@
       "dynamicReads": 0,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
-      "dynamicWrites": 0,
+      "dynamicWrites": 1,
       "entryPoints": [],
       "externals": 0,
       "files": [
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "check_objdump_floor",
+            "format_floor_report",
+            "format_glibc",
+            "inspect_binary_glibc_floor",
+            "is_so_entry_name",
+            "main",
+            "max_glibc_version",
+            "parse_glibc_versions",
+            "parse_version_arg"
+          ],
+          "failurePaths": [
+            {
+              "in": "parse_version_arg",
+              "kind": "raise",
+              "line": 43
+            },
+            {
+              "in": "check_objdump_floor",
+              "kind": "raise",
+              "line": 85
+            },
+            {
+              "in": "_default_objdump_runner",
+              "kind": "raise",
+              "line": 104
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 130
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 138
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 149
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "except",
+              "line": 160
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "except",
+              "line": 181
+            },
+            {
+              "in": "inspect_binary_glibc_floor",
+              "kind": "raise",
+              "line": 186
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 249
+            },
+            {
+              "in": "main",
+              "kind": "except",
+              "line": 257
+            },
+            {
+              "kind": "raise",
+              "line": 266
+            }
+          ],
+          "hash": "6e118a2fdb9f4e05c45488992dd6b59de9c6d73e4d945752f7c3611f8b46de02",
+          "path": "scripts/check_glibc_floor.py",
+          "sequences": []
+        },
         {
           "entry": "main",
           "entryRule": 1,
@@ -2577,7 +2659,10 @@
       ],
       "outsideWrites": 5,
       "role": "code",
-      "testedBy": 1,
+      "testRunners": [
+        "pytest"
+      ],
+      "testedBy": 2,
       "unresolvedSites": 0
     },
     {
@@ -2810,7 +2895,7 @@
           "path": "site/src/content/docs/handbook/commands.md"
         },
         {
-          "hash": "aa2e76ff728d1a9014a6fd5a62865bf25aeebe976e6cf73b4f0ad4a463e27bf7",
+          "hash": "01c4b21dfbdadb1269ed1b94b30eb39b86e2a9bc4b01929e188a815710f876c2",
           "path": "site/src/content/docs/handbook/getting-started.md"
         },
         {
@@ -2876,7 +2961,7 @@
       "unresolvedSites": 0
     },
     {
-      "dynamicReads": 7,
+      "dynamicReads": 6,
       "dynamicSpawns": 0,
       "dynamicSpawnsInTests": 0,
       "dynamicWrites": 0,
@@ -7591,16 +7676,19 @@
       "origin": "mixed",
       "outsidePlaces": [
         {
-          "reads": 18,
+          "reads": 19,
           "where": [
             "caller"
           ],
           "writes": 4
         }
       ],
-      "outsideReads": 18,
+      "outsideReads": 19,
       "outsideWrites": 4,
       "role": "code",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 25,
       "unresolvedNamed": [
         {
@@ -7866,6 +7954,20 @@
             "src/escape_the_valley/worldgen.py"
           ],
           "path": "tests/test_four_tier_live.py",
+          "testFramework": "pytest"
+        },
+        {
+          "exports": [
+            "test_check_objdump_floor_refuses_version_above_2_35",
+            "test_cli_main_exits_nonzero_on_violation_and_zero_when_clean",
+            "test_inspect_binary_glibc_floor_refuses_fake_objdump_above_ceiling",
+            "test_parse_and_check_objdump_floor_accepts_up_to_2_35"
+          ],
+          "hash": "4be09ec2bc7972efa1b42931c080044f60407888a87eda82371bcafd22d757d3",
+          "importsFiles": [
+            "scripts/check_glibc_floor.py"
+          ],
+          "path": "tests/test_glibc_floor.py",
           "testFramework": "pytest"
         },
         {
@@ -8303,13 +8405,16 @@
       "name": "tests",
       "origin": "authored",
       "role": "test",
+      "testRunners": [
+        "pytest"
+      ],
       "testedBy": 0,
       "unresolvedSites": 0
     }
   ],
   "doors": [
     {
-      "checksCount": 5,
+      "checksCount": 4,
       "commands": [
         {
           "dir": "",
@@ -8502,7 +8607,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -8512,7 +8617,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -8625,7 +8730,7 @@
           "directory": true,
           "job": "test",
           "path": "tests/",
-          "runKind": "checks"
+          "runKind": "executes"
         }
       ],
       "runsCount": 15,
@@ -8644,7 +8749,7 @@
       "tests": [
         {
           "config": "pyproject.toml",
-          "files": 0,
+          "files": 29,
           "job": "test",
           "junit": true,
           "runner": "pytest",
@@ -8682,6 +8787,13 @@
         },
         {
           "event": "workflow_dispatch"
+        }
+      ],
+      "unresolvedExpressions": [
+        {
+          "adds": "flags",
+          "job": "test",
+          "step": "Test"
         }
       ],
       "uses": [
@@ -8957,6 +9069,14 @@
           "dir": "",
           "job": "build",
           "programs": [
+            "apt-get"
+          ],
+          "step": "Install container build prerequisites (Linux)"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
             "echo",
             "id",
             "mkdir",
@@ -8970,7 +9090,7 @@
           "programs": [
             "uv"
           ],
-          "step": "3"
+          "step": "4"
         },
         {
           "dir": "",
@@ -8978,7 +9098,7 @@
           "programs": [
             "uv"
           ],
-          "step": "4"
+          "step": "5"
         },
         {
           "dir": "",
@@ -9029,7 +9149,25 @@
           "programs": [
             "uv"
           ],
+          "step": "Check glibc floor (Linux)"
+        },
+        {
+          "dir": "",
+          "job": "build",
+          "programs": [
+            "uv"
+          ],
           "step": "Smoke test binary"
+        },
+        {
+          "dir": "",
+          "job": "smoke-linux",
+          "programs": [
+            "chmod",
+            "echo",
+            "test"
+          ],
+          "step": "Smoke test binary --version in container"
         },
         {
           "dir": "",
@@ -9051,31 +9189,33 @@
           "runsOn": [
             {
               "labels": [
-                "ubuntu-latest"
+                "ubuntu-24.04"
               ],
-              "platform": {
-                "cpu": "x64",
-                "libc": "glibc",
-                "os": "linux"
-              }
+              "unresolved": "container"
             },
             {
               "labels": [
                 "macos-latest"
               ],
-              "platform": {
-                "cpu": "arm64",
-                "os": "darwin"
-              }
+              "unresolved": "container"
             },
             {
               "labels": [
                 "windows-latest"
               ],
-              "platform": {
-                "cpu": "x64",
-                "os": "win32"
-              }
+              "unresolved": "container"
+            }
+          ]
+        },
+        {
+          "basis": "declared",
+          "name": "smoke-linux",
+          "runsOn": [
+            {
+              "labels": [
+                "ubuntu-24.04"
+              ],
+              "unresolved": "container"
             }
           ]
         },
@@ -9107,7 +9247,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 2
+          "files": 3
         },
         {
           "boundary": "src",
@@ -9117,6 +9257,11 @@
       ],
       "readers": [],
       "runs": [
+        {
+          "job": "build",
+          "path": "scripts/check_glibc_floor.py",
+          "runKind": "executes"
+        },
         {
           "job": "build",
           "path": "scripts/gen_third_party_notices.py",
@@ -9134,7 +9279,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 3,
+      "runsCount": 4,
       "secrets": [],
       "sends": {
         "assets": [
@@ -9160,6 +9305,11 @@
           ],
           "runner": null,
           "step": "Smoke test binary"
+        },
+        {
+          "job": "smoke-linux",
+          "runner": null,
+          "step": "Smoke test binary --version in container"
         }
       ],
       "triggers": [
@@ -9203,7 +9353,7 @@
       "usesWorkflowToken": false
     },
     {
-      "checksCount": 5,
+      "checksCount": 4,
       "commands": [
         {
           "dir": "",
@@ -9516,7 +9666,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -9526,7 +9676,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -9639,7 +9789,7 @@
           "directory": true,
           "job": "gate/test",
           "path": "tests/",
-          "runKind": "checks"
+          "runKind": "executes"
         }
       ],
       "runsCount": 15,
@@ -9669,7 +9819,7 @@
       "tests": [
         {
           "config": "pyproject.toml",
-          "files": 0,
+          "files": 29,
           "job": "gate/test",
           "junit": true,
           "runner": "pytest",
@@ -9698,6 +9848,13 @@
         },
         {
           "event": "workflow_dispatch"
+        }
+      ],
+      "unresolvedExpressions": [
+        {
+          "adds": "flags",
+          "job": "gate/test",
+          "step": "Test"
         }
       ],
       "uses": [
@@ -9900,13 +10057,19 @@
       "from": "tests",
       "fromTests": true,
       "kind": "file",
+      "to": "scripts"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
+      "kind": "file",
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
-    "tracked": 759
+    "commit": "ea88cd819d3857283a959336a53cdab89573ade3",
+    "tracked": 761
   },
   "landings": [
     {
@@ -10637,35 +10800,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 33,
-  "testsNotRun": [
-    "tests/test_adapter.py",
-    "tests/test_backpack.py",
-    "tests/test_backpack_ledger.py",
-    "tests/test_backpack_models.py",
-    "tests/test_backpack_save.py",
-    "tests/test_cli_stats.py",
-    "tests/test_death_causes.py",
-    "tests/test_event_loader.py",
-    "tests/test_events.py",
-    "tests/test_fork_reload_and_silent_deaths.py",
-    "tests/test_four_tier_live.py",
-    "tests/test_gm.py",
-    "tests/test_ledger.py",
-    "tests/test_ledger_proof.py",
-    "tests/test_memory.py",
-    "tests/test_memory_emitters.py",
-    "tests/test_models.py",
-    "tests/test_narration.py",
-    "tests/test_npx_launcher.py",
-    "tests/test_oracle_generator.py",
-    "tests/test_physics.py",
-    "tests/test_save.py",
-    "tests/test_step_engine.py",
-    "tests/test_tui_smoke.py",
-    "tests/test_voice.py",
-    "tests/test_worldgen.py"
-  ],
+  "testFiles": 34,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
