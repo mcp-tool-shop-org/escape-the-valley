@@ -246,9 +246,11 @@ fn timeouts_and_bad_answers_fall_back_and_play_goes_on() {
     assert!(text.contains(BRACKET_LINE));
     assert!(!text.contains(SCENE_LINE));
     let stats = stats.unwrap();
-    assert!(stats.calls > 0);
-    assert_eq!(stats.timeouts, stats.calls);
-    assert_eq!(stats.fallbacks, stats.calls);
+    // Two timeouts in a row pause the narrator for the session: the first turn's two calls are
+    // made, and the other three turns ask for nothing. All eight lines fall back.
+    assert_eq!(stats.calls, 2);
+    assert_eq!(stats.timeouts, 2);
+    assert_eq!(stats.fallbacks, 8);
     assert_eq!(stats.successes, 0);
 
     let (text, _, stats, _, _) = play(Script::OutcomeNotJson);
