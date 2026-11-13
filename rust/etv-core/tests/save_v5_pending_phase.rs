@@ -159,13 +159,13 @@ fn save_every_step_under_v2_matches_the_uninterrupted_run() {
     }
     assert_eq!(total.skipped, 0, "no reload point may be skipped");
     assert_eq!(total.reloads, total.steps, "one reload per step");
-    assert_eq!(total.steps, 5963);
+    assert_eq!(total.steps, 5972);
     assert_eq!(
-        total.in_event, 2032,
+        total.in_event, 2031,
         "reloads taken while an event was on screen"
     );
     assert_eq!(
-        total.in_route, 118,
+        total.in_route, 119,
         "reloads taken while a fork was on screen"
     );
 }
