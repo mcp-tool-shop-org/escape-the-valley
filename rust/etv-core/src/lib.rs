@@ -24,6 +24,8 @@ pub mod notices;
 pub mod physics;
 pub mod rng;
 pub mod save;
+pub mod screens;
+pub mod settings;
 pub mod snapshot;
 pub mod validator;
 pub mod worldgen;

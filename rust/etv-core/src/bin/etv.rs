@@ -5,6 +5,8 @@ use etv_core::content::{
     embedded_content_pack, parse_cli_args, version_with_content_hash, CliCommand, ContentPack,
 };
 use etv_core::notices::third_party_notices_text;
+use etv_core::screens::{about_screen_lines, run_settings_screen, SettingsExit};
+use etv_core::settings::{load_settings_or_default, save_settings};
 use etv_core::snapshot::run_tier2_seed_trace;
 use etv_core::validator::{validate_content_with_options, ValidationOptions};
 
@@ -18,6 +20,41 @@ fn load_selected_content(content_dir: Option<&std::path::Path>) -> Result<Conten
                 .to_string(),
         ),
         None => Ok(embedded_content_pack().clone()),
+    }
+}
+
+/// Run the settings screen on stdin and stdout, against the settings file under the current
+/// directory.
+fn run_settings_command() -> ExitCode {
+    let base = std::path::PathBuf::from(".");
+    let loaded = load_settings_or_default(&base);
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    if let Some(warning) = &loaded.warning {
+        let _ = writeln!(out, "{warning}");
+    }
+    let exit = match run_settings_screen(loaded.settings, std::io::stdin().lock(), &mut out) {
+        Ok(exit) => exit,
+        Err(e) => {
+            eprintln!("error: settings screen: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    match exit {
+        SettingsExit::Save(settings) => match save_settings(&settings, &base) {
+            Ok(_) => {
+                let _ = writeln!(out, "Settings saved.");
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("error: could not save the settings file: {e}");
+                ExitCode::from(1)
+            }
+        },
+        SettingsExit::Discard => {
+            let _ = writeln!(out, "Settings not saved.");
+            ExitCode::SUCCESS
+        }
     }
 }
 
@@ -40,6 +77,10 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    if opts.command == CliCommand::Settings {
+        return run_settings_command();
+    }
+
     let content = match load_selected_content(opts.content_dir.as_deref()) {
         Ok(c) => c,
         Err(e) => {
@@ -53,7 +94,13 @@ fn main() -> ExitCode {
             println!("{}", version_with_content_hash(&content));
             ExitCode::SUCCESS
         }
-        CliCommand::Notices => ExitCode::SUCCESS,
+        CliCommand::Notices | CliCommand::Settings => ExitCode::SUCCESS,
+        CliCommand::About => {
+            for line in about_screen_lines(env!("CARGO_PKG_VERSION"), &content.content_hash_hex) {
+                println!("{line}");
+            }
+            ExitCode::SUCCESS
+        }
         CliCommand::ValidateContent { require_outcomes } => {
             let report =
                 validate_content_with_options(&content, ValidationOptions { require_outcomes });
