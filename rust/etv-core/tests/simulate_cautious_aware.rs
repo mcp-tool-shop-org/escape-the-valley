@@ -4,10 +4,11 @@
 
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepEngine;
-use etv_core::model::GamePhase;
+use etv_core::model::{GamePhase, IntentAction, PlayerIntent};
 use etv_core::ruleset::Ruleset;
 use etv_core::simulate::{
-    choose_intent, parse_args, run_one_with_ruleset, simulate_with_ruleset, Policy, SimCommand,
+    choose_intent, parse_args, repick_if_unaffordable, run_one_with_ruleset, simulate_with_ruleset,
+    Policy, SimCommand,
 };
 use etv_core::worldgen::create_new_run_with_content;
 
@@ -67,8 +68,9 @@ fn under_legacy_it_plays_exactly_as_cautious() {
     }
 }
 
-/// Count, over a V2 run, the event picks made and the picks of a choice shown unaffordable while
-/// an affordable one was on offer.
+/// Count, over a V2 run, the event picks a script asks for and how many of those are for a
+/// choice shown unaffordable while an affordable one was on offer. The engine refuses such a
+/// pick and nothing changes, so the script then picks again, as the simulator does.
 fn picks(policy: Policy, seed: i128, idx: usize) -> (usize, usize) {
     let content = embedded_content_pack();
     let mut engine = StepEngine::with_content(create_new_run_with_content(seed, content), content);
@@ -85,6 +87,9 @@ fn picks(policy: Policy, seed: i128, idx: usize) -> (usize, usize) {
             made += 1;
             if !picked.affordable && choices.iter().any(|c| c.affordable) {
                 avoidable += 1;
+                let again = repick_if_unaffordable(policy, &engine, &choice_id);
+                engine.step(&PlayerIntent::new(IntentAction::Choose).with_choice(&again));
+                continue;
             }
         }
         engine.step(&intent);
@@ -106,7 +111,8 @@ fn under_v2_it_never_picks_an_unaffordable_choice_when_an_affordable_one_is_offe
     }
     assert!(aware_made > 0);
     assert_eq!(aware_avoidable, 0);
-    // The plain cautious script does make such picks, which is the difference being measured.
+    // The plain cautious script does ask for such picks. The engine refuses each one and the
+    // script picks again, which is the only difference left between the two under V2.
     assert!(plain_avoidable > 0);
     assert_eq!(
         (aware_made, plain_made, plain_avoidable),
@@ -119,6 +125,8 @@ fn under_v2_it_never_picks_an_unaffordable_choice_when_an_affordable_one_is_offe
 }
 
 /// Win counts over seeds 0 to 199 under V2, both scripts, as measured when this was written.
+/// Since the engine refuses an unaffordable pick and the plain script then picks the same
+/// choice the aware script would have, the two now win the same runs.
 #[test]
 fn v2_win_counts_for_both_cautious_scripts_are_pinned() {
     let content = embedded_content_pack();
@@ -134,7 +142,7 @@ fn v2_win_counts_for_both_cautious_scripts_are_pinned() {
 
 // Measured (seeds 0 to 199, turn cap 500, V2 rules). They move whenever a V2 rule changes.
 const EXPECTED_AWARE_PICKS: usize = 10086;
-const EXPECTED_PLAIN_PICKS: usize = 10053;
-const EXPECTED_PLAIN_AVOIDABLE: usize = 1806;
-const EXPECTED_PLAIN_V2_WINS: u64 = 10;
+const EXPECTED_PLAIN_PICKS: usize = 10086;
+const EXPECTED_PLAIN_AVOIDABLE: usize = 1752;
+const EXPECTED_PLAIN_V2_WINS: u64 = 11;
 const EXPECTED_AWARE_V2_WINS: u64 = 11;
