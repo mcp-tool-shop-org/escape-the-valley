@@ -283,7 +283,7 @@ fn context_for(
 }
 
 #[test]
-fn narration_context_carries_check_facts_and_the_prompt_omits_them() {
+fn narration_context_carries_check_facts_and_the_prompt_omits_the_names() {
     let (ctx, names) = context_for(
         42,
         "A shallow ford runs brown.",
@@ -308,8 +308,10 @@ fn narration_context_carries_check_facts_and_the_prompt_omits_them() {
             "prompt must not contain party name {name:?}"
         );
     }
-    assert!(!prompt.contains("A shallow ford runs brown."));
-    assert!(!prompt.contains("Drive the team through"));
+    // The event's own text and the chosen label are told to the narrator (ruled 2026-11-13);
+    // only the party names stay out of the prompt.
+    assert!(prompt.contains("- event_text: A shallow ford runs brown."));
+    assert!(prompt.contains("- choice_taken: Drive the team through"));
 }
 
 #[test]

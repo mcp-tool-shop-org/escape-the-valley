@@ -8785,7 +8785,7 @@
         },
         {
           "dir": "rust",
-          "files": 27,
+          "files": 28,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9886,7 +9886,7 @@
         },
         {
           "dir": "rust",
-          "files": 27,
+          "files": 28,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10272,8 +10272,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "e1763ee195b71f4cecd4169d4a089200a944d477",
-    "tracked": 822
+    "commit": "6c1bdf7eb3410b156eb6379c1d1e63610fe6762b",
+    "tracked": 823
   },
   "landings": [
     {
@@ -10576,6 +10576,12 @@
     },
     {
       "readers": [
+        {
+          "by": "rust/etv-core/tests/narrator_told_the_event.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        },
         {
           "by": "rust/etv-core/tests/narrator_turn_set_v1.rs",
           "call": "include_bytes",
@@ -11069,7 +11075,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 74,
+  "testFiles": 75,
   "unassigned": [
     {
       "hash": "1933527f3fdc9da74685c29d9d85b11224651a30af2343998615557ce4e7282c",
@@ -13294,6 +13300,7 @@
         "build_scene_prompts_for",
         "build_scene_prompts_with_rules",
         "build_system_prompt",
+        "build_system_prompt_for_slot",
         "build_system_prompt_with_rules",
         "check_generated_line",
         "compose_all_464_choice_fallbacks",
@@ -13302,6 +13309,7 @@
         "evaluate_turn_matters",
         "extract_tag_names",
         "format_turn_facts_for_prompt",
+        "format_turn_facts_for_slot",
         "is_loopback_endpoint",
         "journey_band",
         "model_listed",
@@ -13326,300 +13334,300 @@
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1448
+          "line": 1634
         },
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1456
+          "line": 1642
         },
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1465
+          "line": 1651
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1521
+          "line": 1707
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1529
+          "line": 1715
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1534
+          "line": 1720
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1544
+          "line": 1730
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1556
+          "line": 1742
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1561
+          "line": 1747
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2179
+          "line": 2365
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2199
+          "line": 2385
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2212
+          "line": 2398
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2224
+          "line": 2410
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2234
+          "line": 2420
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2241
+          "line": 2427
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2261
+          "line": 2447
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2269
+          "line": 2455
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2279
+          "line": 2465
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2296
+          "line": 2482
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2312
+          "line": 2498
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2322
+          "line": 2508
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2355
+          "line": 2541
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2361
+          "line": 2547
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2394
+          "line": 2580
         },
         {
           "in": "check_generated_line",
-          "kind": "err",
-          "line": 2403
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2419
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2428
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2441
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2454
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2466
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2490
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2501
-        },
-        {
-          "in": "check_generated_line",
-          "kind": "err",
-          "line": 2517
-        },
-        {
-          "in": "from_json_str",
           "kind": "err",
           "line": 2589
         },
         {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2605
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2614
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2627
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2640
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2652
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2676
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2687
+        },
+        {
+          "in": "check_generated_line",
+          "kind": "err",
+          "line": 2703
+        },
+        {
+          "in": "from_json_str",
+          "kind": "err",
+          "line": 2775
+        },
+        {
           "in": "from_source_table_json",
           "kind": "err",
-          "line": 2613
+          "line": 2799
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 2792
+          "line": 2978
         },
         {
           "in": "resolve_fallback_line_with_mode",
           "kind": "match-err",
-          "line": 2941
+          "line": 3127
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2964
+          "line": 3150
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2969
+          "line": 3155
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2975
+          "line": 3161
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2981
+          "line": 3167
         },
         {
           "in": "is_loopback_endpoint",
           "kind": "match-err",
-          "line": 2991
+          "line": 3177
         },
         {
           "in": "validate_endpoint",
           "kind": "err",
-          "line": 3002
+          "line": 3188
         },
         {
           "in": "get_tags",
           "kind": "err",
-          "line": 3176
+          "line": 3362
         },
         {
           "in": "post_generate",
           "kind": "err",
-          "line": 3187
+          "line": 3373
         },
         {
           "in": "take_slot_records",
           "kind": "match-err",
-          "line": 3412
+          "line": 3598
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3488
+          "line": 3674
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3523
+          "line": 3709
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3559
+          "line": 3745
         },
         {
           "in": "warmup",
           "kind": "match-err",
-          "line": 3560
-        },
-        {
-          "in": "warmup",
-          "kind": "err",
-          "line": 3560
-        },
-        {
-          "in": "warmup",
-          "kind": "match-err",
-          "line": 3561
+          "line": 3746
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3561
+          "line": 3746
+        },
+        {
+          "in": "warmup",
+          "kind": "match-err",
+          "line": 3747
+        },
+        {
+          "in": "warmup",
+          "kind": "err",
+          "line": 3747
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3603
+          "line": 3789
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3614
+          "line": 3800
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3636
+          "line": 3822
         },
         {
           "in": "call_ollama_slot",
           "kind": "err",
-          "line": 3654
+          "line": 3840
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3663
+          "line": 3849
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3677
+          "line": 3863
         }
       ],
-      "hash": "875848ce9a064b0bea20ed4348b9a3f10ba367e1f3b5e87cdc718db3fef9a573",
+      "hash": "07b42d447080f92443fad98f827cb6feeef8448b5fe6793394d116b3f6f6cd59",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -13632,7 +13640,7 @@
         {
           "calls": [
             {
-              "line": 735,
+              "line": 797,
               "name": "journey_pressure",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13647,7 +13655,7 @@
         {
           "calls": [
             {
-              "line": 873,
+              "line": 935,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13655,7 +13663,7 @@
               "via": "build_narration_context_with_deltas"
             },
             {
-              "line": 735,
+              "line": 797,
               "name": "journey_pressure",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13663,7 +13671,7 @@
               "via": "journey_band"
             },
             {
-              "line": 881,
+              "line": 943,
               "name": "build_gm_brief_readonly",
               "target": {
                 "file": "rust/etv-core/src/memory.rs"
@@ -13679,7 +13687,7 @@
         {
           "calls": [
             {
-              "line": 873,
+              "line": 935,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13687,7 +13695,7 @@
               "via": "build_narration_context_with_deltas"
             },
             {
-              "line": 735,
+              "line": 797,
               "name": "journey_pressure",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13695,7 +13703,7 @@
               "via": "journey_band"
             },
             {
-              "line": 881,
+              "line": 943,
               "name": "build_gm_brief_readonly",
               "target": {
                 "file": "rust/etv-core/src/memory.rs"
@@ -13711,7 +13719,7 @@
         {
           "calls": [
             {
-              "line": 873,
+              "line": 935,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13719,7 +13727,7 @@
               "via": "build_narration_context_with_deltas"
             },
             {
-              "line": 735,
+              "line": 797,
               "name": "journey_pressure",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13727,7 +13735,7 @@
               "via": "journey_band"
             },
             {
-              "line": 881,
+              "line": 943,
               "name": "build_gm_brief_readonly",
               "target": {
                 "file": "rust/etv-core/src/memory.rs"
@@ -13743,14 +13751,14 @@
         {
           "calls": [
             {
-              "line": 873,
+              "line": 935,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
               }
             },
             {
-              "line": 735,
+              "line": 797,
               "name": "journey_pressure",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -13758,7 +13766,7 @@
               "via": "journey_band"
             },
             {
-              "line": 881,
+              "line": 943,
               "name": "build_gm_brief_readonly",
               "target": {
                 "file": "rust/etv-core/src/memory.rs"
@@ -16187,6 +16195,21 @@
       "testsInside": true
     },
     {
+      "hash": "adcbc37f19b22297878defb7e2f76549bab1a622d64a42ec46b928a76994ca29",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/measure.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/ruleset.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/narrator_told_the_event.rs",
+      "testsInside": true
+    },
+    {
       "hash": "658f6138cbfeeb1456d76e3ddfdc8ea7fd211a02018b526083d0f778151063f3",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -16267,7 +16290,7 @@
       "testsInside": true
     },
     {
-      "hash": "f5074b21ef09e81b0e20e4174177a6c4cb252efcbc96272015ec7437b4cee18a",
+      "hash": "8e1ed5ac92ca98e133f611967cc1d2316aef3171d235a05060e1ceb946e51453",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/engine.rs",
@@ -16445,7 +16468,7 @@
       "testsInside": true
     },
     {
-      "hash": "985a6a8b7e5f709d6cc2715f984c11ebbc7eceede5b8a8e61671f9ca52121416",
+      "hash": "05e905470db7e1238bc99c4558a2c447f697026bb4a3b9ab079ca554449fb4f7",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
