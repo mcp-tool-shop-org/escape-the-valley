@@ -16,11 +16,12 @@
 //! Safety rails, all enforced here rather than by the caller:
 //! - the key is read once from a file outside any repository, never from the environment,
 //!   never printed, and stripped from anything this module writes;
-//! - a running cost, kept in a ledger file shared by every process of a run, is checked
-//!   against a hard cap before each call;
+//! - a running cost is checked against a hard cap before each call. Each process keeps its
+//!   own ledger file; the cap counts every ledger file in that folder, so cells may run side
+//!   by side and stages may follow one another under one cap;
 //! - a billing error, an authentication or permission error, any other unexpected status, or a
 //!   burst of rate-limit or overload answers halts the run: a halt file is written and no
-//!   further call is made.
+//!   process that shares the folder makes a further call.
 //!
 //! The network client itself ([`UreqHttpsPost`]) is compiled only with the `narrator-claude`
 //! feature. Everything else is plain logic and is tested with a scripted client.
@@ -77,9 +78,33 @@ pub fn prices_for(model: &str) -> Option<Prices> {
             cache_write: 2_500,
             cache_read: 100,
         }),
+        // $4 in, $20 out per million; cache write $5, cache read $0.20 per million.
+        "claude-opus-5-5" => Some(Prices {
+            input: 4_000,
+            output: 20_000,
+            cache_write: 5_000,
+            cache_read: 200,
+        }),
+        // $8 in, $40 out per million; cache write $10, cache read $0.20 per million.
+        "claude-fable-5-2" => Some(Prices {
+            input: 8_000,
+            output: 40_000,
+            cache_write: 10_000,
+            cache_read: 200,
+        }),
         _ => None,
     }
 }
+
+/// True for the models whose thinking cannot be turned off. Their thinking is billed as
+/// output and counts against `max_tokens`, so they get [`THINKING_TOKEN_ALLOWANCE`] on top of
+/// the answer's own limit and run at the lowest effort.
+pub fn always_thinks(model: &str) -> bool {
+    matches!(model, "claude-opus-5-5" | "claude-fable-5-2")
+}
+
+/// Extra `max_tokens` for models that always think, so thinking cannot eat the answer.
+pub const THINKING_TOKEN_ALLOWANCE: u64 = 2_000;
 
 /// Token counts from one response's `usage` object.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -192,14 +217,19 @@ pub struct CloudConfig {
     pub cap_nano: u64,
     /// Hard cap on HTTP requests recorded in the ledger.
     pub max_requests: u64,
-    /// Running totals, shared by every process of the run.
+    /// This process's running totals. Every other `ledger*.json` in the same folder counts
+    /// towards the caps too.
     pub ledger_path: PathBuf,
     /// One JSON line per HTTP attempt.
     pub log_path: PathBuf,
+    /// Whether the system block carries a cache marker. It pays only when the same system
+    /// prompt is sent again within minutes, which here means a repeated candidate.
+    pub cache_marker: bool,
 }
 
 impl CloudConfig {
-    /// The halt file: when it exists, no process of the run makes a call.
+    /// The halt file this process writes. Any `*.HALT` file in the ledger's folder stops
+    /// every process that shares the folder.
     pub fn halt_path(&self) -> PathBuf {
         let mut name = self
             .ledger_path
@@ -254,8 +284,68 @@ impl Ledger {
         tmp_name.push(".tmp");
         let tmp = path.with_file_name(tmp_name);
         fs::write(&tmp, text).map_err(|e| format!("ledger not written: {e}"))?;
-        fs::rename(&tmp, path).map_err(|e| format!("ledger not replaced: {e}"))
+        // Another process may be reading the ledger at this instant; try again briefly.
+        let mut tries = 0;
+        loop {
+            match fs::rename(&tmp, path) {
+                Ok(()) => return Ok(()),
+                Err(e) if tries >= 20 => return Err(format!("ledger not replaced: {e}")),
+                Err(_) => {
+                    tries += 1;
+                    std::thread::sleep(Duration::from_millis(25));
+                }
+            }
+        }
     }
+
+    /// The totals of every other `ledger*.json` beside `own`. A file that cannot be read
+    /// just now (it is being replaced) is read again; one that stays unreadable is an error.
+    pub fn others_beside(own: &Path) -> Result<Ledger, String> {
+        let dir = match own.parent() {
+            Some(d) if !d.as_os_str().is_empty() => d.to_path_buf(),
+            _ => PathBuf::from("."),
+        };
+        let mut total = Ledger::default();
+        let entries = fs::read_dir(&dir).map_err(|e| format!("ledger folder unreadable: {e}"))?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.starts_with("ledger") || !name.ends_with(".json") {
+                continue;
+            }
+            if Some(entry.file_name().as_os_str()) == own.file_name() {
+                continue;
+            }
+            let mut tries = 0;
+            let other = loop {
+                match Ledger::load(&path) {
+                    Ok(ledger) => break ledger,
+                    Err(e) if tries >= 20 => return Err(e),
+                    Err(_) => {
+                        tries += 1;
+                        std::thread::sleep(Duration::from_millis(25));
+                    }
+                }
+            };
+            total.spent_nano = total.spent_nano.saturating_add(other.spent_nano);
+            total.requests = total.requests.saturating_add(other.requests);
+        }
+        Ok(total)
+    }
+}
+
+/// The first `*.HALT` file in `dir`, if any.
+fn halt_file_in(dir: &Path) -> Option<PathBuf> {
+    let dir = if dir.as_os_str().is_empty() {
+        Path::new(".")
+    } else {
+        dir
+    };
+    fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| p.extension().and_then(|x| x.to_str()) == Some("HALT"))
 }
 
 /// Billionths of a dollar as a dollar string with six decimals (for people; never parsed).
@@ -343,7 +433,12 @@ pub fn is_warmup(ollama: &Value) -> bool {
 /// user message (there is never an assistant turn, so nothing is prefilled); `format` becomes
 /// `output_config.format`; `num_predict` becomes `max_tokens`; `stop` becomes
 /// `stop_sequences`. Sampling options, seed, context size and GPU options are dropped.
-pub fn build_messages_request(ollama: &Value, model: &str) -> Result<BuiltRequest, String> {
+/// `cache_marker` puts a cache marker on the system block.
+pub fn build_messages_request(
+    ollama: &Value,
+    model: &str,
+    cache_marker: bool,
+) -> Result<BuiltRequest, String> {
     let asked = ollama.get("model").and_then(Value::as_str).unwrap_or("");
     if asked != model {
         return Err(format!("the request names model {asked:?}, not {model:?}"));
@@ -353,11 +448,16 @@ pub fn build_messages_request(ollama: &Value, model: &str) -> Result<BuiltReques
         .and_then(Value::as_str)
         .ok_or_else(|| "the request has no prompt".to_string())?;
     let options = ollama.get("options").cloned().unwrap_or_else(|| json!({}));
-    let max_tokens = options
+    let answer_tokens = options
         .get("num_predict")
         .and_then(Value::as_u64)
         .filter(|n| *n > 0)
         .ok_or_else(|| "the request has no num_predict".to_string())?;
+    let max_tokens = if always_thinks(model) {
+        answer_tokens + THINKING_TOKEN_ALLOWANCE
+    } else {
+        answer_tokens
+    };
 
     let mut body = json!({
         "model": model,
@@ -365,21 +465,26 @@ pub fn build_messages_request(ollama: &Value, model: &str) -> Result<BuiltReques
         "messages": [{ "role": "user", "content": prompt }],
     });
     if let Some(system) = ollama.get("system").and_then(Value::as_str) {
-        body["system"] = json!([{
-            "type": "text",
-            "text": system,
-            "cache_control": { "type": "ephemeral" }
-        }]);
+        body["system"] = if cache_marker {
+            json!([{ "type": "text", "text": system, "cache_control": { "type": "ephemeral" } }])
+        } else {
+            json!([{ "type": "text", "text": system }])
+        };
     }
-    // Thinking off, in the way each model accepts.
-    body["thinking"] = match model {
-        "claude-sonnet-5-5" => json!({ "type": "between_tools" }),
-        _ => json!({ "type": "disabled" }),
-    };
+    // Thinking off in the way each model accepts; where it cannot be turned off, the
+    // `thinking` field is left out and the effort is set to its lowest. No `fallbacks`
+    // field is ever sent: a silent reroute would mix models in one arm.
+    if always_thinks(model) {
+        body["output_config"] = json!({ "effort": "low" });
+    } else if model == "claude-sonnet-5-5" {
+        body["thinking"] = json!({ "type": "between_tools" });
+    } else {
+        body["thinking"] = json!({ "type": "disabled" });
+    }
     if let Some(format) = ollama.get("format") {
         let mut schema = format.clone();
         sanitise_schema(&mut schema);
-        body["output_config"] = json!({ "format": { "type": "json_schema", "schema": schema } });
+        body["output_config"]["format"] = json!({ "type": "json_schema", "schema": schema });
     }
     if let Some(stop) = options.get("stop").and_then(Value::as_array) {
         if !stop.is_empty() {
@@ -481,8 +586,8 @@ impl ClaudeTransport {
     ) -> Result<Self, String> {
         let prices = prices_for(&cfg.model)
             .ok_or_else(|| format!("no listed price for model {:?}; refused", cfg.model))?;
-        let halt = cfg.halt_path();
-        if halt.exists() {
+        let folder = cfg.ledger_path.parent().unwrap_or(Path::new("."));
+        if let Some(halt) = halt_file_in(folder) {
             return Err(format!(
                 "this run halted earlier (see {}); refused",
                 halt.display()
@@ -588,7 +693,7 @@ impl NarratorTransport for ClaudeTransport {
         if let Some(reason) = &state.halted {
             return Err(Self::halted_error(reason));
         }
-        let built = match build_messages_request(&ollama, &self.cfg.model) {
+        let built = match build_messages_request(&ollama, &self.cfg.model, self.cfg.cache_marker) {
             Ok(built) => built,
             Err(why) => {
                 self.halt(&mut state, &format!("request could not be built: {why}"));
@@ -607,17 +712,33 @@ impl NarratorTransport for ClaudeTransport {
             // (a token is never shorter than a byte), plus a full-length answer.
             let worst = request.len() as u64 * self.prices.cache_write
                 + built.max_tokens * self.prices.output;
-            if state.ledger.spent_nano.saturating_add(worst) > self.cfg.cap_nano {
+            let folder = self.cfg.ledger_path.parent().unwrap_or(Path::new("."));
+            if let Some(other_halt) = halt_file_in(folder) {
+                // Another process of the run halted: stop here too, without a second file.
+                let reason = format!("halt file present: {}", other_halt.display());
+                state.halted = Some(reason.clone());
+                return Err(Self::halted_error(&reason));
+            }
+            let others = match Ledger::others_beside(&self.cfg.ledger_path) {
+                Ok(others) => others,
+                Err(why) => {
+                    self.halt(&mut state, &why);
+                    return Err(Self::halted_error(&why));
+                }
+            };
+            let spent = state.ledger.spent_nano.saturating_add(others.spent_nano);
+            let requests = state.ledger.requests.saturating_add(others.requests);
+            if spent.saturating_add(worst) > self.cfg.cap_nano {
                 let reason = format!(
                     "cost cap reached: spent ${} of ${}",
-                    nano_as_usd(state.ledger.spent_nano),
+                    nano_as_usd(spent),
                     nano_as_usd(self.cfg.cap_nano)
                 );
                 self.halt(&mut state, &reason);
                 return Err(Self::halted_error(&reason));
             }
-            if state.ledger.requests >= self.cfg.max_requests {
-                let reason = format!("request cap reached: {} requests", state.ledger.requests);
+            if requests >= self.cfg.max_requests {
+                let reason = format!("request cap reached: {requests} requests");
                 self.halt(&mut state, &reason);
                 return Err(Self::halted_error(&reason));
             }
@@ -698,6 +819,7 @@ impl NarratorTransport for ClaudeTransport {
                     "outcome": "ok", "http_status": 200,
                     "request_id": reply.request_id, "latency_ms": latency_ms,
                     "stop_reason": stop_reason,
+                    "stop_details": response["stop_details"],
                     "input_tokens": usage.input_tokens,
                     "cache_creation_input_tokens": usage.cache_creation_input_tokens,
                     "cache_read_input_tokens": usage.cache_read_input_tokens,
@@ -772,7 +894,9 @@ pub const CLOUD_USAGE: &str = "cloud flags (all required with --cloud):
   --cloud-cap-usd N         hard cap in dollars for everything in the ledger
   --cloud-max-requests N    hard cap on HTTP requests in the ledger
   --cloud-ledger PATH       running totals, shared by every process of the run
-  --cloud-log PATH          one JSON line per HTTP attempt";
+  --cloud-log PATH          one JSON line per HTTP attempt
+optional:
+  --cloud-no-cache-marker   send the system prompt without a cache marker";
 
 /// Splits the cloud flags out of `args`. Returns `None` and the arguments unchanged when
 /// `--cloud` is absent. The model comes from the harness's own `--model` flag.
@@ -787,8 +911,14 @@ pub fn split_cloud_args(args: &[String]) -> Result<(Option<CloudArgs>, Vec<Strin
         "--cloud-ledger",
         "--cloud-log",
     ];
+    let mut cache_marker = true;
     let mut i = 0;
     while i < args.len() {
+        if args[i] == "--cloud-no-cache-marker" {
+            cache_marker = false;
+            i += 1;
+            continue;
+        }
         if let Some(flag) = FLAGS.iter().find(|f| **f == args[i]) {
             let value = args
                 .get(i + 1)
@@ -800,7 +930,7 @@ pub fn split_cloud_args(args: &[String]) -> Result<(Option<CloudArgs>, Vec<Strin
             i += 1;
         }
     }
-    if found.is_empty() {
+    if found.is_empty() && cache_marker {
         return Ok((None, rest));
     }
     if found.get("--cloud").map(String::as_str) != Some("claude") {
@@ -830,6 +960,7 @@ pub fn split_cloud_args(args: &[String]) -> Result<(Option<CloudArgs>, Vec<Strin
                 max_requests,
                 ledger_path: PathBuf::from(need("--cloud-ledger")?),
                 log_path: PathBuf::from(need("--cloud-log")?),
+                cache_marker,
             },
         }),
         rest,
@@ -993,6 +1124,7 @@ mod tests {
                 max_requests: 1_000,
                 ledger_path: self.dir.path().join("ledger.json"),
                 log_path: self.dir.path().join("calls.jsonl"),
+                cache_marker: true,
             }
         }
 
@@ -1103,7 +1235,7 @@ mod tests {
         body.as_object_mut().unwrap().remove("format");
         body["options"]["stop"] = json!(["."]);
         body["options"]["num_gpu"] = json!(18);
-        let built = build_messages_request(&body, HAIKU).unwrap();
+        let built = build_messages_request(&body, HAIKU, true).unwrap();
         assert_eq!(built.body["stop_sequences"], json!(["."]));
         assert!(built.body.get("output_config").is_none());
         assert_eq!(
@@ -1126,13 +1258,49 @@ mod tests {
     #[test]
     fn sonnet_turns_thinking_off_its_own_way_and_other_models_are_refused() {
         let body: Value = serde_json::from_str(&ollama_body("claude-sonnet-5-5")).unwrap();
-        let built = build_messages_request(&body, "claude-sonnet-5-5").unwrap();
+        let built = build_messages_request(&body, "claude-sonnet-5-5", true).unwrap();
         assert_eq!(built.body["thinking"], json!({ "type": "between_tools" }));
         // A request for a model other than the run's own is refused.
-        assert!(build_messages_request(&body, HAIKU).is_err());
+        assert!(build_messages_request(&body, HAIKU, true).is_err());
         // A model with no listed price cannot start a run.
         let rig = Rig::new(vec![]);
-        assert!(rig.transport("claude-opus-5-5", ONE_DOLLAR).is_err());
+        assert!(rig.transport("claude-opus-4-8", ONE_DOLLAR).is_err());
+    }
+
+    #[test]
+    fn models_that_always_think_get_low_effort_and_room_to_think() {
+        for model in ["claude-opus-5-5", "claude-fable-5-2"] {
+            let body: Value = serde_json::from_str(&ollama_body(model)).unwrap();
+            let built = build_messages_request(&body, model, false).unwrap();
+            assert!(built.body.get("thinking").is_none());
+            assert!(built.body.get("fallbacks").is_none());
+            assert_eq!(built.body["output_config"]["effort"], "low");
+            assert_eq!(built.body["output_config"]["format"]["type"], "json_schema");
+            // 110 for the answer plus 2,000 for thinking.
+            assert_eq!(built.body["max_tokens"], 2_110);
+            assert_eq!(built.max_tokens, 2_110);
+            // No cache marker when it is switched off.
+            assert_eq!(
+                built.body["system"],
+                json!([{ "type": "text", "text": "You narrate one turn." }])
+            );
+        }
+        // 1,000 x 4,000 + 200 x 5,000 + 300 x 200 + 50 x 20,000 = 6,060,000.
+        let u = Usage {
+            input_tokens: 1000,
+            cache_creation_input_tokens: 200,
+            cache_read_input_tokens: 300,
+            output_tokens: 50,
+        };
+        assert_eq!(
+            u.cost_nano(prices_for("claude-opus-5-5").unwrap()),
+            6_060_000
+        );
+        // 1,000 x 8,000 + 200 x 10,000 + 300 x 200 + 50 x 40,000 = 12,060,000.
+        assert_eq!(
+            u.cost_nano(prices_for("claude-fable-5-2").unwrap()),
+            12_060_000
+        );
     }
 
     #[test]
@@ -1205,13 +1373,66 @@ mod tests {
     }
 
     #[test]
+    fn ledgers_side_by_side_share_the_cap_and_a_halt_stops_them_all() {
+        let rig = Rig::new(vec![ok_reply(
+            "{}",
+            json!({ "input_tokens": 1, "output_tokens": 1 }),
+        )]);
+        // Another process of the run has already spent 0.9 of the one-dollar cap.
+        Ledger {
+            spent_nano: 900_000_000,
+            requests: 7,
+        }
+        .save(&rig.dir.path().join("ledger-other.json"))
+        .unwrap();
+        // A file that is not a ledger is not counted.
+        fs::write(rig.dir.path().join("notes.json"), "{}").unwrap();
+        let t = rig.transport(HAIKU, ONE_DOLLAR).unwrap();
+        assert!(t
+            .post_generate("", &ollama_body(HAIKU), Duration::from_secs(5))
+            .is_ok());
+        assert_eq!(
+            t.summary().ledger,
+            Ledger {
+                spent_nano: 600,
+                requests: 1
+            }
+        );
+        // The other process spends up to the cap: this one stops before its next call.
+        Ledger {
+            spent_nano: 999_999_999,
+            requests: 8,
+        }
+        .save(&rig.dir.path().join("ledger-other.json"))
+        .unwrap();
+        let err = t
+            .post_generate("", &ollama_body(HAIKU), Duration::from_secs(5))
+            .unwrap_err();
+        assert!(matches!(err, TransportError::ConnectionFailed(ref m) if m.contains("cost cap")));
+        assert_eq!(rig.calls_made(), 1);
+
+        // A halt file written by any process stops a process that is already running.
+        let rig = Rig::new(vec![]);
+        let t = rig.transport(HAIKU, ONE_DOLLAR).unwrap();
+        fs::write(rig.dir.path().join("ledger-other.json.HALT"), "billing").unwrap();
+        assert!(t
+            .post_generate("", &ollama_body(HAIKU), Duration::from_secs(5))
+            .is_err());
+        assert_eq!(rig.calls_made(), 0);
+        assert!(t.summary().halted.unwrap().contains("halt file present"));
+        assert!(rig.transport(HAIKU, ONE_DOLLAR).is_err());
+    }
+
+    #[test]
     fn the_request_cap_stops_the_run() {
         let rig = Rig::new(vec![ok_reply(
             "{}",
             json!({ "input_tokens": 1, "output_tokens": 1 }),
         )]);
-        let mut cfg = rig.cfg(HAIKU, ONE_DOLLAR);
-        cfg.max_requests = 1;
+        let cfg = CloudConfig {
+            max_requests: 1,
+            ..rig.cfg(HAIKU, ONE_DOLLAR)
+        };
         let t = ClaudeTransport::new(
             ApiKey::for_tests(TEST_KEY),
             cfg,
@@ -1514,6 +1735,12 @@ mod tests {
         assert_eq!(cloud.cfg.cap_nano, 15_000_000_000);
         assert_eq!(cloud.cfg.max_requests, 30_000);
         assert_eq!(cloud.cfg.halt_path(), PathBuf::from("l.json.HALT"));
+        assert!(cloud.cfg.cache_marker);
+        let mut no_marker = args.clone();
+        no_marker.push("--cloud-no-cache-marker".to_string());
+        let (cloud, rest2) = split_cloud_args(&no_marker).unwrap();
+        assert!(!cloud.unwrap().cfg.cache_marker);
+        assert_eq!(rest2, rest);
 
         let plain: Vec<String> = vec!["--turn-set".into(), "t.json".into()];
         assert_eq!(split_cloud_args(&plain).unwrap(), (None, plain.clone()));
