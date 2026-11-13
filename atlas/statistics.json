@@ -284,8 +284,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 15,
-        "lines": 569,
+        "commits": 16,
+        "lines": 577,
         "path": "atlas/README.md"
       },
       {
@@ -294,18 +294,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 15,
-        "lines": 2237,
+        "commits": 16,
+        "lines": 2266,
         "path": "atlas/page.json"
       },
       {
-        "commits": 15,
-        "lines": 12477,
+        "commits": 16,
+        "lines": 12553,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 15,
-        "lines": 17942,
+        "commits": 16,
+        "lines": 18077,
         "path": "atlas/structure.json"
       },
       {
@@ -2994,8 +2994,8 @@
         "path": "rust/deny.toml"
       },
       {
-        "commits": 3,
-        "lines": 26,
+        "commits": 4,
+        "lines": 31,
         "path": "rust/etv-core/Cargo.toml"
       },
       {
@@ -3034,6 +3034,11 @@
         "path": "rust/etv-core/src/bin/etv.rs"
       },
       {
+        "commits": 1,
+        "lines": 18,
+        "path": "rust/etv-core/src/bin/narrator_measure.rs"
+      },
+      {
         "commits": 2,
         "lines": 456,
         "path": "rust/etv-core/src/content.rs"
@@ -3059,9 +3064,14 @@
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
-        "commits": 6,
-        "lines": 55,
+        "commits": 7,
+        "lines": 65,
         "path": "rust/etv-core/src/lib.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 649,
+        "path": "rust/etv-core/src/measure.rs"
       },
       {
         "commits": 3,
@@ -3074,8 +3084,8 @@
         "path": "rust/etv-core/src/model.rs"
       },
       {
-        "commits": 4,
-        "lines": 3026,
+        "commits": 5,
+        "lines": 3480,
         "path": "rust/etv-core/src/narrator.rs"
       },
       {
@@ -3114,6 +3124,11 @@
         "path": "rust/etv-core/src/worldgen.rs"
       },
       {
+        "commits": 1,
+        "lines": 59,
+        "path": "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json"
+      },
+      {
         "commits": 5,
         "lines": 3404,
         "path": "rust/etv-core/tests/oracle_parity.rs"
@@ -3129,9 +3144,14 @@
         "path": "rust/etv-core/tests/phase2a_ledger_notices_seam.rs"
       },
       {
-        "commits": 2,
-        "lines": 1938,
+        "commits": 3,
+        "lines": 1940,
         "path": "rust/etv-core/tests/step3_narrator_port.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 982,
+        "path": "rust/etv-core/tests/step4_hard_rule_checker.rs"
       },
       {
         "commits": 4,
@@ -4024,9 +4044,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T01:36:51.117Z",
+  "generatedAt": "2026-11-13T01:39:03.928Z",
   "generatedFrom": {
-    "commit": "73f78f1140e619db344e424addea06f35621d6a1"
+    "commit": "bd559b88025fc5928aca20b73789cf5448fc7764"
   },
   "pairs": [
     {
@@ -4039,72 +4059,79 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 11,
-      "shared": 6,
-      "strength": 0.545455
+      "either": 12,
+      "shared": 7,
+      "strength": 0.583333
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 11,
-      "shared": 6,
-      "strength": 0.545455
+      "either": 12,
+      "shared": 7,
+      "strength": 0.583333
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 11,
-      "shared": 11,
+      "either": 12,
+      "shared": 12,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 11,
-      "shared": 6,
-      "strength": 0.545455
+      "either": 12,
+      "shared": 7,
+      "strength": 0.583333
     },
     {
       "a": "atlas/structure.json",
       "b": "rust/etv-core/src/lib.rs",
-      "either": 11,
-      "shared": 6,
-      "strength": 0.545455
+      "either": 12,
+      "shared": 7,
+      "strength": 0.583333
+    },
+    {
+      "a": "rust/etv-core/src/lib.rs",
+      "b": "rust/etv-core/src/narrator.rs",
+      "either": 8,
+      "shared": 4,
+      "strength": 0.5
     },
     {
       "a": "src/escape_the_valley/adapter.py",
@@ -4236,16 +4263,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-02T04:59:28-05:00",
-    "inScopeFiles": 764,
+    "headDate": "2026-11-12T20:38:26-05:00",
+    "inScopeFiles": 768,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 110,
+    "qualifyingCommits": 111,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-06T09:59:28.000Z",
+    "since": "2026-05-17T01:38:26.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
