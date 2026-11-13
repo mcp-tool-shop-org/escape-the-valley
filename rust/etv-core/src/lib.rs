@@ -11,11 +11,13 @@
 //! - [`measure`]: Step 5 fallback-rate and latency measurement harness (no model call of its own).
 //! - [`engine`]: Step-based deterministic turn engine (`StepEngine`), phase transitions (`Camp`, `Event`, `Route`, `GameOver`), route choices, town arrival trade, and graded endings (`compute_ending`).
 
+pub mod backpack;
 pub mod content;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;
 pub mod ledger;
+pub mod ledger_proof;
 pub mod measure;
 pub mod memory;
 pub mod model;

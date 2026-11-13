@@ -8764,7 +8764,7 @@
         },
         {
           "dir": "rust",
-          "files": 13,
+          "files": 14,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9844,7 +9844,7 @@
         },
         {
           "dir": "rust",
-          "files": 13,
+          "files": 14,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10119,8 +10119,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "6080c63ace6ce6193ff6b9cfb9d0a4fbae08ff7e",
-    "tracked": 765
+    "commit": "811d11cc92538519507e5f543288b8e9678ca36c",
+    "tracked": 769
   },
   "landings": [
     {
@@ -10372,6 +10372,18 @@
     {
       "readers": [
         {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/src/backpack.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "rust/etv-core/Cargo.toml",
           "call": "configuration",
           "confidence": "config"
@@ -10389,6 +10401,30 @@
         }
       ],
       "target": "rust/etv-core/src/bin/narrator_measure.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/src/ledger_proof.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "read_to_string",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
       "writers": []
     },
     {
@@ -10862,7 +10898,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 36,
+  "testFiles": 38,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -10903,6 +10939,90 @@
     {
       "hash": "01567fae7e1f089b8a2637f0d6ac3e7f3266a44f438843e4a4758a370b626e12",
       "path": "rust/etv-core/notices/notices_manifest.json"
+    },
+    {
+      "exports": [
+        "balance_to_int",
+        "build_batch",
+        "build_memo",
+        "compute_deltas",
+        "encode_minted_txid",
+        "fetch_balances",
+        "fetch_onchain_memos",
+        "fold_fresh_settlement",
+        "hex_decode",
+        "hex_encode",
+        "missing_reads",
+        "parse_account_lines",
+        "parse_account_tx_page",
+        "parse_submit_result",
+        "plan_settlement",
+        "read_optional",
+        "read_required",
+        "retry_pending",
+        "settle_checkpoint",
+        "settlement_memo_text",
+        "stamp_minted_snapshot",
+        "strip_unknown_pending_keys",
+        "token_code"
+      ],
+      "failurePaths": [
+        {
+          "in": "hex_decode",
+          "kind": "err",
+          "line": 75
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 150
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 159
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 169
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 174
+        },
+        {
+          "in": "read_required",
+          "kind": "err",
+          "line": 445
+        },
+        {
+          "in": "fold_payments",
+          "kind": "match-err",
+          "line": 688
+        },
+        {
+          "in": "from_fixture",
+          "kind": "err",
+          "line": 1031
+        },
+        {
+          "in": "from_fixture",
+          "kind": "err",
+          "line": 1032
+        },
+        {
+          "in": "submit_batch",
+          "kind": "err",
+          "line": 1081
+        }
+      ],
+      "hash": "040bba73162122129fa6066c92320dedd0430f616a4ab82188f5ee71ced4b7d8",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs"
+      ],
+      "path": "rust/etv-core/src/backpack.rs"
     },
     {
       "entry": "main",
@@ -11363,13 +11483,31 @@
       "path": "rust/etv-core/src/ledger.rs"
     },
     {
-      "hash": "18a4fa1f5e8e684b0dd73c8c683671dcd9b1d56191289316c8a4045814f8d7cc",
+      "exports": [
+        "is_inconclusive",
+        "proof_verdict",
+        "prove_player_save",
+        "read_ledger_view",
+        "reconcile",
+        "report_to_value"
+      ],
+      "hash": "137cb8398d824f76fa58786b27b7c6835dc4f777e978746f51671b20b7872df6",
       "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/model.rs"
+      ],
+      "path": "rust/etv-core/src/ledger_proof.rs"
+    },
+    {
+      "hash": "6a2dd6de183a11ffec24d5bcc76cb5f7cfe95fb1ca6e8d55c15591c1ad0f8976",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/events_builtin.rs",
         "rust/etv-core/src/ledger.rs",
+        "rust/etv-core/src/ledger_proof.rs",
         "rust/etv-core/src/measure.rs",
         "rust/etv-core/src/memory.rs",
         "rust/etv-core/src/model.rs",
@@ -11766,280 +11904,280 @@
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1192
+          "line": 1195
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1200
+          "line": 1203
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1205
+          "line": 1208
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1215
+          "line": 1218
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1227
+          "line": 1230
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 1232
+          "line": 1235
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1850
+          "line": 1853
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1870
+          "line": 1873
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1883
+          "line": 1886
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1895
+          "line": 1898
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1905
+          "line": 1908
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1912
+          "line": 1915
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1932
+          "line": 1935
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1940
+          "line": 1943
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1950
+          "line": 1953
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1967
+          "line": 1970
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1983
+          "line": 1986
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 1993
+          "line": 1996
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2026
+          "line": 2029
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2032
+          "line": 2035
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2065
+          "line": 2068
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2074
+          "line": 2077
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2090
+          "line": 2093
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2099
+          "line": 2102
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2112
+          "line": 2115
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2125
+          "line": 2128
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2137
+          "line": 2140
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2161
+          "line": 2164
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2172
+          "line": 2175
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2188
+          "line": 2191
         },
         {
           "in": "from_json_str",
           "kind": "err",
-          "line": 2260
+          "line": 2263
         },
         {
           "in": "from_source_table_json",
           "kind": "err",
-          "line": 2284
+          "line": 2287
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 2463
+          "line": 2466
         },
         {
           "in": "resolve_fallback_line_with_mode",
           "kind": "match-err",
-          "line": 2612
+          "line": 2615
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2635
+          "line": 2638
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2640
+          "line": 2643
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2646
+          "line": 2649
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 2652
+          "line": 2655
         },
         {
           "in": "is_loopback_endpoint",
           "kind": "match-err",
-          "line": 2662
+          "line": 2665
         },
         {
           "in": "validate_endpoint",
           "kind": "err",
-          "line": 2673
+          "line": 2676
         },
         {
           "in": "get_tags",
           "kind": "err",
-          "line": 2847
+          "line": 2850
         },
         {
           "in": "post_generate",
           "kind": "err",
-          "line": 2858
+          "line": 2861
         },
         {
           "in": "take_slot_records",
           "kind": "match-err",
-          "line": 3024
+          "line": 3027
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3100
+          "line": 3103
         },
         {
           "in": "check_startup",
           "kind": "match-err",
-          "line": 3135
+          "line": 3138
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3170
+          "line": 3173
         },
         {
           "in": "warmup",
           "kind": "match-err",
-          "line": 3171
-        },
-        {
-          "in": "warmup",
-          "kind": "err",
-          "line": 3171
-        },
-        {
-          "in": "warmup",
-          "kind": "match-err",
-          "line": 3172
+          "line": 3174
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 3172
+          "line": 3174
+        },
+        {
+          "in": "warmup",
+          "kind": "match-err",
+          "line": 3175
+        },
+        {
+          "in": "warmup",
+          "kind": "err",
+          "line": 3175
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3202
+          "line": 3205
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3208
+          "line": 3211
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3228
+          "line": 3231
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3249
+          "line": 3252
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 3263
+          "line": 3266
         }
       ],
-      "hash": "3ca1457e3452d28ae4faa8463929bf9790e5acea8ece65c8c939a6998a07b5b5",
+      "hash": "11e2a09ddaf41d0b55032a788e660e72c0feeea40ab06a6dee016f86e9f28a8e",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -12910,6 +13048,10 @@
       "path": "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json"
     },
     {
+      "hash": "9a65638a8fec858cb03a4cdede4bf23cf7d0d973b21fecc82e1faba6326c5b1c",
+      "path": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json"
+    },
+    {
       "hash": "bdd97dd67c755ec3a0fdbc59bcd0abf44378bf3868a9d62c4fe13fddf22d82e7",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -12977,6 +13119,20 @@
       "testsInside": true
     },
     {
+      "hash": "f5074b21ef09e81b0e20e4174177a6c4cb252efcbc96272015ec7437b4cee18a",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/ledger_proof.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+      "testsInside": true
+    },
+    {
       "hash": "4fd06618ef39e1fdc0935408eefcbfd2a75b5795dc8cb574f35536ec884e166b",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -12993,7 +13149,7 @@
       "testsInside": true
     },
     {
-      "hash": "40f30ed6b66b4589f7bd5155df3ebf388b5d8c11e8a56798eef4a062cd1a49d4",
+      "hash": "7569b3a6009ff30f256e1562403ec450306a05a320f9e62a9efb4f5565afb80f",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
