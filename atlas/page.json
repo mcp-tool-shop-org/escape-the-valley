@@ -58,7 +58,9 @@
     {
       "doors": 3,
       "importedBy": [],
-      "importedByTests": [],
+      "importedByTests": [
+        "tests"
+      ],
       "kind": "part",
       "name": "scripts",
       "partLabel": "scripts"
@@ -82,80 +84,38 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 4,
-      "changed": 0,
+      "added": 2,
+      "changed": 13,
       "moved": 0,
-      "parts": 0,
+      "parts": 5,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/bin/narrator_measure.rs.",
+        "kind": "import-added",
+        "sentence": "tests now imports scripts.",
         "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/bin/narrator_measure.rs"
+          "tests",
+          "scripts"
         ]
       },
       {
         "kind": "door",
-        "sentence": "Release now also checks rust/etv-core/src/bin/narrator_measure.rs.",
+        "sentence": "Release Binaries now also runs scripts/check_glibc_floor.py.",
         "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/bin/narrator_measure.rs"
+          ".github/workflows/release-binaries.yml",
+          "scripts/check_glibc_floor.py"
         ]
-      },
-      {
-        "kind": "door",
-        "sentence": "narrator_measure (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/narrator_measure.rs.",
-        "subjects": [
-          "rust/etv-core/Cargo.toml",
-          "rust/etv-core/src/bin/narrator_measure.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/src/bin/narrator_measure.rs is now read by rust/etv-core/Cargo.toml.",
-        "subjects": [
-          "rust/etv-core/src/bin/narrator_measure.rs",
-          "rust/etv-core/Cargo.toml"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/bin/narrator_measure.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/bin/narrator_measure.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/measure.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/measure.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/narrator_turn_set_sample.json"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 1 more new file that belongs to no part.",
-        "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "4 files added.",
+        "sentence": "2 files added and 13 changed content, across 5 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "73f78f1140e619db344e424addea06f35621d6a1",
-      "generatedAt": "2026-11-13T01:36:51.117Z"
+      "commit": "bd559b88025fc5928aca20b73789cf5448fc7764",
+      "generatedAt": "2026-11-13T01:39:03.928Z"
     },
     "unchanged": false
   },
@@ -191,6 +151,21 @@
       "shared": 6
     },
     {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "tests/test_step_engine.py",
+      "either": 18,
+      "partLabels": [
+        "src",
+        "tests"
+      ],
+      "parts": [
+        "src",
+        "tests"
+      ],
+      "relation": "b-imports-a",
+      "shared": 14
+    },
+    {
       "a": "src/escape_the_valley/ui.py",
       "b": "tests/test_adapter.py",
       "either": 9,
@@ -207,23 +182,8 @@
     },
     {
       "a": "src/escape_the_valley/engine.py",
-      "b": "tests/test_step_engine.py",
-      "either": 17,
-      "partLabels": [
-        "src",
-        "tests"
-      ],
-      "parts": [
-        "src",
-        "tests"
-      ],
-      "relation": "b-imports-a",
-      "shared": 13
-    },
-    {
-      "a": "src/escape_the_valley/engine.py",
       "b": "src/escape_the_valley/step_engine.py",
-      "either": 16,
+      "either": 17,
       "partLabels": [
         "src",
         "src"
@@ -233,7 +193,7 @@
         "src"
       ],
       "relation": "inside",
-      "shared": 12
+      "shared": 13
     }
   ],
   "changesTogetherNote": [
@@ -242,21 +202,20 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "bd559b88025fc5928aca20b73789cf5448fc7764",
+  "commit": "6080c63ace6ce6193ff6b9cfb9d0a4fbae08ff7e",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (68 files), Rust (24), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (24), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
         "scripts/",
         "src/",
-        "tests/",
         "rust/etv-core/src/bin/etv.rs",
         "rust/etv-core/src/bin/narrator_measure.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 6,
-      "checksMore": 3,
+      "checksCount": 5,
+      "checksMore": 2,
       "file": ".github/workflows/ci.yml",
       "id": ".github/workflows/ci.yml",
       "landings": [],
@@ -266,7 +225,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -276,7 +235,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -286,6 +245,7 @@
       ],
       "runs": [
         "scripts/gen_third_party_notices.py",
+        "tests/",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -296,8 +256,8 @@
         "rust/etv-core/src/worldgen.rs",
         "rust/etv-core/tests/"
       ],
-      "runsCount": 10,
-      "runsMore": 11,
+      "runsCount": 11,
+      "runsMore": 12,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -313,13 +273,12 @@
       "checks": [
         "scripts/",
         "src/",
-        "tests/",
         "rust/etv-core/src/bin/etv.rs",
         "rust/etv-core/src/bin/narrator_measure.rs",
         "rust/etv-core/src/lib.rs"
       ],
-      "checksCount": 6,
-      "checksMore": 3,
+      "checksCount": 5,
+      "checksMore": 2,
       "file": ".github/workflows/release.yml",
       "id": ".github/workflows/release.yml",
       "landings": [],
@@ -329,7 +288,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 7
+          "files": 8
         },
         {
           "boundary": "src",
@@ -339,7 +298,7 @@
         {
           "boundary": "tests",
           "depth": 0,
-          "files": 28
+          "files": 29
         },
         {
           "boundary": "agents",
@@ -349,6 +308,7 @@
       ],
       "runs": [
         "scripts/gen_third_party_notices.py",
+        "tests/",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -359,8 +319,8 @@
         "rust/etv-core/src/worldgen.rs",
         "rust/etv-core/tests/"
       ],
-      "runsCount": 10,
-      "runsMore": 11,
+      "runsCount": 11,
+      "runsMore": 12,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -388,7 +348,7 @@
         {
           "boundary": "scripts",
           "depth": 0,
-          "files": 2
+          "files": 3
         },
         {
           "boundary": "src",
@@ -397,10 +357,11 @@
         }
       ],
       "runs": [
+        "scripts/check_glibc_floor.py",
         "scripts/gen_third_party_notices.py",
         "scripts/smoke_test_binary.py"
       ],
-      "runsCount": 2,
+      "runsCount": 3,
       "runsMore": 0,
       "sends": [
         "creates a GitHub release",
@@ -625,16 +586,21 @@
     {
       "from": "tests",
       "fromTests": true,
+      "to": "scripts"
+    },
+    {
+      "from": "tests",
+      "fromTests": true,
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T01:39:03.928Z",
+  "generatedAt": "2026-11-13T01:50:42.600Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
-    "1 write and 7 reads use paths built at run time and are not named here.",
-    "4 writes and 19 reads go to a path their caller passes, not to this repository.",
+    "2 writes and 6 reads use paths built at run time and are not named here.",
+    "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
     "50 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 47 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -664,14 +630,15 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 35,
+  "testFiles": 36,
   "testedBy": {
     "agents": 1,
     "bin": 0,
-    "scripts": 1,
+    "scripts": 2,
     "src": 25
   },
-  "unnamedWrites": 1,
+  "testedCodeParts": 4,
+  "unnamedWrites": 2,
   "unread": [],
   "unreadFiles": 0,
   "unreadNote": [],
