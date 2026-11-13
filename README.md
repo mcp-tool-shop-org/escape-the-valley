@@ -100,6 +100,8 @@ For deeper tips, see the [Survival Guide](https://mcp-tool-shop-org.github.io/es
 
 The AI narrator shapes the tone, not the mechanics. All three profiles play the same game.
 
+Narration written and voiced live by AI (local models you choose).
+
 - **Chronicler** — Grounded, practical, spare. Minimal folklore. Reports what happened.
 - **Fireside** — Serious campfire narrator. Subtle uncanny moments. The default.
 - **Lantern-Bearer** — Uncanny and liminal, but still grounded in consequences. The weird one.

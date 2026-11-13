@@ -13,6 +13,7 @@
 
 pub mod backpack;
 pub mod content;
+pub mod content_diff;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;
@@ -24,8 +25,12 @@ pub mod model;
 pub mod narrator;
 pub mod notices;
 pub mod physics;
+pub mod play;
 pub mod rng;
 pub mod save;
+pub mod screens;
+pub mod settings;
+pub mod simulate;
 pub mod snapshot;
 pub mod validator;
 pub mod worldgen;
