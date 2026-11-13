@@ -9,6 +9,8 @@ publish = false
 default = []
 authoring = []
 narrator-ollama = ["dep:ureq"]
+# Measurement only: lets narrator_measure call the Claude API over HTTPS.
+narrator-claude = ["narrator-ollama", "ureq/native-tls"]
 
 [[bin]]
 name = "etv"
