@@ -8757,7 +8757,7 @@
         },
         {
           "dir": "rust",
-          "files": 12,
+          "files": 13,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9830,7 +9830,7 @@
         },
         {
           "dir": "rust",
-          "files": 12,
+          "files": 13,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10068,8 +10068,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "ea88cd819d3857283a959336a53cdab89573ade3",
-    "tracked": 761
+    "commit": "4cbedb0cc896f66c3a04ab2b17a4deddbc930851",
+    "tracked": 762
   },
   "landings": [
     {
@@ -10800,7 +10800,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 34,
+  "testFiles": 35,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -12408,6 +12408,21 @@
         "rust/etv-core/src/rng.rs"
       ],
       "path": "rust/etv-core/src/worldgen.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "6acc3f9f233b503084e3fe311da31db4dec295e459769d0a47f7c98a35bd5136",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/physics.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/invariant_sweeps.rs",
       "testsInside": true
     },
     {
