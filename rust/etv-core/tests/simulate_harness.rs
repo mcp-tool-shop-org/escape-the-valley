@@ -296,7 +296,7 @@ fn argument_parsing() {
     );
     assert_eq!(
         p(&["--policy", "nope"]).unwrap_err(),
-        "unknown policy 'nope' (use first, last, cautious, reckless, rotating or all)"
+        "unknown policy 'nope' (use first, last, cautious, cautious-aware, reckless, rotating or all)"
     );
     assert_eq!(
         p(&["--policy"]).unwrap_err(),
