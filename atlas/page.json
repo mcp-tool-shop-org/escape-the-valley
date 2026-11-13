@@ -84,10 +84,10 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 13,
-      "changed": 4,
+      "added": 14,
+      "changed": 5,
       "moved": 0,
-      "parts": 1,
+      "parts": 0,
       "removed": 0
     },
     "items": [
@@ -124,37 +124,60 @@
       },
       {
         "kind": "landing",
-        "sentence": "README.md is now also read by rust/etv-core/tests/phase3_settings_disclosure.rs.",
+        "sentence": "rust/etv-core/src/backpack.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
         "subjects": [
-          "README.md",
-          "rust/etv-core/tests/phase3_settings_disclosure.rs"
+          "rust/etv-core/src/backpack.rs",
+          "rust/etv-core/tests/phase2b_backpack_proof.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/src/ledger_proof.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
+        "subjects": [
+          "rust/etv-core/src/ledger_proof.rs",
+          "rust/etv-core/tests/phase2b_backpack_proof.rs"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
+        "subjects": [
+          "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
+          "rust/etv-core/tests/phase2b_backpack_proof.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `load_settings_or_default`, before `run_settings_screen`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `has_save`, before `create_new_run_with_content`.",
         "subjects": [
           "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `run_settings_screen`, before `save_settings`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `create_new_run_with_content`, before `save_game`.",
         "subjects": [
           "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_settings`, before `load_from_dir`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_game`, before `load_game_checked_with_content_hash`.",
         "subjects": [
           "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "And 8 more changes to the order of work.",
+        "sentence": "And 4 more changes to the order of work.",
         "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/backpack.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/backpack.rs"
+        ]
       },
       {
         "kind": "unassigned",
@@ -172,25 +195,18 @@
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/src/content_diff.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/content_diff.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 10 more new files that belong to no part.",
+        "sentence": "And 11 more new files that belong to no part.",
         "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "13 files added and 4 changed content, across 1 part.",
+        "sentence": "14 files added and 5 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "811d11cc92538519507e5f543288b8e9678ca36c",
-      "generatedAt": "2026-11-13T02:45:07.035Z"
+      "commit": "dd54181eb9c09f0a63c10267ad343c000f9dcf9a",
+      "generatedAt": "2026-11-13T03:08:39.387Z"
     },
     "unchanged": false
   },
@@ -277,9 +293,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "e2c34513d881e25a19aeb2097bdb440021b245b4",
+  "commit": "75544f49d00662abe4cd935c9303aa80731d433d",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (39), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (41), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -334,7 +350,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 18,
+      "runsMore": 19,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -399,7 +415,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 18,
+      "runsMore": 19,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -719,13 +735,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T05:12:29.225Z",
+  "generatedAt": "2026-11-13T05:30:10.186Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "67 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 64 more.",
+    "69 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 66 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -753,7 +769,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 44,
+  "testFiles": 45,
   "testedBy": {
     "agents": 1,
     "bin": 0,
