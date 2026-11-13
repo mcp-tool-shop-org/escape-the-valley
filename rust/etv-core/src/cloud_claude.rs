@@ -46,6 +46,8 @@ pub const MAX_ATTEMPTS: u32 = 5;
 pub const BUSY_BURST_LIMIT: u32 = 8;
 /// The longest single wait honoured between attempts.
 pub const MAX_RETRY_WAIT_S: u64 = 60;
+/// Network failures in a row (no answer at all, timeouts aside) that halt the run.
+pub const NETWORK_FAILURE_LIMIT: u32 = 5;
 
 /// Prices in billionths of a dollar per token.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -433,6 +435,7 @@ struct State {
     ledger: Ledger,
     halted: Option<String>,
     busy_in_a_row: u32,
+    network_failures_in_a_row: u32,
     call_no: u64,
 }
 
@@ -496,6 +499,7 @@ impl ClaudeTransport {
                 ledger,
                 halted: None,
                 busy_in_a_row: 0,
+                network_failures_in_a_row: 0,
                 call_no: 0,
             }),
         })
@@ -636,22 +640,36 @@ impl NarratorTransport for ClaudeTransport {
             let reply = match reply {
                 Ok(reply) => reply,
                 Err(err) => {
-                    let kind = match &err {
-                        TransportError::Timeout => "timeout",
-                        _ => "transport",
+                    let (kind, detail) = match &err {
+                        TransportError::Timeout => ("timeout", String::new()),
+                        TransportError::ConnectionFailed(text) => {
+                            ("transport", text.chars().take(200).collect())
+                        }
+                        _ => ("transport", String::new()),
                     };
                     self.log_line(json!({
                         "event": "attempt", "call_no": call_no, "attempt": attempt,
-                        "outcome": kind, "latency_ms": latency_ms,
+                        "outcome": kind, "latency_ms": latency_ms, "error": detail,
                         "request_sha256": request_sha256,
                     }));
-                    return Err(match err {
-                        TransportError::Timeout => TransportError::Timeout,
-                        _ => TransportError::ConnectionFailed("network error".to_string()),
-                    });
+                    if kind == "timeout" {
+                        return Err(TransportError::Timeout);
+                    }
+                    state.network_failures_in_a_row += 1;
+                    if state.network_failures_in_a_row >= NETWORK_FAILURE_LIMIT {
+                        let reason = format!(
+                            "{} network failures in a row: {detail}",
+                            state.network_failures_in_a_row
+                        );
+                        self.halt(&mut state, &reason);
+                    }
+                    return Err(TransportError::ConnectionFailed(
+                        "network error".to_string(),
+                    ));
                 }
             };
 
+            state.network_failures_in_a_row = 0;
             if reply.status == 200 {
                 state.busy_in_a_row = 0;
                 let response: Value = serde_json::from_str(&reply.body).unwrap_or(Value::Null);
@@ -861,8 +879,9 @@ impl HttpsPost for UreqHttpsPost {
             .send(body)
             .map_err(|e| match e {
                 ureq::Error::Timeout(_) => TransportError::Timeout,
-                // The error text is not kept: it is not needed and is never logged.
-                _ => TransportError::ConnectionFailed("network error".to_string()),
+                // The client's error text names the failure (DNS, TLS, reset); it never
+                // holds a header. The transport strips the key from it all the same.
+                other => TransportError::ConnectionFailed(other.to_string()),
             })?;
         let status = resp.status().as_u16();
         let header = |name: &str| {
@@ -1390,6 +1409,28 @@ mod tests {
                 requests: 1
             }
         );
+    }
+
+    #[test]
+    fn network_failures_in_a_row_halt_the_run() {
+        let fail = || {
+            Err(TransportError::ConnectionFailed(
+                "tls handshake failed".to_string(),
+            ))
+        };
+        let rig = Rig::new((0..NETWORK_FAILURE_LIMIT).map(|_| fail()).collect());
+        let t = rig.transport(HAIKU, ONE_DOLLAR).unwrap();
+        for _ in 0..NETWORK_FAILURE_LIMIT {
+            assert!(t
+                .post_generate("", &ollama_body(HAIKU), Duration::from_secs(5))
+                .is_err());
+        }
+        assert!(t.summary().halted.unwrap().contains("tls handshake failed"));
+        assert!(t
+            .post_generate("", &ollama_body(HAIKU), Duration::from_secs(5))
+            .is_err());
+        assert_eq!(rig.calls_made(), NETWORK_FAILURE_LIMIT as usize);
+        assert!(rig.log().contains("\"error\":\"tls handshake failed\""));
     }
 
     #[test]
