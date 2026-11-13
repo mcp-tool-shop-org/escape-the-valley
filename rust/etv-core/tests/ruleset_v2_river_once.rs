@@ -7,7 +7,8 @@
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepEngine;
 use etv_core::events::{
-    build_event_library, select_event, select_event_with_ruleset, V2_ONCE_PER_RUN_RIVER_EVENT_ID,
+    build_event_library, missing_supplies_for_choice, select_event, select_event_with_ruleset,
+    V2_ONCE_PER_RUN_RIVER_EVENT_ID,
 };
 use etv_core::model::{Biome, GamePhase, JournalEntry, RunState};
 use etv_core::physics::current_node;
@@ -96,7 +97,9 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
     let v2 = river_counts(Ruleset::V2, 1000, 120);
     assert_eq!(*v2.iter().max().unwrap(), 1, "V2 max river events per run");
     let once = v2.iter().filter(|&&c| c == 1).count();
-    assert_eq!(once, 400, "runs with the river event exactly once under V2");
+    // 400 before the affordability gate existed; 404 with it (the gate changes outcomes, so
+    // later draws and so which events turn up).
+    assert_eq!(once, 404, "runs with the river event exactly once under V2");
 
     let legacy = river_counts(Ruleset::Legacy, 1000, 120);
     let twice_plus = legacy.iter().filter(|&&c| c >= 2).count();
@@ -113,8 +116,10 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
 /// Under V2 the river event is excluded from the candidate list after it is resolved, and
 /// that changes the weight total of every later draw. So V2 can differ from Legacy from the
 /// first selection after the first river event, not only from the second river selection.
-/// The invariant that must hold: every turn up to and including the turn the first river
-/// event is resolved is identical.
+/// The affordability gate (`ruleset_v2_affordability.rs`) also changes V2 outcomes: from the
+/// first choice taken while unaffordable. The invariant that must hold: every turn up to and
+/// including the turn the first river event is resolved, and before the first unaffordable
+/// pick or pick that would spend `tools` (V2 never spends durable supplies), is identical.
 #[test]
 fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
     let pack = embedded_content_pack();
@@ -123,10 +128,29 @@ fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
     for (idx, &seed) in seeds.iter().take(50).enumerate() {
         let mut engine = StepEngine::with_content(create_new_run_with_content(seed, pack), pack);
         let mut first_river_turn: Option<usize> = None;
+        let mut first_unaffordable_pick: Option<usize> = None;
         let mut turns_run = 0usize;
         for turn in 1..=120 {
             if engine.phase == GamePhase::GameOver || engine.state.game_over {
                 break;
+            }
+            if first_unaffordable_pick.is_none() && engine.phase == GamePhase::Event {
+                // The Tier 2 policy's pick, replayed: `(seed_idx * 31 + turn) % choices`.
+                let ev = engine.pending_event().expect("pending event").clone();
+                let n = engine.pending_event_choices().len();
+                let id = engine.pending_event_choices()
+                    [idx.wrapping_mul(31).wrapping_add(turn) % n]
+                    .id
+                    .clone();
+                let spends_tools = ev.outcome_templates[&id]
+                    .supplies_delta
+                    .get("tools")
+                    .is_some_and(|v| *v < 0);
+                if spends_tools
+                    || !missing_supplies_for_choice(&engine.state, &ev, &id, Ruleset::V2).is_empty()
+                {
+                    first_unaffordable_pick = Some(turn);
+                }
             }
             let _ = tier2_mechanics_turn(&mut engine, idx, turn);
             turns_run = turn;
@@ -136,7 +160,9 @@ fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
         }
         let legacy = run_tier2_mechanics_with_ruleset(seed, idx, pack, 120, Ruleset::Legacy);
         let v2 = run_tier2_mechanics_with_ruleset(seed, idx, pack, 120, Ruleset::V2);
-        let cut = first_river_turn.unwrap_or(turns_run);
+        let cut = first_river_turn
+            .unwrap_or(turns_run)
+            .min(first_unaffordable_pick.map_or(usize::MAX, |t| t - 1));
         assert_eq!(
             legacy.hashes[..cut],
             v2.hashes[..cut],
@@ -147,7 +173,8 @@ fn v2_matches_legacy_through_the_first_river_event_then_may_diverge() {
         }
     }
     assert_eq!(
-        diverged_after, 17,
+        diverged_after,
+        21, // 17 before the affordability gate existed
         "seeds (of 50) that diverge after the first river event"
     );
 }

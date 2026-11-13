@@ -162,6 +162,7 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
             label: spec.choice_label.clone(),
             risk_hint: String::new(),
             cost_hint: String::new(),
+            ..Default::default()
         }],
         ..StepMessages::default()
     };

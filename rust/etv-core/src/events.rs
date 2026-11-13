@@ -561,6 +561,48 @@ pub fn advertised_inventory_cost(
         .collect()
 }
 
+/// Supplies a choice requires under `ruleset`, in the engine's order (`(key, quantity)`).
+///
+/// `Legacy`: only costs advertised in the choice's hints (frozen behaviour). `V2`: those, plus
+/// every negative supply delta in the choice's outcome template for a key in
+/// `INVENTORY_COST_KEYS` (quantity = the size of the delta; the larger wins when a key is in
+/// both). Durable keys are required here but never spent (see `debit_advertised_costs`).
+fn required_supplies_ordered(
+    choice: Option<&ChoiceTemplate>,
+    outcome: &EventOutcome,
+    ruleset: Ruleset,
+) -> Vec<(String, i32)> {
+    let mut costs = advertised_inventory_cost_ordered(choice, outcome);
+    if ruleset == Ruleset::V2 {
+        for (key, val) in outcome.ordered_supplies_delta() {
+            if val < 0 && INVENTORY_COST_KEYS.contains(&key) {
+                upsert_ordered_cost(&mut costs, key, -val);
+            }
+        }
+    }
+    costs
+}
+
+/// The supply keys the party lacks for `choice_id` of `event` under `ruleset`, in the engine's
+/// order. Always empty under `Legacy` (Legacy resolves a shortfall only at pick time, and only
+/// for hint-advertised costs).
+pub fn missing_supplies_for_choice(
+    state: &RunState,
+    event: &EventSkeleton,
+    choice_id: &str,
+    ruleset: Ruleset,
+) -> Vec<String> {
+    if ruleset != Ruleset::V2 {
+        return Vec::new();
+    }
+    let Some(template) = event.outcome_templates.get(choice_id) else {
+        return Vec::new();
+    };
+    let choice = choice_for(event, choice_id);
+    let costs = required_supplies_ordered(choice, template, ruleset);
+    unaffordable_costs(state, &costs)
+}
+
 fn debit_advertised_costs(outcome: &mut EventOutcome, costs: &[(String, i32)]) {
     for (key, qty) in costs {
         if DURABLE_INVENTORY.contains(&key.as_str()) {
@@ -658,12 +700,25 @@ fn insufficient_supplies_outcome(
     }
 }
 
-/// Resolve an event choice into a concrete outcome (`events.py:2062-2142`).
+/// Resolve an event choice into a concrete outcome (`events.py:2062-2142`), under `Legacy`.
 pub fn resolve_event(
     state: &mut RunState,
     event: &EventSkeleton,
     choice_id: &str,
     rng: &mut CpythonRng,
+) -> EventOutcome {
+    resolve_event_with_ruleset(state, event, choice_id, rng, Ruleset::Legacy)
+}
+
+/// Resolve an event choice under `ruleset`. `Legacy` is exactly `resolve_event`. Under `V2` a
+/// choice whose outcome template costs a supply the party lacks is denied through the same
+/// `insufficient_supplies_outcome` path as an advertised-cost miss.
+pub fn resolve_event_with_ruleset(
+    state: &mut RunState,
+    event: &EventSkeleton,
+    choice_id: &str,
+    rng: &mut CpythonRng,
+    ruleset: Ruleset,
 ) -> EventOutcome {
     let Some(template) = event.outcome_templates.get(choice_id) else {
         return EventOutcome {
@@ -675,7 +730,7 @@ pub fn resolve_event(
 
     let mut outcome = template.clone();
     let choice = choice_for(event, choice_id);
-    let costs = advertised_inventory_cost_ordered(choice, &outcome);
+    let costs = required_supplies_ordered(choice, &outcome, ruleset);
     debit_advertised_costs(&mut outcome, &costs);
     let missing = unaffordable_costs(state, &costs);
     if !missing.is_empty() {
@@ -689,6 +744,17 @@ pub fn resolve_event(
             state.uncanny_tokens -= 1;
         }
         return denied;
+    }
+
+    if ruleset == Ruleset::V2 {
+        // Durable supplies (tools) are checked above and never spent, even when the template
+        // carries a negative delta for them.
+        for key in DURABLE_INVENTORY {
+            if outcome.supplies_delta.get(key).is_some_and(|v| *v < 0) {
+                outcome.supplies_delta.remove(key);
+                outcome.supplies_delta_order.retain(|k| k != key);
+            }
+        }
     }
 
     if outcome.health_delta != 0 {
