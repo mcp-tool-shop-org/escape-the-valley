@@ -29,6 +29,7 @@ pub mod play;
 pub mod rng;
 pub mod ruleset;
 pub mod save;
+pub mod save_v5;
 pub mod screens;
 pub mod settings;
 pub mod simulate;

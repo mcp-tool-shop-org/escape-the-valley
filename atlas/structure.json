@@ -8778,7 +8778,7 @@
         },
         {
           "dir": "rust",
-          "files": 22,
+          "files": 23,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9872,7 +9872,7 @@
         },
         {
           "dir": "rust",
-          "files": 22,
+          "files": 23,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10221,8 +10221,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "bcde40e7086bc95113f73974ade69ca53db5d878",
-    "tracked": 786
+    "commit": "d271ef3fcb000e757b32beda21c9cadd5d021ddc",
+    "tracked": 788
   },
   "landings": [
     {
@@ -11006,7 +11006,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 47,
+  "testFiles": 48,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11503,7 +11503,7 @@
             {
               "inner": [
                 {
-                  "line": 1079,
+                  "line": 1100,
                   "name": "with_defaults",
                   "receiver": "SuppliesState",
                   "target": {
@@ -11512,7 +11512,7 @@
                   "via": "load_supplies"
                 },
                 {
-                  "line": 1084,
+                  "line": 1105,
                   "name": "is_valid_resource_key",
                   "target": {
                     "file": "rust/etv-core/src/model.rs"
@@ -11520,7 +11520,7 @@
                   "via": "load_supplies"
                 },
                 {
-                  "line": 1023,
+                  "line": 1044,
                   "name": "default",
                   "receiver": "BackpackState",
                   "target": {
@@ -11530,7 +11530,7 @@
                 },
                 {
                   "branch": "data.is_null()",
-                  "line": 1105,
+                  "line": 1126,
                   "name": "default",
                   "receiver": "BackpackState",
                   "target": {
@@ -11540,7 +11540,7 @@
                 },
                 {
                   "branch": "obj.is_empty()",
-                  "line": 1111,
+                  "line": 1132,
                   "name": "default",
                   "receiver": "BackpackState",
                   "target": {
@@ -12219,7 +12219,19 @@
         "taboo_kept",
         "template_choice_letters"
       ],
-      "hash": "9750e737f01a99c4105c33de8857fdce663d25d815805e4c2dd384eef28c5628",
+      "failurePaths": [
+        {
+          "in": "resume",
+          "kind": "err",
+          "line": 221
+        },
+        {
+          "in": "resume",
+          "kind": "err",
+          "line": 236
+        }
+      ],
+      "hash": "eb6bc2931b119490373d9693e996ac6973b02896f620f33ed8ae34bdb3228695",
       "importOrder": [
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -12228,6 +12240,7 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/ruleset.rs",
         "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/save_v5.rs",
         "rust/etv-core/src/worldgen.rs",
         "rust/etv-core/src/content.rs"
       ],
@@ -12240,6 +12253,7 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/ruleset.rs",
         "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/save_v5.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
       "path": "rust/etv-core/src/engine.rs",
@@ -12331,7 +12345,7 @@
       "path": "rust/etv-core/src/ledger_proof.rs"
     },
     {
-      "hash": "a285bb3d5f83f54feee1fa5e9fc030e47b55a1a75ef8c7c3f57dc9dc5069cc5a",
+      "hash": "9e12444acd23b949703e368e5f20d54581ee043bcaa38bbaf4401b4b3c1962d9",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/content.rs",
@@ -12351,6 +12365,7 @@
         "rust/etv-core/src/rng.rs",
         "rust/etv-core/src/ruleset.rs",
         "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/save_v5.rs",
         "rust/etv-core/src/screens.rs",
         "rust/etv-core/src/settings.rs",
         "rust/etv-core/src/simulate.rs",
@@ -13533,6 +13548,7 @@
         "load_game_result",
         "load_game_result_with_content_hash",
         "load_supplies",
+        "parse_state_fields",
         "read_secrets_sidecar",
         "save_game",
         "state_to_value",
@@ -13544,42 +13560,17 @@
         {
           "in": "load_game_checked_with_content_hash",
           "kind": "err",
-          "line": 176
+          "line": 197
         },
         {
           "in": "load_game_checked_with_content_hash",
           "kind": "err",
-          "line": 178
+          "line": 199
         },
         {
           "in": "load_game_result_with_content_hash",
           "kind": "match-err",
-          "line": 203
-        },
-        {
-          "in": "load_game_result_with_content_hash",
-          "kind": "match-err",
-          "line": 211
-        },
-        {
-          "in": "load_game_result_with_content_hash",
-          "kind": "match-err",
-          "line": 219
-        },
-        {
-          "in": "load_game_result_with_content_hash",
-          "kind": "match-err",
-          "line": 222
-        },
-        {
-          "in": "load_game_result_with_content_hash",
-          "kind": "match-err",
-          "line": 226
-        },
-        {
-          "in": "load_game_result_with_content_hash",
-          "kind": "match-err",
-          "line": 229
+          "line": 224
         },
         {
           "in": "load_game_result_with_content_hash",
@@ -13587,66 +13578,92 @@
           "line": 232
         },
         {
+          "in": "load_game_result_with_content_hash",
+          "kind": "match-err",
+          "line": 240
+        },
+        {
+          "in": "load_game_result_with_content_hash",
+          "kind": "match-err",
+          "line": 243
+        },
+        {
+          "in": "load_game_result_with_content_hash",
+          "kind": "match-err",
+          "line": 247
+        },
+        {
+          "in": "load_game_result_with_content_hash",
+          "kind": "match-err",
+          "line": 250
+        },
+        {
+          "in": "load_game_result_with_content_hash",
+          "kind": "match-err",
+          "line": 253
+        },
+        {
           "in": "apply_owner_only_permissions",
           "kind": "match-err",
-          "line": 328
+          "line": 349
         },
         {
           "in": "write_secrets_sidecar",
           "kind": "match-err",
-          "line": 384
+          "line": 405
         },
         {
           "in": "write_secrets_sidecar",
           "kind": "match-err",
-          "line": 389
+          "line": 410
         },
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 657
+          "line": 678
         },
         {
           "in": "parse_seed",
           "kind": "err",
-          "line": 682
+          "line": 703
         },
         {
           "in": "value_to_state_checked",
           "kind": "err",
-          "line": 712
+          "line": 733
         },
         {
           "in": "value_to_state_checked",
           "kind": "err",
-          "line": 715
+          "line": 736
         },
         {
           "in": "value_to_state_checked",
           "kind": "err",
-          "line": 721
+          "line": 742
         },
         {
           "in": "value_to_state_checked",
           "kind": "err",
-          "line": 727
+          "line": 748
         },
         {
           "in": "value_to_state_checked",
           "kind": "err",
-          "line": 734
+          "line": 755
         },
         {
           "in": "load_backpack",
           "kind": "err",
-          "line": 1108
+          "line": 1129
         }
       ],
-      "hash": "3002b3b420ce1d529580c84d1c7108d81e8484fade9e06b155f55ca4d471baa1",
+      "hash": "541b074dd64b52f8f336a81f178f99dec7be148cf0391bb36a4d424d47791e19",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/rng.rs",
+        "rust/etv-core/src/save_v5.rs",
         "rust/etv-core/src/worldgen.rs"
       ],
       "path": "rust/etv-core/src/save.rs",
@@ -13654,7 +13671,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13663,7 +13680,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13671,7 +13688,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13681,7 +13698,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13691,7 +13708,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13708,7 +13725,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13717,7 +13734,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13725,7 +13742,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13735,7 +13752,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13745,7 +13762,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13762,7 +13779,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13771,7 +13788,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13779,7 +13796,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13789,7 +13806,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13799,7 +13816,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13816,7 +13833,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13825,7 +13842,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13833,7 +13850,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13843,7 +13860,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13853,7 +13870,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13870,7 +13887,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13879,7 +13896,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13887,7 +13904,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13897,7 +13914,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13907,7 +13924,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13924,7 +13941,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13933,7 +13950,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13941,7 +13958,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13951,7 +13968,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13961,7 +13978,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -13978,7 +13995,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -13987,7 +14004,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -13995,7 +14012,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14005,7 +14022,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14015,7 +14032,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14032,7 +14049,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -14041,7 +14058,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -14049,7 +14066,7 @@
               "via": "load_supplies"
             },
             {
-              "line": 1023,
+              "line": 1044,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14058,7 +14075,7 @@
             },
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14068,7 +14085,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14077,7 +14094,7 @@
               "via": "load_backpack"
             }
           ],
-          "exported": false,
+          "exported": true,
           "invokedAtTopLevel": false,
           "isDefaultExport": false,
           "name": "parse_state_fields"
@@ -14085,7 +14102,7 @@
         {
           "calls": [
             {
-              "line": 1079,
+              "line": 1100,
               "name": "with_defaults",
               "receiver": "SuppliesState",
               "target": {
@@ -14093,7 +14110,7 @@
               }
             },
             {
-              "line": 1084,
+              "line": 1105,
               "name": "is_valid_resource_key",
               "target": {
                 "file": "rust/etv-core/src/model.rs"
@@ -14109,7 +14126,7 @@
           "calls": [
             {
               "branch": "data.is_null()",
-              "line": 1105,
+              "line": 1126,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14118,7 +14135,7 @@
             },
             {
               "branch": "obj.is_empty()",
-              "line": 1111,
+              "line": 1132,
               "name": "default",
               "receiver": "BackpackState",
               "target": {
@@ -14133,6 +14150,147 @@
         }
       ],
       "testsInside": true
+    },
+    {
+      "exports": [
+        "development_save_refusal_message",
+        "load_saved_game",
+        "python_save_refusal_message",
+        "save_game_v5",
+        "save_too_new_message",
+        "state_to_value_v5",
+        "value_to_saved_game"
+      ],
+      "failurePaths": [
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 184
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 188
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 197
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 201
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 204
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 215
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 231
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 242
+        },
+        {
+          "in": "parse_pending",
+          "kind": "err",
+          "line": 250
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 277
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 278
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 280
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 287
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 292
+        },
+        {
+          "in": "value_to_saved_game",
+          "kind": "err",
+          "line": 295
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "err",
+          "line": 324
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "match-err",
+          "line": 328
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "err",
+          "line": 330
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "match-err",
+          "line": 335
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "err",
+          "line": 337
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "match-err",
+          "line": 342
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "err",
+          "line": 344
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "match-err",
+          "line": 346
+        },
+        {
+          "in": "load_saved_game",
+          "kind": "err",
+          "line": 346
+        }
+      ],
+      "hash": "cd72b7d1ff2c3e72ddf40aefbbbb8b9592021b58a6b8a0f02810982c0f521d6b",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/save.rs"
+      ],
+      "path": "rust/etv-core/src/save_v5.rs"
     },
     {
       "entry": "about_screen_lines",
@@ -15729,6 +15887,22 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/ruleset_v2_river_once.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "565bed94ada3c25785da21cf31a4aa4eff55a9d2ff771f90b07e74f4e3de2ccc",
+      "importsFiles": [
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/ruleset.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/save_v5.rs",
+        "rust/etv-core/src/snapshot.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/save_v5_pending_phase.rs",
       "testsInside": true
     },
     {
