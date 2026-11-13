@@ -353,6 +353,13 @@ pub enum CliCommand {
     },
     /// Resume the saved run and play it.
     Continue,
+    /// Play in the full-screen terminal interface. `seed` and `force` work as for `New`;
+    /// `resume` (`--continue`) plays the saved run instead of starting one.
+    Tui {
+        seed: Option<i128>,
+        force: bool,
+        resume: bool,
+    },
 }
 
 /// Parsed CLI options for the `etv` binary / CLI helper.
@@ -376,6 +383,7 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     let mut turns: usize = 60;
     let mut seed_flag: Option<i128> = None;
     let mut force = false;
+    let mut continue_flag = false;
 
     let mut i = 0;
     while i < args.len() {
@@ -391,6 +399,9 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
             i += 1;
         } else if arg == "--force" {
             force = true;
+            i += 1;
+        } else if arg == "--continue" {
+            continue_flag = true;
             i += 1;
         } else if arg == "--seed" {
             let val = args
@@ -452,7 +463,7 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     }
 
     let sub = positional.first().map(String::as_str).ok_or_else(|| {
-        "expected command: new [--seed <n>] [--force] | continue | settings | about | --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
+        "expected command: new [--seed <n>] [--force] | continue | tui [--seed <n>] [--force] | tui --continue | settings | about | --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
             .to_string()
     })?;
 
@@ -463,6 +474,16 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
             force,
         },
         "continue" => CliCommand::Continue,
+        "tui" => {
+            if continue_flag && (seed_flag.is_some() || force) {
+                return Err("'--continue' cannot be used with '--seed' or '--force'".to_string());
+            }
+            CliCommand::Tui {
+                seed: seed_flag,
+                force,
+                resume: continue_flag,
+            }
+        }
         "settings" => CliCommand::Settings,
         "about" | "credits" => CliCommand::About,
         "validate-content" => CliCommand::ValidateContent { require_outcomes },

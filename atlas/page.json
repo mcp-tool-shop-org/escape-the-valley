@@ -84,13 +84,20 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 3,
+      "added": 28,
+      "changed": 14,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `embedded`, before `load_settings_or_default`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
       {
         "kind": "sequence",
         "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `load_settings_or_default`, before `connect_narrator`.",
@@ -100,34 +107,51 @@
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator`, before `run_play`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator`, before `no_color_requested`.",
         "subjects": [
           "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `narrator_summary_line`, before `about_screen_lines`.",
+        "sentence": "And 6 more changes to the order of work.",
+        "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/tui/app.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
+          "rust/etv-core/src/tui/app.rs"
         ]
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/phase3_narrator_in_play.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/etv-core/src/tui/layout.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/tests/phase3_narrator_in_play.rs"
+          "rust/etv-core/src/tui/layout.rs"
         ]
       },
       {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/tui/mod.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/tui/mod.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 25 more new files that belong to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "1 file added and 3 changed content.",
+        "sentence": "28 files added and 14 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "5670549b179e13ac0cce2413bdc411ebee67fa57",
-      "generatedAt": "2026-11-13T03:18:25.772Z"
+      "commit": "4f332b4f288d02891dac1ab67f1a97b5f07bd60f",
+      "generatedAt": "2026-11-13T04:10:15.062Z"
     },
     "unchanged": false
   },
@@ -214,9 +238,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "4f332b4f288d02891dac1ab67f1a97b5f07bd60f",
+  "commit": "5a9080215974ac7b291a68dcca0f59aa14cc6a60",
   "defaultBranch": "main",
-  "derived": "10 parts, mostly Python (70 files), Rust (30), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, mostly Python (70 files), Rust (37), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 10 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -269,7 +293,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 15,
+      "runsMore": 16,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -332,7 +356,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 15,
+      "runsMore": 16,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -608,13 +632,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T04:10:15.062Z",
+  "generatedAt": "2026-11-13T04:36:36.726Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "57 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 54 more.",
+    "85 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 82 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -642,7 +666,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 40,
+  "testFiles": 62,
   "testedBy": {
     "agents": 1,
     "bin": 0,

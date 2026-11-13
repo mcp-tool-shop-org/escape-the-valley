@@ -30,6 +30,17 @@ pub const CAMP_LAST_RESORTS: &str =
 /// Hint printed when a camp line is not understood.
 pub const CAMP_HINT: &str = "Type T, R, H, F, P <slow|steady|hard>, X, D, N or Q.";
 
+/// Heading shown when the trail forks.
+pub const FORK_LINE: &str = "The trail forks.";
+
+/// Line shown when the player saves and quits.
+pub const QUIT_SAVED_LINE: &str = "Saved. Come back with: etv continue";
+
+/// One fork option: `  A. Name (N miles)`.
+pub fn route_line(letter: &str, route: &crate::engine::RouteOption) -> String {
+    format!("  {letter}. {} ({} miles)", route.name, route.distance)
+}
+
 /// What a line typed at camp means.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CampCommand {
@@ -99,28 +110,91 @@ pub fn choice_line(choice: &EventChoiceInfo) -> String {
     }
 }
 
-/// The status panel shown at camp: where the party is, who is alive, the wagon, and every
-/// supply the party carries.
-pub fn status_lines(state: &RunState) -> Vec<String> {
+/// One party member as the status panel shows them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemberFacts {
+    pub name: String,
+    pub health: i32,
+    /// The condition word (`healthy`, ...). Not shown for a member who is dead.
+    pub condition: String,
+    pub alive: bool,
+}
+
+/// The facts the status panel shows, before any wording: where the party is, who is alive, the
+/// wagon, and every supply the party carries. Every front end draws from this, so none of them
+/// can show different numbers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StatusFacts {
+    pub day: i32,
+    pub time_of_day: String,
+    /// The place as `Name (biome)`, or the location id when the map has no such node.
+    pub place: String,
+    pub distance_traveled: i32,
+    pub total_distance: i32,
+    pub distance_remaining: i32,
+    pub party: Vec<MemberFacts>,
+    pub morale: i32,
+    pub wagon_condition: i32,
+    pub animals_health: i32,
+    pub pace: String,
+    /// Every supply as `(name, count)`, in key order.
+    pub supplies: Vec<(String, i32)>,
+}
+
+/// Read the status facts from the run state.
+pub fn status_facts(state: &RunState) -> StatusFacts {
     let place = current_node(state)
         .map(|n| format!("{} ({})", n.name, n.biome.as_str()))
         .unwrap_or_else(|| state.location_id.clone());
-    let party = state
+    StatusFacts {
+        day: state.day,
+        time_of_day: state.time_of_day.as_str().to_string(),
+        place,
+        distance_traveled: state.distance_traveled,
+        total_distance: state.total_distance,
+        distance_remaining: state.distance_remaining,
+        party: state
+            .party
+            .members
+            .iter()
+            .map(|m| MemberFacts {
+                name: m.name.clone(),
+                health: m.health,
+                condition: m.condition.as_str().to_string(),
+                alive: m.is_alive(),
+            })
+            .collect(),
+        morale: state.party.morale,
+        wagon_condition: state.wagon.condition,
+        animals_health: state.wagon.animals_health,
+        pace: state.wagon.pace.as_str().to_string(),
+        supplies: state
+            .supplies
+            .items
+            .iter()
+            .map(|(k, v)| (k.clone(), *v))
+            .collect(),
+    }
+}
+
+/// The status panel shown at camp: where the party is, who is alive, the wagon, and every
+/// supply the party carries.
+pub fn status_lines(state: &RunState) -> Vec<String> {
+    let facts = status_facts(state);
+    let party = facts
         .party
-        .members
         .iter()
         .map(|m| {
-            if m.is_alive() {
-                format!("{} {} ({})", m.name, m.health, m.condition.as_str())
+            if m.alive {
+                format!("{} {} ({})", m.name, m.health, m.condition)
             } else {
                 format!("{} (dead)", m.name)
             }
         })
         .collect::<Vec<_>>()
         .join(", ");
-    let supplies = state
+    let supplies = facts
         .supplies
-        .items
         .iter()
         .map(|(k, v)| format!("{k} {v}"))
         .collect::<Vec<_>>()
@@ -128,19 +202,17 @@ pub fn status_lines(state: &RunState) -> Vec<String> {
     vec![
         format!(
             "Day {}, {}. {}. {} of {} miles, {} to the next stop.",
-            state.day,
-            state.time_of_day.as_str(),
-            place,
-            state.distance_traveled,
-            state.total_distance,
-            state.distance_remaining
+            facts.day,
+            facts.time_of_day,
+            facts.place,
+            facts.distance_traveled,
+            facts.total_distance,
+            facts.distance_remaining
         ),
-        format!("Party: {party}. Morale {}.", state.party.morale),
+        format!("Party: {party}. Morale {}.", facts.morale),
         format!(
             "Wagon {}, animals {}, pace {}.",
-            state.wagon.condition,
-            state.wagon.animals_health,
-            state.wagon.pace.as_str()
+            facts.wagon_condition, facts.animals_health, facts.pace
         ),
         format!("Supplies: {supplies}."),
     ]
@@ -288,10 +360,10 @@ pub fn run_play<R: BufRead, W: Write>(
                     .collect()
             }
             GamePhase::Route => {
-                writeln!(out, "The trail forks.")?;
+                writeln!(out, "{FORK_LINE}")?;
                 let letters = crate::engine::route_offered_letters(engine.pending_routes());
                 for (letter, route) in letters.iter().zip(engine.pending_routes()) {
-                    writeln!(out, "  {letter}. {} ({} miles)", route.name, route.distance)?;
+                    writeln!(out, "{}", route_line(letter, route))?;
                 }
                 letters
             }
@@ -309,7 +381,7 @@ pub fn run_play<R: BufRead, W: Write>(
             if engine.phase == GamePhase::Camp {
                 match parse_camp_input(&line) {
                     Some(CampCommand::Quit) => {
-                        writeln!(out, "Saved. Come back with: etv continue")?;
+                        writeln!(out, "{QUIT_SAVED_LINE}")?;
                         return Ok(PlayExit::Quit);
                     }
                     Some(CampCommand::Act(intent)) => break (intent, None),

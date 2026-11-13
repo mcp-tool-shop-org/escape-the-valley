@@ -262,14 +262,8 @@ fn phase2a_notices_cargo_lock_compiled_set_equals_manifest_and_excludes_workspac
 
     // Workspace crates (`source == None` in Cargo.lock) and dev-only packages (`[dev-dependencies]`
     // in etv-core/Cargo.toml and their transitive closure) must be excluded.
-    for excluded in [
-        "etv-core",
-        "flate2",
-        "tempfile",
-        "miniz_oxide",
-        "rustix",
-        "fastrand",
-    ] {
+    // (`rustix` left this list when `crossterm` made it a compiled crate on unix targets.)
+    for excluded in ["etv-core", "flate2", "tempfile", "miniz_oxide", "fastrand"] {
         assert!(
             !compiled_set.iter().any(|(name, _)| name == excluded),
             "workspace or dev-only package '{excluded}' must be excluded from compiled crate set"

@@ -410,7 +410,7 @@ fn cli_parses_settings_and_about() {
     );
     assert_eq!(
         parse_cli_args(&[]).unwrap_err(),
-        "expected command: new [--seed <n>] [--force] | continue | settings | about | --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
+        "expected command: new [--seed <n>] [--force] | continue | tui [--seed <n>] [--force] | tui --continue | settings | about | --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
     );
 }
 
