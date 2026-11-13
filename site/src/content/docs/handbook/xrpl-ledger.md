@@ -79,9 +79,9 @@ trail ledger proof
 
 The TUI **R** key on the ledger menu is the same proof: it calls `proof_player_save` on the loaded save and paints the verdict. Camp **R** without that menu still Rests. Parcel **R** still refuses.
 
-Audit mode replays a run's settlement receipts and reads the memos back off the XRPL Testnet — pulling the transactions through `AccountTx` and verifying the on-chain memos directly, rather than trusting whatever the local save happens to say. The check is genuinely external: the engine reports against the chain, not against its own copy. The supply history of a run can be independently audited, and the engine cannot fake the ledger — anyone with the transaction IDs can walk the same trail of memos and confirm or refute it.
+The proof reads the ledger itself, not only the save. It makes three checks: the token balances on the XRPL Testnet equal the supplies the save says were settled; the starting mint plus every saved settlement adds up to that final total; and each settlement's on-chain memo, read back through `AccountTx`, begins with this run's id and day.
 
-This sits on top of the optional backpack — itself optional. It is for runs where the on-chain history is the point: proof that the supplies moved the way the journal says they did, settled and checkable by a stranger.
+**What it does not check.** The proof does not compare the amounts written in each on-chain memo with the per-checkpoint amounts in the save, so it shows that the save and the ledger agree in total, not that every saved entry is untouched. A save edited so that its totals still add up can pass. Treat a PASS as a consistency check between your save and the ledger, not as tamper-proofing. Anyone with the transaction IDs can still read the memos on the Testnet and compare them by hand.
 
 If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed. **INCONCLUSIVE** means pending checkpoints, not supply drift — re-run `trail ledger proof` after reconcile when the Testnet recovers. Do not confuse the two: `reconcile` retries pending Payments; `proof` audits the loaded save.
 

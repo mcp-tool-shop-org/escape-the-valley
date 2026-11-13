@@ -7,6 +7,7 @@ All notable changes to Escape the Valley are documented here.
 ### Changed
 
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
+- Handbook: the ledger proof page now says what `trail ledger proof` checks (balances, totals, memo run/day header) and what it does not (per-checkpoint amounts), so a PASS is read as consistency, not tamper-proofing.
 
 ## [1.3.3] - 2026-11-07
 
