@@ -1,31 +1,38 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit 73f78f1 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit ea88cd8 by Atlas 1.26.0.
 
 ## What this is
 
-10 parts, mostly Python (69 files), Rust (21), shell (13), CSS (2), TypeScript (2), HTML (1) and JavaScript (1). Work enters through 5 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. etv is a command built from rust/etv-core (nothing ships it).
+10 parts, mostly Python (70 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (d3819bd)
+## What changed since 2026-11-13 (73f78f1)
 
-- tests now imports scripts.
-- CI now also runs tests/test_adapter.py, tests/test_backpack.py, tests/test_backpack_ledger.py and 24 more.
-- Publish to PyPI no longer checks src/escape_the_valley/.
-- Release Binaries (.github/workflows/release-binaries.yml) is no longer a door.
+- CI no longer runs tests/test_adapter.py, tests/test_backpack.py, tests/test_backpack_ledger.py and 24 more.
+- Publish to PyPI now also checks src/escape_the_valley/.
+- Release Binaries (.github/workflows/release-binaries.yml) is a new door. It starts when a release is published; when the workflow Release completes; or by hand. It runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py. It builds src/escape_the_valley/__main__.py.
 - And 4 more changes to doors.
-- 2 files added, 17 removed and 1 changed content, across 7 parts.
+- CHANGELOG.md is now read by .github/workflows/release.yml.
+- README.md is now read by pyproject.toml.
+- package.json is now read by .github/workflows/release.yml.
+- And 2 more new writers and readers of places.
+- 17 files added, across 5 parts.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs scripts/gen_third_party_notices.py, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs and 37 more; checks scripts/, src/, tests/ and 2 more.
-2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs scripts/gen_third_party_notices.py, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs and 37 more; checks scripts/, src/, tests/ and 2 more.
-3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
-4. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Runs no file this map can see.
-5. **etv** (a command built from rust/etv-core, which nothing ships). Runs rust/etv-core/src/bin/etv.rs.
+1. **CI.** On a pull request; on a push touching 10 paths; on a `workflow_call` event; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 11 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 1 more.
+2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 11 more; checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 1 more.
+3. **Release Binaries.** When a release is published; when the workflow Release completes; or by hand. Runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py; builds src/escape_the_valley/__main__.py.
+4. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
+5. **Publish to PyPI.** When a release is published; when the workflow Release completes; or by hand. Checks src/escape_the_valley/.
+6. **escape-the-valley** (a command people run). Runs bin/escape-the-valley.js.
+7. **trail** (a command people run, from package.json). Runs bin/escape-the-valley.js.
+8. **trail** (a command people run, from pyproject.toml). Runs src/escape_the_valley/cli.py.
+9. **etv** (a command built from rust/etv-core, which nothing ships). Runs rust/etv-core/src/bin/etv.rs.
 
 ## What happens through CI
 
-1. The workflow runs scripts/gen_third_party_notices.py in scripts, 27 files in tests, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs, and 9 files in 6 more places; it checks scripts/ in scripts, src/ in src, tests/ in tests, rust/etv-core/src/bin/etv.rs and rust/etv-core/src/lib.rs.
+1. The workflow runs scripts/gen_third_party_notices.py in scripts, tests/ in tests, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs, rust/etv-core/src/memory.rs, and 9 files in 6 more places; it checks scripts/ in scripts, src/ in src, rust/etv-core/src/bin/etv.rs and rust/etv-core/src/lib.rs.
 2. That reaches agents (1 file).
 3. It uploads coverage to Codecov.
 
@@ -35,28 +42,37 @@ CI writes nothing this map can see.
 
 ## The other doors
 
-**Release** runs scripts/gen_third_party_notices.py, rust/etv-core/src/engine.rs, rust/etv-core/src/events.rs and 37 more, checks scripts/, src/, tests/ and 2 more, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
+**Release** runs scripts/gen_third_party_notices.py, tests/, rust/etv-core/src/engine.rs and 11 more, checks scripts/, src/, rust/etv-core/src/bin/etv.rs and 1 more, reaches agents, uploads coverage to Codecov, publishes to npm, and creates a GitHub release.
+
+**Release Binaries** runs scripts/check_glibc_floor.py, scripts/gen_third_party_notices.py and scripts/smoke_test_binary.py, creates a GitHub release, and builds src/escape_the_valley/__main__.py into binaries for darwin-arm64, linux-x64 and win-x64 and uploads them to the release.
 
 **Deploy site to GitHub Pages** runs site/astro.config.mjs and site/src/, and deploys the site.
 
-**Publish to PyPI** runs no file this map can see and publishes to PyPI.
+**Publish to PyPI** checks src/escape_the_valley/ and publishes to PyPI.
+
+**escape-the-valley** (a command people run) runs bin/escape-the-valley.js.
+
+**trail** (a command people run, from package.json) runs bin/escape-the-valley.js.
+
+**trail** (a command people run, from pyproject.toml) runs src/escape_the_valley/cli.py.
 
 **etv** (a command built from rust/etv-core, which nothing ships) runs rust/etv-core/src/bin/etv.rs.
 
 ## What breaks what
 
-- **src** is imported by 2 parts (agents, scripts), and by 1 more only from tests; it sits on the path of 2 doors.
+- **src** is imported by 2 parts (agents, scripts), and by 1 more only from tests; it sits on the path of 5 doors.
 - **agents** is imported by 1 part (scripts), and by 1 more only from tests; it sits on the path of 2 doors.
-- **scripts** is imported only from tests, by 1 part (tests), and sits on the path of 2 doors.
+- **scripts** is imported only from tests, by 1 part (tests), and sits on the path of 3 doors.
+- **bin** is imported by no other part and sits on the path of 2 doors.
 - **tests** is imported by no other part and sits on the path of 2 doors.
 
 ## What tends to change together
 
 - **src/escape_the_valley/tui_app.py** and **tests/test_tui_smoke.py** changed together in 13 of 14 commits, and the tests part imports the src part.
 - **src/escape_the_valley/cli.py** and **tests/test_cli_stats.py** changed together in 6 of 7 commits, and the tests part imports the src part.
+- **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 14 of 18 commits, and the tests part imports the src part.
 - **src/escape_the_valley/ui.py** and **tests/test_adapter.py** changed together in 7 of 9 commits, and the tests part imports the src part.
-- **src/escape_the_valley/engine.py** and **tests/test_step_engine.py** changed together in 13 of 17 commits, and the tests part imports the src part.
-- **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 12 of 16 commits, inside the src part.
+- **src/escape_the_valley/engine.py** and **src/escape_the_valley/step_engine.py** changed together in 13 of 17 commits, inside the src part.
 
 8 files changed together with their own tests, as expected.
 
@@ -66,7 +82,7 @@ Window: 180 days; a pair counts from 3 shared commits, since 8 source files reac
 
 ## What no test touches
 
-Every code part is imported by at least one test.
+- **bin** is imported by no test.
 
 ## Written but never read
 
@@ -96,7 +112,7 @@ Read those in order to follow one pull request end to end.
 
 ## What this map cannot see
 
-- 3 imports could not be resolved: `src/escape_the_valley/cli.py` imports `.`, which is no module on its import path and no declared dependency; `src/escape_the_valley/notices.py` imports a path built at run time; `src/escape_the_valley/notices.py` imports `.`, which is no module on its import path and no declared dependency.
+- 1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.
 - 2 writes and 6 reads use paths built at run time and are not named here.
 - 4 writes and 20 reads go to a path their caller passes, not to this repository.
 - 5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.
