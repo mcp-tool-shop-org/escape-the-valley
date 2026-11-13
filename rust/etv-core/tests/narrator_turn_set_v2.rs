@@ -15,14 +15,16 @@ use etv_core::measure::{
     MeasureConfig, TURN_SET_SCHEMA_V2,
 };
 use etv_core::model::{GMProfile, GamePhase, TimeOfDay};
-use etv_core::narrator::{build_scene_prompts, NarratorLength, NarratorTransport, TransportError};
+use etv_core::narrator::{
+    build_outcome_prompts, build_scene_prompts, NarratorLength, NarratorTransport, TransportError,
+};
 use etv_core::ruleset::Ruleset;
 use etv_core::turn_set::{
     generate_turn_set_v2, turn_set_v2_to_json, TURN_SET_RULESET, TURN_SET_V2_PER_LEVEL,
     TURN_SET_V2_QUOTAS,
 };
 
-const V2_SHA256: &str = "1647afa4fafb9eafefcb3665dbd55d16c5de1e62cfb0defbec0ee579170078cf";
+const V2_SHA256: &str = "a5a7872472b50f6aee449745f1b58683e028d6f9cd8bd2ad749088db582e7b84";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 const V1_SHA256: &str = "838e4346263507a112b6a161a4107a3647c253a39646b2427236afdd4e526f17";
 const V1_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v1.json");
@@ -80,32 +82,32 @@ fn every_quota_is_met_and_the_counts_are_the_measured_ones() {
     }
     // Counted from the file when it was frozen.
     let expected: [(&str, usize); 30] = [
-        ("allowance:hint", 52),
-        ("allowance:none", 255),
-        ("allowance:strong", 53),
-        ("biome:alpine", 37),
-        ("biome:desert", 26),
-        ("biome:forest", 114),
-        ("biome:plains", 126),
-        ("biome:swamp", 57),
-        ("camp:hunt", 19),
-        ("camp:repair", 2),
-        ("camp:rest", 39),
-        ("camp:travel", 86),
-        ("death", 36),
-        ("early_journey", 187),
-        ("ending", 12),
-        ("event_choice", 95),
-        ("event_presented", 114),
-        ("fork_choice", 5),
-        ("injury", 98),
-        ("landmark_arrival", 53),
-        ("late_journey", 72),
+        ("allowance:hint", 49),
+        ("allowance:none", 254),
+        ("allowance:strong", 57),
+        ("biome:alpine", 38),
+        ("biome:desert", 25),
+        ("biome:forest", 107),
+        ("biome:plains", 137),
+        ("biome:swamp", 53),
+        ("camp:hunt", 18),
+        ("camp:rest", 38),
+        ("camp:travel", 80),
+        ("death", 33),
+        ("early_journey", 189),
+        ("ending", 14),
+        ("event_choice", 108),
+        ("event_presented", 115),
+        ("fork_choice", 1),
+        ("injury", 88),
+        ("landmark_arrival", 56),
+        ("late_journey", 69),
         ("low_health", 32),
-        ("low_morale", 84),
-        ("mid_journey", 101),
-        ("night_at_camp", 38),
-        ("supply_zero", 35),
+        ("low_morale", 79),
+        ("mid_journey", 102),
+        ("night_at_camp", 37),
+        ("supply_zero", 31),
+        ("victory", 6),
         ("weirdness:0", 90),
         ("weirdness:1", 90),
         ("weirdness:2", 90),
@@ -185,46 +187,46 @@ fn the_stored_contexts_span_the_journey() {
     let map = |pairs: &[(&str, usize)]| -> BTreeMap<String, usize> {
         pairs.iter().map(|(k, v)| (k.to_string(), *v)).collect()
     };
-    assert_eq!(band, map(&[("early", 187), ("late", 72), ("mid", 101)]));
+    assert_eq!(band, map(&[("early", 189), ("late", 69), ("mid", 102)]));
     assert_eq!(
         phase,
-        BTreeMap::from([("camp", 228), ("event", 114), ("over", 12), ("route", 6)])
+        BTreeMap::from([("camp", 230), ("event", 115), ("over", 14), ("route", 1)])
     );
     assert_eq!(
         clock,
         BTreeMap::from([
-            ("afternoon", 72),
-            ("evening", 89),
-            ("morning", 85),
-            ("night", 114)
+            ("afternoon", 73),
+            ("evening", 92),
+            ("morning", 74),
+            ("night", 121)
         ])
     );
     assert_eq!(
         health,
         map(&[
             ("critical", 32),
-            ("dead", 10),
-            ("steady", 171),
-            ("worn", 147)
+            ("dead", 8),
+            ("steady", 180),
+            ("worn", 140)
         ])
     );
     assert_eq!(
         morale,
-        map(&[("broken", 55), ("high", 252), ("low", 29), ("steady", 24)])
+        map(&[("broken", 47), ("high", 256), ("low", 32), ("steady", 25)])
     );
     assert_eq!(days.iter().next().copied(), Some(1));
-    assert_eq!(days.iter().next_back().copied(), Some(39));
-    assert_eq!(days.len(), 35);
-    assert_eq!(per_run.len(), 166);
+    assert_eq!(days.iter().next_back().copied(), Some(48));
+    assert_eq!(days.len(), 37);
+    assert_eq!(per_run.len(), 167);
     assert_eq!(per_run.values().copied().max(), Some(5));
-    assert_eq!(ordinary, 201);
+    assert_eq!(ordinary, 215);
 }
 
 /// One turn checked by hand against the file: a death late in a run.
 #[test]
 fn one_late_death_turn_as_stored() {
     let set = parse_turn_set_v2(V2_BYTES, V2_SHA256).unwrap();
-    let t = set.turns.iter().find(|t| t.id == "v2-w2-071").unwrap();
+    let t = set.turns.iter().find(|t| t.id == "v2-w2-072").unwrap();
     assert_eq!((t.seed, t.turn, t.policy.as_str()), (2, 131, "first"));
     assert_eq!(t.action, "travel");
     assert_eq!(
@@ -250,9 +252,34 @@ fn one_late_death_turn_as_stored() {
     assert_eq!(c.party_status().morale_band(), "broken");
     assert!(c.flags().death && c.flags().injury);
     assert_eq!(c.run_seed(), 2);
+    // What the turn was: travelling brought up an event, with three choices on offer.
+    assert_eq!(c.event_title(), "Solitary Hunter");
+    assert_eq!(
+        c.check_event_seed(),
+        "A man with a long rifle nods once, eyes measuring the wagon."
+    );
+    assert_eq!(
+        c.offered_labels(),
+        [
+            "Trade powder for meat",
+            "Continue without parley",
+            "Ask of the ridges ahead"
+        ]
+    );
+    assert_eq!(c.action(), "travel");
 
-    // The prompt built from it carries those facts, which a version 1 turn never did.
-    let (system, _) = build_scene_prompts(GMProfile::Chronicler, NarratorLength::Standard, c);
+    // The prompts built from it carry those facts, which a version 1 turn never did.
+    let (scene, _) = build_scene_prompts(GMProfile::Chronicler, NarratorLength::Standard, c);
+    for fact in [
+        "- event_title: Solitary Hunter",
+        "- event_text: A man with a long rifle nods once, eyes measuring the wagon.",
+        "- choices_offered: Trade powder for meat | Continue without parley | Ask of the ridges ahead",
+        "- action: travel",
+    ] {
+        assert!(scene.contains(fact), "{fact}");
+    }
+    assert!(!scene.contains("WHAT RESULTED"));
+    let (system, _) = build_outcome_prompts(GMProfile::Chronicler, NarratorLength::Standard, c);
     for fact in [
         "- journey_band: late",
         "- place: The Switchback",

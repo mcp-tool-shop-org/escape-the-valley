@@ -209,7 +209,8 @@ pub const TURN_SET_V2_QUOTA_PICKS_PER_RUN: usize = 4;
 
 /// The quotas of turn set v2: `(tag, least number of turns carrying it)`, filled in this order
 /// (rarest first). A turn may carry several tags and counts toward each.
-pub const TURN_SET_V2_QUOTAS: [(&str, usize); 16] = [
+pub const TURN_SET_V2_QUOTAS: [(&str, usize); 17] = [
+    ("victory", 6),
     ("death", 30),
     ("ending", 12),
     ("low_health", 30),
@@ -276,7 +277,8 @@ fn action_name(intent: &PlayerIntent) -> &'static str {
     }
 }
 
-/// The tags of one turn, sorted: the five turn-matters flags that are set, `ending`, the journey
+/// The tags of one turn, sorted: the five turn-matters flags that are set, `ending` (and `victory`
+/// when the run reached the valley), the journey
 /// band, `low_health` (party health band critical), `low_morale` (morale band low or broken),
 /// the biome, the weirdness level the run was created at, the weirdness allowance the engine
 /// gave the turn (`none`, `hint` or `strong`), and what kind of turn it was.
@@ -301,6 +303,14 @@ fn tags_for(
     }
     if ctx.phase() == GamePhase::GameOver {
         tags.push("ending".to_string());
+        // The engine's own line for a run that reached the valley.
+        if ctx
+            .shown_lines()
+            .iter()
+            .any(|l| l == "You made it! Victory!")
+        {
+            tags.push("victory".to_string());
+        }
     }
     tags.push(format!("{}_journey", ctx.band()));
     if ctx.party_status().health_band() == "critical" {

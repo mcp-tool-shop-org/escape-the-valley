@@ -286,13 +286,27 @@ pub struct NarrationContext {
     /// prompt material (see [`format_turn_facts_for_prompt`]).
     #[serde(default)]
     check_party_names: Vec<String>,
-    /// The event's `narration_seed` text. Checker-only: resource nouns and draft-animal species
-    /// the event itself names are allowed in prose. Never prompt material.
+    /// The event's `narration_seed` text: the game's own description of the situation. It is
+    /// prompt material (the narrator is told what is happening), and the checker also uses it:
+    /// resource nouns and draft-animal species the event itself names are allowed in prose.
     #[serde(default)]
     check_event_seed: String,
-    /// The chosen option's label. Checker-only: used for the choice-parroting rule.
+    /// The chosen option's label. Prompt material (the narrator is told what the party chose),
+    /// and used by the checker's choice-parroting rule, which stops it being copied.
     #[serde(default)]
     check_choice_label: String,
+    /// The event's title, when the turn has an event on screen or has just resolved one.
+    /// Prompt material: the narrator is told what is happening.
+    #[serde(default)]
+    event_title: String,
+    /// The labels of the choices on offer, when the turn ends with an event on screen.
+    /// Prompt material.
+    #[serde(default)]
+    offered_labels: Vec<String>,
+    /// What the party did at camp on this turn (`travel`, `rest`, `hunt`, ...), or empty on a
+    /// turn that resolved an event choice or took a fork. Prompt material.
+    #[serde(default)]
+    action: String,
     /// The run's seed number. Used **only** to derive the sampling seed sent with a narrator
     /// call, so the same run and turn ask for the same sample. It is a plain number: it gives
     /// no access to the engine's RNG. Never prompt material.
@@ -301,10 +315,10 @@ pub struct NarrationContext {
 }
 
 impl NarrationContext {
-    /// Attach the checker-only facts (party names, event seed text, chosen option label).
+    /// Attach the party names, the event's seed text and the chosen option's label.
     ///
-    /// These feed [`CheckerContext::from_narration_context`] and nothing else: they are not
-    /// included in any prompt.
+    /// The party names feed the checker only and are never in a prompt. The seed text and the
+    /// label are both prompt material and checker facts.
     pub fn with_check_facts(
         mut self,
         party_names: Vec<String>,
@@ -322,6 +336,35 @@ impl NarrationContext {
     pub fn with_gm_profile(mut self, profile: GMProfile) -> Self {
         self.gm_profile = profile;
         self
+    }
+
+    /// Attach what else the narrator is told about the turn: the event's title, the labels on
+    /// offer, and the camp action taken.
+    pub fn with_event_facts(
+        mut self,
+        event_title: String,
+        offered_labels: Vec<String>,
+        action: String,
+    ) -> Self {
+        self.event_title = event_title;
+        self.offered_labels = offered_labels;
+        self.action = action;
+        self
+    }
+
+    /// The event's title (empty when the turn has no event).
+    pub fn event_title(&self) -> &str {
+        &self.event_title
+    }
+
+    /// Labels of the choices on offer (empty unless an event is on screen).
+    pub fn offered_labels(&self) -> &[String] {
+        &self.offered_labels
+    }
+
+    /// The camp action taken on this turn (empty on a choice or fork turn).
+    pub fn action(&self) -> &str {
+        &self.action
     }
 
     /// Attach the run's seed number (see [`narration_call_seed`]).
@@ -396,6 +439,9 @@ impl NarrationContext {
             check_party_names: Vec::new(),
             check_event_seed: String::new(),
             check_choice_label: String::new(),
+            event_title: String::new(),
+            offered_labels: Vec::new(),
+            action: String::new(),
             run_seed: 0,
         }
     }
@@ -888,6 +934,57 @@ pub fn build_narration_context_with_deltas(
     let brief = build_gm_brief_readonly(state);
     let party_status = PartyStatusFacts::from_state(state);
 
+    // What the event is and what was chosen. While an event is on screen the step's messages
+    // carry its title, text and choices. On the turn a choice resolves, the messages have moved
+    // on to the outcome, and the journal entry the engine has just written holds them.
+    let resolved_entry = if msgs.outcome_title.is_empty() {
+        None
+    } else {
+        state
+            .journal
+            .last()
+            .filter(|j| j.event_id == event_id && !j.choice_made.is_empty())
+    };
+    let event_title = if !msgs.event_title.is_empty() {
+        msgs.event_title.clone()
+    } else {
+        resolved_entry
+            .map(|j| j.scene_title.clone())
+            .unwrap_or_default()
+    };
+    let event_seed = if !msgs.event_narration.is_empty() {
+        msgs.event_narration.clone()
+    } else {
+        resolved_entry
+            .map(|j| j.narration.clone())
+            .unwrap_or_default()
+    };
+    let choice_label = msgs
+        .event_choices
+        .iter()
+        .find(|c| c.id == choice_id)
+        .map(|c| c.label.clone())
+        .or_else(|| {
+            resolved_entry.and_then(|j| {
+                j.choice_made
+                    .split_once(": ")
+                    .map(|(_, label)| label.to_string())
+            })
+        })
+        .unwrap_or_default();
+    let offered_labels: Vec<String> = if phase == GamePhase::Event {
+        msgs.event_choices.iter().map(|c| c.label.clone()).collect()
+    } else {
+        Vec::new()
+    };
+    // The camp action, from the engine's own record of it. Empty when the step resolved a
+    // choice or took a fork, where the action is the choice itself.
+    let action = if choice_id.is_empty() {
+        state.last_action.to_ascii_lowercase()
+    } else {
+        String::new()
+    };
+
     NarrationContext::new(
         fallback_line,
         event_id.to_string(),
@@ -911,13 +1008,10 @@ pub fn build_narration_context_with_deltas(
     )
     .with_check_facts(
         state.party.members.iter().map(|m| m.name.clone()).collect(),
-        msgs.event_narration.clone(),
-        msgs.event_choices
-            .iter()
-            .find(|c| c.id == choice_id)
-            .map(|c| c.label.clone())
-            .unwrap_or_default(),
+        event_seed,
+        choice_label,
     )
+    .with_event_facts(event_title, offered_labels, action)
     .with_run_seed(state.seed)
 }
 
@@ -1076,9 +1170,86 @@ pub fn shared_voice_rules_positive(length: NarratorLength, weirdness_band: u8) -
     )
 }
 
-/// Format turn facts strictly from [`NarrationContext`] (never including `fallback_line`,
-/// `shown_lines`, party member names, or unspent resource nouns).
+/// Which of a turn's two calls a prompt is for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PromptSlot {
+    /// The scene: where the party is and what it faces.
+    Scene,
+    /// The outcome: the scene's facts, plus what resulted.
+    Outcome,
+}
+
+fn or_none(text: &str) -> &str {
+    if text.trim().is_empty() {
+        "none"
+    } else {
+        text
+    }
+}
+
+/// The turn's facts for the outcome call: everything the scene call gets, plus what resulted.
+/// Same as [`format_turn_facts_for_slot`] with [`PromptSlot::Outcome`].
 pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
+    format_turn_facts_for_slot(ctx, PromptSlot::Outcome)
+}
+
+/// Format the turn's facts for one call, strictly from [`NarrationContext`].
+///
+/// Both calls are told what is happening: the event's title and its own text, the choices on
+/// offer or the choice taken, the camp action, the place, the journey, the clock and the party's
+/// condition. Only the outcome call is also told what resulted: which resources moved, the
+/// health effects, and whether there was a death, an injury or a supply running out.
+///
+/// Never included: `fallback_line`, `shown_lines`, party member names, any number.
+pub fn format_turn_facts_for_slot(ctx: &NarrationContext, slot: PromptSlot) -> String {
+    let offered = ctx.offered_labels().join(" | ");
+    let mut out = format!(
+        "TURN FACTS:\n\
+- event_id: {}\n\
+- event_title: {}\n\
+- event_text: {}\n\
+- choices_offered: {}\n\
+- choice_id: {}\n\
+- choice_taken: {}\n\
+- action: {}\n\
+- place: {}\n\
+- journey_band: {}\n\
+- biome: {}\n\
+- time_of_day: {}\n\
+- phase: {}\n\
+- weirdness_allowance: {}\n\
+- pressures: {}\n\
+- themes: {}\n\
+- situation: {}\n\
+- party_health_band: {}\n\
+- party_morale_band: {}\n\
+- arrived_at_landmark: {}\n\
+- night_at_camp: {}",
+        ctx.event_id(),
+        or_none(ctx.event_title()),
+        or_none(ctx.check_event_seed()),
+        or_none(&offered),
+        ctx.choice_id(),
+        or_none(ctx.check_choice_label()),
+        or_none(ctx.action()),
+        ctx.place(),
+        ctx.band(),
+        ctx.biome(),
+        ctx.time_of_day().as_str(),
+        ctx.phase().as_str(),
+        ctx.weirdness_allowance(),
+        ctx.pressures().join(", "),
+        ctx.themes().join(", "),
+        ctx.situation(),
+        ctx.party_status().health_band(),
+        ctx.party_status().morale_band(),
+        ctx.flags().landmark_arrival,
+        ctx.flags().night_at_camp,
+    );
+    if slot == PromptSlot::Scene {
+        return out;
+    }
+
     let mut delta_directions = Vec::new();
     for (k, &v) in ctx.shown_deltas() {
         if v < 0 {
@@ -1099,38 +1270,11 @@ pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
             HealthEffect::Died { .. } => "death",
         })
         .collect();
-
-    format!(
-        "TURN FACTS:\n\
-- event_id: {}\n\
-- choice_id: {}\n\
-- place: {}\n\
-- journey_band: {}\n\
-- biome: {}\n\
-- time_of_day: {}\n\
-- phase: {}\n\
-- weirdness_allowance: {}\n\
-- pressures: {}\n\
-- themes: {}\n\
-- situation: {}\n\
-- party_health_band: {}\n\
-- party_morale_band: {}\n\
+    out.push_str(&format!(
+        "\nWHAT RESULTED:\n\
 - resource_directions: {}\n\
 - health_effects: {}\n\
 - turn_matters: death={}, injury={}, supply_zero={}, landmark_arrival={}, night_at_camp={}",
-        ctx.event_id(),
-        ctx.choice_id(),
-        ctx.place(),
-        ctx.band(),
-        ctx.biome(),
-        ctx.time_of_day().as_str(),
-        ctx.phase().as_str(),
-        ctx.weirdness_allowance(),
-        ctx.pressures().join(", "),
-        ctx.themes().join(", "),
-        ctx.situation(),
-        ctx.party_status().health_band(),
-        ctx.party_status().morale_band(),
         if delta_directions.is_empty() {
             "none".to_string()
         } else {
@@ -1146,7 +1290,8 @@ pub fn format_turn_facts_for_prompt(ctx: &NarrationContext) -> String {
         ctx.flags().supply_zero,
         ctx.flags().landmark_arrival,
         ctx.flags().night_at_camp,
-    )
+    ));
+    out
 }
 
 /// Build the full narrator system prompt from:
@@ -1161,12 +1306,23 @@ pub fn build_system_prompt(
     build_system_prompt_with_rules(profile, length, ctx, PromptRules::Shipped)
 }
 
-/// [`build_system_prompt`] with an explicit [`PromptRules`] wording.
+/// [`build_system_prompt`] with an explicit [`PromptRules`] wording (the outcome call's prompt).
 pub fn build_system_prompt_with_rules(
     profile: GMProfile,
     length: NarratorLength,
     ctx: &NarrationContext,
     rules: PromptRules,
+) -> String {
+    build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome)
+}
+
+/// The system prompt for one of the turn's two calls.
+pub fn build_system_prompt_for_slot(
+    profile: GMProfile,
+    length: NarratorLength,
+    ctx: &NarrationContext,
+    rules: PromptRules,
+    slot: PromptSlot,
 ) -> String {
     let band = weirdness_band_from_allowance(ctx.weirdness_allowance());
     let rules = match rules {
@@ -1174,7 +1330,7 @@ pub fn build_system_prompt_with_rules(
         PromptRules::Positive => shared_voice_rules_positive(length, band),
     };
     let header = profile_header(profile);
-    let facts = format_turn_facts_for_prompt(ctx);
+    let facts = format_turn_facts_for_slot(ctx, slot);
     format!("{header}\n\n{rules}\n\n{facts}")
 }
 
@@ -1386,7 +1542,7 @@ pub fn build_scene_prompts_for(
     rules: PromptRules,
     schema: FormatSchema,
 ) -> (String, String) {
-    let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
+    let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Scene);
     if schema == FormatSchema::PlainText {
         let (min_s, max_s) = length.sentence_bounds();
         let user = format!(
@@ -1428,7 +1584,7 @@ pub fn build_outcome_prompts_for(
     rules: PromptRules,
     schema: FormatSchema,
 ) -> (String, String) {
-    let sys = build_system_prompt_with_rules(profile, length, ctx, rules);
+    let sys = build_system_prompt_for_slot(profile, length, ctx, rules, PromptSlot::Outcome);
     if schema == FormatSchema::PlainText {
         let (min_s, max_s) = length.sentence_bounds();
         let user = format!(
