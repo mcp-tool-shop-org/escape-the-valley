@@ -49,7 +49,7 @@ fn code_of(line: &str, ctx: &CheckerContext) -> CheckReasonCode {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn reason_code_names_are_the_twelve_stable_strings() {
+fn reason_code_names_are_stable_strings_twelve_hard_rules_then_seven_truth_rules() {
     let names: Vec<&str> = CheckReasonCode::ALL.iter().map(|c| c.as_str()).collect();
     assert_eq!(
         names,
@@ -66,6 +66,14 @@ fn reason_code_names_are_the_twelve_stable_strings() {
             "named_party_member",
             "draft_animal_species",
             "choice_parroting",
+            // Off in the game: the "says what happened" rules of an experiment arm.
+            "supply_state_contradiction",
+            "ending_not_conveyed",
+            "death_not_conveyed",
+            "arrival_not_conveyed",
+            "action_with_no_one_left",
+            "event_text_copied",
+            "repeated_opening",
         ]
     );
 }

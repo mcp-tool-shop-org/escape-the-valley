@@ -316,6 +316,11 @@ pub struct NarrationContext {
     /// no access to the engine's RNG. Never prompt material.
     #[serde(default)]
     run_seed: i128,
+    /// Supply keys that stand at zero after the turn, sorted. Not prompt material: the
+    /// "says what happened" checks use it to tell "no water" on an empty cask from "no water"
+    /// on a turn that only spent some.
+    #[serde(default)]
+    supplies_at_zero: Vec<String>,
 }
 
 impl NarrationContext {
@@ -360,6 +365,19 @@ impl NarrationContext {
     pub fn with_ending(mut self, ending: String) -> Self {
         self.ending = ending;
         self
+    }
+
+    /// Attach the supply keys that stand at zero after the turn.
+    pub fn with_supplies_at_zero(mut self, mut keys: Vec<String>) -> Self {
+        keys.sort();
+        keys.dedup();
+        self.supplies_at_zero = keys;
+        self
+    }
+
+    /// Supply keys that stand at zero after the turn, sorted.
+    pub fn supplies_at_zero(&self) -> &[String] {
+        &self.supplies_at_zero
     }
 
     /// The ending grade, when this turn ended the run (empty otherwise).
@@ -459,6 +477,7 @@ impl NarrationContext {
             action: String::new(),
             ending: String::new(),
             run_seed: 0,
+            supplies_at_zero: Vec::new(),
         }
     }
 
@@ -1042,6 +1061,15 @@ pub fn build_narration_context_with_deltas(
     .with_event_facts(event_title, offered_labels, action)
     .with_ending(ending)
     .with_run_seed(state.seed)
+    .with_supplies_at_zero(
+        state
+            .supplies
+            .items
+            .iter()
+            .filter(|(_, amount)| **amount <= 0)
+            .map(|(key, _)| key.clone())
+            .collect(),
+    )
 }
 
 // ============================================================================
@@ -2365,11 +2393,26 @@ pub enum CheckReasonCode {
     /// The line repeats the verb and a noun of the chosen option's label (voice guide L3).
     /// Added in step 4.
     ChoiceParroting,
+    /// "Says what happened" rules (off in the game; see `narrator_truth`). The line says a
+    /// supply is gone that is not at zero, or lost that was gained.
+    SupplyStateContradiction,
+    /// The run ended on this turn and the outcome line does not say so.
+    EndingNotConveyed,
+    /// A traveller died on this turn and the outcome line does not say so.
+    DeathNotConveyed,
+    /// The party arrived on this turn and the outcome line does not say so.
+    ArrivalNotConveyed,
+    /// No one is left alive and the line shows the party acting.
+    ActionWithNoOneLeft,
+    /// The line opens with the event's own text.
+    EventTextCopied,
+    /// The outcome line opens with the same two words as the previous accepted line.
+    RepeatedOpening,
 }
 
 impl CheckReasonCode {
     /// Every reason code, in declaration order.
-    pub const ALL: [CheckReasonCode; 12] = [
+    pub const ALL: [CheckReasonCode; 19] = [
         CheckReasonCode::NumbersDigitsOrUnits,
         CheckReasonCode::QuantifierBeforeResourceOrHalf,
         CheckReasonCode::DeathWords,
@@ -2382,6 +2425,13 @@ impl CheckReasonCode {
         CheckReasonCode::NamedPartyMember,
         CheckReasonCode::DraftAnimalSpecies,
         CheckReasonCode::ChoiceParroting,
+        CheckReasonCode::SupplyStateContradiction,
+        CheckReasonCode::EndingNotConveyed,
+        CheckReasonCode::DeathNotConveyed,
+        CheckReasonCode::ArrivalNotConveyed,
+        CheckReasonCode::ActionWithNoOneLeft,
+        CheckReasonCode::EventTextCopied,
+        CheckReasonCode::RepeatedOpening,
     ];
 
     /// Stable snake_case name used in measurement reports.
@@ -2399,6 +2449,13 @@ impl CheckReasonCode {
             Self::NamedPartyMember => "named_party_member",
             Self::DraftAnimalSpecies => "draft_animal_species",
             Self::ChoiceParroting => "choice_parroting",
+            Self::SupplyStateContradiction => "supply_state_contradiction",
+            Self::EndingNotConveyed => "ending_not_conveyed",
+            Self::DeathNotConveyed => "death_not_conveyed",
+            Self::ArrivalNotConveyed => "arrival_not_conveyed",
+            Self::ActionWithNoOneLeft => "action_with_no_one_left",
+            Self::EventTextCopied => "event_text_copied",
+            Self::RepeatedOpening => "repeated_opening",
         }
     }
 }
@@ -2435,6 +2492,10 @@ pub struct CheckerContext {
     /// in the game; set only by an experiment arm (see `narrator_experiment`).
     #[serde(default)]
     pub team_species: Vec<String>,
+    /// The turn's facts for the "says what happened" rules. `None` in the game, where those
+    /// rules do not run; set only by an experiment arm.
+    #[serde(default)]
+    pub truth: Option<crate::narrator_truth::TruthFacts>,
 }
 
 impl Default for CheckerContext {
@@ -2451,6 +2512,7 @@ impl Default for CheckerContext {
             choice_label: String::new(),
             death_allowed: false,
             team_species: Vec::new(),
+            truth: None,
         }
     }
 }
@@ -2484,6 +2546,7 @@ impl CheckerContext {
             choice_label: ctx.check_choice_label().to_string(),
             death_allowed: death_may_be_stated(ctx),
             team_species: Vec::new(),
+            truth: None,
         }
     }
 }
@@ -2571,7 +2634,7 @@ fn label_content_words(label: &str) -> Vec<String> {
         .collect()
 }
 
-fn lookup_resource_key_for_noun(word_lower: &str) -> Option<&'static str> {
+pub(crate) fn lookup_resource_key_for_noun(word_lower: &str) -> Option<&'static str> {
     for &(res_key, nouns) in RESOURCE_NOUN_TABLE {
         if nouns.contains(&word_lower) {
             return Some(res_key);
@@ -2994,6 +3057,13 @@ fn run_checks(line: &str, ctx: &CheckerContext, all: bool) -> Vec<CheckFailure> 
         }
     }
 
+    // 13 on. "Says what happened", event copying and the repeated opening: only when the
+    // turn's facts were given (an experiment arm; never in the game).
+    if let Some(facts) = &ctx.truth {
+        for failure in crate::narrator_truth::truth_failures(trimmed, facts) {
+            fail!(failure);
+        }
+    }
     out
 }
 
@@ -3749,6 +3819,9 @@ pub struct LiveNarrator {
     format_schema: AtomicUsize,
     /// Experiment arms; all off unless the measurement harness sets them.
     experiment: Mutex<crate::narrator_experiment::ExperimentArms>,
+    /// The first two words of the run's previous accepted line (for the repeated-opening
+    /// arm; kept always, used only when that arm is on).
+    previous_opening: Mutex<Option<String>>,
     breaker_enabled: AtomicBool,
     consecutive_timeouts: AtomicUsize,
     paused: AtomicBool,
@@ -3766,6 +3839,7 @@ struct SlotCall {
     stop_at_period: bool,
     model_card_sampling: bool,
     trim_to_cap: bool,
+    num_gpu: Option<u32>,
 }
 
 /// How one narrator call (scene or outcome) ended.
@@ -3835,6 +3909,7 @@ impl LiveNarrator {
             slot_log: Mutex::new(Vec::new()),
             last_request: Mutex::new(None),
             experiment: Mutex::new(crate::narrator_experiment::ExperimentArms::default()),
+            previous_opening: Mutex::new(None),
             positive_rules: AtomicBool::new(false),
             format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
@@ -3851,6 +3926,14 @@ impl LiveNarrator {
             .clamp(1, crate::narrator_experiment::MAX_CANDIDATES);
         if let Ok(mut slot) = self.experiment.lock() {
             *slot = arms;
+        }
+    }
+
+    /// Forget the previous accepted line. The measurement harness calls this when it moves
+    /// from one run's turns to another's, so a line is compared only with its own run.
+    pub fn reset_run_memory(&self) {
+        if let Ok(mut previous) = self.previous_opening.lock() {
+            *previous = None;
         }
     }
 
@@ -4115,6 +4198,9 @@ impl LiveNarrator {
             }
             payload["format"] = format;
         }
+        if let Some(layers) = call.num_gpu {
+            payload["options"]["num_gpu"] = serde_json::json!(layers);
+        }
         if call.stop_at_period {
             payload["options"]["stop"] = serde_json::json!(["."]);
         }
@@ -4242,6 +4328,9 @@ impl LiveNarrator {
         }
 
         self.successes.fetch_add(1, Ordering::SeqCst);
+        if let Ok(mut previous) = self.previous_opening.lock() {
+            *previous = Some(crate::narrator_truth::opening_two_words(&candidate_prose));
+        }
         self.push_record(
             is_scene,
             SlotOutcome::Accepted,
@@ -4272,10 +4361,6 @@ impl Narrator for LiveNarrator {
         let profile = self.settings.profile;
         let length = self.settings.length;
         let arms = self.experiment();
-        let mut checker_ctx = CheckerContext::from_narration_context(ctx, length);
-        if arms.rulings_prompt {
-            checker_ctx.team_species = crate::narrator_experiment::rulings_team_species(profile);
-        }
 
         let rules = self.prompt_rules();
 
@@ -4298,6 +4383,7 @@ impl Narrator for LiveNarrator {
             stop_at_period: stop_brief,
             model_card_sampling: arms.model_card_sampling,
             trim_to_cap: arms.trim_to_cap,
+            num_gpu: arms.num_gpu,
         };
         let for_arm = |(sys, user): (String, String)| -> (String, String) {
             if arms.rulings_prompt {
@@ -4313,6 +4399,18 @@ impl Narrator for LiveNarrator {
         // derived from the turn's; the first accepted line is used. One candidate is the
         // shipped single call with the turn's own seed.
         let attempt = |sys: &str, user: &str, is_scene: bool| -> Option<String> {
+            // The line's own checker: the shipped one, plus what the arms add. The opening of
+            // the run's previous accepted line is read now, so an outcome line is compared
+            // with its own turn's scene line when that was accepted.
+            let previous = self.previous_opening.lock().ok().and_then(|p| p.clone());
+            let checker_ctx = crate::narrator_experiment::checker_context_for(
+                ctx,
+                length,
+                profile,
+                arms,
+                !is_scene,
+                previous.as_deref(),
+            );
             let base = narration_call_seed(ctx, profile, length, is_scene);
             for k in 0..usize::from(arms.candidates.max(1)) {
                 let seed = crate::narrator_experiment::candidate_seed(base, k);
@@ -4340,6 +4438,11 @@ impl Narrator for LiveNarrator {
         let (out_sys, out_user) = for_arm(build_outcome_prompts_for(
             profile, length, ctx, rules, schema,
         ));
+        let out_sys = if arms.outcome_lead {
+            crate::narrator_experiment::lead_outcome_system_prompt(&out_sys, ctx)
+        } else {
+            out_sys
+        };
         let outcome = attempt(&out_sys, &out_user, false);
 
         TurnNarration { scene, outcome }
