@@ -20,6 +20,7 @@ pub mod events_builtin;
 pub mod ledger;
 pub mod ledger_proof;
 pub mod measure;
+pub mod measure_stats;
 pub mod memory;
 pub mod model;
 pub mod narrator;
@@ -34,6 +35,8 @@ pub mod screens;
 pub mod settings;
 pub mod simulate;
 pub mod snapshot;
+pub mod tui;
+pub mod turn_set;
 pub mod validator;
 pub mod worldgen;
 

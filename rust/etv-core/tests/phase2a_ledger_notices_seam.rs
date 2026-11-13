@@ -29,7 +29,8 @@ use etv_core::model::{
 };
 use etv_core::narrator::{
     build_narration_context, build_narration_context_with_phase, evaluate_turn_matters,
-    journey_band, NarrationContext, Narrator, NullNarrator, PartyStatusFacts, PreTurnObservation,
+    journey_band, situation_for_narrator, NarrationContext, Narrator, NullNarrator,
+    PartyStatusFacts, PreTurnObservation,
 };
 use etv_core::notices::{
     compute_compiled_crates_from_cargo_lock, embedded_license_allowlist, embedded_notices_manifest,
@@ -262,14 +263,8 @@ fn phase2a_notices_cargo_lock_compiled_set_equals_manifest_and_excludes_workspac
 
     // Workspace crates (`source == None` in Cargo.lock) and dev-only packages (`[dev-dependencies]`
     // in etv-core/Cargo.toml and their transitive closure) must be excluded.
-    for excluded in [
-        "etv-core",
-        "flate2",
-        "tempfile",
-        "miniz_oxide",
-        "rustix",
-        "fastrand",
-    ] {
+    // (`rustix` left this list when `crossterm` made it a compiled crate on unix targets.)
+    for excluded in ["etv-core", "flate2", "tempfile", "miniz_oxide", "fastrand"] {
         assert!(
             !compiled_set.iter().any(|(name, _)| name == excluded),
             "workspace or dev-only package '{excluded}' must be excluded from compiled crate set"
@@ -1119,7 +1114,11 @@ fn narrator_every_turn_context_facts_match_engine_values() {
         expected_brief.weirdness_allowance
     );
     assert_eq!(ctx.gm_profile(), engine.state.gm_profile);
-    assert_eq!(ctx.situation(), expected_brief.situation);
+    // The narrator is given the doctrine and taboo sentences labelled as such.
+    assert_eq!(
+        ctx.situation(),
+        situation_for_narrator(&expected_brief.situation)
+    );
     assert_eq!(
         ctx.party_status(),
         &PartyStatusFacts::from_state(&engine.state)

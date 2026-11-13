@@ -51,16 +51,23 @@ use sha2::{Digest, Sha256};
 
 use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
+use crate::measure_stats::{
+    all_rule_breaks, fill_derived, read_rows_files, summarise_rows, OpeningCount, RuleBreak,
+};
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
-    build_narration_context_with_phase, profile_interface_name, LiveNarrator, NarrationContext,
-    Narrator, NarratorLength, NarratorSettings, NarratorTransport, SlotOutcome, SlotRecord,
-    TurnMattersFlags, DEFAULT_OLLAMA_ENDPOINT,
+    build_narration_context_with_deltas, build_narration_context_with_phase,
+    profile_interface_name, FormatSchema, LiveNarrator, NarrationContext, Narrator, NarratorLength,
+    NarratorSettings, NarratorTransport, PromptRules, SlotOutcome, SlotRecord, TurnMattersFlags,
+    DEFAULT_OLLAMA_ENDPOINT,
 };
 use crate::worldgen::create_new_run_with_content;
 
 /// Schema tag of the turn-set file.
 pub const TURN_SET_SCHEMA: &str = "etv-turn-set-1";
+/// Schema tag of a version 2 turn-set file: each turn stores the whole narrator context the
+/// game built for it.
+pub const TURN_SET_SCHEMA_V2: &str = "etv-turn-set-2";
 /// Schema tag of the summary report.
 pub const REPORT_SCHEMA: &str = "etv-fallback-measure-1";
 
@@ -86,6 +93,12 @@ pub struct TurnSpec {
     /// Applied supply deltas shown on the turn (resource key to signed amount).
     #[serde(default)]
     pub deltas: BTreeMap<String, i32>,
+    /// Every change the turn applied, by effect key (supplies and also morale, wagon, time and
+    /// the rest), as the game's own context carries them. When present it is used as the
+    /// turn's shown effects in place of `deltas`, so the prompt and the checker see what the
+    /// game would show. Absent in turn sets written before it existed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub effects: BTreeMap<String, i32>,
     /// The event's `narration_seed` text.
     pub event_seed: String,
     /// The chosen option's label.
@@ -100,6 +113,155 @@ pub struct TurnSpec {
 pub struct TurnSet {
     pub schema: String,
     pub turns: Vec<TurnSpec>,
+}
+
+/// One frozen turn of a version 2 set: the narrator context exactly as the game built it at
+/// that moment of a real run (day, journey band, phase, time of day, place, biome, party health
+/// and morale bands, pressures, themes, the turn's effects and flags, and the checker's facts).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TurnSpecV2 {
+    pub id: String,
+    /// The run's seed.
+    pub seed: i64,
+    /// Engine weirdness level the run was created at (`0..=3`).
+    pub weirdness_level: u8,
+    /// Simulator policy that played the run.
+    pub policy: String,
+    /// Turn of the run (1 is the first step).
+    pub turn: u32,
+    /// What the player did on the turn: a camp action name, or `choose`.
+    pub action: String,
+    /// The quota tags this turn was selected for or also satisfies, sorted.
+    pub strata: Vec<String>,
+    /// The context the game built for this turn. Its `gm_profile` is replaced by the profile
+    /// under measurement when the turn is replayed.
+    pub context: NarrationContext,
+}
+
+/// A frozen version 2 set.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TurnSetV2 {
+    pub schema: String,
+    pub turns: Vec<TurnSpecV2>,
+}
+
+/// A turn set of either version, as read from a file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnyTurnSet {
+    V1(TurnSet),
+    V2(TurnSetV2),
+}
+
+impl AnyTurnSet {
+    pub fn len(&self) -> usize {
+        match self {
+            AnyTurnSet::V1(s) => s.turns.len(),
+            AnyTurnSet::V2(s) => s.turns.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn schema(&self) -> &str {
+        match self {
+            AnyTurnSet::V1(s) => &s.schema,
+            AnyTurnSet::V2(s) => &s.schema,
+        }
+    }
+
+    /// The turns in file order, each able to rebuild its context.
+    pub fn measured_turns(&self) -> Vec<MeasuredTurn<'_>> {
+        match self {
+            AnyTurnSet::V1(s) => s.turns.iter().map(MeasuredTurn::V1).collect(),
+            AnyTurnSet::V2(s) => s.turns.iter().map(MeasuredTurn::V2).collect(),
+        }
+    }
+}
+
+/// One turn of either set version.
+#[derive(Debug, Clone, Copy)]
+pub enum MeasuredTurn<'a> {
+    V1(&'a TurnSpec),
+    V2(&'a TurnSpecV2),
+}
+
+impl MeasuredTurn<'_> {
+    pub fn id(&self) -> &str {
+        match self {
+            MeasuredTurn::V1(t) => &t.id,
+            MeasuredTurn::V2(t) => &t.id,
+        }
+    }
+
+    /// The narrator context of this turn for `profile`: rebuilt from a fresh run for a version 1
+    /// turn, the stored context for a version 2 turn.
+    pub fn context(&self, profile: GMProfile) -> NarrationContext {
+        match self {
+            MeasuredTurn::V1(t) => build_turn_context(t, profile),
+            MeasuredTurn::V2(t) => t.context.clone().with_gm_profile(profile),
+        }
+    }
+}
+
+/// Parse a version 2 turn-set file, refusing it unless its SHA-256 equals `expected_sha256`.
+pub fn parse_turn_set_v2(bytes: &[u8], expected_sha256: &str) -> Result<TurnSetV2, String> {
+    let actual = sha256_hex(bytes);
+    let expected = expected_sha256.trim().to_ascii_lowercase();
+    if actual != expected {
+        return Err(format!(
+            "turn set sha256 mismatch: file is {actual}, frozen digest is {expected}"
+        ));
+    }
+    let set: TurnSetV2 =
+        serde_json::from_slice(bytes).map_err(|e| format!("invalid turn set JSON: {e}"))?;
+    if set.schema != TURN_SET_SCHEMA_V2 {
+        return Err(format!(
+            "turn set schema is {:?}, expected {TURN_SET_SCHEMA_V2:?}",
+            set.schema
+        ));
+    }
+    if set.turns.is_empty() {
+        return Err("turn set has no turns".to_string());
+    }
+    let mut seen = BTreeSet::new();
+    for t in &set.turns {
+        if !seen.insert(t.id.as_str()) {
+            return Err(format!("duplicate turn id {:?}", t.id));
+        }
+        if t.context.fallback_line().trim().is_empty() {
+            return Err(format!("turn {:?}: fallback line is empty", t.id));
+        }
+    }
+    Ok(set)
+}
+
+/// Parse a turn-set file of either version by its `schema` tag, refusing it unless its SHA-256
+/// equals `expected_sha256`.
+pub fn parse_any_turn_set(bytes: &[u8], expected_sha256: &str) -> Result<AnyTurnSet, String> {
+    #[derive(Deserialize)]
+    struct Tag {
+        schema: String,
+    }
+    let actual = sha256_hex(bytes);
+    let expected = expected_sha256.trim().to_ascii_lowercase();
+    if actual != expected {
+        return Err(format!(
+            "turn set sha256 mismatch: file is {actual}, frozen digest is {expected}"
+        ));
+    }
+    let tag: Tag =
+        serde_json::from_slice(bytes).map_err(|e| format!("invalid turn set JSON: {e}"))?;
+    match tag.schema.as_str() {
+        TURN_SET_SCHEMA => parse_turn_set(bytes, expected_sha256).map(AnyTurnSet::V1),
+        TURN_SET_SCHEMA_V2 => parse_turn_set_v2(bytes, expected_sha256).map(AnyTurnSet::V2),
+        other => Err(format!(
+            "turn set schema is {other:?}, expected {TURN_SET_SCHEMA:?} or {TURN_SET_SCHEMA_V2:?}"
+        )),
+    }
 }
 
 /// Lowercase hex SHA-256 of `bytes`.
@@ -166,13 +328,24 @@ pub fn build_turn_context(spec: &TurnSpec, profile: GMProfile) -> NarrationConte
         }],
         ..StepMessages::default()
     };
-    build_narration_context_with_phase(
+    if spec.effects.is_empty() {
+        return build_narration_context_with_phase(
+            &state,
+            GamePhase::Camp,
+            &spec.event_id,
+            &spec.choice_id,
+            &msgs,
+            TurnMattersFlags::default(),
+        );
+    }
+    build_narration_context_with_deltas(
         &state,
         GamePhase::Camp,
         &spec.event_id,
         &spec.choice_id,
         &msgs,
         TurnMattersFlags::default(),
+        spec.effects.clone(),
     )
 }
 
@@ -219,6 +392,12 @@ pub struct MeasureConfig {
     pub per_call_timeout_ms: u64,
     /// Run only the first `n` turns of the set (`None` = all).
     pub max_turns: Option<usize>,
+    /// Wording of the shared rules in the system prompt (`Shipped` unless a comparison run
+    /// asks for `Positive`, which names no banned word).
+    pub prompt_rules: PromptRules,
+    /// Answer shape asked for in `format` (`Plain` unless a comparison run asks for
+    /// `CitedFacts`).
+    pub format_schema: FormatSchema,
 }
 
 impl MeasureConfig {
@@ -242,12 +421,14 @@ impl MeasureConfig {
             warmup_timeout_ms: d.warmup_timeout_ms,
             per_call_timeout_ms: d.per_call_timeout_ms,
             max_turns: None,
+            prompt_rules: PromptRules::Shipped,
+            format_schema: FormatSchema::Plain,
         }
     }
 }
 
 /// Latency of the calls in one cell, in milliseconds (nearest-rank percentiles).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LatencySummary {
     pub calls: usize,
     pub min_ms: Option<u64>,
@@ -288,8 +469,36 @@ pub struct CellReport {
     pub transport_or_http_errors: usize,
     pub not_called: usize,
     pub rule_rejects: usize,
-    /// Rule rejects by [`crate::narrator::CheckReasonCode::as_str`] name.
+    /// Rule rejects by [`crate::narrator::CheckReasonCode::as_str`] name: the first rule each
+    /// rejected line broke, which is what the game's checker reports.
     pub rejects_by_code: BTreeMap<String, usize>,
+    /// Lines the model wrote that reached the checker (accepted or rejected).
+    #[serde(default)]
+    pub lines_checked: usize,
+    /// For each rule, the number of lines that break it at all, whether or not an earlier
+    /// rule stopped the line first. A line counts once per rule it breaks.
+    #[serde(default)]
+    pub rejects_all_rules: BTreeMap<String, usize>,
+    /// Lines that break two or more rules.
+    #[serde(default)]
+    pub lines_breaking_more_than_one_rule: usize,
+    /// Lines where the unit rule fires on `coin` or `coins` (from the all-rules count).
+    #[serde(default)]
+    pub unit_rule_coin_rejects: usize,
+    /// Accepted lines, and how varied their openings (first three words) are.
+    #[serde(default)]
+    pub accepted_lines: usize,
+    #[serde(default)]
+    pub distinct_openings: usize,
+    /// Share of accepted lines whose opening no other accepted line of the cell shares.
+    #[serde(default)]
+    pub unique_opening_share: f64,
+    /// The most repeated openings (those used more than once), most repeated first.
+    #[serde(default)]
+    pub top_openings: Vec<OpeningCount>,
+    /// Latency of whole turns (both calls together), in milliseconds.
+    #[serde(default)]
+    pub latency_turn: LatencySummary,
     /// `fallback_slots / slots`.
     pub fallback_rate_slots: f64,
     /// `turns_with_fallback / turns`.
@@ -308,6 +517,12 @@ pub struct MeasureReport {
     pub endpoint: String,
     pub per_call_timeout_ms: u64,
     pub warmup_timeout_ms: u64,
+    /// Wording of the shared rules the run sent: `shipped` or `positive`.
+    #[serde(default)]
+    pub prompt_rules: PromptRules,
+    /// Answer shape the run asked for: `plain` or `cited`.
+    #[serde(default)]
+    pub format_schema: FormatSchema,
     pub cells: Vec<CellReport>,
 }
 
@@ -322,6 +537,17 @@ pub struct SlotRow {
     pub latency_ms: Option<u64>,
     pub raw_response: Option<String>,
     pub candidate: Option<String>,
+    /// The sampling seed sent with the call (absent when no call was made).
+    #[serde(default)]
+    pub seed: Option<u32>,
+    /// The request body as it was handed to the transport, parsed (absent when no call was
+    /// made).
+    #[serde(default)]
+    pub request: Option<serde_json::Value>,
+    /// Every rule the line breaks, first one first (measurement only; the game's checker
+    /// stops at the first). Empty for an accepted line and when the model wrote no line.
+    #[serde(default)]
+    pub all_rule_breaks: Vec<RuleBreak>,
 }
 
 /// One turn for one profile and length.
@@ -332,6 +558,9 @@ pub struct TurnRow {
     pub turn_id: String,
     pub scene: SlotRow,
     pub outcome: SlotRow,
+    /// Time of the turn's calls together, in milliseconds (absent when none was made).
+    #[serde(default)]
+    pub latency_ms_turn: Option<u64>,
 }
 
 fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
@@ -343,6 +572,9 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             latency_ms: None,
             raw_response: None,
             candidate: None,
+            seed: None,
+            request: None,
+            all_rule_breaks: Vec::new(),
         };
     };
     let (status, code, detail) = match &rec.outcome {
@@ -365,6 +597,12 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
         latency_ms: Some(rec.latency_ms),
         raw_response: rec.raw_response.clone(),
         candidate: rec.candidate.clone(),
+        seed: rec.seed,
+        request: rec
+            .request
+            .as_deref()
+            .and_then(|body| serde_json::from_str(body).ok()),
+        all_rule_breaks: Vec::new(),
     }
 }
 
@@ -388,8 +626,47 @@ pub fn run_measurement(
     cfg: &MeasureConfig,
     transport: Arc<dyn NarratorTransport>,
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
-    let turns: Vec<&TurnSpec> = set
-        .turns
+    let all: Vec<MeasuredTurn<'_>> = set.turns.iter().map(MeasuredTurn::V1).collect();
+    run_measurement_on(&all, set_sha256, cfg, transport, &mut |_| Ok(()))
+}
+
+/// [`run_measurement`] for a set of either version.
+pub fn run_measurement_any(
+    set: &AnyTurnSet,
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    run_measurement_on(
+        &set.measured_turns(),
+        set_sha256,
+        cfg,
+        transport,
+        &mut |_| Ok(()),
+    )
+}
+
+/// [`run_measurement_any`] that also hands each row to `on_row` as soon as its turn is done, so
+/// a caller can write rows as the run goes and lose nothing if it is stopped. An error from
+/// `on_row` stops the run.
+pub fn run_measurement_any_with_rows(
+    set: &AnyTurnSet,
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+    on_row: &mut dyn FnMut(&TurnRow) -> Result<(), String>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    run_measurement_on(&set.measured_turns(), set_sha256, cfg, transport, on_row)
+}
+
+fn run_measurement_on(
+    all: &[MeasuredTurn<'_>],
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+    on_row: &mut dyn FnMut(&TurnRow) -> Result<(), String>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    let turns: Vec<&MeasuredTurn<'_>> = all
         .iter()
         .take(cfg.max_turns.unwrap_or(usize::MAX))
         .collect();
@@ -409,6 +686,10 @@ pub fn run_measurement(
                 per_call_timeout_ms: cfg.per_call_timeout_ms,
             };
             let narrator = LiveNarrator::with_transport(settings, transport.clone());
+            narrator.set_prompt_rules(cfg.prompt_rules);
+            narrator.set_format_schema(cfg.format_schema);
+            // Every turn of the set is asked for, so the breaker is off here.
+            narrator.set_timeout_breaker(false);
             narrator.enable_slot_recording();
             let startup = narrator.check_startup();
             if !startup.available {
@@ -435,11 +716,20 @@ pub fn run_measurement(
                 fallback_rate_slots: 0.0,
                 fallback_rate_turns: 0.0,
                 latency: LatencySummary::from_samples(&[]),
+                lines_checked: 0,
+                rejects_all_rules: BTreeMap::new(),
+                lines_breaking_more_than_one_rule: 0,
+                unit_rule_coin_rejects: 0,
+                accepted_lines: 0,
+                distinct_openings: 0,
+                unique_opening_share: 0.0,
+                top_openings: Vec::new(),
+                latency_turn: LatencySummary::default(),
             };
             let mut latencies = Vec::new();
 
             for spec in &turns {
-                let ctx = build_turn_context(spec, profile);
+                let ctx = spec.context(profile);
                 narrator.narrate_turn(&ctx);
                 let recs = narrator.take_slot_records();
                 let scene = recs.iter().find(|r| r.is_scene);
@@ -485,18 +775,33 @@ pub fn run_measurement(
                 if turn_fell_back {
                     cell.turns_with_fallback += 1;
                 }
-                rows.push(TurnRow {
+                let mut row = TurnRow {
                     profile: cell.profile.clone(),
                     length: cell.length.clone(),
-                    turn_id: spec.id.clone(),
+                    turn_id: spec.id().to_string(),
                     scene: slot_row(scene),
                     outcome: slot_row(outcome),
-                });
+                    latency_ms_turn: None,
+                };
+                // Measurement only: every rule each line breaks, and the turn's time.
+                for slot in [&mut row.scene, &mut row.outcome] {
+                    if let Some(candidate) = &slot.candidate {
+                        slot.all_rule_breaks = all_rule_breaks(candidate, &ctx, length);
+                    }
+                }
+                row.latency_ms_turn = match (row.scene.latency_ms, row.outcome.latency_ms) {
+                    (None, None) => None,
+                    (a, b) => Some(a.unwrap_or(0) + b.unwrap_or(0)),
+                };
+                on_row(&row)?;
+                rows.push(row);
             }
 
             cell.fallback_rate_slots = ratio(cell.fallback_slots, cell.slots);
             cell.fallback_rate_turns = ratio(cell.turns_with_fallback, cell.turns);
             cell.latency = LatencySummary::from_samples(&latencies);
+            let first_row = rows.len() - turns.len();
+            fill_derived(&mut cell, &rows[first_row..]);
             cells.push(cell);
         }
     }
@@ -505,12 +810,14 @@ pub fn run_measurement(
         MeasureReport {
             schema: REPORT_SCHEMA.to_string(),
             turn_set_sha256: set_sha256.trim().to_ascii_lowercase(),
-            turns_in_set: set.turns.len(),
+            turns_in_set: all.len(),
             turns_run: turns.len(),
             model: cfg.model.clone(),
             endpoint: cfg.endpoint.clone(),
             per_call_timeout_ms: cfg.per_call_timeout_ms,
             warmup_timeout_ms: cfg.warmup_timeout_ms,
+            prompt_rules: cfg.prompt_rules,
+            format_schema: cfg.format_schema,
             cells,
         },
         rows,
@@ -526,15 +833,36 @@ USAGE:
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --model NAME
                    [--endpoint URL] [--profiles LIST] [--lengths LIST] [--max-turns N]
                    [--warmup-timeout-ms N] [--per-call-timeout-ms N]
+                   [--prompt-rules shipped|positive] [--format-schema plain|cited|text]
                    [--report PATH] [--rows PATH]
 
   --turn-set-sha256   digest the turn set was frozen under; the run is refused on a mismatch
   --check-only        verify the digest and rebuild every turn; makes no model call
   --profiles          comma list of chronicler,fireside,lantern-bearer (default: all)
   --lengths           comma list of brief,standard,rich (default: all)
+  --prompt-rules      wording of the shared rules in the prompt: shipped (default), or
+                      positive (says what to do and names no banned word), to compare
+  --format-schema     answer shape asked for: plain (default, a sentences array); cited
+                      (a cited_fact_keys array before the sentences array); or text
+                      (no schema: plain sentences, checked as they stand), to compare
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
+  --summarise-rows A,B,...  call no model: read rows files already written on this turn
+                      set and print their summary, with every rule each line breaks
+  --paired-with A,B,...     with --summarise-rows: a second run on the same turns; adds
+                      the per-turn paired difference (second minus first) and its 95%
+                      interval
   --rows PATH         write one JSON line per turn with everything the model wrote
 ";
+
+/// A comma-separated list of paths.
+fn split_list(value: &str) -> Vec<String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
 
 fn take_value<'a>(args: &'a [String], i: &mut usize, flag: &str) -> Result<&'a str, String> {
     *i += 1;
@@ -557,6 +885,8 @@ pub fn run_cli(
     let mut cfg = MeasureConfig::new("");
     let mut report_path = None;
     let mut rows_path = None;
+    let mut summarise: Option<Vec<String>> = None;
+    let mut paired_with: Option<Vec<String>> = None;
 
     let mut i = 0;
     while i < args.len() {
@@ -593,6 +923,35 @@ pub fn run_cli(
                         .map_err(|_| "--max-turns needs a whole number".to_string())?,
                 );
             }
+            "--prompt-rules" => {
+                cfg.prompt_rules = match take_value(args, &mut i, flag)? {
+                    "shipped" => PromptRules::Shipped,
+                    "positive" => PromptRules::Positive,
+                    other => {
+                        return Err(format!(
+                            "--prompt-rules must be shipped or positive, not {other:?}"
+                        ))
+                    }
+                };
+            }
+            "--format-schema" => {
+                cfg.format_schema = match take_value(args, &mut i, flag)? {
+                    "plain" => FormatSchema::Plain,
+                    "cited" => FormatSchema::CitedFacts,
+                    "text" => FormatSchema::PlainText,
+                    other => {
+                        return Err(format!(
+                            "--format-schema must be plain, cited or text, not {other:?}"
+                        ))
+                    }
+                };
+            }
+            "--summarise-rows" => {
+                summarise = Some(split_list(take_value(args, &mut i, flag)?));
+            }
+            "--paired-with" => {
+                paired_with = Some(split_list(take_value(args, &mut i, flag)?));
+            }
             "--warmup-timeout-ms" => {
                 cfg.warmup_timeout_ms = take_value(args, &mut i, flag)?
                     .parse()
@@ -612,38 +971,69 @@ pub fn run_cli(
     let sha = sha.ok_or("--turn-set-sha256 is required")?;
     let bytes =
         std::fs::read(&turn_set).map_err(|e| format!("cannot read turn set {turn_set}: {e}"))?;
-    let set = parse_turn_set(&bytes, &sha)?;
+    let set = parse_any_turn_set(&bytes, &sha)?;
 
     if check_only {
-        for spec in &set.turns {
+        for spec in set.measured_turns() {
             for &profile in &cfg.profiles {
-                build_turn_context(spec, profile);
+                spec.context(profile);
             }
         }
         writeln!(
             out,
             "turn set ok: {} turns, sha256 {}",
-            set.turns.len(),
+            set.len(),
             sha.trim().to_ascii_lowercase()
         )
         .map_err(|e| e.to_string())?;
         return Ok(());
     }
 
+    if let Some(files) = summarise {
+        // No model is called: rows already written are read and summarised.
+        let rows = read_rows_files(&files)?;
+        let other = match paired_with {
+            Some(files_b) => Some(read_rows_files(&files_b)?),
+            None => None,
+        };
+        let summary = summarise_rows(&set, &sha, rows, other)?;
+        let json =
+            serde_json::to_string_pretty(&summary).map_err(|e| format!("summary encode: {e}"))?;
+        if let Some(path) = report_path {
+            std::fs::write(&path, &json).map_err(|e| format!("cannot write {path}: {e}"))?;
+        }
+        writeln!(out, "{json}").map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    if paired_with.is_some() {
+        return Err("--paired-with needs --summarise-rows".to_string());
+    }
+
     cfg.model = model.ok_or("--model is required (there is no default model)")?;
-    let (report, rows) = run_measurement(&set, &sha, &cfg, transport)?;
+    // Rows are written and flushed one turn at a time, so a run that is stopped keeps every
+    // turn it finished.
+    let mut rows_file = match &rows_path {
+        Some(path) => {
+            Some(std::fs::File::create(path).map_err(|e| format!("cannot write {path}: {e}"))?)
+        }
+        None => None,
+    };
+    let mut write_row = |row: &TurnRow| -> Result<(), String> {
+        if let Some(file) = rows_file.as_mut() {
+            let mut line = serde_json::to_string(row).map_err(|e| format!("row encode: {e}"))?;
+            line.push('\n');
+            file.write_all(line.as_bytes())
+                .and_then(|()| file.flush())
+                .map_err(|e| format!("cannot write rows: {e}"))?;
+        }
+        Ok(())
+    };
+    let (report, _rows) =
+        run_measurement_any_with_rows(&set, &sha, &cfg, transport, &mut write_row)?;
     let report_json =
         serde_json::to_string_pretty(&report).map_err(|e| format!("report encode: {e}"))?;
     if let Some(path) = report_path {
         std::fs::write(&path, &report_json).map_err(|e| format!("cannot write {path}: {e}"))?;
-    }
-    if let Some(path) = rows_path {
-        let mut text = String::new();
-        for row in &rows {
-            text.push_str(&serde_json::to_string(row).map_err(|e| format!("row encode: {e}"))?);
-            text.push('\n');
-        }
-        std::fs::write(&path, text).map_err(|e| format!("cannot write {path}: {e}"))?;
     }
     writeln!(out, "{report_json}").map_err(|e| e.to_string())?;
     Ok(())

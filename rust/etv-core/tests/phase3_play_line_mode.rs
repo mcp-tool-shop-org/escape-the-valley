@@ -479,7 +479,8 @@ fn etv_binary_new_quit_continue_matches_one_session() {
     let split = tempfile::tempdir().unwrap();
     let (code, stdout, _) = run_etv(split.path(), &["new", "--seed", "42"], "t\na\nt\nq\n");
     assert_eq!(code, Some(0));
-    assert!(stdout.starts_with("New run. Seed 42.\nESCAPE THE VALLEY\n"));
+    assert!(stdout.starts_with("New run. Seed 42.\n"));
+    assert!(stdout.contains("\nESCAPE THE VALLEY\n"));
     assert!(stdout.ends_with("> Saved. Come back with: etv continue\n"));
     let (code, stdout, _) = run_etv(split.path(), &["continue"], "t\nt\nhunt\nq\n");
     assert_eq!(code, Some(0));
