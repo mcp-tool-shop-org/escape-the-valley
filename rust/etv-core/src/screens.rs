@@ -44,14 +44,15 @@ pub fn profile_description(profile: GMProfile) -> &'static str {
     }
 }
 
-/// The sentence range a length allows, in words ("1 sentence", "1-2 sentences", "2-3 sentences").
+/// How the settings screen describes a length: short, medium or long. The word caps behind
+/// them live in the code only (see [`NarratorLength::word_cap`]).
 pub fn length_description(length: NarratorLength) -> String {
-    let (min, max) = length.sentence_bounds();
-    if min == max {
-        format!("{min} sentence")
-    } else {
-        format!("{min}-{max} sentences")
+    match length {
+        NarratorLength::Brief => "short",
+        NarratorLength::Standard => "medium",
+        NarratorLength::Rich => "long",
     }
+    .to_string()
 }
 
 /// Prompt shown while the settings screen waits for a model name.

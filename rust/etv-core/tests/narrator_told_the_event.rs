@@ -421,4 +421,4 @@ fn the_longest_request_fits_the_context_window() {
 }
 
 const EXPECTED_LONGEST_EVENT: &str = "fog_bell";
-const EXPECTED_LONGEST_CHARS: usize = 2599;
+const EXPECTED_LONGEST_CHARS: usize = 2649;

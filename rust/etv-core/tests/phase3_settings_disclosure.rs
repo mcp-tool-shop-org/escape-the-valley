@@ -71,7 +71,7 @@ fn settings_screen_renders_the_defaults() {
             "  1. Narrator  on".to_string(),
             "  2. Profile   Fireside - Serious campfire narrator. Subtle uncanny moments. The default."
                 .to_string(),
-            "  3. Length    Standard (1-2 sentences)".to_string(),
+            "  3. Length    Standard (medium)".to_string(),
             "  4. Model     llama3.2".to_string(),
             "  S. Save and leave    Q. Leave without saving".to_string(),
             String::new(),
@@ -94,7 +94,7 @@ fn settings_screen_renders_every_profile_and_length() {
         lines[2],
         "  2. Profile   Chronicler - Grounded, practical, spare. Minimal folklore. Reports what happened."
     );
-    assert_eq!(lines[3], "  3. Length    Brief (1 sentence)");
+    assert_eq!(lines[3], "  3. Length    Brief (short)");
 
     s.profile = GMProfile::Lantern;
     s.length = NarratorLength::Rich;
@@ -103,7 +103,7 @@ fn settings_screen_renders_every_profile_and_length() {
         lines[2],
         "  2. Profile   Lantern-Bearer - Uncanny and liminal, but still grounded in consequences. The weird one."
     );
-    assert_eq!(lines[3], "  3. Length    Rich (2-3 sentences)");
+    assert_eq!(lines[3], "  3. Length    Rich (long)");
 }
 
 fn changed(msg: &str) -> SettingsEvent {
@@ -453,7 +453,7 @@ fn etv_settings_binary_saves_discards_and_survives_closed_stdin() {
     // The next start shows what was saved.
     let (_, stdout) = run_etv_settings(dir.path(), "q\n");
     assert!(stdout.contains("  1. Narrator  off\n"));
-    assert!(stdout.contains("  3. Length    Brief (1 sentence)\n"));
+    assert!(stdout.contains("  3. Length    Brief (short)\n"));
     assert!(stdout.ends_with("> Settings not saved.\n"));
 
     // Discard and closed stdin write nothing.

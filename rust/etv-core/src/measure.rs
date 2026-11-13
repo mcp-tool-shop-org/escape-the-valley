@@ -506,6 +506,13 @@ pub struct SlotRow {
     pub latency_ms: Option<u64>,
     pub raw_response: Option<String>,
     pub candidate: Option<String>,
+    /// The sampling seed sent with the call (absent when no call was made).
+    #[serde(default)]
+    pub seed: Option<u32>,
+    /// The request body as it was handed to the transport, parsed (absent when no call was
+    /// made).
+    #[serde(default)]
+    pub request: Option<serde_json::Value>,
 }
 
 /// One turn for one profile and length.
@@ -527,6 +534,8 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             latency_ms: None,
             raw_response: None,
             candidate: None,
+            seed: None,
+            request: None,
         };
     };
     let (status, code, detail) = match &rec.outcome {
@@ -549,6 +558,11 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
         latency_ms: Some(rec.latency_ms),
         raw_response: rec.raw_response.clone(),
         candidate: rec.candidate.clone(),
+        seed: rec.seed,
+        request: rec
+            .request
+            .as_deref()
+            .and_then(|body| serde_json::from_str(body).ok()),
     }
 }
 
@@ -573,7 +587,7 @@ pub fn run_measurement(
     transport: Arc<dyn NarratorTransport>,
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
     let all: Vec<MeasuredTurn<'_>> = set.turns.iter().map(MeasuredTurn::V1).collect();
-    run_measurement_on(&all, set_sha256, cfg, transport)
+    run_measurement_on(&all, set_sha256, cfg, transport, &mut |_| Ok(()))
 }
 
 /// [`run_measurement`] for a set of either version.
@@ -583,7 +597,26 @@ pub fn run_measurement_any(
     cfg: &MeasureConfig,
     transport: Arc<dyn NarratorTransport>,
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
-    run_measurement_on(&set.measured_turns(), set_sha256, cfg, transport)
+    run_measurement_on(
+        &set.measured_turns(),
+        set_sha256,
+        cfg,
+        transport,
+        &mut |_| Ok(()),
+    )
+}
+
+/// [`run_measurement_any`] that also hands each row to `on_row` as soon as its turn is done, so
+/// a caller can write rows as the run goes and lose nothing if it is stopped. An error from
+/// `on_row` stops the run.
+pub fn run_measurement_any_with_rows(
+    set: &AnyTurnSet,
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+    on_row: &mut dyn FnMut(&TurnRow) -> Result<(), String>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    run_measurement_on(&set.measured_turns(), set_sha256, cfg, transport, on_row)
 }
 
 fn run_measurement_on(
@@ -591,6 +624,7 @@ fn run_measurement_on(
     set_sha256: &str,
     cfg: &MeasureConfig,
     transport: Arc<dyn NarratorTransport>,
+    on_row: &mut dyn FnMut(&TurnRow) -> Result<(), String>,
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
     let turns: Vec<&MeasuredTurn<'_>> = all
         .iter()
@@ -692,13 +726,15 @@ fn run_measurement_on(
                 if turn_fell_back {
                     cell.turns_with_fallback += 1;
                 }
-                rows.push(TurnRow {
+                let row = TurnRow {
                     profile: cell.profile.clone(),
                     length: cell.length.clone(),
                     turn_id: spec.id().to_string(),
                     scene: slot_row(scene),
                     outcome: slot_row(outcome),
-                });
+                };
+                on_row(&row)?;
+                rows.push(row);
             }
 
             cell.fallback_rate_slots = ratio(cell.fallback_slots, cell.slots);
@@ -869,19 +905,30 @@ pub fn run_cli(
     }
 
     cfg.model = model.ok_or("--model is required (there is no default model)")?;
-    let (report, rows) = run_measurement_any(&set, &sha, &cfg, transport)?;
+    // Rows are written and flushed one turn at a time, so a run that is stopped keeps every
+    // turn it finished.
+    let mut rows_file = match &rows_path {
+        Some(path) => {
+            Some(std::fs::File::create(path).map_err(|e| format!("cannot write {path}: {e}"))?)
+        }
+        None => None,
+    };
+    let mut write_row = |row: &TurnRow| -> Result<(), String> {
+        if let Some(file) = rows_file.as_mut() {
+            let mut line = serde_json::to_string(row).map_err(|e| format!("row encode: {e}"))?;
+            line.push('\n');
+            file.write_all(line.as_bytes())
+                .and_then(|()| file.flush())
+                .map_err(|e| format!("cannot write rows: {e}"))?;
+        }
+        Ok(())
+    };
+    let (report, _rows) =
+        run_measurement_any_with_rows(&set, &sha, &cfg, transport, &mut write_row)?;
     let report_json =
         serde_json::to_string_pretty(&report).map_err(|e| format!("report encode: {e}"))?;
     if let Some(path) = report_path {
         std::fs::write(&path, &report_json).map_err(|e| format!("cannot write {path}: {e}"))?;
-    }
-    if let Some(path) = rows_path {
-        let mut text = String::new();
-        for row in &rows {
-            text.push_str(&serde_json::to_string(row).map_err(|e| format!("row encode: {e}"))?);
-            text.push('\n');
-        }
-        std::fs::write(&path, text).map_err(|e| format!("cannot write {path}: {e}"))?;
     }
     writeln!(out, "{report_json}").map_err(|e| e.to_string())?;
     Ok(())
