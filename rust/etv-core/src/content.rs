@@ -345,6 +345,14 @@ pub enum CliCommand {
     Settings,
     /// The about (credits) screen.
     About,
+    /// Start a new run and play it. `seed` is random when not given; `force` replaces a
+    /// saved run.
+    New {
+        seed: Option<i128>,
+        force: bool,
+    },
+    /// Resume the saved run and play it.
+    Continue,
 }
 
 /// Parsed CLI options for the `etv` binary / CLI helper.
@@ -366,6 +374,8 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     let mut version_flag = false;
     let mut notices_flag = false;
     let mut turns: usize = 60;
+    let mut seed_flag: Option<i128> = None;
+    let mut force = false;
 
     let mut i = 0;
     while i < args.len() {
@@ -379,6 +389,18 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
         } else if arg == "--require-outcomes" {
             require_outcomes = true;
             i += 1;
+        } else if arg == "--force" {
+            force = true;
+            i += 1;
+        } else if arg == "--seed" {
+            let val = args
+                .get(i + 1)
+                .ok_or_else(|| "missing value for '--seed'".to_string())?;
+            seed_flag = Some(
+                val.parse::<i128>()
+                    .map_err(|e| format!("invalid '--seed' value '{val}': {e}"))?,
+            );
+            i += 2;
         } else if arg == "--turns" {
             let val = args
                 .get(i + 1)
@@ -430,12 +452,17 @@ pub fn parse_cli_args(args: &[String]) -> Result<CliOptions, String> {
     }
 
     let sub = positional.first().map(String::as_str).ok_or_else(|| {
-        "expected command: --version | --notices | settings | about | validate-content | inspect-event <id> | run-seed <seed>"
+        "expected command: new [--seed <n>] [--force] | continue | settings | about | --version | --notices | validate-content | inspect-event <id> | run-seed <seed>"
             .to_string()
     })?;
 
     let command = match sub {
         "notices" | "licenses" => CliCommand::Notices,
+        "new" => CliCommand::New {
+            seed: seed_flag,
+            force,
+        },
+        "continue" => CliCommand::Continue,
         "settings" => CliCommand::Settings,
         "about" | "credits" => CliCommand::About,
         "validate-content" => CliCommand::ValidateContent { require_outcomes },
