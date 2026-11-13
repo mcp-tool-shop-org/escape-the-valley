@@ -1218,6 +1218,13 @@ class LedgerTrailApp(App):
         whenever the GM is disabled or falls back, so the GM-off and fallback
         paths render instantly with no streaming.
         """
+        # #30 D1: the first-town backpack nudge is a one-time offer, not a
+        # modal. Once the player plays on, close it so its E (enable) key
+        # does not shadow the E escape valve. It was already marked shown
+        # when it opened, so it never reappears; "Not now" stays separate.
+        if self.show_nudge:
+            self.show_nudge = False
+
         # If there is no live App event loop (unit tests calling the action
         # directly), run synchronously so existing call sites keep working.
         if not self._has_worker_runtime():
