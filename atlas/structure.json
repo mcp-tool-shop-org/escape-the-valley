@@ -8792,7 +8792,7 @@
         },
         {
           "dir": "rust",
-          "files": 34,
+          "files": 35,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9900,7 +9900,7 @@
         },
         {
           "dir": "rust",
-          "files": 34,
+          "files": 35,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10323,8 +10323,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "4b565048fefefe70b14224b8efadcbcd25a3757b",
-    "tracked": 831
+    "commit": "4e6b4b21c07e856541fe2f7f136fce743836a557",
+    "tracked": 832
   },
   "landings": [
     {
@@ -10675,6 +10675,12 @@
     },
     {
       "readers": [
+        {
+          "by": "rust/etv-core/tests/ledger_proof_memo_body.rs",
+          "call": "read_to_string",
+          "confidence": "ast",
+          "fromTests": true
+        },
         {
           "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
           "call": "read_to_string",
@@ -11156,7 +11162,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 82,
+  "testFiles": 83,
   "unassigned": [
     {
       "hash": "1933527f3fdc9da74685c29d9d85b11224651a30af2343998615557ce4e7282c",
@@ -12997,13 +13003,14 @@
     {
       "exports": [
         "is_inconclusive",
+        "parse_memo_deltas",
         "proof_verdict",
         "prove_player_save",
         "read_ledger_view",
         "reconcile",
         "report_to_value"
       ],
-      "hash": "137cb8398d824f76fa58786b27b7c6835dc4f777e978746f51671b20b7872df6",
+      "hash": "582b8b23e22862386270a92df28dc9d1e97edb07d12bcbb4ce48d9d8f386080c",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/model.rs"
@@ -16535,6 +16542,17 @@
       "testsInside": true
     },
     {
+      "hash": "17673573d92aca5b3584287f49ab433be43c86e6cd83542126115c723c64b7bf",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/ledger_proof.rs",
+        "rust/etv-core/src/model.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/ledger_proof_memo_body.rs",
+      "testsInside": true
+    },
+    {
       "hash": "e0dfbabe6618ff297976d77364be30bbcad42996a31fe0a94c60cdae932b1ffc",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -16680,7 +16698,7 @@
       "testsInside": true
     },
     {
-      "hash": "7965fef68c7d3b53a4a399852156801734eb290f36e5859a4cbd5581fcdd52fd",
+      "hash": "36aff81a3c00e7241db495b7649138b0a3d7b9a6be7e596b22a11a1024fdb169",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/engine.rs",
