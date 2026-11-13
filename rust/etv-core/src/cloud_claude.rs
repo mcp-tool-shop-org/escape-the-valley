@@ -851,6 +851,8 @@ impl Default for UreqHttpsPost {
             .tls_config(
                 ureq::tls::TlsConfig::builder()
                     .provider(ureq::tls::TlsProvider::NativeTls)
+                    // The system's own certificate store decides what is trusted.
+                    .root_certs(ureq::tls::RootCerts::PlatformVerifier)
                     .build(),
             )
             .build()
