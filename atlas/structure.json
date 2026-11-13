@@ -8778,7 +8778,7 @@
         },
         {
           "dir": "rust",
-          "files": 18,
+          "files": 19,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9872,7 +9872,7 @@
         },
         {
           "dir": "rust",
-          "files": 18,
+          "files": 19,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10221,8 +10221,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "7d62c45bf53a347175d04b3579ef5c0154ec86bd",
-    "tracked": 778
+    "commit": "e2c34513d881e25a19aeb2097bdb440021b245b4",
+    "tracked": 782
   },
   "landings": [
     {
@@ -10480,6 +10480,18 @@
     {
       "readers": [
         {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/src/backpack.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "rust/etv-core/Cargo.toml",
           "call": "configuration",
           "confidence": "config"
@@ -10497,6 +10509,30 @@
         }
       ],
       "target": "rust/etv-core/src/bin/narrator_measure.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "include_str",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/src/ledger_proof.rs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "rust/etv-core/tests/phase2b_backpack_proof.rs",
+          "call": "read_to_string",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
       "writers": []
     },
     {
@@ -10970,7 +11006,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 42,
+  "testFiles": 44,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11011,6 +11047,90 @@
     {
       "hash": "01567fae7e1f089b8a2637f0d6ac3e7f3266a44f438843e4a4758a370b626e12",
       "path": "rust/etv-core/notices/notices_manifest.json"
+    },
+    {
+      "exports": [
+        "balance_to_int",
+        "build_batch",
+        "build_memo",
+        "compute_deltas",
+        "encode_minted_txid",
+        "fetch_balances",
+        "fetch_onchain_memos",
+        "fold_fresh_settlement",
+        "hex_decode",
+        "hex_encode",
+        "missing_reads",
+        "parse_account_lines",
+        "parse_account_tx_page",
+        "parse_submit_result",
+        "plan_settlement",
+        "read_optional",
+        "read_required",
+        "retry_pending",
+        "settle_checkpoint",
+        "settlement_memo_text",
+        "stamp_minted_snapshot",
+        "strip_unknown_pending_keys",
+        "token_code"
+      ],
+      "failurePaths": [
+        {
+          "in": "hex_decode",
+          "kind": "err",
+          "line": 75
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 150
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 159
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 169
+        },
+        {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 174
+        },
+        {
+          "in": "read_required",
+          "kind": "err",
+          "line": 445
+        },
+        {
+          "in": "fold_payments",
+          "kind": "match-err",
+          "line": 688
+        },
+        {
+          "in": "from_fixture",
+          "kind": "err",
+          "line": 1031
+        },
+        {
+          "in": "from_fixture",
+          "kind": "err",
+          "line": 1032
+        },
+        {
+          "in": "submit_batch",
+          "kind": "err",
+          "line": 1081
+        }
+      ],
+      "hash": "040bba73162122129fa6066c92320dedd0430f616a4ab82188f5ee71ced4b7d8",
+      "importsFiles": [
+        "rust/etv-core/src/model.rs"
+      ],
+      "path": "rust/etv-core/src/backpack.rs"
     },
     {
       "entry": "main",
@@ -12183,14 +12303,32 @@
       "path": "rust/etv-core/src/ledger.rs"
     },
     {
-      "hash": "5ad750f67a4b34b1844ed9d9ad85691810c9813bc6ed5455736a0487202230ac",
+      "exports": [
+        "is_inconclusive",
+        "proof_verdict",
+        "prove_player_save",
+        "read_ledger_view",
+        "reconcile",
+        "report_to_value"
+      ],
+      "hash": "137cb8398d824f76fa58786b27b7c6835dc4f777e978746f51671b20b7872df6",
       "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/model.rs"
+      ],
+      "path": "rust/etv-core/src/ledger_proof.rs"
+    },
+    {
+      "hash": "78fb8b1cfd727235a6b1f620f4e52be5dd3f3799cd5629642edee72b72d9f12c",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/content_diff.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/events_builtin.rs",
         "rust/etv-core/src/ledger.rs",
+        "rust/etv-core/src/ledger_proof.rs",
         "rust/etv-core/src/measure.rs",
         "rust/etv-core/src/memory.rs",
         "rust/etv-core/src/model.rs",
@@ -15199,6 +15337,10 @@
       "path": "rust/etv-core/tests/fixtures/play_seed42_transcript.txt"
     },
     {
+      "hash": "9a65638a8fec858cb03a4cdede4bf23cf7d0d973b21fecc82e1faba6326c5b1c",
+      "path": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json"
+    },
+    {
       "hash": "6acc3f9f233b503084e3fe311da31db4dec295e459769d0a47f7c98a35bd5136",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -15278,6 +15420,20 @@
       "spawnsInstalled": [
         "rust/etv-core/src/bin/etv.rs"
       ],
+      "testsInside": true
+    },
+    {
+      "hash": "f5074b21ef09e81b0e20e4174177a6c4cb252efcbc96272015ec7437b4cee18a",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/ledger_proof.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/save.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/phase2b_backpack_proof.rs",
       "testsInside": true
     },
     {

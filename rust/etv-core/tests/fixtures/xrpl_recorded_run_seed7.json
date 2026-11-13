@@ -1,0 +1,966 @@
+{
+ "_comment": "Recorded XRPL-shaped responses for the Phase 2B deterministic run (seed 7, run id run-2b-seed7). Field names are the ones backpack.py reads: AccountLines result.lines[].account/currency/balance (backpack.py:1402-1406); AccountTx result.transactions[] with tx|tx_json, hash on the entry or inside tx, tx.Memos[0].Memo.MemoData, result.marker (backpack.py:1335-1352); submit result.hash (backpack.py:710). Memo hex computed with the legacy _settlement_memo_text and _hex_encode. Addresses are obviously fake. Hand-recorded, not produced by the Rust code under test.",
+ "engine_truth": {
+  "run_id": "run-2b-seed7",
+  "seed": 7,
+  "initial": {
+   "ammo": 20,
+   "food": 50,
+   "meds": 5,
+   "parts": 4,
+   "water": 50
+  },
+  "checkpoints": [
+   {
+    "day": 11,
+    "location": "Dunhollow",
+    "supplies": {
+     "ammo": 15,
+     "food": 45,
+     "meds": 11,
+     "parts": 1,
+     "water": 50
+    }
+   },
+   {
+    "day": 14,
+    "location": "Coldspring",
+    "supplies": {
+     "ammo": 15,
+     "food": 35,
+     "meds": 9,
+     "parts": 1,
+     "water": 50
+    }
+   },
+   {
+    "day": 19,
+    "location": "Fellgate",
+    "supplies": {
+     "ammo": 12,
+     "food": 35,
+     "meds": 9,
+     "parts": 0,
+     "water": 50
+    }
+   },
+   {
+    "day": 22,
+    "location": "Hazelwick",
+    "supplies": {
+     "ammo": 11,
+     "food": 34,
+     "meds": 9,
+     "parts": 0,
+     "water": 44
+    }
+   },
+   {
+    "day": 26,
+    "location": "final-reconcile",
+    "supplies": {
+     "ammo": 10,
+     "food": 31,
+     "meds": 9,
+     "parts": 0,
+     "water": 39
+    }
+   }
+  ]
+ },
+ "account_lines": {
+  "rTestPlayerWallet111111111111": {
+   "lines": [
+    {
+     "account": "rTestIssuerWallet222222222222",
+     "currency": "AMO",
+     "balance": "10"
+    },
+    {
+     "account": "rTestIssuerWallet222222222222",
+     "currency": "FOD",
+     "balance": "31"
+    },
+    {
+     "account": "rTestIssuerWallet222222222222",
+     "currency": "MED",
+     "balance": "9"
+    },
+    {
+     "account": "rTestIssuerWallet222222222222",
+     "currency": "PRT",
+     "balance": "0"
+    },
+    {
+     "account": "rTestIssuerWallet222222222222",
+     "currency": "WTR",
+     "balance": "39"
+    },
+    {
+     "account": "rTestOtherIssuer333333333333",
+     "currency": "FOD",
+     "balance": "999"
+    }
+   ]
+  }
+ },
+ "account_tx": [
+  {
+   "account": "rTestPlayerWallet111111111111",
+   "marker": null,
+   "result": {
+    "transactions": [
+     {
+      "hash": "TX2B_MINT_FOD",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_MINT_WTR",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_MINT_MED",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_MINT_AMO",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_MINT_PRT",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_D11_AMO",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_D11_FOD",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_D11_MED",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "hash": "TX2B_D11_PRT",
+      "tx_json": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     }
+    ],
+    "marker": {
+     "ledger": 4242,
+     "seq": 7
+    }
+   }
+  },
+  {
+   "account": "rTestPlayerWallet111111111111",
+   "marker": {
+    "ledger": 4242,
+    "seq": 7
+   },
+   "result": {
+    "transactions": [
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D14_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D14_MED",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D19_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D19_PRT",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_WTR",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_WTR",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "account": "rTestIssuerWallet222222222222",
+   "marker": null,
+   "result": {
+    "transactions": [
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111",
+       "hash": "TX2B_MINT_FOD"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111",
+       "hash": "TX2B_MINT_WTR"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111",
+       "hash": "TX2B_MINT_MED"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111",
+       "hash": "TX2B_MINT_AMO"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestIssuerWallet222222222222",
+       "Destination": "rTestPlayerWallet111111111111",
+       "hash": "TX2B_MINT_PRT"
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D11_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D11_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D11_MED",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D11_PRT",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D14_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D14_MED",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D19_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D19_PRT",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D22_WTR",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_AMO",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_FOD",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     },
+     {
+      "tx": {
+       "TransactionType": "Payment",
+       "Account": "rTestPlayerWallet111111111111",
+       "Destination": "rTestIssuerWallet222222222222",
+       "hash": "TX2B_D26_WTR",
+       "Memos": [
+        {
+         "Memo": {
+          "MemoData": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631",
+          "MemoType": "746578742F706C61696E"
+         }
+        }
+       ]
+      },
+      "meta": {
+       "TransactionResult": "tesSUCCESS"
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "submit": [
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "AMO",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "5",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D11_AMO"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "FOD",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "5",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D11_FOD"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestIssuerWallet222222222222",
+    "destination": "rTestPlayerWallet111111111111",
+    "currency": "MED",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "6",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D11_MED"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "PRT",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "3",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31317C44454C54413A414D4F2D352C464F442D352C4D45442B362C5052542D337C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D11_PRT"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "FOD",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "10",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D14_FOD"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "MED",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "2",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31347C44454C54413A464F442D31302C4D45442D327C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D14_MED"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "AMO",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "3",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D19_AMO"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "PRT",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "1",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A31397C44454C54413A414D4F2D332C5052542D317C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D19_PRT"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "AMO",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "1",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D22_AMO"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "FOD",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "1",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D22_FOD"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "WTR",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "6",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32327C44454C54413A414D4F2D312C464F442D312C5754522D367C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D22_WTR"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "AMO",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "1",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D26_AMO"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "FOD",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "3",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D26_FOD"
+   }
+  },
+  {
+   "expect": {
+    "account": "rTestPlayerWallet111111111111",
+    "destination": "rTestIssuerWallet222222222222",
+    "currency": "WTR",
+    "issuer": "rTestIssuerWallet222222222222",
+    "value": "5",
+    "memo_data": "545241494C7C52554E3A72756E2D32622D73656564377C4441593A32367C44454C54413A414D4F2D312C464F442D332C5754522D357C563A7631"
+   },
+   "result": {
+    "hash": "TX2B_D26_WTR"
+   }
+  }
+ ]
+}
