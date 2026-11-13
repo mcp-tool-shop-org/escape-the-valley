@@ -84,116 +84,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 31,
-      "changed": 19,
+      "added": 0,
+      "changed": 0,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/bin/etv_turn_set_v2.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/bin/etv_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also checks rust/etv-core/src/bin/etv_turn_set_v2.rs.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/bin/etv_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "etv_turn_set_v2 (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_turn_set_v2.rs.",
-        "subjects": [
-          "rust/etv-core/Cargo.toml",
-          "rust/etv-core/src/bin/etv_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json is now also read by rust/etv-core/tests/narrator_turn_set_v2.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/narrator_turn_set_v1.json",
-          "rust/etv-core/tests/narrator_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json is now read by rust/etv-core/tests/narrator_turn_set_v2.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json",
-          "rust/etv-core/tests/narrator_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `embedded`, before `load_settings_or_default`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `load_settings_or_default`, before `connect_narrator`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator`, before `no_color_requested`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "And 13 more changes to the order of work.",
-        "subjects": []
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/bin/etv_turn_set_v2.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv_turn_set_v2.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/tui/app.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/tui/app.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/tui/layout.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/tui/layout.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 28 more new files that belong to no part.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "31 files added and 19 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-13; no file changed.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "415aff68705232679df5dc0da312cd88a0a612c0",
-      "generatedAt": "2026-11-13T08:29:21.289Z"
+      "commit": "22ab3089e2e4bdb34050dc9ac9444dbf8e89ceca",
+      "generatedAt": "2026-11-13T09:07:12.441Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -278,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 10 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "22ab3089e2e4bdb34050dc9ac9444dbf8e89ceca",
+  "commit": "67df2e760e7d2b67d5dd6972916f697e42862360",
   "defaultBranch": "main",
   "derived": "10 parts, in Python (70 files), Rust (60 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -768,7 +676,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T09:07:12.441Z",
+  "generatedAt": "2026-11-13T09:12:08.189Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",

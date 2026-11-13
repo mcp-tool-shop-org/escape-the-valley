@@ -1,27 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit 22ab308 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit 67df2e7 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, in Python (70 files), Rust (60 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-13 (415aff6)
+## What changed since 2026-11-13 (22ab308)
 
-- CI now also checks rust/etv-core/src/bin/etv_turn_set_v2.rs.
-- Release now also checks rust/etv-core/src/bin/etv_turn_set_v2.rs.
-- etv_turn_set_v2 (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_turn_set_v2.rs.
-- rust/etv-core/tests/fixtures/narrator_turn_set_v1.json is now also read by rust/etv-core/tests/narrator_turn_set_v2.rs.
-- rust/etv-core/tests/fixtures/narrator_turn_set_v2.json is now read by rust/etv-core/tests/narrator_turn_set_v2.rs.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `embedded`, before `load_settings_or_default`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `load_settings_or_default`, before `connect_narrator`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator`, before `no_color_requested`.
-- And 13 more changes to the order of work.
-- rust/etv-core/src/bin/etv_turn_set_v2.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/tui/app.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/tui/layout.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 28 more new files that belong to no part.
-- 31 files added and 19 changed content.
+Nothing structural changed since 2026-11-13; no file changed.
 
 ## What comes in
 
