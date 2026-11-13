@@ -225,6 +225,15 @@ impl StepEngine {
                 engine.msgs.event_title = block.title.clone();
                 engine.msgs.event_narration = block.narration.clone();
                 engine.msgs.event_choices = block.choices.clone();
+                // The event-id cooldown list is rebuilt from the journal on load, and the journal
+                // holds an event only once it is resolved. Add the pending event, as its
+                // selection did, so a reloaded engine carries the same list as one never saved.
+                let ids = crate::events::recent_event_id_history(&mut engine.state);
+                ids.push(event.event_id.clone());
+                if ids.len() > crate::events::EVENT_ID_COOLDOWN_WINDOW {
+                    let trim = ids.len() - crate::events::EVENT_ID_COOLDOWN_WINDOW;
+                    ids.drain(..trim);
+                }
                 engine.pending_event = Some(event);
                 engine.pending_event_choices = block.choices;
                 engine.pending_event_title = block.title;
