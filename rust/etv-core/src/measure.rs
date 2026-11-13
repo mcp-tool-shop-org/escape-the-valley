@@ -51,6 +51,9 @@ use sha2::{Digest, Sha256};
 
 use crate::content::{embedded_content_pack, hex_encode_32};
 use crate::engine::{EventChoiceInfo, StepMessages};
+use crate::measure_stats::{
+    all_rule_breaks, fill_derived, read_rows_files, summarise_rows, OpeningCount, RuleBreak,
+};
 use crate::model::{GMProfile, GamePhase};
 use crate::narrator::{
     build_narration_context_with_deltas, build_narration_context_with_phase,
@@ -425,7 +428,7 @@ impl MeasureConfig {
 }
 
 /// Latency of the calls in one cell, in milliseconds (nearest-rank percentiles).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LatencySummary {
     pub calls: usize,
     pub min_ms: Option<u64>,
@@ -466,8 +469,36 @@ pub struct CellReport {
     pub transport_or_http_errors: usize,
     pub not_called: usize,
     pub rule_rejects: usize,
-    /// Rule rejects by [`crate::narrator::CheckReasonCode::as_str`] name.
+    /// Rule rejects by [`crate::narrator::CheckReasonCode::as_str`] name: the first rule each
+    /// rejected line broke, which is what the game's checker reports.
     pub rejects_by_code: BTreeMap<String, usize>,
+    /// Lines the model wrote that reached the checker (accepted or rejected).
+    #[serde(default)]
+    pub lines_checked: usize,
+    /// For each rule, the number of lines that break it at all, whether or not an earlier
+    /// rule stopped the line first. A line counts once per rule it breaks.
+    #[serde(default)]
+    pub rejects_all_rules: BTreeMap<String, usize>,
+    /// Lines that break two or more rules.
+    #[serde(default)]
+    pub lines_breaking_more_than_one_rule: usize,
+    /// Lines where the unit rule fires on `coin` or `coins` (from the all-rules count).
+    #[serde(default)]
+    pub unit_rule_coin_rejects: usize,
+    /// Accepted lines, and how varied their openings (first three words) are.
+    #[serde(default)]
+    pub accepted_lines: usize,
+    #[serde(default)]
+    pub distinct_openings: usize,
+    /// Share of accepted lines whose opening no other accepted line of the cell shares.
+    #[serde(default)]
+    pub unique_opening_share: f64,
+    /// The most repeated openings (those used more than once), most repeated first.
+    #[serde(default)]
+    pub top_openings: Vec<OpeningCount>,
+    /// Latency of whole turns (both calls together), in milliseconds.
+    #[serde(default)]
+    pub latency_turn: LatencySummary,
     /// `fallback_slots / slots`.
     pub fallback_rate_slots: f64,
     /// `turns_with_fallback / turns`.
@@ -513,6 +544,10 @@ pub struct SlotRow {
     /// made).
     #[serde(default)]
     pub request: Option<serde_json::Value>,
+    /// Every rule the line breaks, first one first (measurement only; the game's checker
+    /// stops at the first). Empty for an accepted line and when the model wrote no line.
+    #[serde(default)]
+    pub all_rule_breaks: Vec<RuleBreak>,
 }
 
 /// One turn for one profile and length.
@@ -523,6 +558,9 @@ pub struct TurnRow {
     pub turn_id: String,
     pub scene: SlotRow,
     pub outcome: SlotRow,
+    /// Time of the turn's calls together, in milliseconds (absent when none was made).
+    #[serde(default)]
+    pub latency_ms_turn: Option<u64>,
 }
 
 fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
@@ -536,6 +574,7 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             candidate: None,
             seed: None,
             request: None,
+            all_rule_breaks: Vec::new(),
         };
     };
     let (status, code, detail) = match &rec.outcome {
@@ -563,6 +602,7 @@ fn slot_row(rec: Option<&SlotRecord>) -> SlotRow {
             .request
             .as_deref()
             .and_then(|body| serde_json::from_str(body).ok()),
+        all_rule_breaks: Vec::new(),
     }
 }
 
@@ -676,6 +716,15 @@ fn run_measurement_on(
                 fallback_rate_slots: 0.0,
                 fallback_rate_turns: 0.0,
                 latency: LatencySummary::from_samples(&[]),
+                lines_checked: 0,
+                rejects_all_rules: BTreeMap::new(),
+                lines_breaking_more_than_one_rule: 0,
+                unit_rule_coin_rejects: 0,
+                accepted_lines: 0,
+                distinct_openings: 0,
+                unique_opening_share: 0.0,
+                top_openings: Vec::new(),
+                latency_turn: LatencySummary::default(),
             };
             let mut latencies = Vec::new();
 
@@ -726,12 +775,23 @@ fn run_measurement_on(
                 if turn_fell_back {
                     cell.turns_with_fallback += 1;
                 }
-                let row = TurnRow {
+                let mut row = TurnRow {
                     profile: cell.profile.clone(),
                     length: cell.length.clone(),
                     turn_id: spec.id().to_string(),
                     scene: slot_row(scene),
                     outcome: slot_row(outcome),
+                    latency_ms_turn: None,
+                };
+                // Measurement only: every rule each line breaks, and the turn's time.
+                for slot in [&mut row.scene, &mut row.outcome] {
+                    if let Some(candidate) = &slot.candidate {
+                        slot.all_rule_breaks = all_rule_breaks(candidate, &ctx, length);
+                    }
+                }
+                row.latency_ms_turn = match (row.scene.latency_ms, row.outcome.latency_ms) {
+                    (None, None) => None,
+                    (a, b) => Some(a.unwrap_or(0) + b.unwrap_or(0)),
                 };
                 on_row(&row)?;
                 rows.push(row);
@@ -740,6 +800,8 @@ fn run_measurement_on(
             cell.fallback_rate_slots = ratio(cell.fallback_slots, cell.slots);
             cell.fallback_rate_turns = ratio(cell.turns_with_fallback, cell.turns);
             cell.latency = LatencySummary::from_samples(&latencies);
+            let first_row = rows.len() - turns.len();
+            fill_derived(&mut cell, &rows[first_row..]);
             cells.push(cell);
         }
     }
@@ -784,8 +846,23 @@ USAGE:
                       (a cited_fact_keys array before the sentences array); or text
                       (no schema: plain sentences, checked as they stand), to compare
   --report PATH       write the summary JSON here (counts, rates, latency; no model text)
+  --summarise-rows A,B,...  call no model: read rows files already written on this turn
+                      set and print their summary, with every rule each line breaks
+  --paired-with A,B,...     with --summarise-rows: a second run on the same turns; adds
+                      the per-turn paired difference (second minus first) and its 95%
+                      interval
   --rows PATH         write one JSON line per turn with everything the model wrote
 ";
+
+/// A comma-separated list of paths.
+fn split_list(value: &str) -> Vec<String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
 
 fn take_value<'a>(args: &'a [String], i: &mut usize, flag: &str) -> Result<&'a str, String> {
     *i += 1;
@@ -808,6 +885,8 @@ pub fn run_cli(
     let mut cfg = MeasureConfig::new("");
     let mut report_path = None;
     let mut rows_path = None;
+    let mut summarise: Option<Vec<String>> = None;
+    let mut paired_with: Option<Vec<String>> = None;
 
     let mut i = 0;
     while i < args.len() {
@@ -867,6 +946,12 @@ pub fn run_cli(
                     }
                 };
             }
+            "--summarise-rows" => {
+                summarise = Some(split_list(take_value(args, &mut i, flag)?));
+            }
+            "--paired-with" => {
+                paired_with = Some(split_list(take_value(args, &mut i, flag)?));
+            }
             "--warmup-timeout-ms" => {
                 cfg.warmup_timeout_ms = take_value(args, &mut i, flag)?
                     .parse()
@@ -902,6 +987,26 @@ pub fn run_cli(
         )
         .map_err(|e| e.to_string())?;
         return Ok(());
+    }
+
+    if let Some(files) = summarise {
+        // No model is called: rows already written are read and summarised.
+        let rows = read_rows_files(&files)?;
+        let other = match paired_with {
+            Some(files_b) => Some(read_rows_files(&files_b)?),
+            None => None,
+        };
+        let summary = summarise_rows(&set, &sha, rows, other)?;
+        let json =
+            serde_json::to_string_pretty(&summary).map_err(|e| format!("summary encode: {e}"))?;
+        if let Some(path) = report_path {
+            std::fs::write(&path, &json).map_err(|e| format!("cannot write {path}: {e}"))?;
+        }
+        writeln!(out, "{json}").map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    if paired_with.is_some() {
+        return Err("--paired-with needs --summarise-rows".to_string());
     }
 
     cfg.model = model.ok_or("--model is required (there is no default model)")?;

@@ -2597,12 +2597,48 @@ fn contains_phrase_or_word(line_lower: &str, tokens_lower: &[String], banned: &s
 /// Validate a single narrator-generated prose string (`scene` or `outcome`) against all hard
 /// rules in the Prose Voice Guide (`VOICE-GUIDE-v1-DRAFT-2026-11-02.md`).
 pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), CheckFailure> {
+    match run_checks(line, ctx, false).into_iter().next() {
+        Some(failure) => Err(failure),
+        None => Ok(()),
+    }
+}
+
+/// Every rule `line` breaks, at most one failure per rule, in the order the rules are checked.
+/// The first entry is what [`check_generated_line`] returns. For measurement: it shows how
+/// often a rule is broken at all, where the first-failure count hides every rule after the
+/// first one a line breaks. The game does not call this.
+pub fn check_generated_line_all(line: &str, ctx: &CheckerContext) -> Vec<CheckFailure> {
+    let mut seen: Vec<CheckReasonCode> = Vec::new();
+    let mut out = Vec::new();
+    for failure in run_checks(line, ctx, true) {
+        if !seen.contains(&failure.code) {
+            seen.push(failure.code);
+            out.push(failure);
+        }
+    }
+    out
+}
+
+/// The rules, in order. With `all` false it stops at the first failure; with `all` true it
+/// carries on and returns every failure it meets.
+fn run_checks(line: &str, ctx: &CheckerContext, all: bool) -> Vec<CheckFailure> {
+    let mut out: Vec<CheckFailure> = Vec::new();
+    macro_rules! fail {
+        ($failure:expr) => {{
+            out.push($failure);
+            if !all {
+                return out;
+            }
+        }};
+    }
     let trimmed = line.trim();
     if trimmed.is_empty() {
-        return Err(CheckFailure {
+        // Nothing else can be said about an empty line.
+        out.push(CheckFailure {
             code: CheckReasonCode::InvalidPunctuation,
             detail: "line is empty".to_string(),
         });
+        return out;
     }
 
     // 1. Punctuation check: periods and commas only (plus intra-word apostrophes/hyphens).
@@ -2619,7 +2655,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         || trimmed.contains(']')
         || !trimmed.ends_with('.')
     {
-        return Err(CheckFailure {
+        fail!(CheckFailure {
             code: CheckReasonCode::InvalidPunctuation,
             detail: "disallowed punctuation or missing terminal period".to_string(),
         });
@@ -2632,7 +2668,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
             || ch == '\''
             || ch == '-')
         {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::InvalidPunctuation,
                 detail: format!("disallowed character {ch:?}"),
             });
@@ -2644,7 +2680,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     // Since trimmed ends with '.', the last element after split('.') must be empty, and all prior
     // elements must be non-empty sentences.
     if raw_sentences.last().map(|s| !s.is_empty()).unwrap_or(true) {
-        return Err(CheckFailure {
+        fail!(CheckFailure {
             code: CheckReasonCode::InvalidPunctuation,
             detail: "trailing text after final period".to_string(),
         });
@@ -2654,7 +2690,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         .map(|s| s.trim())
         .collect();
     if sentences.is_empty() || sentences.iter().any(|s| s.is_empty()) {
-        return Err(CheckFailure {
+        fail!(CheckFailure {
             code: CheckReasonCode::InvalidPunctuation,
             detail: "empty sentence segment".to_string(),
         });
@@ -2662,7 +2698,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     let cap = ctx.length.word_cap();
     let words = trimmed.split_whitespace().count();
     if words > cap {
-        return Err(CheckFailure {
+        fail!(CheckFailure {
             code: CheckReasonCode::LengthCapExceeded,
             detail: format!(
                 "expected at most {cap} words for {:?}, found {words}",
@@ -2681,7 +2717,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     // 3. QuantifierBeforeResourceOrHalf: "half" anywhere, or "one"/"both"/"pair" before a resource noun.
     for (idx, word) in tokens_lower.iter().enumerate() {
         if word == "half" {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::QuantifierBeforeResourceOrHalf,
                 detail: "banned quantifier 'half'".to_string(),
             });
@@ -2689,7 +2725,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         if word == "one" || word == "both" || word == "pair" {
             if let Some(next_word) = tokens_lower.get(idx + 1) {
                 if lookup_resource_key_for_noun(next_word).is_some() {
-                    return Err(CheckFailure {
+                    fail!(CheckFailure {
                         code: CheckReasonCode::QuantifierBeforeResourceOrHalf,
                         detail: format!(
                             "quantifier '{word}' directly before resource '{next_word}'"
@@ -2699,7 +2735,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                 if next_word == "of" {
                     if let Some(third_word) = tokens_lower.get(idx + 2) {
                         if lookup_resource_key_for_noun(third_word).is_some() {
-                            return Err(CheckFailure {
+                            fail!(CheckFailure {
                                 code: CheckReasonCode::QuantifierBeforeResourceOrHalf,
                                 detail: format!(
                                     "quantifier '{word} of' before resource '{third_word}'"
@@ -2715,14 +2751,14 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     // 4. NumbersDigitsOrUnits: ASCII digits, counting words >= 2 (or zero), and a unit word
     // that has a number or quantity word straight before it.
     if trimmed.chars().any(|c| c.is_ascii_digit()) {
-        return Err(CheckFailure {
+        fail!(CheckFailure {
             code: CheckReasonCode::NumbersDigitsOrUnits,
             detail: "contains ASCII digit".to_string(),
         });
     }
     for (idx, word) in tokens_lower.iter().enumerate() {
         if BANNED_NUMBER_WORDS.contains(&word.as_str()) {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::NumbersDigitsOrUnits,
                 detail: format!("banned number word '{word}'"),
             });
@@ -2732,7 +2768,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
             let article =
                 (prev == "a" || prev == "an") && !EVERYDAY_UNIT_WORDS.contains(&word.as_str());
             if article || QUANTITY_WORDS.contains(&prev) {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::NumbersDigitsOrUnits,
                     detail: format!("unit word '{word}' after quantity word '{prev}'"),
                 });
@@ -2746,13 +2782,13 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         if BANNED_DEATH_WORDS.contains(&word.as_str())
             && !(ctx.death_allowed && PLAIN_DEATH_WORDS.contains(&word.as_str()))
         {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::DeathWords,
                 detail: format!("banned death word '{word}'"),
             });
         }
         if ctx.death_allowed && GORE_WORDS.contains(&word.as_str()) {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::DeathWords,
                 detail: format!("gore word '{word}' on a death turn"),
             });
@@ -2785,13 +2821,13 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
             }
             if w_idx == 0 {
                 if clean_chars.iter().skip(1).any(|c| c.is_ascii_uppercase()) {
-                    return Err(CheckFailure {
+                    fail!(CheckFailure {
                         code: CheckReasonCode::MidSentenceCapital,
                         detail: format!("unexpected uppercase inside first word '{raw_token}'"),
                     });
                 }
             } else if clean_chars.iter().any(|c| c.is_ascii_uppercase()) {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::MidSentenceCapital,
                     detail: format!("mid-sentence capital in '{raw_token}'"),
                 });
@@ -2824,7 +2860,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                         || (res_key == "lantern_oil" && allowed == "oil")
                 }) || event_named.contains(&word);
                 if !is_allowed {
-                    return Err(CheckFailure {
+                    fail!(CheckFailure {
                         code: CheckReasonCode::UnauthorisedResourceNoun,
                         detail: format!(
                             "resource noun '{word}' (key '{res_key}') not in allowed_resources {:?}",
@@ -2840,7 +2876,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     let line_lower = trimmed.to_ascii_lowercase();
     for &banned in BANNED_WORDS_ALL_BANDS {
         if contains_phrase_or_word(&line_lower, &tokens_lower, banned) {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::BandBannedVocabulary,
                 detail: format!("word '{banned}' is banned across all bands"),
             });
@@ -2849,7 +2885,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     if ctx.weirdness_band <= 2 {
         for &banned in BANNED_WORDS_BAND_2_AND_BELOW {
             if contains_phrase_or_word(&line_lower, &tokens_lower, banned) {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::BandBannedVocabulary,
                     detail: format!(
                         "word '{banned}' is banned at weirdness band {}",
@@ -2862,7 +2898,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     if ctx.weirdness_band <= 1 {
         for &banned in BANNED_WORDS_BAND_1_AND_BELOW {
             if contains_phrase_or_word(&line_lower, &tokens_lower, banned) {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::BandBannedVocabulary,
                     detail: format!(
                         "word '{banned}' is banned at weirdness band {}",
@@ -2875,7 +2911,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     if ctx.weirdness_band == 0 {
         for &banned in BANNED_WORDS_BAND_0_ONLY {
             if contains_phrase_or_word(&line_lower, &tokens_lower, banned) {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::BandBannedVocabulary,
                     detail: format!("word '{banned}' is banned at grounded band 0"),
                 });
@@ -2887,7 +2923,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     for word in &tokens_lower {
         let stem = word.split('\'').next().unwrap_or(word);
         if PERSONAL_PRONOUN_WORDS.contains(&stem) {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::PersonalPronoun,
                 detail: format!("first or second person word '{word}'"),
             });
@@ -2911,7 +2947,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                 part.len() >= 2 && part.eq_ignore_ascii_case(cleaned)
             });
             if hit {
-                return Err(CheckFailure {
+                fail!(CheckFailure {
                     code: CheckReasonCode::NamedPartyMember,
                     detail: format!("party member name '{cleaned}'"),
                 });
@@ -2922,7 +2958,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
     // 11. DraftAnimalSpecies, unless the event's own seed or label names it.
     for word in &tokens_lower {
         if DRAFT_ANIMAL_SPECIES_WORDS.contains(&word.as_str()) && !event_named.contains(word) {
-            return Err(CheckFailure {
+            fail!(CheckFailure {
                 code: CheckReasonCode::DraftAnimalSpecies,
                 detail: format!("draft-animal species '{word}' not named by the event"),
             });
@@ -2938,7 +2974,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         if line_stems.contains(&verb_stem) {
             for noun in &label_words[1..] {
                 if line_stems.contains(&crude_stem(noun)) {
-                    return Err(CheckFailure {
+                    fail!(CheckFailure {
                         code: CheckReasonCode::ChoiceParroting,
                         detail: format!(
                             "line repeats label verb '{}' and noun '{noun}'",
@@ -2950,7 +2986,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    Ok(())
+    out
 }
 
 // ============================================================================
