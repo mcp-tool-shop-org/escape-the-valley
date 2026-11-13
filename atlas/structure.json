@@ -8778,7 +8778,7 @@
         },
         {
           "dir": "rust",
-          "files": 20,
+          "files": 21,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9872,7 +9872,7 @@
         },
         {
           "dir": "rust",
-          "files": 20,
+          "files": 21,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10221,8 +10221,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "1fc107dca1aa8fe1b191f3c765af4326f7062340",
-    "tracked": 783
+    "commit": "5ebf5c6eb7a75462c97742997f8e35399fef0805",
+    "tracked": 784
   },
   "landings": [
     {
@@ -11006,7 +11006,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 45,
+  "testFiles": 46,
   "unassigned": [
     {
       "hash": "46eef46a43fba55d54a53fc894a7c278257157636d9e3df2ca12436611fd497c",
@@ -11070,7 +11070,9 @@
         "read_optional",
         "read_required",
         "retry_pending",
+        "retry_pending_with_persist",
         "settle_checkpoint",
+        "settle_checkpoint_with_persist",
         "settlement_memo_text",
         "stamp_minted_snapshot",
         "strip_unknown_pending_keys",
@@ -11105,30 +11107,65 @@
         {
           "in": "read_required",
           "kind": "err",
-          "line": 476
+          "line": 478
         },
         {
-          "in": "fold_payments",
+          "in": "fetch_onchain_memos",
+          "kind": "err",
+          "line": 690
+        },
+        {
+          "in": "run_batch",
           "kind": "match-err",
-          "line": 719
+          "line": 785
+        },
+        {
+          "in": "run_batch",
+          "kind": "match-err",
+          "line": 825
+        },
+        {
+          "in": "finish_fresh",
+          "kind": "err",
+          "line": 904
+        },
+        {
+          "in": "fold_fresh_settlement",
+          "kind": "match-err",
+          "line": 942
+        },
+        {
+          "in": "retry_pending",
+          "kind": "match-err",
+          "line": 978
+        },
+        {
+          "in": "retry_pending_with_persist",
+          "kind": "err",
+          "line": 1042
+        },
+        {
+          "in": "settle_checkpoint",
+          "kind": "match-err",
+          "line": 1082
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1068
+          "line": 1230
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1069
+          "line": 1231
         },
         {
-          "in": "submit_batch",
+          "in": "submit_payment",
           "kind": "err",
-          "line": 1118
+          "line": 1279
         }
       ],
-      "hash": "97a3627d4a8977d1b0540d05e407e3fbda4a4fc58753249293cd076b02d72fb1",
+      "hash": "b0e6019c32cd75f83a2c9ad7223c98f7a653a6d96977c9b21b235030b5458948",
       "importsFiles": [
         "rust/etv-core/src/model.rs"
       ],
@@ -15315,7 +15352,7 @@
       "testsInside": true
     },
     {
-      "hash": "de2996ea10c9139c32e0f71b2489c1ebc54e71bfffd2b5e2fcd14693cd7f47a5",
+      "hash": "c2094c1459e1ca3cf99d33d770d8396923e687c7a9496886beaa363e512035e9",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/ledger_proof.rs",
@@ -15323,6 +15360,17 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/backpack_pending_overlap.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "28f780e40669c75d22a35d6c168a71e607bb931540c1998a855580d106c99dc3",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/ledger_proof.rs",
+        "rust/etv-core/src/model.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/backpack_save_per_payment.rs",
       "testsInside": true
     },
     {
@@ -15436,7 +15484,7 @@
       "testsInside": true
     },
     {
-      "hash": "f5074b21ef09e81b0e20e4174177a6c4cb252efcbc96272015ec7437b4cee18a",
+      "hash": "65ac78415baada6a19e2fe2b0e3441eb4a58498863e9c43923cc577a153f0252",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
         "rust/etv-core/src/engine.rs",

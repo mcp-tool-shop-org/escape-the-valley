@@ -418,10 +418,12 @@ pub trait LedgerTransport {
     /// AccountLines `result` for `account` (`client.request(AccountLines(account=...))`).
     fn balances(&mut self, account: &str) -> Result<Value, TransportError>;
 
-    /// Submit the batch's payments in order. A transport MUST stop after the first failed payment
-    /// and return the attempts made so far (Python `break`s there); the core ignores anything after
-    /// a failure.
-    fn submit_batch(&mut self, batch: &SettlementBatch) -> Vec<PaymentAttempt>;
+    /// Submit ONE payment of `batch` (the one at `index` in `batch.payments`) and return its
+    /// outcome once the ledger has confirmed or refused it. The core calls this once per payment,
+    /// saves state between calls, and stops at the first failure, so a transport never sees the
+    /// payments after a failed one and need not track the batch. `batch` is context only (its
+    /// full-batch memo, run and day); the payment itself carries everything that is signed.
+    fn submit_payment(&mut self, batch: &SettlementBatch, index: usize) -> PaymentAttempt;
 
     /// One AccountTx page `result` for `account`, resuming at `marker` when given.
     fn tx_memos(&mut self, account: &str, marker: Option<&Value>) -> Result<Value, TransportError>;
@@ -609,6 +611,12 @@ pub fn parse_submit_result(result: &Value, log: &mut ReadLog) -> String {
 pub enum FetchError {
     Transport(TransportError),
     Shape(ShapeError),
+    /// AccountTx still offered another page after [`MAX_ACCOUNT_TX_PAGES`]: the memo list would
+    /// be short, so no list is returned.
+    PageCapReached {
+        account: String,
+        pages: usize,
+    },
 }
 
 /// Read on-ledger balances keyed by XRPL currency code (`wallet_info`, backpack.py:1398-1415):
@@ -636,8 +644,9 @@ pub fn fetch_balances<T: LedgerTransport + ?Sized>(
 }
 
 /// Read settlement memos back off the chain, keyed by txid (`fetch_onchain_memos`,
-/// backpack.py:1296-1365): both accounts, paged by marker up to [`MAX_ACCOUNT_TX_PAGES`], first
-/// memo per transaction, hex-decoded; an undecodable memo is skipped.
+/// backpack.py:1296-1365): both accounts, paged by marker up to [`MAX_ACCOUNT_TX_PAGES`] (hitting the cap
+/// is [`FetchError::PageCapReached`], never a silently short list), first memo per transaction,
+/// hex-decoded; an undecodable memo is skipped.
 pub fn fetch_onchain_memos<T: LedgerTransport + ?Sized>(
     transport: &mut T,
     wallet_address: &str,
@@ -650,6 +659,7 @@ pub fn fetch_onchain_memos<T: LedgerTransport + ?Sized>(
             continue;
         }
         let mut marker: Option<Value> = None;
+        let mut finished = false;
         for _ in 0..MAX_ACCOUNT_TX_PAGES {
             let result = transport
                 .tx_memos(account, marker.as_ref())
@@ -668,8 +678,19 @@ pub fn fetch_onchain_memos<T: LedgerTransport + ?Sized>(
             }
             match page.marker {
                 Some(m) => marker = Some(m),
-                None => break,
+                None => {
+                    finished = true;
+                    break;
+                }
             }
+        }
+        // Python stops quietly at the cap and returns a short list. Rust does not: a list that may
+        // be missing memos must not look complete (the proof reads this as INCONCLUSIVE).
+        if !finished {
+            return Err(FetchError::PageCapReached {
+                account: account.to_string(),
+                pages: MAX_ACCOUNT_TX_PAGES,
+            });
         }
     }
     Ok(memos)
@@ -677,38 +698,83 @@ pub fn fetch_onchain_memos<T: LedgerTransport + ?Sized>(
 
 // ── Folding payment results into the backpack (double-settlement guards) ───────────────────
 
-#[derive(Debug, Default)]
-struct Progress {
+/// A settle stopped because the caller's persist hook failed. **A payment may have landed on the
+/// ledger without being saved**: `key`'s payment was confirmed and folded into the in-memory
+/// state, but the save of that state failed, so a save made from the last good snapshot does not
+/// show it. The batch was stopped and the keys not yet paid were left pending.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PersistFailed<E> {
+    /// The game key whose confirmed payment the failed save was meant to record.
+    pub key: String,
+    pub source: E,
+}
+
+impl<E: std::fmt::Display> std::fmt::Display for PersistFailed<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "the payment for {} was confirmed but the state could not be saved ({}); \
+             a payment may have landed without being saved",
+            self.key, self.source
+        )
+    }
+}
+
+impl<E: std::fmt::Debug + std::fmt::Display> std::error::Error for PersistFailed<E> {}
+
+struct BatchRun<E> {
     confirmed: BTreeMap<String, i32>,
     txids: Vec<String>,
     failure: Option<String>,
+    persist_failed: Option<PersistFailed<E>>,
 }
 
-/// Fold each confirmed payment into the baseline AS IT CONFIRMS, never after the whole batch
-/// (ledger-CRIT-2, backpack.py:706-752 and 944-1000). Stops at the first failed payment; the
-/// transport's later attempts, if any, are ignored.
+/// Run one batch a payment at a time. For EACH payment, in this exact order:
 ///
-/// Guards:
-/// - an attempt for the wrong key, or a missing attempt, is a failure (the core does not trust
-///   a transport to return results in order);
-/// - a txid already recorded in `bp.settlements`, or already seen in this batch, is refused and
-///   not folded (a replayed response must never pay a key twice).
-fn fold_payments(
+/// 1. submit it (`next`), which blocks until the transport reports the outcome;
+/// 2. receive the confirmation (a refused, unreachable, wrong-key or duplicate-txid result stops
+///    the batch here and folds nothing);
+/// 3. fold it into `bp`: the baseline (`last_settled_supplies`) moves by that key's delta, and
+///    the batch's receipt in `bp.settlements` gains that key and its txid (ledger-CRIT-2);
+/// 4. `on_confirmed` (a pending retry removes the key from its queued record here);
+/// 5. call `persist` with the state as it now stands, so every snapshot the caller saves is
+///    self-consistent (a key is never advanced in the baseline without its receipt);
+/// 6. only then submit the next payment.
+///
+/// If `persist` fails, the batch STOPS: no further payment is submitted, and the failure is
+/// returned in `persist_failed` (a payment may have landed without being saved). Unpaid keys stay
+/// pending (the callers queue them). Stopping, not tolerating and continuing (as the Python
+/// `_persist_state` does), because a save that fails once usually fails again: every payment
+/// made after it would widen the gap between the ledger and the save.
+///
+/// The window that remains: the process dies after step 2 of a payment and before step 5 has
+/// saved. The save then lacks that payment, and the next settle pays it again. Python has the
+/// same window. See `tests/backpack_save_per_payment.rs`.
+fn run_batch<E>(
     bp: &mut BackpackState,
-    payments: &[PaymentRequest],
-    attempts: Vec<PaymentAttempt>,
-    mut on_confirmed: impl FnMut(&str),
+    batch: &SettlementBatch,
+    timestamp: &str,
+    next: &mut dyn FnMut(&SettlementBatch, usize) -> Option<PaymentAttempt>,
+    on_confirmed: &mut dyn FnMut(&mut BackpackState, &str),
+    persist: &mut dyn FnMut(&BackpackState) -> Result<(), E>,
     log: &mut ReadLog,
-) -> Progress {
-    let mut progress = Progress::default();
-    let mut attempts = attempts.into_iter();
-    for payment in payments {
-        let Some(attempt) = attempts.next() else {
-            progress.failure = Some(format!("no result for payment {}", payment.key));
+) -> BatchRun<E> {
+    let mut run = BatchRun {
+        confirmed: BTreeMap::new(),
+        txids: Vec::new(),
+        failure: None,
+        persist_failed: None,
+    };
+    let mut receipt_idx: Option<usize> = None;
+    for (index, payment) in batch.payments.iter().enumerate() {
+        let Some(attempt) = next(batch, index) else {
+            run.failure = Some(format!("no result for payment {}", payment.key));
             break;
         };
+        // The core asks for one payment at a time, so a result for another key means the
+        // transport is broken: stop, and never go on to a second payment.
         if attempt.key != payment.key {
-            progress.failure = Some(format!(
+            run.failure = Some(format!(
                 "result for {} where {} was expected",
                 attempt.key, payment.key
             ));
@@ -717,30 +783,54 @@ fn fold_payments(
         let value = match attempt.result {
             Ok(v) => v,
             Err(e) => {
-                progress.failure = Some(format!("{e:?}"));
+                run.failure = Some(format!("{e:?}"));
                 break;
             }
         };
         let txid = parse_submit_result(&value, log);
         if !txid.is_empty() {
-            let seen = progress.txids.contains(&txid)
-                || bp.settlements.iter().any(|s| s.txids.contains(&txid));
+            let seen =
+                run.txids.contains(&txid) || bp.settlements.iter().any(|s| s.txids.contains(&txid));
             if seen {
-                progress.failure = Some(format!("duplicate txid {txid}: refusing to fold twice"));
+                run.failure = Some(format!("duplicate txid {txid}: refusing to fold twice"));
                 break;
             }
-            progress.txids.push(txid);
+            run.txids.push(txid.clone());
         }
         let diff = signed_delta(payment);
-        progress.confirmed.insert(payment.key.clone(), diff);
+        run.confirmed.insert(payment.key.clone(), diff);
         let base = bp
             .last_settled_supplies
             .entry(payment.key.clone())
             .or_insert(0);
         *base = base.saturating_add(diff);
-        on_confirmed(&payment.key);
+        let idx = *receipt_idx.get_or_insert_with(|| {
+            bp.settlements.push(SettlementRecord {
+                day: batch.day,
+                location: batch.location.clone(),
+                deltas: BTreeMap::new(),
+                txids: Vec::new(),
+                status: "settled".to_string(),
+                // ledger-003: the stored memo is the full-batch text every Payment carried.
+                memo: batch.memo_text.clone(),
+                timestamp: timestamp.to_string(),
+            });
+            bp.settlements.len() - 1
+        });
+        bp.settlements[idx].deltas.insert(payment.key.clone(), diff);
+        if !txid.is_empty() {
+            bp.settlements[idx].txids.push(txid);
+        }
+        on_confirmed(bp, &payment.key);
+        if let Err(source) = persist(bp) {
+            run.persist_failed = Some(PersistFailed {
+                key: payment.key.clone(),
+                source,
+            });
+            break;
+        }
     }
-    progress
+    run
 }
 
 fn signed_delta(payment: &PaymentRequest) -> i32 {
@@ -749,28 +839,6 @@ fn signed_delta(payment: &PaymentRequest) -> i32 {
         PaymentDirection::PlayerToIssuer => -mag,
         PaymentDirection::IssuerToPlayer => mag,
     }
-}
-
-fn receipt(
-    progress: &Progress,
-    day: i32,
-    location: &str,
-    full_memo_text: String,
-    timestamp: &str,
-) -> Option<SettlementRecord> {
-    if progress.confirmed.is_empty() {
-        return None;
-    }
-    Some(SettlementRecord {
-        day,
-        location: location.to_string(),
-        deltas: progress.confirmed.clone(),
-        txids: progress.txids.clone(),
-        status: "settled".to_string(),
-        // ledger-003: the stored memo is the full-batch text every Payment carried on-chain.
-        memo: full_memo_text,
-        timestamp: timestamp.to_string(),
-    })
 }
 
 /// How a fresh settlement ended.
@@ -796,9 +864,62 @@ pub struct SettleReport {
     pub retried_moved: usize,
 }
 
-/// Fold the attempts of a fresh batch into `bp` (backpack.py:676-815): per-key baseline advance,
-/// a receipt in `bp.settlements` for what cleared, a pending record for what did not, and
-/// `last_settlement_day` / `last_settle_failed` updated exactly as Python does.
+/// The state change after a fresh batch ran: `last_settlement_day` / `last_settle_failed` exactly
+/// as Python, plus a pending record for the keys that did not clear.
+fn finish_fresh<E>(
+    bp: &mut BackpackState,
+    batch: &SettlementBatch,
+    run: BatchRun<E>,
+    timestamp: &str,
+) -> Result<SettleReport, PersistFailed<E>> {
+    let BatchRun {
+        confirmed,
+        txids,
+        failure,
+        persist_failed,
+    } = run;
+    let remaining: BTreeMap<String, i32> = batch
+        .deltas
+        .iter()
+        .filter(|(k, _)| !confirmed.contains_key(*k))
+        .map(|(k, v)| (k.clone(), *v))
+        .collect();
+    let stopped = failure.is_some() || (persist_failed.is_some() && !remaining.is_empty());
+    if !stopped {
+        bp.last_settlement_day = batch.day;
+        bp.last_settle_failed = false;
+    } else {
+        bp.pending_settlements.push(SettlementRecord {
+            day: batch.day,
+            location: batch.location.clone(),
+            memo: settlement_memo_text(&batch.run_id, batch.day, &remaining),
+            deltas: remaining,
+            txids: Vec::new(),
+            status: "pending".to_string(),
+            timestamp: timestamp.to_string(),
+        });
+        bp.last_settle_failed = true;
+    }
+    if let Some(p) = persist_failed {
+        return Err(p);
+    }
+    let status = match failure {
+        None => SettleStatus::Settled,
+        Some(reason) => SettleStatus::Pending { reason },
+    };
+    Ok(SettleReport {
+        status,
+        confirmed,
+        txids,
+        retried_moved: 0,
+    })
+}
+
+/// Fold the attempts of a fresh batch into `bp` (backpack.py:676-815) from attempts the caller
+/// already holds: per-key baseline advance, a receipt in `bp.settlements` for what cleared, a
+/// pending record for what did not, and `last_settlement_day` / `last_settle_failed` updated
+/// exactly as Python does. No persistence point (use [`settle_checkpoint_with_persist`] for
+/// that); a missing attempt is a failure.
 pub fn fold_fresh_settlement(
     bp: &mut BackpackState,
     batch: &SettlementBatch,
@@ -806,51 +927,19 @@ pub fn fold_fresh_settlement(
     timestamp: &str,
     log: &mut ReadLog,
 ) -> SettleReport {
-    let progress = fold_payments(bp, &batch.payments, attempts, |_| {}, log);
-    if let Some(rec) = receipt(
-        &progress,
-        batch.day,
-        &batch.location,
-        batch.memo_text.clone(),
+    let mut attempts = attempts.into_iter();
+    let run = run_batch(
+        bp,
+        batch,
         timestamp,
-    ) {
-        bp.settlements.push(rec);
-    }
-    match progress.failure {
-        None => {
-            bp.last_settlement_day = batch.day;
-            bp.last_settle_failed = false;
-            SettleReport {
-                status: SettleStatus::Settled,
-                confirmed: progress.confirmed,
-                txids: progress.txids,
-                retried_moved: 0,
-            }
-        }
-        Some(reason) => {
-            let remaining: BTreeMap<String, i32> = batch
-                .deltas
-                .iter()
-                .filter(|(k, _)| !progress.confirmed.contains_key(*k))
-                .map(|(k, v)| (k.clone(), *v))
-                .collect();
-            bp.pending_settlements.push(SettlementRecord {
-                day: batch.day,
-                location: batch.location.clone(),
-                memo: settlement_memo_text(&batch.run_id, batch.day, &remaining),
-                deltas: remaining,
-                txids: Vec::new(),
-                status: "pending".to_string(),
-                timestamp: timestamp.to_string(),
-            });
-            bp.last_settle_failed = true;
-            SettleReport {
-                status: SettleStatus::Pending { reason },
-                confirmed: progress.confirmed,
-                txids: progress.txids,
-                retried_moved: 0,
-            }
-        }
+        &mut |_, _| attempts.next(),
+        &mut |_, _| {},
+        &mut |_| Ok::<(), std::convert::Infallible>(()),
+        log,
+    );
+    match finish_fresh(bp, batch, run, timestamp) {
+        Ok(report) => report,
+        Err(p) => match p.source {},
     }
 }
 
@@ -867,15 +956,9 @@ pub fn strip_unknown_pending_keys(bp: &mut BackpackState) -> bool {
     stripped
 }
 
-/// Retry every pending record (`_retry_pending`, backpack.py:819-1040). Returns how many records
-/// cleared at least one key.
-///
-/// - ledger-CRIT-2: each confirmed key is removed from its pending record the moment it clears,
-///   so a later pass can never resubmit it.
-/// - ENG-A-08: each confirmed delta is folded into the baseline, so the next fresh settlement is
-///   measured against a baseline that already accounts for it.
-/// - ledger-003: the on-chain memo carries the record's full pre-narrowing delta set; a record
-///   that fails part way gets its stored memo refreshed to the narrowed set.
+/// Retry every pending record (`_retry_pending`, backpack.py:819-1040) with no persistence
+/// point. Returns how many records cleared at least one key. See
+/// [`retry_pending_with_persist`].
 pub fn retry_pending<T: LedgerTransport + ?Sized>(
     bp: &mut BackpackState,
     run_id: &str,
@@ -883,6 +966,40 @@ pub fn retry_pending<T: LedgerTransport + ?Sized>(
     transport: &mut T,
     log: &mut ReadLog,
 ) -> usize {
+    match retry_pending_with_persist(
+        bp,
+        run_id,
+        timestamp,
+        transport,
+        &mut |_| Ok::<(), std::convert::Infallible>(()),
+        log,
+    ) {
+        Ok(moved) => moved,
+        Err(p) => match p.source {},
+    }
+}
+
+/// Retry every pending record, calling `persist` after each confirmed payment (see
+/// [`run_batch`] for the exact per-payment order). Returns how many records cleared at least one
+/// key, or [`PersistFailed`] when a save failed (the retry stops there).
+///
+/// - ledger-CRIT-2: each confirmed key is removed from its pending record the moment it clears,
+///   so a later pass can never resubmit it, and a record that empties is dropped from the queue.
+/// - ENG-A-08: each confirmed delta is folded into the baseline, so the next fresh settlement is
+///   measured against a baseline that already accounts for it.
+/// - ledger-003: the on-chain memo carries the record's full pre-narrowing delta set; the stored
+///   memo of a record that is narrowed is refreshed to the narrowed set.
+///
+/// The record being retried stays in `bp.pending_settlements` throughout, narrowed in place, so
+/// every snapshot handed to `persist` still holds every payment not yet made.
+pub fn retry_pending_with_persist<T: LedgerTransport + ?Sized, E>(
+    bp: &mut BackpackState,
+    run_id: &str,
+    timestamp: &str,
+    transport: &mut T,
+    persist: &mut dyn FnMut(&BackpackState) -> Result<(), E>,
+    log: &mut ReadLog,
+) -> Result<usize, PersistFailed<E>> {
     strip_unknown_pending_keys(bp);
     if bp.pending_settlements.is_empty() {
         // Departs from Python (`_retry_pending` returns at backpack.py:851 and leaves the flag when
@@ -892,53 +1009,53 @@ pub fn retry_pending<T: LedgerTransport + ?Sized>(
         // false. A flag stuck on with an empty queue (reachable from a hand-edited or older save)
         // heals on the next settle instead of nagging the player forever.
         bp.last_settle_failed = false;
-        return 0;
+        return Ok(0);
     }
-    let queue = std::mem::take(&mut bp.pending_settlements);
-    let mut kept: Vec<SettlementRecord> = Vec::new();
     let mut moved = 0usize;
-    for mut record in queue {
-        let original = record.deltas.clone();
-        let batch = build_batch(bp, run_id, record.day, &record.location, &original);
-        let attempts = transport.submit_batch(&batch);
-        let mut narrowed = record.clone();
-        let progress = fold_payments(
+    let mut i = 0usize;
+    while i < bp.pending_settlements.len() {
+        let record = bp.pending_settlements[i].clone();
+        let batch = build_batch(bp, run_id, record.day, &record.location, &record.deltas);
+        let mut removed = false;
+        let run = run_batch(
             bp,
-            &batch.payments,
-            attempts,
-            |key| {
-                narrowed.deltas.remove(key);
+            &batch,
+            timestamp,
+            &mut |b, idx| Some(transport.submit_payment(b, idx)),
+            &mut |bp, key| {
+                let rec = &mut bp.pending_settlements[i];
+                rec.deltas.remove(key);
+                rec.memo = settlement_memo_text(run_id, rec.day, &rec.deltas);
+                if rec.deltas.is_empty() {
+                    bp.pending_settlements.remove(i);
+                    removed = true;
+                }
             },
+            persist,
             log,
         );
-        record.deltas = narrowed.deltas;
-        if let Some(rec) = receipt(
-            &progress,
-            record.day,
-            &record.location,
-            batch.memo_text.clone(),
-            timestamp,
-        ) {
-            bp.settlements.push(rec);
+        if !run.confirmed.is_empty() {
             moved += 1;
         }
-        if progress.failure.is_some() {
-            record.memo = settlement_memo_text(run_id, record.day, &record.deltas);
-            kept.push(record);
+        if let Some(p) = run.persist_failed {
+            bp.last_settle_failed = !bp.pending_settlements.is_empty();
+            return Err(p);
+        }
+        if !removed {
+            i += 1;
         }
     }
-    bp.pending_settlements = kept;
     if !bp.pending_settlements.is_empty() {
         bp.last_settle_failed = true;
     } else if moved > 0 {
         bp.last_settle_failed = false;
     }
-    moved
+    Ok(moved)
 }
 
-/// Settle a checkpoint through a transport (`BackpackManager.settle`): retry pending records
-/// first, then plan, submit and fold the fresh delta. All state change is in `bp`; the only
-/// outside call is the transport.
+/// Settle a checkpoint through a transport (`BackpackManager.settle`) with no persistence point:
+/// the caller saves after it returns. Same as [`settle_checkpoint_with_persist`] with a hook that
+/// does nothing.
 #[allow(clippy::too_many_arguments)] // mirrors settle(state, location) plus the inputs Python read from globals
 pub fn settle_checkpoint<T: LedgerTransport + ?Sized>(
     bp: &mut BackpackState,
@@ -950,15 +1067,52 @@ pub fn settle_checkpoint<T: LedgerTransport + ?Sized>(
     transport: &mut T,
     log: &mut ReadLog,
 ) -> SettleReport {
+    match settle_checkpoint_with_persist(
+        bp,
+        supplies,
+        run_id,
+        day,
+        location,
+        timestamp,
+        transport,
+        &mut |_| Ok::<(), std::convert::Infallible>(()),
+        log,
+    ) {
+        Ok(report) => report,
+        Err(p) => match p.source {},
+    }
+}
+
+/// Settle a checkpoint, saving after each confirmed payment: retry pending records first, then
+/// plan, submit and fold the fresh delta. The settlement logic stays pure: it never touches a
+/// file; `persist` is the caller's save, called with the state as folded after each confirmed
+/// payment (see [`run_batch`] for the exact order and for what a failing `persist` does). All
+/// state change is in `bp`; the only outside calls are the transport and `persist`.
+///
+/// On `Err`, `bp` is ahead of what was last saved by the payment the error names; the caller
+/// should keep its last good save, and the next settle from that save may pay that key again
+/// (the known window, see `tests/backpack_save_per_payment.rs`).
+#[allow(clippy::too_many_arguments)] // mirrors settle(state, location) plus the inputs Python read from globals
+pub fn settle_checkpoint_with_persist<T: LedgerTransport + ?Sized, E>(
+    bp: &mut BackpackState,
+    supplies: &SuppliesState,
+    run_id: &str,
+    day: i32,
+    location: &str,
+    timestamp: &str,
+    transport: &mut T,
+    persist: &mut dyn FnMut(&BackpackState) -> Result<(), E>,
+    log: &mut ReadLog,
+) -> Result<SettleReport, PersistFailed<E>> {
     if !bp.enabled || bp.wallet_address.is_empty() {
-        return SettleReport {
+        return Ok(SettleReport {
             status: SettleStatus::NotEnabled,
             confirmed: BTreeMap::new(),
             txids: Vec::new(),
             retried_moved: 0,
-        };
+        });
     }
-    let moved = retry_pending(bp, run_id, timestamp, transport, log);
+    let moved = retry_pending_with_persist(bp, run_id, timestamp, transport, persist, log)?;
     let mut report = match plan_settlement(bp, supplies, run_id, day, location) {
         PlanOutcome::NotEnabled => unreachable!("checked above"),
         PlanOutcome::NoChanges => SettleReport {
@@ -968,12 +1122,20 @@ pub fn settle_checkpoint<T: LedgerTransport + ?Sized>(
             retried_moved: 0,
         },
         PlanOutcome::Batch(batch) => {
-            let attempts = transport.submit_batch(&batch);
-            fold_fresh_settlement(bp, &batch, attempts, timestamp, log)
+            let run = run_batch(
+                bp,
+                &batch,
+                timestamp,
+                &mut |b, idx| Some(transport.submit_payment(b, idx)),
+                &mut |_, _| {},
+                persist,
+                log,
+            );
+            finish_fresh(bp, &batch, run, timestamp)?
         }
     };
     report.retried_moved = moved;
-    report
+    Ok(report)
 }
 
 // ── RecordedTransport ───────────────────────────────────────────────────────────────────────
@@ -1093,43 +1255,36 @@ impl LedgerTransport for RecordedTransport {
             .ok_or_else(|| TransportError::NoRecording(format!("account_lines:{account}")))
     }
 
-    fn submit_batch(&mut self, batch: &SettlementBatch) -> Vec<PaymentAttempt> {
-        let mut out = Vec::new();
-        for p in &batch.payments {
-            self.calls
-                .push(format!("submit:{}:{}", p.currency, p.value));
-            let want = SubmitExpect {
-                account: p.account.clone(),
-                destination: p.destination.clone(),
-                currency: p.currency.clone(),
-                issuer: p.issuer.clone(),
-                value: p.value.to_string(),
-                memo_data: p.memo.memo_data.clone(),
-            };
-            let hit = self
-                .submits
-                .iter_mut()
-                .find(|s| !s.used && s.expect == want);
-            let result = match hit {
-                Some(s) => {
-                    s.used = true;
-                    s.response.clone().map_err(TransportError::Unreachable)
-                }
-                None => Err(TransportError::NoRecording(format!(
-                    "submit:{}:{}:{}",
-                    p.currency, p.value, p.memo.memo_data
-                ))),
-            };
-            let failed = result.is_err();
-            out.push(PaymentAttempt {
-                key: p.key.clone(),
-                result,
-            });
-            if failed {
-                break;
+    fn submit_payment(&mut self, batch: &SettlementBatch, index: usize) -> PaymentAttempt {
+        let p = &batch.payments[index];
+        self.calls
+            .push(format!("submit:{}:{}", p.currency, p.value));
+        let want = SubmitExpect {
+            account: p.account.clone(),
+            destination: p.destination.clone(),
+            currency: p.currency.clone(),
+            issuer: p.issuer.clone(),
+            value: p.value.to_string(),
+            memo_data: p.memo.memo_data.clone(),
+        };
+        let hit = self
+            .submits
+            .iter_mut()
+            .find(|s| !s.used && s.expect == want);
+        let result = match hit {
+            Some(s) => {
+                s.used = true;
+                s.response.clone().map_err(TransportError::Unreachable)
             }
+            None => Err(TransportError::NoRecording(format!(
+                "submit:{}:{}:{}",
+                p.currency, p.value, p.memo.memo_data
+            ))),
+        };
+        PaymentAttempt {
+            key: p.key.clone(),
+            result,
         }
-        out
     }
 
     fn tx_memos(&mut self, account: &str, marker: Option<&Value>) -> Result<Value, TransportError> {
