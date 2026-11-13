@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 26,
-        "lines": 943,
+        "commits": 27,
+        "lines": 963,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 26,
-        "lines": 3873,
+        "commits": 27,
+        "lines": 3899,
         "path": "atlas/page.json"
       },
       {
-        "commits": 26,
-        "lines": 22628,
+        "commits": 27,
+        "lines": 22684,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 26,
-        "lines": 34889,
+        "commits": 27,
+        "lines": 35121,
         "path": "atlas/structure.json"
       },
       {
@@ -3046,8 +3046,8 @@
         "path": "rust/etv-core/src/content.rs"
       },
       {
-        "commits": 4,
-        "lines": 1874,
+        "commits": 5,
+        "lines": 1978,
         "path": "rust/etv-core/src/engine.rs"
       },
       {
@@ -3066,8 +3066,8 @@
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
-        "commits": 9,
-        "lines": 68,
+        "commits": 10,
+        "lines": 69,
         "path": "rust/etv-core/src/lib.rs"
       },
       {
@@ -3111,9 +3111,14 @@
         "path": "rust/etv-core/src/ruleset.rs"
       },
       {
-        "commits": 4,
-        "lines": 1779,
+        "commits": 5,
+        "lines": 1802,
         "path": "rust/etv-core/src/save.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 353,
+        "path": "rust/etv-core/src/save_v5.rs"
       },
       {
         "commits": 1,
@@ -3169,6 +3174,11 @@
         "commits": 1,
         "lines": 306,
         "path": "rust/etv-core/tests/ruleset_v2_river_once.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 501,
+        "path": "rust/etv-core/tests/save_v5_pending_phase.rs"
       },
       {
         "commits": 3,
@@ -4081,9 +4091,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-13T03:41:33.868Z",
+  "generatedAt": "2026-11-13T06:24:47.333Z",
   "generatedFrom": {
-    "commit": "75544f49d00662abe4cd935c9303aa80731d433d"
+    "commit": "02ea88680b4e021fed295fee0bf357f320130637"
   },
   "pairs": [
     {
@@ -4236,43 +4246,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 18,
-      "shared": 18,
+      "either": 19,
+      "shared": 19,
       "strength": 1
     },
     {
@@ -4426,16 +4436,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-12T22:20:58-05:00",
-    "inScopeFiles": 777,
+    "headDate": "2026-11-12T22:41:44-05:00",
+    "inScopeFiles": 793,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 126,
+    "qualifyingCommits": 127,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-17T03:20:58.000Z",
+    "since": "2026-05-17T03:41:44.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
@@ -4451,7 +4461,7 @@
     ],
     "sourceFileReach": 20,
     "sourceFileRise": 25,
-    "sourceFilesReachingStrongFloor": 8,
+    "sourceFilesReachingStrongFloor": 9,
     "strength": 0.5,
     "windowDays": 180
   },

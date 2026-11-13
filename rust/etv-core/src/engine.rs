@@ -9,7 +9,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::events::{apply_outcome, build_event_library, resolve_event, select_event_with_ruleset};
+use crate::events::{
+    apply_outcome, build_event_library, missing_supplies_for_choice, resolve_event_with_ruleset,
+    select_event_with_ruleset,
+};
 use crate::memory::{
     check_resource_crises, emit_arrival_card, emit_escape_valve_card, emit_event_card,
     emit_health_cards, emit_wagon_card,
@@ -44,7 +47,11 @@ fn truncate_chars(s: &str, max_chars: usize) -> String {
 }
 
 /// A single choice the player can pick during an event (`step_engine.py:111-118`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+///
+/// `affordable` and `missing` are Rust-only: under `Ruleset::V2` they say whether the party
+/// holds the supplies the choice requires, and which supply keys it lacks. Under `Legacy` they
+/// are always `true` / empty, and neither is serialised, so Legacy output is unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventChoiceInfo {
     pub id: String,
     pub label: String,
@@ -52,6 +59,31 @@ pub struct EventChoiceInfo {
     pub risk_hint: String,
     #[serde(default)]
     pub cost_hint: String,
+    #[serde(default = "default_affordable", skip_serializing_if = "is_true")]
+    pub affordable: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub missing: Vec<String>,
+}
+
+fn default_affordable() -> bool {
+    true
+}
+
+fn is_true(b: &bool) -> bool {
+    *b
+}
+
+impl Default for EventChoiceInfo {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            label: String::new(),
+            risk_hint: String::new(),
+            cost_hint: String::new(),
+            affordable: true,
+            missing: Vec::new(),
+        }
+    }
 }
 
 /// A fork option in the road (`step_engine.py:121-128`).
@@ -856,11 +888,17 @@ impl StepEngine {
         let choices: Vec<EventChoiceInfo> = event
             .fallback_choices
             .iter()
-            .map(|c| EventChoiceInfo {
-                id: c.choice_id.clone(),
-                label: c.label.clone(),
-                risk_hint: c.risk_hint.clone(),
-                cost_hint: c.cost_hint.clone(),
+            .map(|c| {
+                let missing =
+                    missing_supplies_for_choice(&self.state, &event, &c.choice_id, self.ruleset);
+                EventChoiceInfo {
+                    id: c.choice_id.clone(),
+                    label: c.label.clone(),
+                    risk_hint: c.risk_hint.clone(),
+                    cost_hint: c.cost_hint.clone(),
+                    affordable: missing.is_empty(),
+                    missing,
+                }
             })
             .collect();
 
@@ -879,7 +917,22 @@ impl StepEngine {
         self.msgs.event_choices = choices;
     }
 
+    /// Recompute `affordable` / `missing` of the pending choices from the current state (V2).
+    fn refresh_choice_affordability(&mut self) {
+        let Some(event) = self.pending_event.as_ref() else {
+            return;
+        };
+        for info in &mut self.pending_event_choices {
+            let missing = missing_supplies_for_choice(&self.state, event, &info.id, self.ruleset);
+            info.affordable = missing.is_empty();
+            info.missing = missing;
+        }
+    }
+
     fn re_present_event(&mut self) {
+        if self.ruleset == Ruleset::V2 {
+            self.refresh_choice_affordability();
+        }
         self.msgs.event_title = self.pending_event_title.clone();
         self.msgs.event_narration = self.pending_event_narration.clone();
         self.msgs.event_choices = self.pending_event_choices.clone();
@@ -909,7 +962,13 @@ impl StepEngine {
             return;
         }
 
-        let outcome = resolve_event(&mut self.state, &event, choice_id, &mut self.rng);
+        let outcome = resolve_event_with_ruleset(
+            &mut self.state,
+            &event,
+            choice_id,
+            &mut self.rng,
+            self.ruleset,
+        );
         apply_outcome(&mut self.state, &outcome);
 
         for _ in 0..std::cmp::max(0, outcome.time_cost) {
@@ -1817,6 +1876,7 @@ mod tests {
             label: "Shield the wagon".to_string(),
             risk_hint: "Dangerous".to_string(),
             cost_hint: "Health".to_string(),
+            ..Default::default()
         }];
         eng_ev.pending_event_title = ev.title.clone();
         eng_ev.pending_event_narration = ev.fallback_narration.clone();
