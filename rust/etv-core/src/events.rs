@@ -6,7 +6,9 @@ use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
 use crate::events_builtin::builtin_hand_authored_events;
-use crate::model::{Biome, GMProfile, RunState, TimeOfDay, TwistModifier, Weather};
+use crate::model::{
+    is_valid_resource_key, Biome, GMProfile, RunState, TimeOfDay, TwistModifier, Weather,
+};
 use crate::physics::{current_node, journey_pressure, proximate_death_cause, HealthEffect};
 use crate::rng::CpythonRng;
 use crate::ruleset::Ruleset;
@@ -561,12 +563,23 @@ pub fn advertised_inventory_cost(
         .collect()
 }
 
+/// Canonical supply key for a template key (`oil` is the old name of `lantern_oil`, as in
+/// `worldgen::resolve_resource_alias`).
+fn canonical_supply_key(key: &str) -> &str {
+    if key == "oil" {
+        "lantern_oil"
+    } else {
+        key
+    }
+}
+
 /// Supplies a choice requires under `ruleset`, in the engine's order (`(key, quantity)`).
 ///
-/// `Legacy`: only costs advertised in the choice's hints (frozen behaviour). `V2`: those, plus
-/// every negative supply delta in the choice's outcome template for a key in
-/// `INVENTORY_COST_KEYS` (quantity = the size of the delta; the larger wins when a key is in
-/// both). Durable keys are required here but never spent (see `debit_advertised_costs`).
+/// `Legacy`: only costs advertised in the choice's hints (frozen behaviour, limited to
+/// `INVENTORY_COST_KEYS`). `V2`: those, plus every negative supply delta in the choice's
+/// outcome template for any supply the party carries (`is_valid_resource_key`); quantity = the
+/// size of the delta, the larger winning when a key is in both. Durable keys are required here
+/// but never spent (see `debit_advertised_costs`).
 fn required_supplies_ordered(
     choice: Option<&ChoiceTemplate>,
     outcome: &EventOutcome,
@@ -575,7 +588,8 @@ fn required_supplies_ordered(
     let mut costs = advertised_inventory_cost_ordered(choice, outcome);
     if ruleset == Ruleset::V2 {
         for (key, val) in outcome.ordered_supplies_delta() {
-            if val < 0 && INVENTORY_COST_KEYS.contains(&key) {
+            let key = canonical_supply_key(key);
+            if val < 0 && is_valid_resource_key(key) {
                 upsert_ordered_cost(&mut costs, key, -val);
             }
         }
@@ -583,24 +597,90 @@ fn required_supplies_ordered(
     costs
 }
 
+/// What `choice_id` of `event` requires under `ruleset`: `(supply key, quantity)` in the
+/// engine's order. Empty for a choice with no template.
+pub fn choice_requirements(
+    event: &EventSkeleton,
+    choice_id: &str,
+    ruleset: Ruleset,
+) -> Vec<(String, i32)> {
+    let Some(template) = event.outcome_templates.get(choice_id) else {
+        return Vec::new();
+    };
+    required_supplies_ordered(choice_for(event, choice_id), template, ruleset)
+}
+
+/// Shortfalls `(key, missing quantity)` for `choice_id` under `ruleset`, before the V2
+/// keep-one-open rule. Always empty under `Legacy`.
+pub fn raw_shortfalls_for_choice(
+    state: &RunState,
+    event: &EventSkeleton,
+    choice_id: &str,
+    ruleset: Ruleset,
+) -> Vec<(String, i32)> {
+    if ruleset != Ruleset::V2 {
+        return Vec::new();
+    }
+    choice_requirements(event, choice_id, ruleset)
+        .into_iter()
+        .filter_map(|(key, qty)| {
+            let have = state.supplies.get(&key);
+            (have < qty).then_some((key, qty - have))
+        })
+        .collect()
+}
+
+/// The supply keys the party lacks for `choice_id`, before the V2 keep-one-open rule.
+pub fn raw_missing_supplies_for_choice(
+    state: &RunState,
+    event: &EventSkeleton,
+    choice_id: &str,
+    ruleset: Ruleset,
+) -> Vec<String> {
+    raw_shortfalls_for_choice(state, event, choice_id, ruleset)
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect()
+}
+
+/// V2 keep-one-open rule: when every choice of `event` is unaffordable, the id of the choice
+/// that stays open (smallest total missing quantity; ties: the first offered). `None` when at
+/// least one choice is affordable, the event has no choices, or `ruleset` is not V2.
+pub fn v2_kept_open_choice(
+    state: &RunState,
+    event: &EventSkeleton,
+    ruleset: Ruleset,
+) -> Option<String> {
+    if ruleset != Ruleset::V2 || event.fallback_choices.is_empty() {
+        return None;
+    }
+    let mut best: Option<(i32, &str)> = None;
+    for ch in &event.fallback_choices {
+        let short = raw_shortfalls_for_choice(state, event, &ch.choice_id, ruleset);
+        if short.is_empty() {
+            return None;
+        }
+        let total: i32 = short.iter().map(|(_, q)| *q).sum();
+        if best.is_none_or(|(t, _)| total < t) {
+            best = Some((total, ch.choice_id.as_str()));
+        }
+    }
+    best.map(|(_, id)| id.to_string())
+}
+
 /// The supply keys the party lacks for `choice_id` of `event` under `ruleset`, in the engine's
-/// order. Always empty under `Legacy` (Legacy resolves a shortfall only at pick time, and only
-/// for hint-advertised costs).
+/// order: what the player is shown. Always empty under `Legacy`. Under V2, when every choice
+/// is unaffordable, the one kept open (see [`v2_kept_open_choice`]) shows none missing.
 pub fn missing_supplies_for_choice(
     state: &RunState,
     event: &EventSkeleton,
     choice_id: &str,
     ruleset: Ruleset,
 ) -> Vec<String> {
-    if ruleset != Ruleset::V2 {
+    if v2_kept_open_choice(state, event, ruleset).as_deref() == Some(choice_id) {
         return Vec::new();
     }
-    let Some(template) = event.outcome_templates.get(choice_id) else {
-        return Vec::new();
-    };
-    let choice = choice_for(event, choice_id);
-    let costs = required_supplies_ordered(choice, template, ruleset);
-    unaffordable_costs(state, &costs)
+    raw_missing_supplies_for_choice(state, event, choice_id, ruleset)
 }
 
 fn debit_advertised_costs(outcome: &mut EventOutcome, costs: &[(String, i32)]) {
@@ -732,7 +812,11 @@ pub fn resolve_event_with_ruleset(
     let choice = choice_for(event, choice_id);
     let costs = required_supplies_ordered(choice, &outcome, ruleset);
     debit_advertised_costs(&mut outcome, &costs);
-    let missing = unaffordable_costs(state, &costs);
+    let missing = if v2_kept_open_choice(state, event, ruleset).as_deref() == Some(choice_id) {
+        Vec::new()
+    } else {
+        unaffordable_costs(state, &costs)
+    };
     if !missing.is_empty() {
         let denied = insufficient_supplies_outcome(template, choice);
         if denied

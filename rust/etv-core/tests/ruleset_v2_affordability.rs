@@ -8,8 +8,8 @@
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepEngine;
 use etv_core::events::{
-    apply_outcome, build_event_library, missing_supplies_for_choice, resolve_event,
-    resolve_event_with_ruleset,
+    apply_outcome, build_event_library, missing_supplies_for_choice,
+    raw_missing_supplies_for_choice, resolve_event, resolve_event_with_ruleset,
 };
 use etv_core::model::{GamePhase, IntentAction, PlayerIntent, RunState};
 use etv_core::rng::CpythonRng;
@@ -243,8 +243,8 @@ fn v2_choice_list_carries_affordable_and_missing_and_refreshes_on_re_present() {
 fn v2_durable_supply_is_checked_never_spent() {
     let ev = event(
         "afford_tools",
-        &["A"],
-        vec![("A", outcome(&[("tools", -1)]))],
+        &["A", "B"],
+        vec![("A", outcome(&[("tools", -1)])), ("B", outcome(&[]))],
     );
 
     let mut st = create_new_run(42);
@@ -268,10 +268,18 @@ fn v2_durable_supply_is_checked_never_spent() {
     assert_eq!(out.special_flags, keys(&["insufficient_supplies"]));
 }
 
-// c. No soft-lock -----------------------------------------------------------------------------
+// c. No soft-lock: an event is never left with every choice unaffordable ------------------------
+
+fn zero(state: &mut RunState, ks: &[&str]) {
+    for k in ks {
+        state.supplies.set(k, 0);
+    }
+}
 
 #[test]
-fn v2_event_with_every_choice_unaffordable_still_resolves_and_returns_to_camp() {
+fn v2_keeps_the_smallest_shortfall_choice_open_when_every_choice_is_unaffordable() {
+    // Party holds none of rope / parts / meds. Shortfalls: A rope 2 = 2; B parts 1 = 1;
+    // C meds 1 + rope 1 = 2. B is the smallest, so B stays open.
     let ev = event(
         "afford_none",
         &["A", "B", "C"],
@@ -283,23 +291,92 @@ fn v2_event_with_every_choice_unaffordable_still_resolves_and_returns_to_camp() 
     );
     let mut engine = engine_with(&ev, Ruleset::V2, &[]);
     drive_to_event(&mut engine);
-    for k in ["rope", "parts", "meds"] {
-        engine.state.supplies.set(k, 0);
-    }
+    zero(&mut engine.state, &["rope", "parts", "meds"]);
     engine.step(&PlayerIntent::new(IntentAction::Travel));
     assert_eq!(
         shape(&engine),
         vec![
             (false, keys(&["rope"])),
-            (false, keys(&["parts"])),
+            (true, vec![]),
             (false, keys(&["meds", "rope"])),
         ]
     );
-    engine.step(&PlayerIntent::new(IntentAction::Choose).with_choice("C"));
+
+    // Directly: B resolves normally (its delta kept, clamped at zero on apply, no denial);
+    // A and C are still denied.
+    let mut st = create_new_run(42);
+    zero(&mut st, &["rope", "parts", "meds"]);
+    let mut rng = CpythonRng::from_seed(42);
+    let b = resolve_event_with_ruleset(&mut st, &ev, "B", &mut rng, Ruleset::V2);
+    assert_eq!(b.supplies_delta.get("parts"), Some(&-1));
+    assert!(b.special_flags.is_empty());
+    apply_outcome(&mut st, &b);
+    assert_eq!(st.supplies.get("parts"), 0);
+    for id in ["A", "C"] {
+        let d = resolve_event_with_ruleset(&mut st, &ev, id, &mut rng, Ruleset::V2);
+        assert_eq!(d.special_flags, keys(&["insufficient_supplies"]), "{id}");
+        assert!(d.supplies_delta.is_empty(), "{id}");
+    }
+
+    // Engine: picking the open choice returns to camp.
+    engine.step(&PlayerIntent::new(IntentAction::Choose).with_choice("B"));
     assert_eq!(engine.phase, GamePhase::Camp);
     for k in ["rope", "parts", "meds"] {
         assert_eq!(engine.state.supplies.get(k), 0, "{k}");
     }
+}
+
+#[test]
+fn v2_keep_open_ties_go_to_the_first_offered_and_do_not_apply_when_one_is_affordable() {
+    // A rope 1 and B parts 1 are equally short: the first offered (A) stays open.
+    let tie = event(
+        "afford_tie",
+        &["A", "B"],
+        vec![
+            ("A", outcome(&[("rope", -1)])),
+            ("B", outcome(&[("parts", -1)])),
+        ],
+    );
+    let mut st = create_new_run(42);
+    zero(&mut st, &["rope", "parts"]);
+    assert!(missing_supplies_for_choice(&st, &tie, "A", Ruleset::V2).is_empty());
+    assert_eq!(
+        missing_supplies_for_choice(&st, &tie, "B", Ruleset::V2),
+        keys(&["parts"])
+    );
+    // With parts in hand B is affordable, so nothing is kept open and A is denied.
+    st.supplies.set("parts", 1);
+    assert_eq!(
+        missing_supplies_for_choice(&st, &tie, "A", Ruleset::V2),
+        keys(&["rope"])
+    );
+    // Legacy never shows a shortfall.
+    assert!(missing_supplies_for_choice(&st, &tie, "A", Ruleset::Legacy).is_empty());
+}
+
+#[test]
+fn v2_gate_covers_every_supply_the_party_carries_and_the_oil_alias() {
+    let ev = event(
+        "afford_keys",
+        &["A", "B", "C", "D"],
+        vec![
+            ("A", outcome(&[("water", -3)])),
+            ("B", outcome(&[("oil", -2)])),
+            ("C", outcome(&[("ammo", -1), ("cloth", -2)])),
+            ("D", outcome(&[("not_a_supply", -5)])),
+        ],
+    );
+    let mut st = create_new_run(42);
+    zero(&mut st, &["water", "lantern_oil", "ammo", "cloth"]);
+    st.supplies.set("cloth", 1);
+    let m = |id| raw_missing_supplies_for_choice(&st, &ev, id, Ruleset::V2);
+    assert_eq!(m("A"), keys(&["water"]));
+    assert_eq!(m("B"), keys(&["lantern_oil"]));
+    assert_eq!(m("C"), keys(&["ammo", "cloth"]));
+    assert!(
+        m("D").is_empty(),
+        "a key that is not a supply is not a cost"
+    );
 }
 
 // d. Legacy untouched --------------------------------------------------------------------------
@@ -353,11 +430,12 @@ fn tier2_event_pick(seed_idx: usize, turn: usize, len: usize) -> usize {
 
 /// (choices taken while unaffordable, of which the cost was never advertised, total event
 /// choices) over `n` seeds x `turns` under `ruleset`.
-fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize) {
+fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize, usize) {
     let pack = embedded_content_pack();
     let seeds = build_1000_seeds();
     let mut denied = 0usize;
     let mut picks = 0usize;
+    let mut all_unaffordable = 0usize;
     for (idx, &seed) in seeds.iter().take(n).enumerate() {
         let mut engine = StepEngine::with_content(create_new_run_with_content(seed, pack), pack);
         engine.set_ruleset(ruleset);
@@ -368,6 +446,13 @@ fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize
             let mut expect_denied = false;
             let mut chosen = String::new();
             if engine.phase == GamePhase::Event && !engine.pending_event_choices().is_empty() {
+                let ev = engine.pending_event().expect("pending event");
+                if ev.fallback_choices.iter().all(|c| {
+                    !raw_missing_supplies_for_choice(&engine.state, ev, &c.choice_id, Ruleset::V2)
+                        .is_empty()
+                }) {
+                    all_unaffordable += 1;
+                }
                 let cs = engine.pending_event_choices();
                 let c = &cs[tier2_event_pick(idx, turn, cs.len())];
                 chosen = c.id.clone();
@@ -395,20 +480,22 @@ fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize
             assert!(no_negative_supply(&engine.state), "seed {seed} turn {turn}");
         }
     }
-    (denied, picks)
+    (denied, picks, all_unaffordable)
 }
 
 #[test]
 fn v2_denies_real_choices_over_1000_seeds_and_no_supply_goes_negative() {
-    let (denied_v2, picks_v2) = count_denied_picks(Ruleset::V2, 1000, 120);
-    let (denied_legacy, _) = count_denied_picks(Ruleset::Legacy, 1000, 120);
+    let (denied_v2, picks_v2, all_unaffordable) = count_denied_picks(Ruleset::V2, 1000, 120);
+    let (denied_legacy, _, _) = count_denied_picks(Ruleset::Legacy, 1000, 120);
     assert_eq!(denied_legacy, 0, "Legacy never marks a choice unaffordable");
-    // Measured once: 1,286 of 32,850 event choices taken under V2 were unaffordable (denied).
-    assert_eq!(picks_v2, 32_850, "event choices taken under V2");
+    // Measured once. Of 32,740 event choices taken under V2, 3,036 were unaffordable (denied).
+    assert_eq!(picks_v2, 32_740, "event choices taken under V2");
     assert_eq!(
-        denied_v2, 1_286,
+        denied_v2, 3_036,
         "choices taken while unaffordable under V2"
     );
+    // Presentations where every offered choice was short (the keep-one-open rule applied).
+    assert_eq!(all_unaffordable, 18);
     assert!(denied_v2 > 0);
 }
 
@@ -428,7 +515,7 @@ fn win_counts_over_1000_seeds_legacy_vs_v2() {
     // Measured, reported as measured: no explanation is claimed here.
     assert_eq!(
         wins,
-        [2, 5],
+        [2, 4],
         "wins over 1,000 seeds x 120 turns: [Legacy, V2]"
     );
 }
@@ -485,18 +572,20 @@ fn how_many_shipped_choices_the_gate_touches() {
     let lib = build_event_library();
     let empty = {
         let mut s = create_new_run(42);
-        for k in ["rope", "parts", "food", "tools", "meds"] {
-            s.supplies.set(k, 0);
+        let all_keys: Vec<String> = s.supplies.to_dict().keys().cloned().collect();
+        for k in all_keys {
+            s.supplies.set(&k, 0);
         }
         s
     };
+    let mut all_costed: Vec<String> = Vec::new();
     let (mut total, mut v2_gated, mut legacy_gated, mut events_all_gated) = (0, 0, 0, 0);
     let (mut json_total, mut json_v2, mut json_legacy, mut json_any_neg) = (0, 0, 0, 0);
     for (i, ev) in lib.iter().enumerate() {
         let mut all = !ev.fallback_choices.is_empty();
         for ch in &ev.fallback_choices {
             let v2 =
-                !missing_supplies_for_choice(&empty, ev, &ch.choice_id, Ruleset::V2).is_empty();
+                !raw_missing_supplies_for_choice(&empty, ev, &ch.choice_id, Ruleset::V2).is_empty();
             let tmpl = ev.outcome_templates.get(&ch.choice_id).unwrap();
             let lg = !etv_core::events::advertised_inventory_cost(Some(ch), tmpl).is_empty();
             total += 1;
@@ -511,24 +600,29 @@ fn how_many_shipped_choices_the_gate_touches() {
             all &= v2;
         }
         events_all_gated += all as usize;
+        if all {
+            all_costed.push(ev.event_id.clone());
+        }
     }
-    // `empty` has no supplies, so "missing" lists exactly what each choice requires.
+    // `empty` holds none of the 12 supplies, so "missing" lists exactly what each choice requires.
     assert_eq!(lib.len(), 260);
     assert_eq!(total, 627, "all choices");
-    assert_eq!(v2_gated, 112, "choices that require a supply under V2");
+    assert_eq!(v2_gated, 202, "choices that require a supply under V2");
     assert_eq!(
         legacy_gated, 17,
         "choices that require a supply under Legacy (hints only)"
     );
     assert_eq!(json_total, 464, "JSON-event choices");
-    assert_eq!(json_v2, 78, "JSON-event choices gated under V2");
+    assert_eq!(json_v2, 158, "JSON-event choices gated under V2");
     assert_eq!(json_legacy, 0, "JSON-event choices gated under Legacy");
     assert_eq!(
         json_any_neg, 158,
         "JSON-event choices with a negative delta on any key"
     );
     assert_eq!(
-        events_all_gated, 0,
+        all_costed,
+        keys(&["wolf_pack", "f1_036", "f2_036", "f3_035", "f4_074"]),
         "events where every choice requires a supply"
     );
+    assert_eq!(events_all_gated, 5);
 }

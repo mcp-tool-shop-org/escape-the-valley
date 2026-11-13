@@ -97,9 +97,9 @@ fn v2_resolves_the_river_event_at_most_once_per_run() {
     let v2 = river_counts(Ruleset::V2, 1000, 120);
     assert_eq!(*v2.iter().max().unwrap(), 1, "V2 max river events per run");
     let once = v2.iter().filter(|&&c| c == 1).count();
-    // 400 before the affordability gate existed; 404 with it (the gate changes outcomes, so
+    // 400 before the affordability gate existed; 404 with the five-key gate; 411 with the all-keys gate (the gate changes outcomes, so
     // later draws and so which events turn up).
-    assert_eq!(once, 404, "runs with the river event exactly once under V2");
+    assert_eq!(once, 411, "runs with the river event exactly once under V2");
 
     let legacy = river_counts(Ruleset::Legacy, 1000, 120);
     let twice_plus = legacy.iter().filter(|&&c| c >= 2).count();
