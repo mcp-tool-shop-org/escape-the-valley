@@ -1473,7 +1473,8 @@ fn settlement_records_round_trip_through_save_schema_v4_unchanged() {
 
 #[test]
 fn nothing_in_the_backpack_or_proof_modules_can_open_a_socket() {
-    // The crate's dependency list is unchanged: no HTTP or XRPL client crate was added.
+    // The crate's dependency list holds no HTTP or XRPL client crate. `crossterm` and `ratatui`
+    // are the terminal interface; neither opens a socket. `ureq` is optional (narrator only).
     let manifest =
         std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).unwrap();
     let deps: Vec<&str> = manifest
@@ -1487,7 +1488,18 @@ fn nothing_in_the_backpack_or_proof_modules_can_open_a_socket() {
         .filter_map(|l| l.split('=').next().map(str::trim))
         .filter(|n| !n.is_empty())
         .collect();
-    assert_eq!(deps, ["getrandom", "serde", "serde_json", "sha2", "ureq"]);
+    assert_eq!(
+        deps,
+        [
+            "crossterm",
+            "getrandom",
+            "ratatui",
+            "serde",
+            "serde_json",
+            "sha2",
+            "ureq"
+        ]
+    );
     // And the two modules mention no network type (needles are split so this file does not match).
     let needles = [
         concat!("std::", "net"),

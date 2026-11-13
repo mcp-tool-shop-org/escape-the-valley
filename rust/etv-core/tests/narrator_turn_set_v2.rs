@@ -24,7 +24,7 @@ use etv_core::turn_set::{
     TURN_SET_V2_QUOTAS,
 };
 
-const V2_SHA256: &str = "a5a7872472b50f6aee449745f1b58683e028d6f9cd8bd2ad749088db582e7b84";
+const V2_SHA256: &str = "b446c8be27f036cf1447c9ec1f7706f872b957eb159846274bd315e9a5cf87bf";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
 const V1_SHA256: &str = "838e4346263507a112b6a161a4107a3647c253a39646b2427236afdd4e526f17";
 const V1_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v1.json");
@@ -218,6 +218,21 @@ fn the_stored_contexts_span_the_journey() {
     assert_eq!(days.iter().next_back().copied(), Some(48));
     assert_eq!(days.len(), 37);
     assert_eq!(per_run.len(), 167);
+    // The fourteen ending turns carry the engine's grade; no other turn does.
+    let mut endings: BTreeMap<String, usize> = BTreeMap::new();
+    for t in &set.turns {
+        *endings.entry(t.context.ending().to_string()).or_default() += 1;
+        assert_eq!(
+            t.context.ending().is_empty(),
+            t.context.phase() != GamePhase::GameOver,
+            "{}",
+            t.id
+        );
+    }
+    assert_eq!(
+        endings,
+        map(&[("", 346), ("lost", 8), ("pyrrhic", 2), ("triumphant", 4)])
+    );
     assert_eq!(per_run.values().copied().max(), Some(5));
     assert_eq!(ordinary, 215);
 }
