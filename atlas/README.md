@@ -1,29 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-13 from commit 02ea886 by Atlas 1.26.0.
+Mapped at 2026-11-13 from commit d271ef3 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, mostly Python (70 files), Rust (45), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-13 (75544f4)
+## What changed since 2026-11-13 (02ea886)
 
-- CI now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.
-- Release now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.
-- etv_content_diff (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_content_diff.rs.
-- And 1 more change to a door.
-- rust/etv-core/src/backpack.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.
-- rust/etv-core/src/ledger_proof.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.
-- rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `has_save`, before `create_new_run_with_content`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `create_new_run_with_content`, before `save_game`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_game`, before `load_game_checked_with_content_hash`.
-- And 4 more changes to the order of work.
-- rust/etv-core/src/backpack.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/bin/etv_content_diff.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/bin/etv_simulate.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 13 more new files that belong to no part.
-- 16 files added and 9 changed content.
+Nothing structural changed since 2026-11-13; no file changed.
 
 ## What comes in
 

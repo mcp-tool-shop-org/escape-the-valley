@@ -84,131 +84,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 16,
-      "changed": 9,
+      "added": 0,
+      "changed": 0,
       "moved": 0,
       "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/bin/etv_content_diff.rs",
-          "rust/etv-core/src/bin/etv_simulate.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also checks rust/etv-core/src/bin/etv_content_diff.rs and rust/etv-core/src/bin/etv_simulate.rs.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/bin/etv_content_diff.rs",
-          "rust/etv-core/src/bin/etv_simulate.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "etv_content_diff (rust/etv-core/Cargo.toml) is a new command. It runs rust/etv-core/src/bin/etv_content_diff.rs.",
-        "subjects": [
-          "rust/etv-core/Cargo.toml",
-          "rust/etv-core/src/bin/etv_content_diff.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "And 1 more change to a door.",
-        "subjects": []
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/src/backpack.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
-        "subjects": [
-          "rust/etv-core/src/backpack.rs",
-          "rust/etv-core/tests/phase2b_backpack_proof.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/src/ledger_proof.rs is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
-        "subjects": [
-          "rust/etv-core/src/ledger_proof.rs",
-          "rust/etv-core/tests/phase2b_backpack_proof.rs"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json is now read by rust/etv-core/tests/phase2b_backpack_proof.rs.",
-        "subjects": [
-          "rust/etv-core/tests/fixtures/xrpl_recorded_run_seed7.json",
-          "rust/etv-core/tests/phase2b_backpack_proof.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `has_save`, before `create_new_run_with_content`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `create_new_run_with_content`, before `save_game`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `save_game`, before `load_game_checked_with_content_hash`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "And 4 more changes to the order of work.",
-        "subjects": []
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/backpack.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/backpack.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/bin/etv_content_diff.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv_content_diff.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/bin/etv_simulate.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv_simulate.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 13 more new files that belong to no part.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "16 files added and 9 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-13; no file changed.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "75544f49d00662abe4cd935c9303aa80731d433d",
-      "generatedAt": "2026-11-13T03:41:33.868Z"
+      "commit": "02ea88680b4e021fed295fee0bf357f320130637",
+      "generatedAt": "2026-11-13T06:24:47.333Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -293,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 9 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "02ea88680b4e021fed295fee0bf357f320130637",
+  "commit": "d271ef3fcb000e757b32beda21c9cadd5d021ddc",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (70 files), Rust (45), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 12 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -735,7 +628,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-13T06:24:47.333Z",
+  "generatedAt": "2026-11-13T06:25:23.423Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
