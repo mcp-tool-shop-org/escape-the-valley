@@ -296,26 +296,21 @@ impl LedgerTransport for Scripted {
     fn balances(&mut self, a: &str) -> Result<Value, TransportError> {
         Err(TransportError::NoRecording(a.to_string()))
     }
-    fn submit_batch(&mut self, batch: &SettlementBatch) -> Vec<PaymentAttempt> {
-        self.submitted.push(batch.clone());
-        let mut out = Vec::new();
-        for p in &batch.payments {
-            let r = self
-                .results
-                .pop_front()
-                .unwrap_or(Err("script exhausted".into()));
-            let failed = r.is_err();
-            out.push(PaymentAttempt {
-                key: p.key.clone(),
-                result: r
-                    .map(|h| json!({ "hash": h }))
-                    .map_err(TransportError::Unreachable),
-            });
-            if failed {
-                break;
-            }
+    fn submit_payment(&mut self, batch: &SettlementBatch, index: usize) -> PaymentAttempt {
+        if index == 0 {
+            self.submitted.push(batch.clone());
         }
-        out
+        let p = &batch.payments[index];
+        let r = self
+            .results
+            .pop_front()
+            .unwrap_or(Err("script exhausted".into()));
+        PaymentAttempt {
+            key: p.key.clone(),
+            result: r
+                .map(|h| json!({ "hash": h }))
+                .map_err(TransportError::Unreachable),
+        }
     }
     fn tx_memos(&mut self, a: &str, _m: Option<&Value>) -> Result<Value, TransportError> {
         Err(TransportError::NoRecording(a.to_string()))
@@ -532,19 +527,21 @@ fn a_transport_that_returns_too_few_or_misordered_results_is_a_failure_not_a_fol
         fn balances(&mut self, a: &str) -> Result<Value, TransportError> {
             Err(TransportError::NoRecording(a.to_string()))
         }
-        fn submit_batch(&mut self, b: &SettlementBatch) -> Vec<PaymentAttempt> {
+        fn submit_payment(&mut self, b: &SettlementBatch, index: usize) -> PaymentAttempt {
+            let p = &b.payments[index];
             if self.0 {
-                return Vec::new();
-            }
-            // Right results, wrong order.
-            b.payments
-                .iter()
-                .rev()
-                .map(|p| PaymentAttempt {
+                // "Too few results": the transport answers with nothing usable.
+                return PaymentAttempt {
                     key: p.key.clone(),
-                    result: Ok(json!({"hash": format!("TX_{}", p.key)})),
-                })
-                .collect()
+                    result: Err(TransportError::Unreachable("no result".into())),
+                };
+            }
+            // A result for the wrong key (what a misordered batch used to look like).
+            let wrong = &b.payments[b.payments.len() - 1 - index];
+            PaymentAttempt {
+                key: wrong.key.clone(),
+                result: Ok(json!({"hash": format!("TX_{}", wrong.key)})),
+            }
         }
         fn tx_memos(&mut self, a: &str, _m: Option<&Value>) -> Result<Value, TransportError> {
             Err(TransportError::NoRecording(a.to_string()))
@@ -720,9 +717,9 @@ fn recorded_transport_refuses_calls_it_has_no_recording_for() {
         panic!()
     };
     b.payments[0].value = 4;
-    let attempts = t.submit_batch(&b);
+    let attempt = t.submit_payment(&b, 0);
     assert!(matches!(
-        attempts[0].result,
+        attempt.result,
         Err(TransportError::NoRecording(_))
     ));
     assert_eq!(t.unconsumed_submits(), 14, "nothing was consumed");
@@ -747,8 +744,9 @@ fn account_tx_pagination_follows_the_marker_and_is_capped() {
         {"account": PLAYER, "marker": echo, "result": {"transactions": [], "marker": echo}}
     ]});
     let mut t = RecordedTransport::from_fixture(&loop_doc).unwrap();
-    let memos = fetch_onchain_memos(&mut t, PLAYER, "", &mut ReadLog::default()).unwrap();
-    assert!(memos.is_empty());
+    // Hitting the cap is now a loud error, not a silently short list.
+    let err = fetch_onchain_memos(&mut t, PLAYER, "", &mut ReadLog::default()).unwrap_err();
+    assert!(matches!(err, FetchError::PageCapReached { .. }));
     assert_eq!(t.calls.len(), MAX_ACCOUNT_TX_PAGES);
     assert_eq!(MAX_ACCOUNT_TX_PAGES, 100);
 }
@@ -1187,8 +1185,9 @@ fn proof_tamper_sweep_200_single_field_mutations_never_report_clean() {
         );
         seen.extend(r.codes());
     }
-    // The sweep exercised every failure kind.
-    assert_eq!(seen.len(), 9, "{seen:?}");
+    // The sweep exercised every failure kind. The tenth is ONCHAIN_MEMO_DELTA_MISMATCH: a single
+    // edited saved delta (kind 5) now also disagrees with the on-chain memo body.
+    assert_eq!(seen.len(), 10, "{seen:?}");
 }
 
 // ============================================================================

@@ -29,7 +29,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
 
-use crate::backpack::{fetch_balances, fetch_onchain_memos, token_code, LedgerTransport, ReadLog};
+use crate::backpack::{
+    fetch_balances, fetch_onchain_memos, settlement_memo_text, token_code, LedgerTransport, ReadLog,
+};
 use crate::model::{BackpackState, SettlementRecord, XRPL_RESOURCES};
 
 /// A distinct, stable code per failure kind.
@@ -53,6 +55,14 @@ pub enum FailureCode {
     DoubleSettlementTxid,
     /// Checkpoints are still pending (unsettled); not drift on its own.
     SettlementsPending,
+    /// A versioned on-chain memo names a key with a different amount than the saved record.
+    OnchainMemoDeltaMismatch,
+    /// A versioned on-chain memo body is not in the grammar `settlement_memo_text` writes.
+    OnchainMemoBodyUnparseable,
+    /// The saved record has a delta the on-chain memo does not carry.
+    OnchainMemoDeltaMissingKey,
+    /// The on-chain memo carries a delta no saved record accounts for.
+    OnchainMemoDeltaExtraKey,
 }
 
 impl FailureCode {
@@ -68,6 +78,10 @@ impl FailureCode {
             Self::OnchainMemoPrefixMismatch => "ONCHAIN_MEMO_PREFIX_MISMATCH",
             Self::DoubleSettlementTxid => "DOUBLE_SETTLEMENT_TXID",
             Self::SettlementsPending => "SETTLEMENTS_PENDING",
+            Self::OnchainMemoDeltaMismatch => "ONCHAIN_MEMO_DELTA_MISMATCH",
+            Self::OnchainMemoBodyUnparseable => "ONCHAIN_MEMO_BODY_UNPARSEABLE",
+            Self::OnchainMemoDeltaMissingKey => "ONCHAIN_MEMO_DELTA_MISSING_KEY",
+            Self::OnchainMemoDeltaExtraKey => "ONCHAIN_MEMO_DELTA_EXTRA_KEY",
         }
     }
 }
@@ -172,6 +186,63 @@ fn py_repr(s: &str) -> String {
     }
     out.push(quote);
     out
+}
+
+/// What the delta body of an on-chain settlement memo says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MemoBody {
+    /// No `|V:` field after the prefix: a memo this game's builder did not write (the Python
+    /// reference vectors use such memos). The body is not checked; only the prefix is.
+    Unversioned,
+    /// A versioned memo in exactly the form `settlement_memo_text` writes, with its deltas keyed
+    /// by game key.
+    Deltas(BTreeMap<String, i32>),
+    /// A versioned memo that is not in that form; the reason is for the failure detail.
+    Unparseable(String),
+}
+
+/// Parse the delta body of an on-chain memo that already passed the prefix check.
+///
+/// This mirrors the builder `crate::backpack::settlement_memo_text`
+/// (`TRAIL|RUN:<id>|DAY:<n>|DELTA:<CODE><signed>,...|V:v1`). A memo is accepted only when
+/// re-rendering the parsed deltas through that same builder reproduces it byte for byte, so
+/// duplicate codes, a missing `+`, a non-canonical order or a different schema version are all
+/// refused rather than guessed at.
+pub fn parse_memo_deltas(memo: &str, run_id: &str, day: i32) -> MemoBody {
+    let prefix = format!("TRAIL|RUN:{run_id}|DAY:{day}");
+    let Some(rest) = memo.strip_prefix(&prefix) else {
+        return MemoBody::Unparseable("memo does not start with its prefix".to_string());
+    };
+    if !rest.contains("|V:") {
+        return MemoBody::Unversioned;
+    }
+    let Some(body) = rest.strip_prefix("|DELTA:") else {
+        return MemoBody::Unparseable("no DELTA field after the prefix".to_string());
+    };
+    let Some(list) = body.rsplit_once("|V:").map(|(list, _)| list) else {
+        return MemoBody::Unparseable("no version field".to_string());
+    };
+    let mut deltas: BTreeMap<String, i32> = BTreeMap::new();
+    if !list.is_empty() {
+        for entry in list.split(',') {
+            let Some(code) = entry.get(..3) else {
+                return MemoBody::Unparseable(format!("entry {} is too short", py_repr(entry)));
+            };
+            let Some(key) = XRPL_RESOURCES.iter().find(|k| token_code(k) == Some(code)) else {
+                return MemoBody::Unparseable(format!("unknown token code {}", py_repr(code)));
+            };
+            let Ok(amount) = entry[3..].parse::<i32>() else {
+                return MemoBody::Unparseable(format!("bad amount in {}", py_repr(entry)));
+            };
+            deltas.insert((*key).to_string(), amount);
+        }
+    }
+    if settlement_memo_text(run_id, day, &deltas) != memo {
+        return MemoBody::Unparseable(
+            "body is not the canonical form the memo builder writes".to_string(),
+        );
+    }
+    MemoBody::Deltas(deltas)
 }
 
 /// True when `memo` starts with `prefix` at a field boundary: the next character is `|` or the
@@ -315,7 +386,80 @@ pub fn reconcile(input: &ReconcileInput) -> ReconcileReport {
                                 ),
                             );
                         }
-                        Some(_) => {}
+                        Some(actual) => {
+                            // Integrity of the amounts: the memo body must agree with the saved
+                            // record, key by key (finding 4 of the PR #67 review).
+                            match parse_memo_deltas(actual, &input.run_id, rec.day) {
+                                MemoBody::Unversioned => {}
+                                MemoBody::Unparseable(why) => {
+                                    ok = false;
+                                    fail(
+                                        &mut notes,
+                                        FailureCode::OnchainMemoBodyUnparseable,
+                                        format!(
+                                            "settlement day {}: txid {}: on-chain memo {} has an unparseable delta body ({why}) (external integrity)",
+                                            rec.day, py_repr(txid), py_repr(actual)
+                                        ),
+                                    );
+                                }
+                                MemoBody::Deltas(chain) => {
+                                    for (key, saved) in &rec.deltas {
+                                        match chain.get(key) {
+                                            None => {
+                                                ok = false;
+                                                fail(
+                                                    &mut notes,
+                                                    FailureCode::OnchainMemoDeltaMissingKey,
+                                                    format!(
+                                                        "settlement day {}: txid {}: {key}: saved record has {saved}, the on-chain memo has no such key (external integrity)",
+                                                        rec.day, py_repr(txid)
+                                                    ),
+                                                );
+                                            }
+                                            Some(c) if c != saved => {
+                                                ok = false;
+                                                fail(
+                                                    &mut notes,
+                                                    FailureCode::OnchainMemoDeltaMismatch,
+                                                    format!(
+                                                        "settlement day {}: txid {}: {key}: saved record has {saved}, on-chain memo has {c} (external integrity)",
+                                                        rec.day, py_repr(txid)
+                                                    ),
+                                                );
+                                            }
+                                            Some(_) => {}
+                                        }
+                                    }
+                                    for (key, c) in &chain {
+                                        if rec.deltas.contains_key(key) {
+                                            continue;
+                                        }
+                                        // A batch that failed part way keeps its full delta set
+                                        // on-chain (ledger-003) while the receipt keeps only the
+                                        // confirmed keys; the rest sits in a pending or retried
+                                        // record of the same day, with the same amount.
+                                        let accounted = input
+                                            .settlements
+                                            .iter()
+                                            .chain(input.pending.iter())
+                                            .any(|o| {
+                                                o.day == rec.day && o.deltas.get(key) == Some(c)
+                                            });
+                                        if !accounted {
+                                            ok = false;
+                                            fail(
+                                                &mut notes,
+                                                FailureCode::OnchainMemoDeltaExtraKey,
+                                                format!(
+                                                    "settlement day {}: txid {}: {key}: on-chain memo has {c}, no saved record accounts for it (external integrity)",
+                                                    rec.day, py_repr(txid)
+                                                ),
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -439,12 +583,24 @@ pub fn proof_verdict(
     ProofVerdict::Fail
 }
 
+/// The seed as an exact JSON value: an integer when it fits `i64` or `u64`, else its decimal
+/// digits as a string. It used to become 0 above `i64::MAX`.
+fn seed_to_value(seed: i128) -> Value {
+    if let Ok(n) = i64::try_from(seed) {
+        json!(n)
+    } else if let Ok(n) = u64::try_from(seed) {
+        json!(n)
+    } else {
+        json!(seed.to_string())
+    }
+}
+
 /// Serialize a report exactly as Python's `report_to_dict` does (no secrets). The structured
 /// failures are not in this dict; read [`ReconcileReport::failures`].
 pub fn report_to_value(report: &ReconcileReport) -> Value {
     json!({
         "run_id": report.run_id,
-        "seed": report.seed.to_string().parse::<i64>().unwrap_or(0),
+        "seed": seed_to_value(report.seed),
         "player_address": report.player_address,
         "issuer_address": report.issuer_address,
         "settlements_count": report.settlements_count,
