@@ -1,6 +1,7 @@
 //! V2 affordability gate: a choice whose outcome template costs a supply the party lacks is
-//! denied (through the same `insufficient_supplies` path as an advertised-cost miss), and the
-//! choice list says so before the player picks. Legacy stays byte-for-byte as it was.
+//! shown as unaffordable before the player picks, and cannot be picked while an affordable
+//! choice is offered: the engine refuses it and nothing changes. Legacy stays byte-for-byte as
+//! it was (there a shortfall still resolves through the `insufficient_supplies` path).
 //!
 //! No second implementation checks V2, so every expected value here is a literal worked out by
 //! hand or measured once and written down.
@@ -216,10 +217,20 @@ fn v2_choice_list_carries_affordable_and_missing_and_refreshes_on_re_present() {
         vec![(true, vec![]), (true, vec![]), (true, vec![])]
     );
 
-    // Choosing A with rope 0 goes through the denied path and the game moves on.
+    // Choosing A with rope 0 is refused: the event stays up and the line names the choices
+    // that can be picked. (`a_refused_pick_changes_nothing` checks that nothing moved.)
     v2.state.supplies.set("rope", 0);
-    v2.step(&PlayerIntent::new(IntentAction::Choose).with_choice("A"));
+    let msgs = v2.step(&PlayerIntent::new(IntentAction::Choose).with_choice("A"));
+    assert_eq!(v2.phase, GamePhase::Event);
+    assert_eq!(
+        msgs.lines,
+        vec!["That option isn't available -- choose one of: B/C.".to_string()]
+    );
+    assert_eq!(shape(&v2)[0], (false, keys(&["rope"])));
+    // B is affordable and resolves: food 50 -> 48, back to camp.
+    v2.step(&PlayerIntent::new(IntentAction::Choose).with_choice("B"));
     assert_eq!(v2.phase, GamePhase::Camp);
+    assert_eq!(v2.state.supplies.get("food"), 48);
     assert_eq!(v2.state.supplies.get("rope"), 0);
 
     // Legacy, same event and state: everything is shown affordable, even re-presented.
@@ -428,13 +439,26 @@ fn tier2_event_pick(seed_idx: usize, turn: usize, len: usize) -> usize {
     seed_idx.wrapping_mul(31).wrapping_add(turn) % len
 }
 
-/// (choices taken while unaffordable, of which the cost was never advertised, total event
-/// choices) over `n` seeds x `turns` under `ruleset`.
-fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize, usize) {
+/// Everything that must not move when a pick is refused: the saved state, the phase, the RNG
+/// position and the pending event.
+fn frozen(engine: &StepEngine) -> (String, GamePhase, u64, Option<String>) {
+    (
+        state_to_value(&engine.state).to_string(),
+        engine.phase,
+        engine.rng.counter,
+        engine.pending_event().map(|e| e.event_id.clone()),
+    )
+}
+
+/// (picks refused because the choice was unaffordable, event choices resolved, presentations
+/// where no choice was affordable) over `n` seeds x `turns` under `ruleset`, with the Tier 2
+/// policy. A refused pick must leave everything as it was; a resolved pick must be the one the
+/// journal records.
+fn count_refused_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize, usize) {
     let pack = embedded_content_pack();
     let seeds = build_1000_seeds();
-    let mut denied = 0usize;
-    let mut picks = 0usize;
+    let mut refused = 0usize;
+    let mut resolved = 0usize;
     let mut all_unaffordable = 0usize;
     for (idx, &seed) in seeds.iter().take(n).enumerate() {
         let mut engine = StepEngine::with_content(create_new_run_with_content(seed, pack), pack);
@@ -443,7 +467,7 @@ fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize
             if engine.phase == GamePhase::GameOver || engine.state.game_over {
                 break;
             }
-            let mut expect_denied = false;
+            let mut expect_refused = false;
             let mut chosen = String::new();
             if engine.phase == GamePhase::Event && !engine.pending_event_choices().is_empty() {
                 let ev = engine.pending_event().expect("pending event");
@@ -456,11 +480,24 @@ fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize
                 let cs = engine.pending_event_choices();
                 let c = &cs[tier2_event_pick(idx, turn, cs.len())];
                 chosen = c.id.clone();
-                expect_denied = !c.affordable;
-                picks += 1;
+                // An unaffordable choice is only ever shown beside an affordable one: when none
+                // is affordable, the kept-open choice is shown affordable.
+                expect_refused = !c.affordable;
+                if expect_refused {
+                    assert!(cs.iter().any(|o| o.affordable), "seed {seed} turn {turn}");
+                }
             }
+            let before = frozen(&engine);
             let _ = tier2_mechanics_turn(&mut engine, idx, turn);
-            if !chosen.is_empty() {
+            if expect_refused {
+                refused += 1;
+                assert_eq!(
+                    frozen(&engine),
+                    before,
+                    "seed {seed} turn {turn}: a refused pick moved something"
+                );
+            } else if !chosen.is_empty() {
+                resolved += 1;
                 let last = engine
                     .state
                     .journal
@@ -474,29 +511,122 @@ fn count_denied_picks(ruleset: Ruleset, n: usize, turns: usize) -> (usize, usize
                     last.choice_made
                 );
             }
-            if expect_denied {
-                denied += 1;
-            }
             assert!(no_negative_supply(&engine.state), "seed {seed} turn {turn}");
         }
     }
-    (denied, picks, all_unaffordable)
+    (refused, resolved, all_unaffordable)
 }
 
 #[test]
-fn v2_denies_real_choices_over_1000_seeds_and_no_supply_goes_negative() {
-    let (denied_v2, picks_v2, all_unaffordable) = count_denied_picks(Ruleset::V2, 1000, 120);
-    let (denied_legacy, _, _) = count_denied_picks(Ruleset::Legacy, 1000, 120);
-    assert_eq!(denied_legacy, 0, "Legacy never marks a choice unaffordable");
-    // Measured once. Of 32,740 event choices taken under V2, 3,036 were unaffordable (denied).
-    assert_eq!(picks_v2, 32_740, "event choices taken under V2");
+fn v2_refuses_unaffordable_picks_over_1000_seeds_and_no_supply_goes_negative() {
+    let (refused_v2, resolved_v2, all_unaffordable) = count_refused_picks(Ruleset::V2, 1000, 120);
+    let (refused_legacy, _, _) = count_refused_picks(Ruleset::Legacy, 1000, 120);
     assert_eq!(
-        denied_v2, 3_036,
-        "choices taken while unaffordable under V2"
+        refused_legacy, 0,
+        "Legacy never marks a choice unaffordable"
     );
-    // Presentations where every offered choice was short (the keep-one-open rule applied).
-    assert_eq!(all_unaffordable, 18);
-    assert!(denied_v2 > 0);
+    // Measured once, under the Tier 2 policy (it does not look at affordability, so it asks for
+    // unaffordable choices and is refused; the same event then stays up for its next turn).
+    assert_eq!(
+        (resolved_v2, refused_v2, all_unaffordable),
+        (
+            EXPECTED_RESOLVED,
+            EXPECTED_REFUSED,
+            EXPECTED_ALL_UNAFFORDABLE
+        )
+    );
+    assert!(refused_v2 > 0);
+}
+
+const EXPECTED_RESOLVED: usize = 31_913;
+const EXPECTED_REFUSED: usize = 2_898;
+const EXPECTED_ALL_UNAFFORDABLE: usize = 45;
+
+/// The fix in one place: a refused pick changes no state, no RNG position and no phase; the
+/// line names only what can be picked; and the same pick under Legacy still goes through.
+#[test]
+fn a_refused_pick_changes_nothing() {
+    let ev = three_choice_event();
+    let mut v2 = engine_with(&ev, Ruleset::V2, &[("rope", 0), ("food", 50)]);
+    drive_to_event(&mut v2);
+    // Re-present so the list reflects the supplies now held.
+    v2.step(&PlayerIntent::new(IntentAction::Travel));
+    assert_eq!(shape(&v2)[0], (false, keys(&["rope"])));
+
+    let before = frozen(&v2);
+    let hash_before = etv_core::snapshot::compute_mechanics_state_hash(
+        &v2.state,
+        v2.phase,
+        "afford_three",
+        "",
+        &BTreeMap::new(),
+    );
+    for _ in 0..5 {
+        let msgs = v2.step(&PlayerIntent::new(IntentAction::Choose).with_choice("A"));
+        assert_eq!(
+            msgs.lines,
+            vec!["That option isn't available -- choose one of: B/C.".to_string()]
+        );
+        assert!(msgs.outcome_title.is_empty());
+        assert!(msgs.outcome_deltas.is_empty());
+        // The event is shown again with the same choices.
+        assert_eq!(msgs.event_choices.len(), 3);
+    }
+    assert_eq!(frozen(&v2), before);
+    let hash_after = etv_core::snapshot::compute_mechanics_state_hash(
+        &v2.state,
+        v2.phase,
+        "afford_three",
+        "",
+        &BTreeMap::new(),
+    );
+    assert_eq!(hash_after, hash_before);
+    assert_eq!(v2.state.journal.len(), 0);
+
+    // Legacy, same event and supplies: the pick goes through (frozen behaviour).
+    let mut legacy = engine_with(&ev, Ruleset::Legacy, &[("rope", 0), ("food", 50)]);
+    drive_to_event(&mut legacy);
+    legacy.step(&PlayerIntent::new(IntentAction::Choose).with_choice("A"));
+    assert_eq!(legacy.phase, GamePhase::Camp);
+}
+
+/// What the player sees in line mode: the unaffordable choice carries a tag, picking it prints
+/// the refusal and asks again in place, and an affordable pick then resolves.
+#[test]
+fn line_mode_shows_the_tag_and_the_refusal_and_asks_again() {
+    use etv_core::narrator::NullNarrator;
+    use etv_core::play::{choice_line, run_play, PlayExit};
+    let ev = three_choice_event();
+    let mut v2 = engine_with(&ev, Ruleset::V2, &[("rope", 0), ("food", 50)]);
+    drive_to_event(&mut v2);
+    v2.step(&PlayerIntent::new(IntentAction::Travel));
+    assert_eq!(
+        choice_line(&v2.pending_event_choices()[0]),
+        "  A. Choice A [cannot afford: rope]"
+    );
+    assert_eq!(choice_line(&v2.pending_event_choices()[1]), "  B. Choice B");
+
+    let food_before = v2.state.supplies.get("food");
+    let mut out = Vec::new();
+    let exit = run_play(
+        &mut v2,
+        &NullNarrator,
+        None,
+        "TEST",
+        std::io::Cursor::new("a\nb\nq\n"),
+        &mut out,
+    )
+    .unwrap();
+    assert_eq!(exit, PlayExit::Quit);
+    let text = String::from_utf8(out).unwrap();
+    // The refusal, then the same event again with the same tagged choice, then B resolves.
+    let refusal = "> That option isn't available -- choose one of: B/C.\n";
+    let at = text.find(refusal).expect("refusal line");
+    let after = &text[at + refusal.len()..];
+    assert!(after.contains("  A. Choice A [cannot afford: rope]\n"));
+    assert!(after.contains("> [Choice B] "));
+    assert_eq!(text.matches("That option isn't available").count(), 1);
+    assert_eq!(v2.state.supplies.get("food"), food_before - 2);
 }
 
 #[test]
@@ -515,7 +645,7 @@ fn win_counts_over_1000_seeds_legacy_vs_v2() {
     // Measured, reported as measured: no explanation is claimed here.
     assert_eq!(
         wins,
-        [2, 4],
+        [2, 3],
         "wins over 1,000 seeds x 120 turns: [Legacy, V2]"
     );
 }

@@ -1277,7 +1277,7 @@ fn step3_hard_rule_checker_pass_and_fail_table_and_fallback_on_failure() {
             CheckReasonCode::NumbersDigitsOrUnits,
         ),
         (
-            "Placeholder wagon rolls for miles across the mud.",
+            "Placeholder wagon rolls several miles across the mud.",
             NarratorLength::Standard,
             0,
             CheckReasonCode::NumbersDigitsOrUnits,
@@ -1386,19 +1386,22 @@ fn step3_hard_rule_checker_pass_and_fail_table_and_fallback_on_failure() {
         ),
         // 8. LengthCapExceeded
         (
-            "Placeholder first sentence. Placeholder second sentence.",
+            // 26 words: one over the Brief cap of 25.
+            "Placeholder wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind blows.",
             NarratorLength::Brief,
             0,
             CheckReasonCode::LengthCapExceeded,
         ),
         (
-            "Placeholder first. Placeholder second. Placeholder third.",
+            // 46 words: one over the Standard cap of 45.
+            "Placeholder wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind blows.",
             NarratorLength::Standard,
             0,
             CheckReasonCode::LengthCapExceeded,
         ),
         (
-            "Placeholder single sentence only.",
+            // 71 words: one over the Rich cap of 70.
+            "Placeholder wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind wind blows.",
             NarratorLength::Rich,
             0,
             CheckReasonCode::LengthCapExceeded,

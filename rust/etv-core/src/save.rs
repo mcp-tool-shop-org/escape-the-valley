@@ -56,6 +56,18 @@ pub enum SaveLoadError {
     },
     SeedOutOfRange(String),
     Corrupt(String),
+    /// Schema v5 loader: a save from the Python game (`save_version` 0..=3 or none).
+    PythonSaveRefused {
+        save_version: i64,
+    },
+    /// Schema v5 loader: a save from an earlier Rust development build (`save_version` 4).
+    DevelopmentSaveRefused {
+        save_version: i64,
+    },
+    /// Schema v5 loader: a save newer than this build reads (`save_version` > 5, or below 0).
+    SaveFormatTooNew {
+        save_version: i64,
+    },
 }
 
 impl SaveLoadError {
@@ -75,6 +87,15 @@ impl SaveLoadError {
             }
             Self::SeedOutOfRange(msg) => msg.clone(),
             Self::Corrupt(msg) => msg.clone(),
+            Self::PythonSaveRefused { save_version } => {
+                crate::save_v5::python_save_refusal_message(*save_version)
+            }
+            Self::DevelopmentSaveRefused { save_version } => {
+                crate::save_v5::development_save_refusal_message(*save_version)
+            }
+            Self::SaveFormatTooNew { save_version } => {
+                crate::save_v5::save_too_new_message(*save_version)
+            }
         }
     }
 }
@@ -746,7 +767,7 @@ pub fn value_to_state_checked(
     })
 }
 
-fn parse_state_fields(
+pub(crate) fn parse_state_fields(
     obj: &serde_json::Map<String, Value>,
     content_hash: String,
 ) -> Result<RunState, String> {

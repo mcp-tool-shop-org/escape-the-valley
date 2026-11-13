@@ -283,7 +283,7 @@ fn context_for(
 }
 
 #[test]
-fn narration_context_carries_check_facts_and_the_prompt_omits_them() {
+fn narration_context_carries_check_facts_and_the_prompt_omits_the_names() {
     let (ctx, names) = context_for(
         42,
         "A shallow ford runs brown.",
@@ -308,8 +308,10 @@ fn narration_context_carries_check_facts_and_the_prompt_omits_them() {
             "prompt must not contain party name {name:?}"
         );
     }
-    assert!(!prompt.contains("A shallow ford runs brown."));
-    assert!(!prompt.contains("Drive the team through"));
+    // The event's own text and the chosen label are told to the narrator (ruled 2026-11-13);
+    // only the party names stay out of the prompt.
+    assert!(prompt.contains("- event_text: A shallow ford runs brown."));
+    assert!(prompt.contains("- choice_taken: Drive the team through"));
 }
 
 #[test]
@@ -817,8 +819,8 @@ fn max_turns_limits_the_run() {
 fn nine_cells_cover_every_profile_and_length() {
     let bytes = std::fs::read(fixture_path()).expect("fixture");
     let set = parse_turn_set(&bytes, FIXTURE_SHA256).expect("parse");
-    // One turn per cell. Brief needs one sentence: both lines are one sentence, and Rich needs
-    // two to three, so the Rich cells fall back on length. 9 warm-ups + 18 calls.
+    // One turn per cell. Both lines are a few words, under every length's word cap, so every
+    // cell accepts both. 9 warm-ups + 18 calls.
     let mut responses = Vec::new();
     for _ in 0..9 {
         responses.push(warm());
@@ -843,22 +845,14 @@ fn nine_cells_cover_every_profile_and_length() {
     assert_eq!(cells, expected);
     assert_eq!(rows.len(), 9);
     for c in &report.cells {
-        if c.length == "rich" {
-            assert_eq!((c.accepted_slots, c.rule_rejects), (0, 2), "{}", c.profile);
-            assert_eq!(
-                c.rejects_by_code,
-                BTreeMap::from([("length_cap_exceeded".to_string(), 2usize)])
-            );
-            assert_eq!(c.fallback_rate_slots, 1.0);
-        } else {
-            assert_eq!(
-                (c.accepted_slots, c.rule_rejects),
-                (2, 0),
-                "{} {}",
-                c.profile,
-                c.length
-            );
-        }
+        assert_eq!(
+            (c.accepted_slots, c.rule_rejects),
+            (2, 0),
+            "{} {}",
+            c.profile,
+            c.length
+        );
+        assert_eq!(c.fallback_rate_slots, 0.0);
     }
 }
 
