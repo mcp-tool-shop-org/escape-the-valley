@@ -211,8 +211,10 @@ pub fn select_event(
         .expect("Legacy selection always returns an event")
 }
 
-/// The event that, under `Ruleset::V2`, fires at most once per run. Measured: it is the event
-/// that repeats most within a run (see `tests/ruleset_v2_river_once.rs`).
+/// The event that, under `Ruleset::V2`, fires at most once per run: the river crossing named in
+/// the content review. Measured under `Legacy` over 1,000 seeds x 120 turns it fired twice or more
+/// in 81 runs (see `tests/ruleset_v2_river_once.rs`). It is not the event that repeats in the most
+/// runs; it is the one the rule was asked for.
 pub const V2_ONCE_PER_RUN_RIVER_EVENT_ID: &str = "river_crossing";
 
 /// True if the run's journal already holds a resolved entry for `event_id`. Uses only saved
