@@ -8792,7 +8792,7 @@
         },
         {
           "dir": "rust",
-          "files": 31,
+          "files": 32,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
@@ -9900,7 +9900,7 @@
         },
         {
           "dir": "rust",
-          "files": 31,
+          "files": 32,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -10323,8 +10323,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "b45cae47f0bf99d654a9563c72824a1240868fbe",
-    "tracked": 828
+    "commit": "5b574c7a6f2d285bf5f294e403e07901d30bccd9",
+    "tracked": 829
   },
   "landings": [
     {
@@ -11156,7 +11156,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 79,
+  "testFiles": 80,
   "unassigned": [
     {
       "hash": "1933527f3fdc9da74685c29d9d85b11224651a30af2343998615557ce4e7282c",
@@ -11238,12 +11238,7 @@
         {
           "in": "balance_to_int",
           "kind": "err",
-          "line": 159
-        },
-        {
-          "in": "balance_to_int",
-          "kind": "err",
-          "line": 169
+          "line": 162
         },
         {
           "in": "balance_to_int",
@@ -11251,32 +11246,37 @@
           "line": 174
         },
         {
+          "in": "balance_to_int",
+          "kind": "err",
+          "line": 179
+        },
+        {
           "in": "read_required",
           "kind": "err",
-          "line": 445
+          "line": 456
         },
         {
           "in": "fold_payments",
           "kind": "match-err",
-          "line": 688
+          "line": 699
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1031
+          "line": 1042
         },
         {
           "in": "from_fixture",
           "kind": "err",
-          "line": 1032
+          "line": 1043
         },
         {
           "in": "submit_batch",
           "kind": "err",
-          "line": 1081
+          "line": 1092
         }
       ],
-      "hash": "040bba73162122129fa6066c92320dedd0430f616a4ab82188f5ee71ced4b7d8",
+      "hash": "34b641567ea018a07e7c553060e3b7011ea9933c1c58f8da4e36b7ac8c69b6c1",
       "importsFiles": [
         "rust/etv-core/src/model.rs"
       ],
@@ -16327,6 +16327,15 @@
           "name": "load_json_events"
         }
       ],
+      "testsInside": true
+    },
+    {
+      "hash": "e4bd9a77dcd23882e769c71fccec7e4c71f55b37454bd370b01ee9cc3a08aa48",
+      "importsFiles": [
+        "rust/etv-core/src/backpack.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/backpack_balance_parsing.rs",
       "testsInside": true
     },
     {
