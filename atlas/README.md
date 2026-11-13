@@ -1,16 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-02 from commit d3819bd by Atlas 1.24.0.
+Mapped at 2026-11-13 from commit 73f78f1 by Atlas 1.24.0.
 
 ## What this is
 
 10 parts, mostly Python (68 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).
 
-## What changed since 2026-11-02 (bda1dfb)
+## What changed since 2026-11-02 (d3819bd)
 
-- rust/etv-core/content/fallback_phrases.json is now also read by rust/tools/convert_phrase_table.py.
-- rust/tools/convert_phrase_table.py is new and belongs to no part, so atlas check fails on it against the previous map.
-- 1 file added and 4 changed content.
+Nothing structural changed since 2026-11-02; 4 files changed content.
 
 ## What comes in
 

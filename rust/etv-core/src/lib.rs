@@ -8,6 +8,7 @@
 //! - [`physics`]: Deterministic survival physics (consumption, travel distance, breakdowns, health effects, hunting, repairs, resting, morale, spoilage, night travel danger, escape valves, game-over, cause of death).
 //! - [`memory`]: Memory store, budget eviction, pressures, themes, retrieval, GM brief builder, deterministic engine emitters, and GM card validation.
 //! - [`events`]: Full 260-event library (60 hand-authored + 200 JSON), weighted selection, cooldowns, advertised inventory cost gating, outcome resolution, and state application.
+//! - [`measure`]: Step 5 fallback-rate and latency measurement harness (no model call of its own).
 //! - [`engine`]: Step-based deterministic turn engine (`StepEngine`), phase transitions (`Camp`, `Event`, `Route`, `GameOver`), route choices, town arrival trade, and graded endings (`compute_ending`).
 
 pub mod content;
@@ -15,6 +16,7 @@ pub mod engine;
 pub mod events;
 pub mod events_builtin;
 pub mod ledger;
+pub mod measure;
 pub mod memory;
 pub mod model;
 pub mod narrator;
@@ -32,8 +34,8 @@ pub use narrator::{
     CheckerContext, ComposedFallbackComposer, EndpointError, FallbackComposerError,
     FallbackPhraseTable, LiveNarrator, NarrationContext, Narrator, NarratorLength,
     NarratorSettings, NarratorStats, NarratorTransport, NullNarrator, OutcomeResponse,
-    SceneResponse, SourcePhraseEntry, SourcePhraseTable, StartupCheckStatus, TransportError,
-    TurnMattersFlags, TurnNarration, DEFAULT_OLLAMA_ENDPOINT, RESOURCE_NOUN_TABLE,
-    SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256, SHIPPED_FALLBACK_PHRASES_LF_SHA256,
-    SOURCE_PHRASE_TABLE_SHA256,
+    SceneResponse, SlotOutcome, SlotRecord, SourcePhraseEntry, SourcePhraseTable,
+    StartupCheckStatus, TransportError, TurnMattersFlags, TurnNarration, DEFAULT_OLLAMA_ENDPOINT,
+    RESOURCE_NOUN_TABLE, SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256,
+    SHIPPED_FALLBACK_PHRASES_LF_SHA256, SOURCE_PHRASE_TABLE_SHA256,
 };

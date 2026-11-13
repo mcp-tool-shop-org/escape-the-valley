@@ -82,7 +82,7 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
+      "added": 0,
       "changed": 4,
       "moved": 0,
       "parts": 0,
@@ -90,31 +90,16 @@
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "rust/etv-core/content/fallback_phrases.json is now also read by rust/tools/convert_phrase_table.py.",
-        "subjects": [
-          "rust/etv-core/content/fallback_phrases.json",
-          "rust/tools/convert_phrase_table.py"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/tools/convert_phrase_table.py is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/tools/convert_phrase_table.py"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "1 file added and 4 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-02; 4 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "bda1dfb3e45cb2df4b16d5f0711eecd16692228e",
-      "generatedAt": "2026-11-02T08:59:56.254Z"
+      "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
+      "generatedAt": "2026-11-02T09:47:57.991Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -199,7 +184,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 8 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "d3819bdbd5108f6d8b2d2356e43237c9909efcf8",
+  "commit": "73f78f1140e619db344e424addea06f35621d6a1",
   "defaultBranch": "main",
   "derived": "10 parts, mostly Python (68 files), Rust (21), shell (13), CSS (2), JavaScript (2), TypeScript (2) and HTML (1). Work enters through 9 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv is a command built from rust/etv-core (nothing ships it).",
   "doors": [
@@ -563,7 +548,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-11-02T09:47:57.991Z",
+  "generatedAt": "2026-11-13T01:36:51.117Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "1 write and 7 reads use paths built at run time and are not named here.",

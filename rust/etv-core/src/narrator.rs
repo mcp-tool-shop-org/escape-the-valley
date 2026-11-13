@@ -17,8 +17,8 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -282,9 +282,51 @@ pub struct NarrationContext {
     gm_profile: GMProfile,
     situation: String,
     party_status: PartyStatusFacts,
+    /// Party member names. Used **only** by the hard-rule checker to block names in prose; never
+    /// prompt material (see [`format_turn_facts_for_prompt`]).
+    #[serde(default)]
+    check_party_names: Vec<String>,
+    /// The event's `narration_seed` text. Checker-only: resource nouns and draft-animal species
+    /// the event itself names are allowed in prose. Never prompt material.
+    #[serde(default)]
+    check_event_seed: String,
+    /// The chosen option's label. Checker-only: used for the choice-parroting rule.
+    #[serde(default)]
+    check_choice_label: String,
 }
 
 impl NarrationContext {
+    /// Attach the checker-only facts (party names, event seed text, chosen option label).
+    ///
+    /// These feed [`CheckerContext::from_narration_context`] and nothing else: they are not
+    /// included in any prompt.
+    pub fn with_check_facts(
+        mut self,
+        party_names: Vec<String>,
+        event_seed: String,
+        choice_label: String,
+    ) -> Self {
+        self.check_party_names = party_names;
+        self.check_event_seed = event_seed;
+        self.check_choice_label = choice_label;
+        self
+    }
+
+    /// Party member names (checker-only; empty unless attached).
+    pub fn check_party_names(&self) -> &[String] {
+        &self.check_party_names
+    }
+
+    /// Event `narration_seed` text (checker-only; empty unless attached).
+    pub fn check_event_seed(&self) -> &str {
+        &self.check_event_seed
+    }
+
+    /// Chosen option label (checker-only; empty unless attached).
+    pub fn check_choice_label(&self) -> &str {
+        &self.check_choice_label
+    }
+
     /// Construct an owned, read-only [`NarrationContext`] snapshot for a completed turn.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -328,6 +370,9 @@ impl NarrationContext {
             gm_profile,
             situation,
             party_status,
+            check_party_names: Vec::new(),
+            check_event_seed: String::new(),
+            check_choice_label: String::new(),
         }
     }
 
@@ -836,6 +881,15 @@ fn build_narration_context_with_deltas(
         state.gm_profile,
         brief.situation,
         party_status,
+    )
+    .with_check_facts(
+        state.party.members.iter().map(|m| m.name.clone()).collect(),
+        msgs.event_narration.clone(),
+        msgs.event_choices
+            .iter()
+            .find(|c| c.id == choice_id)
+            .map(|c| c.label.clone())
+            .unwrap_or_default(),
     )
 }
 
@@ -1566,6 +1620,54 @@ pub enum CheckReasonCode {
     InvalidPunctuation,
     /// Sentence count outside the configured [`NarratorLength`] cap (`Brief`/`Standard`/`Rich`).
     LengthCapExceeded,
+    /// First or second person ("you", "we", "I" and their forms): prose is third-person
+    /// impersonal (voice guide section 1). Added in step 4.
+    PersonalPronoun,
+    /// A party member's name appears in the line (voice guide L1c), including at the start of a
+    /// sentence where the mid-sentence capital rule cannot see it. Added in step 4.
+    NamedPartyMember,
+    /// A draft-animal species ("mules", "oxen", "horses") the event itself does not name (voice
+    /// guide L1d). Added in step 4.
+    DraftAnimalSpecies,
+    /// The line repeats the verb and a noun of the chosen option's label (voice guide L3).
+    /// Added in step 4.
+    ChoiceParroting,
+}
+
+impl CheckReasonCode {
+    /// Every reason code, in declaration order.
+    pub const ALL: [CheckReasonCode; 12] = [
+        CheckReasonCode::NumbersDigitsOrUnits,
+        CheckReasonCode::QuantifierBeforeResourceOrHalf,
+        CheckReasonCode::DeathWords,
+        CheckReasonCode::MidSentenceCapital,
+        CheckReasonCode::UnauthorisedResourceNoun,
+        CheckReasonCode::BandBannedVocabulary,
+        CheckReasonCode::InvalidPunctuation,
+        CheckReasonCode::LengthCapExceeded,
+        CheckReasonCode::PersonalPronoun,
+        CheckReasonCode::NamedPartyMember,
+        CheckReasonCode::DraftAnimalSpecies,
+        CheckReasonCode::ChoiceParroting,
+    ];
+
+    /// Stable snake_case name used in measurement reports.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::NumbersDigitsOrUnits => "numbers_digits_or_units",
+            Self::QuantifierBeforeResourceOrHalf => "quantifier_before_resource_or_half",
+            Self::DeathWords => "death_words",
+            Self::MidSentenceCapital => "mid_sentence_capital",
+            Self::UnauthorisedResourceNoun => "unauthorised_resource_noun",
+            Self::BandBannedVocabulary => "band_banned_vocabulary",
+            Self::InvalidPunctuation => "invalid_punctuation",
+            Self::LengthCapExceeded => "length_cap_exceeded",
+            Self::PersonalPronoun => "personal_pronoun",
+            Self::NamedPartyMember => "named_party_member",
+            Self::DraftAnimalSpecies => "draft_animal_species",
+            Self::ChoiceParroting => "choice_parroting",
+        }
+    }
 }
 
 /// Detailed failure returned by [`check_generated_line`].
@@ -1582,6 +1684,32 @@ pub struct CheckerContext {
     pub allowed_landmarks: Vec<String>,
     pub weirdness_band: u8,
     pub length: NarratorLength,
+    /// Party member names that must not appear in prose (empty = rule inactive).
+    #[serde(default)]
+    pub party_names: Vec<String>,
+    /// The event's `narration_seed` text. Resource nouns and draft-animal species it names are
+    /// allowed in prose (empty = only the turn's effects authorise a resource noun).
+    #[serde(default)]
+    pub event_seed: String,
+    /// The chosen option's label, for the choice-parroting rule (empty = rule inactive).
+    #[serde(default)]
+    pub choice_label: String,
+}
+
+impl Default for CheckerContext {
+    /// No allowed resources or landmarks, band 0, `Standard` length, and the step 4 rules
+    /// inactive (no names, no seed text, no label).
+    fn default() -> Self {
+        Self {
+            allowed_resources: Vec::new(),
+            allowed_landmarks: Vec::new(),
+            weirdness_band: 0,
+            length: NarratorLength::Standard,
+            party_names: Vec::new(),
+            event_seed: String::new(),
+            choice_label: String::new(),
+        }
+    }
 }
 
 impl CheckerContext {
@@ -1602,8 +1730,94 @@ impl CheckerContext {
             allowed_landmarks,
             weirdness_band: weirdness_band_from_allowance(ctx.weirdness_allowance()),
             length,
+            party_names: ctx.check_party_names().to_vec(),
+            event_seed: ctx.check_event_seed().to_string(),
+            choice_label: ctx.check_choice_label().to_string(),
         }
     }
+}
+
+/// First- and second-person words. Prose is third-person impersonal (voice guide section 1).
+/// "mine" is left out on purpose: it is also a noun.
+const PERSONAL_PRONOUN_WORDS: &[&str] = &[
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "us",
+    "our",
+    "ours",
+    "ourselves",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
+];
+
+/// Draft-animal species names (voice guide L1d). Allowed only when the event seed names them.
+const DRAFT_ANIMAL_SPECIES_WORDS: &[&str] = &[
+    "mule",
+    "mules",
+    "ox",
+    "oxen",
+    "horse",
+    "horses",
+    "donkey",
+    "donkeys",
+    "burro",
+    "burros",
+    "cattle",
+    "cow",
+    "cows",
+    "bull",
+    "bulls",
+    "steer",
+    "steers",
+    "mare",
+    "mares",
+    "stallion",
+    "stallions",
+    "pony",
+    "ponies",
+    "colt",
+    "colts",
+];
+
+/// Function words ignored when reading the content words of a choice label.
+const LABEL_STOP_WORDS: &[&str] = &[
+    "the", "a", "an", "of", "to", "and", "or", "with", "for", "in", "on", "at", "by", "from", "it",
+    "its", "up", "down", "out", "off", "over", "into", "through", "across", "your", "our", "their",
+    "his", "her", "them", "this", "that", "these", "those", "as", "is", "be", "all", "any", "some",
+];
+
+/// Crude stem used only to compare a prose word with a label word: strips one of `ing`, `ed`,
+/// `es` or `s`, then a trailing `e`. `"bridges"` and `"bridge"` both give `"bridg"`.
+fn crude_stem(word: &str) -> String {
+    let w = word.to_ascii_lowercase();
+    let mut s = w.as_str();
+    if s.ends_with("ing") && s.len() > 5 {
+        s = &s[..s.len() - 3];
+    } else if (s.ends_with("ed") || s.ends_with("es")) && s.len() > 4 {
+        s = &s[..s.len() - 2];
+    } else if s.ends_with('s') && !s.ends_with("ss") && s.len() > 3 {
+        s = &s[..s.len() - 1];
+    }
+    if s.ends_with('e') && s.len() > 3 {
+        s = &s[..s.len() - 1];
+    }
+    s.to_string()
+}
+
+/// Content words of an option label: lowercase alphabetic tokens of three or more letters that
+/// are not in [`LABEL_STOP_WORDS`].
+fn label_content_words(label: &str) -> Vec<String> {
+    label
+        .split_whitespace()
+        .map(clean_word_token)
+        .filter(|w| w.len() >= 3 && !LABEL_STOP_WORDS.contains(&w.as_str()))
+        .collect()
 }
 
 fn lookup_resource_key_for_noun(word_lower: &str) -> Option<&'static str> {
@@ -1823,8 +2037,18 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
         }
     }
 
-    // 7. UnauthorisedResourceNoun: resource nouns must belong to `ctx.allowed_resources` and may
-    // only appear in sentence 1 (index 0).
+    // Words the event itself names (seed text and chosen label). A resource noun or draft-animal
+    // species that the event names is not an invention (voice guide L1d, L1e).
+    let event_named: Vec<String> = ctx
+        .event_seed
+        .split_whitespace()
+        .chain(ctx.choice_label.split_whitespace())
+        .map(clean_word_token)
+        .filter(|w| !w.is_empty())
+        .collect();
+
+    // 7. UnauthorisedResourceNoun: resource nouns must belong to `ctx.allowed_resources` (or be
+    // named by the event's seed or label) and may only appear in sentence 1 (index 0).
     for (s_idx, sentence) in sentences.iter().enumerate() {
         for raw_token in sentence.split_whitespace() {
             let word = clean_word_token(raw_token);
@@ -1836,7 +2060,7 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                     allowed == res_key
                         || allowed == &word
                         || (res_key == "lantern_oil" && allowed == "oil")
-                });
+                }) || event_named.contains(&word);
                 if !is_allowed {
                     return Err(CheckFailure {
                         code: CheckReasonCode::UnauthorisedResourceNoun,
@@ -1902,6 +2126,73 @@ pub fn check_generated_line(line: &str, ctx: &CheckerContext) -> Result<(), Chec
                     code: CheckReasonCode::BandBannedVocabulary,
                     detail: format!("word '{banned}' is banned at grounded band 0"),
                 });
+            }
+        }
+    }
+
+    // 9. PersonalPronoun: first and second person, including contractions such as "you'll".
+    for word in &tokens_lower {
+        let stem = word.split('\'').next().unwrap_or(word);
+        if PERSONAL_PRONOUN_WORDS.contains(&stem) {
+            return Err(CheckFailure {
+                code: CheckReasonCode::PersonalPronoun,
+                detail: format!("first or second person word '{word}'"),
+            });
+        }
+    }
+
+    // 10. NamedPartyMember: any capitalised word that is a party member's name (or one of the
+    // words of it), at any position in a sentence.
+    for raw_token in trimmed.split_whitespace() {
+        let cleaned = raw_token.trim_matches(|c: char| !c.is_ascii_alphanumeric());
+        if !cleaned
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_uppercase())
+        {
+            continue;
+        }
+        for name in &ctx.party_names {
+            let hit = name.split_whitespace().any(|part| {
+                let part = part.trim_matches(|c: char| !c.is_ascii_alphanumeric());
+                part.len() >= 2 && part.eq_ignore_ascii_case(cleaned)
+            });
+            if hit {
+                return Err(CheckFailure {
+                    code: CheckReasonCode::NamedPartyMember,
+                    detail: format!("party member name '{cleaned}'"),
+                });
+            }
+        }
+    }
+
+    // 11. DraftAnimalSpecies, unless the event's own seed or label names it.
+    for word in &tokens_lower {
+        if DRAFT_ANIMAL_SPECIES_WORDS.contains(&word.as_str()) && !event_named.contains(word) {
+            return Err(CheckFailure {
+                code: CheckReasonCode::DraftAnimalSpecies,
+                detail: format!("draft-animal species '{word}' not named by the event"),
+            });
+        }
+    }
+
+    // 12. ChoiceParroting: the label's first content word (its verb) and at least one of its
+    // other content words (a noun) both reappear in the line, compared by crude stem.
+    let label_words = label_content_words(&ctx.choice_label);
+    if label_words.len() >= 2 {
+        let line_stems: Vec<String> = tokens_lower.iter().map(|w| crude_stem(w)).collect();
+        let verb_stem = crude_stem(&label_words[0]);
+        if line_stems.contains(&verb_stem) {
+            for noun in &label_words[1..] {
+                if line_stems.contains(&crude_stem(noun)) {
+                    return Err(CheckFailure {
+                        code: CheckReasonCode::ChoiceParroting,
+                        detail: format!(
+                            "line repeats label verb '{}' and noun '{noun}'",
+                            label_words[0]
+                        ),
+                    });
+                }
             }
         }
     }
@@ -2652,6 +2943,46 @@ pub struct LiveNarrator {
     json_errors: AtomicUsize,
     rule_rejects: AtomicUsize,
     fallbacks: AtomicUsize,
+    reject_codes: Mutex<BTreeMap<&'static str, usize>>,
+    record_slots: AtomicBool,
+    slot_log: Mutex<Vec<SlotRecord>>,
+}
+
+/// How one narrator call (scene or outcome) ended.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SlotOutcome {
+    /// The line parsed and passed [`check_generated_line`].
+    Accepted,
+    /// The per-call timeout expired.
+    Timeout,
+    /// A connection or transport error other than a timeout.
+    TransportError,
+    /// A non-200 HTTP status.
+    HttpStatus { status: u16 },
+    /// The Ollama envelope was not JSON or had no `response` string.
+    BadEnvelope,
+    /// The model's JSON did not match the scene or outcome schema.
+    BadSlotJson,
+    /// The line parsed but failed the hard-rule checker.
+    RuleReject {
+        code: CheckReasonCode,
+        detail: String,
+    },
+}
+
+/// One recorded narrator call. Recording is off by default and is turned on by measurement
+/// harnesses with [`LiveNarrator::enable_slot_recording`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SlotRecord {
+    pub is_scene: bool,
+    pub outcome: SlotOutcome,
+    /// The model's whole `response` string, when one came back (kept for every outcome).
+    pub raw_response: Option<String>,
+    /// The prose the model wrote for the slot, when the JSON parsed (accepted or rejected).
+    pub candidate: Option<String>,
+    /// Wall-clock time of the call in milliseconds.
+    pub latency_ms: u64,
 }
 
 impl LiveNarrator {
@@ -2675,6 +3006,52 @@ impl LiveNarrator {
             json_errors: AtomicUsize::new(0),
             rule_rejects: AtomicUsize::new(0),
             fallbacks: AtomicUsize::new(0),
+            reject_codes: Mutex::new(BTreeMap::new()),
+            record_slots: AtomicBool::new(false),
+            slot_log: Mutex::new(Vec::new()),
+        }
+    }
+
+    /// Start keeping a [`SlotRecord`] for every call (off by default).
+    pub fn enable_slot_recording(&self) {
+        self.record_slots.store(true, Ordering::SeqCst);
+    }
+
+    /// Take and clear the recorded calls, oldest first.
+    pub fn take_slot_records(&self) -> Vec<SlotRecord> {
+        match self.slot_log.lock() {
+            Ok(mut log) => std::mem::take(&mut *log),
+            Err(_) => Vec::new(),
+        }
+    }
+
+    /// Hard-rule rejects so far, by [`CheckReasonCode::as_str`] name.
+    pub fn reject_code_counts(&self) -> BTreeMap<&'static str, usize> {
+        self.reject_codes
+            .lock()
+            .map(|m| m.clone())
+            .unwrap_or_default()
+    }
+
+    fn push_record(
+        &self,
+        is_scene: bool,
+        outcome: SlotOutcome,
+        raw_response: Option<String>,
+        candidate: Option<String>,
+        started: Instant,
+    ) {
+        if !self.record_slots.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(mut log) = self.slot_log.lock() {
+            log.push(SlotRecord {
+                is_scene,
+                outcome,
+                raw_response,
+                candidate,
+                latency_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+            });
         }
     }
 
@@ -2805,6 +3182,7 @@ impl LiveNarrator {
         checker_ctx: &CheckerContext,
     ) -> Option<String> {
         self.calls.fetch_add(1, Ordering::SeqCst);
+        let started = Instant::now();
         let timeout = Duration::from_millis(self.settings.per_call_timeout_ms);
         let payload = serde_json::json!({
             "model": self.settings.model,
@@ -2824,15 +3202,24 @@ impl LiveNarrator {
             Err(TransportError::Timeout) => {
                 self.timeouts.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.push_record(is_scene, SlotOutcome::Timeout, None, None, started);
                 return None;
             }
             Err(_) => {
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.push_record(is_scene, SlotOutcome::TransportError, None, None, started);
                 return None;
             }
         };
         if status != 200 {
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
+            self.push_record(
+                is_scene,
+                SlotOutcome::HttpStatus { status },
+                None,
+                None,
+                started,
+            );
             return None;
         }
 
@@ -2841,42 +3228,65 @@ impl LiveNarrator {
             Err(_) => {
                 self.json_errors.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.push_record(is_scene, SlotOutcome::BadEnvelope, None, None, started);
                 return None;
             }
         };
         let Some(inner_str) = outer_val.get("response").and_then(|v| v.as_str()) else {
             self.json_errors.fetch_add(1, Ordering::SeqCst);
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
+            self.push_record(is_scene, SlotOutcome::BadEnvelope, None, None, started);
             return None;
         };
 
-        let candidate_prose = if is_scene {
-            match parse_scene_response_strict(inner_str) {
-                Ok(scene) => scene.narration,
-                Err(_) => {
-                    self.json_errors.fetch_add(1, Ordering::SeqCst);
-                    self.fallbacks.fetch_add(1, Ordering::SeqCst);
-                    return None;
-                }
-            }
+        let parsed = if is_scene {
+            parse_scene_response_strict(inner_str).map(|scene| scene.narration)
         } else {
-            match parse_outcome_response_strict(inner_str) {
-                Ok(outcome) => outcome.outcome_narration,
-                Err(_) => {
-                    self.json_errors.fetch_add(1, Ordering::SeqCst);
-                    self.fallbacks.fetch_add(1, Ordering::SeqCst);
-                    return None;
-                }
+            parse_outcome_response_strict(inner_str).map(|outcome| outcome.outcome_narration)
+        };
+        let candidate_prose = match parsed {
+            Ok(prose) => prose,
+            Err(_) => {
+                self.json_errors.fetch_add(1, Ordering::SeqCst);
+                self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.push_record(
+                    is_scene,
+                    SlotOutcome::BadSlotJson,
+                    Some(inner_str.to_string()),
+                    None,
+                    started,
+                );
+                return None;
             }
         };
 
-        if check_generated_line(&candidate_prose, checker_ctx).is_err() {
+        if let Err(failure) = check_generated_line(&candidate_prose, checker_ctx) {
             self.rule_rejects.fetch_add(1, Ordering::SeqCst);
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
+            if let Ok(mut codes) = self.reject_codes.lock() {
+                *codes.entry(failure.code.as_str()).or_insert(0) += 1;
+            }
+            self.push_record(
+                is_scene,
+                SlotOutcome::RuleReject {
+                    code: failure.code,
+                    detail: failure.detail,
+                },
+                Some(inner_str.to_string()),
+                Some(candidate_prose),
+                started,
+            );
             return None;
         }
 
         self.successes.fetch_add(1, Ordering::SeqCst);
+        self.push_record(
+            is_scene,
+            SlotOutcome::Accepted,
+            Some(inner_str.to_string()),
+            Some(candidate_prose.clone()),
+            started,
+        );
         Some(candidate_prose)
     }
 }
