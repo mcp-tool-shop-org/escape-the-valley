@@ -17,6 +17,8 @@
 //!   and at most [`MAX_TURNS_PER_RUN`] turns are kept from one run, so the set spreads over many
 //!   events and many seeds.
 //! - The level is full when its quota is reached.
+//! - Every run is played under the Legacy ruleset ([`TURN_SET_RULESET`]), pinned in code, so
+//!   later changes to the V2 rules cannot move the set.
 
 use std::collections::BTreeSet;
 
@@ -28,10 +30,14 @@ use crate::narrator::{
     build_narration_context_with_phase, evaluate_turn_matters, resolve_fallback_line_with_mode,
     FallbackPhraseTable, PreTurnObservation,
 };
+use crate::ruleset::Ruleset;
 use crate::worldgen::create_new_run_with_rng;
 
 /// Turns per weirdness level in turn set v1: `(level, turns)`. 240 turns in all.
 pub const TURN_SET_V1_QUOTAS: [(u8, usize); 4] = [(0, 40), (1, 40), (2, 120), (3, 40)];
+
+/// The ruleset every turn of the set is drawn under.
+pub const TURN_SET_RULESET: Ruleset = Ruleset::Legacy;
 
 /// Steps played per run before moving to the next seed.
 pub const MAX_STEPS_PER_RUN: usize = 150;
@@ -60,6 +66,9 @@ fn collect_level(
             create_new_run_with_rng(i128::from(seed), GMProfile::Fireside, i32::from(level));
         state.content_hash = content.content_hash_hex.clone();
         let mut engine = StepEngine::with_content(state, content);
+        // Pinned: the set is drawn under the Legacy rules, whatever rules the game plays later,
+        // so a change to the V2 rules can never move this file or its digest.
+        engine.set_ruleset(TURN_SET_RULESET);
         let mut resolved_in_run = 0usize;
         let mut taken_in_run = 0usize;
 

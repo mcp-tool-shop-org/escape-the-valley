@@ -9,7 +9,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use etv_core::content::embedded_content_pack;
 use etv_core::measure::{build_turn_context, parse_turn_set, sha256_hex, TurnSpec};
 use etv_core::model::GMProfile;
-use etv_core::turn_set::{generate_turn_set, turn_set_to_json, TURN_SET_V1_QUOTAS};
+use etv_core::ruleset::Ruleset;
+use etv_core::turn_set::{
+    generate_turn_set, turn_set_to_json, TURN_SET_RULESET, TURN_SET_V1_QUOTAS,
+};
 
 /// The frozen digest of `tests/fixtures/narrator_turn_set_v1.json`.
 const TURN_SET_V1_SHA256: &str = "838e4346263507a112b6a161a4107a3647c253a39646b2427236afdd4e526f17";
@@ -28,6 +31,8 @@ fn committed_file_matches_its_frozen_digest_and_parses() {
 #[test]
 fn generator_reproduces_the_committed_bytes() {
     assert_eq!(TURN_SET_V1_QUOTAS, [(0, 40), (1, 40), (2, 120), (3, 40)]);
+    // The set is drawn under the Legacy rules, pinned, so V2 rule changes cannot move it.
+    assert_eq!(TURN_SET_RULESET, Ruleset::Legacy);
     let set = generate_turn_set(&TURN_SET_V1_QUOTAS, embedded_content_pack());
     let text = turn_set_to_json(&set);
     assert_eq!(sha256_hex(text.as_bytes()), TURN_SET_V1_SHA256);
