@@ -317,6 +317,13 @@ impl NarrationContext {
         self
     }
 
+    /// The same context with `gm_profile` set to `profile`. For a recorded context that is
+    /// replayed under each profile in turn.
+    pub fn with_gm_profile(mut self, profile: GMProfile) -> Self {
+        self.gm_profile = profile;
+        self
+    }
+
     /// Attach the run's seed number (see [`narration_call_seed`]).
     pub fn with_run_seed(mut self, run_seed: i128) -> Self {
         self.run_seed = run_seed;

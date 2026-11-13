@@ -62,6 +62,9 @@ use crate::worldgen::create_new_run_with_content;
 
 /// Schema tag of the turn-set file.
 pub const TURN_SET_SCHEMA: &str = "etv-turn-set-1";
+/// Schema tag of a version 2 turn-set file: each turn stores the whole narrator context the
+/// game built for it.
+pub const TURN_SET_SCHEMA_V2: &str = "etv-turn-set-2";
 /// Schema tag of the summary report.
 pub const REPORT_SCHEMA: &str = "etv-fallback-measure-1";
 
@@ -107,6 +110,155 @@ pub struct TurnSpec {
 pub struct TurnSet {
     pub schema: String,
     pub turns: Vec<TurnSpec>,
+}
+
+/// One frozen turn of a version 2 set: the narrator context exactly as the game built it at
+/// that moment of a real run (day, journey band, phase, time of day, place, biome, party health
+/// and morale bands, pressures, themes, the turn's effects and flags, and the checker's facts).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TurnSpecV2 {
+    pub id: String,
+    /// The run's seed.
+    pub seed: i64,
+    /// Engine weirdness level the run was created at (`0..=3`).
+    pub weirdness_level: u8,
+    /// Simulator policy that played the run.
+    pub policy: String,
+    /// Turn of the run (1 is the first step).
+    pub turn: u32,
+    /// What the player did on the turn: a camp action name, or `choose`.
+    pub action: String,
+    /// The quota tags this turn was selected for or also satisfies, sorted.
+    pub strata: Vec<String>,
+    /// The context the game built for this turn. Its `gm_profile` is replaced by the profile
+    /// under measurement when the turn is replayed.
+    pub context: NarrationContext,
+}
+
+/// A frozen version 2 set.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TurnSetV2 {
+    pub schema: String,
+    pub turns: Vec<TurnSpecV2>,
+}
+
+/// A turn set of either version, as read from a file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnyTurnSet {
+    V1(TurnSet),
+    V2(TurnSetV2),
+}
+
+impl AnyTurnSet {
+    pub fn len(&self) -> usize {
+        match self {
+            AnyTurnSet::V1(s) => s.turns.len(),
+            AnyTurnSet::V2(s) => s.turns.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn schema(&self) -> &str {
+        match self {
+            AnyTurnSet::V1(s) => &s.schema,
+            AnyTurnSet::V2(s) => &s.schema,
+        }
+    }
+
+    /// The turns in file order, each able to rebuild its context.
+    pub fn measured_turns(&self) -> Vec<MeasuredTurn<'_>> {
+        match self {
+            AnyTurnSet::V1(s) => s.turns.iter().map(MeasuredTurn::V1).collect(),
+            AnyTurnSet::V2(s) => s.turns.iter().map(MeasuredTurn::V2).collect(),
+        }
+    }
+}
+
+/// One turn of either set version.
+#[derive(Debug, Clone, Copy)]
+pub enum MeasuredTurn<'a> {
+    V1(&'a TurnSpec),
+    V2(&'a TurnSpecV2),
+}
+
+impl MeasuredTurn<'_> {
+    pub fn id(&self) -> &str {
+        match self {
+            MeasuredTurn::V1(t) => &t.id,
+            MeasuredTurn::V2(t) => &t.id,
+        }
+    }
+
+    /// The narrator context of this turn for `profile`: rebuilt from a fresh run for a version 1
+    /// turn, the stored context for a version 2 turn.
+    pub fn context(&self, profile: GMProfile) -> NarrationContext {
+        match self {
+            MeasuredTurn::V1(t) => build_turn_context(t, profile),
+            MeasuredTurn::V2(t) => t.context.clone().with_gm_profile(profile),
+        }
+    }
+}
+
+/// Parse a version 2 turn-set file, refusing it unless its SHA-256 equals `expected_sha256`.
+pub fn parse_turn_set_v2(bytes: &[u8], expected_sha256: &str) -> Result<TurnSetV2, String> {
+    let actual = sha256_hex(bytes);
+    let expected = expected_sha256.trim().to_ascii_lowercase();
+    if actual != expected {
+        return Err(format!(
+            "turn set sha256 mismatch: file is {actual}, frozen digest is {expected}"
+        ));
+    }
+    let set: TurnSetV2 =
+        serde_json::from_slice(bytes).map_err(|e| format!("invalid turn set JSON: {e}"))?;
+    if set.schema != TURN_SET_SCHEMA_V2 {
+        return Err(format!(
+            "turn set schema is {:?}, expected {TURN_SET_SCHEMA_V2:?}",
+            set.schema
+        ));
+    }
+    if set.turns.is_empty() {
+        return Err("turn set has no turns".to_string());
+    }
+    let mut seen = BTreeSet::new();
+    for t in &set.turns {
+        if !seen.insert(t.id.as_str()) {
+            return Err(format!("duplicate turn id {:?}", t.id));
+        }
+        if t.context.fallback_line().trim().is_empty() {
+            return Err(format!("turn {:?}: fallback line is empty", t.id));
+        }
+    }
+    Ok(set)
+}
+
+/// Parse a turn-set file of either version by its `schema` tag, refusing it unless its SHA-256
+/// equals `expected_sha256`.
+pub fn parse_any_turn_set(bytes: &[u8], expected_sha256: &str) -> Result<AnyTurnSet, String> {
+    #[derive(Deserialize)]
+    struct Tag {
+        schema: String,
+    }
+    let actual = sha256_hex(bytes);
+    let expected = expected_sha256.trim().to_ascii_lowercase();
+    if actual != expected {
+        return Err(format!(
+            "turn set sha256 mismatch: file is {actual}, frozen digest is {expected}"
+        ));
+    }
+    let tag: Tag =
+        serde_json::from_slice(bytes).map_err(|e| format!("invalid turn set JSON: {e}"))?;
+    match tag.schema.as_str() {
+        TURN_SET_SCHEMA => parse_turn_set(bytes, expected_sha256).map(AnyTurnSet::V1),
+        TURN_SET_SCHEMA_V2 => parse_turn_set_v2(bytes, expected_sha256).map(AnyTurnSet::V2),
+        other => Err(format!(
+            "turn set schema is {other:?}, expected {TURN_SET_SCHEMA:?} or {TURN_SET_SCHEMA_V2:?}"
+        )),
+    }
 }
 
 /// Lowercase hex SHA-256 of `bytes`.
@@ -420,8 +572,27 @@ pub fn run_measurement(
     cfg: &MeasureConfig,
     transport: Arc<dyn NarratorTransport>,
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
-    let turns: Vec<&TurnSpec> = set
-        .turns
+    let all: Vec<MeasuredTurn<'_>> = set.turns.iter().map(MeasuredTurn::V1).collect();
+    run_measurement_on(&all, set_sha256, cfg, transport)
+}
+
+/// [`run_measurement`] for a set of either version.
+pub fn run_measurement_any(
+    set: &AnyTurnSet,
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    run_measurement_on(&set.measured_turns(), set_sha256, cfg, transport)
+}
+
+fn run_measurement_on(
+    all: &[MeasuredTurn<'_>],
+    set_sha256: &str,
+    cfg: &MeasureConfig,
+    transport: Arc<dyn NarratorTransport>,
+) -> Result<(MeasureReport, Vec<TurnRow>), String> {
+    let turns: Vec<&MeasuredTurn<'_>> = all
         .iter()
         .take(cfg.max_turns.unwrap_or(usize::MAX))
         .collect();
@@ -475,7 +646,7 @@ pub fn run_measurement(
             let mut latencies = Vec::new();
 
             for spec in &turns {
-                let ctx = build_turn_context(spec, profile);
+                let ctx = spec.context(profile);
                 narrator.narrate_turn(&ctx);
                 let recs = narrator.take_slot_records();
                 let scene = recs.iter().find(|r| r.is_scene);
@@ -524,7 +695,7 @@ pub fn run_measurement(
                 rows.push(TurnRow {
                     profile: cell.profile.clone(),
                     length: cell.length.clone(),
-                    turn_id: spec.id.clone(),
+                    turn_id: spec.id().to_string(),
                     scene: slot_row(scene),
                     outcome: slot_row(outcome),
                 });
@@ -541,7 +712,7 @@ pub fn run_measurement(
         MeasureReport {
             schema: REPORT_SCHEMA.to_string(),
             turn_set_sha256: set_sha256.trim().to_ascii_lowercase(),
-            turns_in_set: set.turns.len(),
+            turns_in_set: all.len(),
             turns_run: turns.len(),
             model: cfg.model.clone(),
             endpoint: cfg.endpoint.clone(),
@@ -679,18 +850,18 @@ pub fn run_cli(
     let sha = sha.ok_or("--turn-set-sha256 is required")?;
     let bytes =
         std::fs::read(&turn_set).map_err(|e| format!("cannot read turn set {turn_set}: {e}"))?;
-    let set = parse_turn_set(&bytes, &sha)?;
+    let set = parse_any_turn_set(&bytes, &sha)?;
 
     if check_only {
-        for spec in &set.turns {
+        for spec in set.measured_turns() {
             for &profile in &cfg.profiles {
-                build_turn_context(spec, profile);
+                spec.context(profile);
             }
         }
         writeln!(
             out,
             "turn set ok: {} turns, sha256 {}",
-            set.turns.len(),
+            set.len(),
             sha.trim().to_ascii_lowercase()
         )
         .map_err(|e| e.to_string())?;
@@ -698,7 +869,7 @@ pub fn run_cli(
     }
 
     cfg.model = model.ok_or("--model is required (there is no default model)")?;
-    let (report, rows) = run_measurement(&set, &sha, &cfg, transport)?;
+    let (report, rows) = run_measurement_any(&set, &sha, &cfg, transport)?;
     let report_json =
         serde_json::to_string_pretty(&report).map_err(|e| format!("report encode: {e}"))?;
     if let Some(path) = report_path {
