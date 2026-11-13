@@ -232,6 +232,7 @@ pub fn cell_reports_from_rows(rows: &[TurnRow]) -> Vec<CellReport> {
             unique_opening_share: 0.0,
             top_openings: Vec::new(),
             latency_turn: LatencySummary::from_samples(&[]),
+            calls_made: 0,
         };
         let mut latencies = Vec::new();
         for row in &mine {
@@ -240,6 +241,12 @@ pub fn cell_reports_from_rows(rows: &[TurnRow]) -> Vec<CellReport> {
                 if let Some(ms) = slot.latency_ms {
                     latencies.push(ms);
                 }
+                // Rows written before `attempts` existed made one call per line asked.
+                cell.calls_made += if slot.attempts > 0 {
+                    slot.attempts
+                } else {
+                    usize::from(slot.status != "not_called")
+                };
                 match slot.status.as_str() {
                     "accepted" => cell.accepted_slots += 1,
                     other => {
