@@ -4,6 +4,17 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
+
+## [1.3.3] - 2026-11-07
+
+### Fixed
+
+- **Reloading a save at a fork no longer changes your run (#41).** Loading a save made at a fork in the trail used to drop you straight into the route choice, which skipped the camp stop you were in and could change what happened next. The game now returns you to camp first, exactly where you left off, so a reloaded run plays the same as one you never closed.
+- **Every death is now reported, whatever caused it (#42).** A party member who died while resting, hunting, repairing the wagon, hard-rationing, or from an event outcome (a bandit or animal wound, for example) could slip away without a message, a Trail Ledger entry, or a memory card. These deaths now show "<name> has died (<cause>)", appear in the ledger and stats with their cause, and are remembered by the Game Master, the same as deaths on the trail. Resting can no longer push anyone's health below zero.
+
 ## [1.3.2] - 2026-10-23
 
 ### Changed
