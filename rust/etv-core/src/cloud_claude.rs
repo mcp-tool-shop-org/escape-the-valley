@@ -103,6 +103,12 @@ pub fn always_thinks(model: &str) -> bool {
     matches!(model, "claude-opus-5-5" | "claude-fable-5-2")
 }
 
+/// True for the models that get [`THINKING_TOKEN_ALLOWANCE`]: those that always think, and
+/// Sonnet 5.5, so the ceiling cells all have the same room.
+pub fn gets_headroom(model: &str) -> bool {
+    always_thinks(model) || model == "claude-sonnet-5-5"
+}
+
 /// Extra `max_tokens` for models that always think, so thinking cannot eat the answer.
 pub const THINKING_TOKEN_ALLOWANCE: u64 = 2_000;
 
@@ -225,6 +231,9 @@ pub struct CloudConfig {
     /// Whether the system block carries a cache marker. It pays only when the same system
     /// prompt is sent again within minutes, which here means a repeated candidate.
     pub cache_marker: bool,
+    /// Limit on the visible answer in tokens, replacing the request's own (`None` keeps the
+    /// local model's limit).
+    pub answer_tokens: Option<u64>,
 }
 
 impl CloudConfig {
@@ -433,11 +442,13 @@ pub fn is_warmup(ollama: &Value) -> bool {
 /// user message (there is never an assistant turn, so nothing is prefilled); `format` becomes
 /// `output_config.format`; `num_predict` becomes `max_tokens`; `stop` becomes
 /// `stop_sequences`. Sampling options, seed, context size and GPU options are dropped.
-/// `cache_marker` puts a cache marker on the system block.
+/// `cache_marker` puts a cache marker on the system block. `answer_limit`, when given,
+/// replaces `num_predict` as the limit on the visible answer.
 pub fn build_messages_request(
     ollama: &Value,
     model: &str,
     cache_marker: bool,
+    answer_limit: Option<u64>,
 ) -> Result<BuiltRequest, String> {
     let asked = ollama.get("model").and_then(Value::as_str).unwrap_or("");
     if asked != model {
@@ -453,7 +464,9 @@ pub fn build_messages_request(
         .and_then(Value::as_u64)
         .filter(|n| *n > 0)
         .ok_or_else(|| "the request has no num_predict".to_string())?;
-    let max_tokens = if always_thinks(model) {
+    // The local limit was sized for the local model's tokenizer; a run may set its own.
+    let answer_tokens = answer_limit.unwrap_or(answer_tokens);
+    let max_tokens = if gets_headroom(model) {
         answer_tokens + THINKING_TOKEN_ALLOWANCE
     } else {
         answer_tokens
@@ -693,7 +706,12 @@ impl NarratorTransport for ClaudeTransport {
         if let Some(reason) = &state.halted {
             return Err(Self::halted_error(reason));
         }
-        let built = match build_messages_request(&ollama, &self.cfg.model, self.cfg.cache_marker) {
+        let built = match build_messages_request(
+            &ollama,
+            &self.cfg.model,
+            self.cfg.cache_marker,
+            self.cfg.answer_tokens,
+        ) {
             Ok(built) => built,
             Err(why) => {
                 self.halt(&mut state, &format!("request could not be built: {why}"));
@@ -896,14 +914,16 @@ pub const CLOUD_USAGE: &str = "cloud flags (all required with --cloud):
   --cloud-ledger PATH       running totals, shared by every process of the run
   --cloud-log PATH          one JSON line per HTTP attempt
 optional:
-  --cloud-no-cache-marker   send the system prompt without a cache marker";
+  --cloud-no-cache-marker   send the system prompt without a cache marker
+  --cloud-answer-tokens N   limit on the visible answer, in place of the local model's";
 
 /// Splits the cloud flags out of `args`. Returns `None` and the arguments unchanged when
 /// `--cloud` is absent. The model comes from the harness's own `--model` flag.
 pub fn split_cloud_args(args: &[String]) -> Result<(Option<CloudArgs>, Vec<String>), String> {
     let mut rest = Vec::new();
     let mut found: std::collections::BTreeMap<&'static str, String> = Default::default();
-    const FLAGS: [&str; 6] = [
+    const FLAGS: [&str; 7] = [
+        "--cloud-answer-tokens",
         "--cloud",
         "--cloud-key-file",
         "--cloud-cap-usd",
@@ -961,6 +981,14 @@ pub fn split_cloud_args(args: &[String]) -> Result<(Option<CloudArgs>, Vec<Strin
                 ledger_path: PathBuf::from(need("--cloud-ledger")?),
                 log_path: PathBuf::from(need("--cloud-log")?),
                 cache_marker,
+                answer_tokens: match found.get("--cloud-answer-tokens") {
+                    Some(text) => {
+                        Some(text.parse::<u64>().ok().filter(|n| *n > 0).ok_or_else(|| {
+                            "--cloud-answer-tokens needs a whole number".to_string()
+                        })?)
+                    }
+                    None => None,
+                },
             },
         }),
         rest,
@@ -1125,6 +1153,7 @@ mod tests {
                 ledger_path: self.dir.path().join("ledger.json"),
                 log_path: self.dir.path().join("calls.jsonl"),
                 cache_marker: true,
+                answer_tokens: None,
             }
         }
 
@@ -1235,7 +1264,10 @@ mod tests {
         body.as_object_mut().unwrap().remove("format");
         body["options"]["stop"] = json!(["."]);
         body["options"]["num_gpu"] = json!(18);
-        let built = build_messages_request(&body, HAIKU, true).unwrap();
+        let built = build_messages_request(&body, HAIKU, true, None).unwrap();
+        // A run may set its own limit on the visible answer.
+        let wider = build_messages_request(&body, HAIKU, true, Some(300)).unwrap();
+        assert_eq!(wider.body["max_tokens"], 300);
         assert_eq!(built.body["stop_sequences"], json!(["."]));
         assert!(built.body.get("output_config").is_none());
         assert_eq!(
@@ -1258,10 +1290,12 @@ mod tests {
     #[test]
     fn sonnet_turns_thinking_off_its_own_way_and_other_models_are_refused() {
         let body: Value = serde_json::from_str(&ollama_body("claude-sonnet-5-5")).unwrap();
-        let built = build_messages_request(&body, "claude-sonnet-5-5", true).unwrap();
+        let built = build_messages_request(&body, "claude-sonnet-5-5", true, Some(300)).unwrap();
         assert_eq!(built.body["thinking"], json!({ "type": "between_tools" }));
+        // 300 for the answer plus the same 2,000 headroom the thinking models get.
+        assert_eq!(built.body["max_tokens"], 2_300);
         // A request for a model other than the run's own is refused.
-        assert!(build_messages_request(&body, HAIKU, true).is_err());
+        assert!(build_messages_request(&body, HAIKU, true, None).is_err());
         // A model with no listed price cannot start a run.
         let rig = Rig::new(vec![]);
         assert!(rig.transport("claude-opus-4-8", ONE_DOLLAR).is_err());
@@ -1271,7 +1305,7 @@ mod tests {
     fn models_that_always_think_get_low_effort_and_room_to_think() {
         for model in ["claude-opus-5-5", "claude-fable-5-2"] {
             let body: Value = serde_json::from_str(&ollama_body(model)).unwrap();
-            let built = build_messages_request(&body, model, false).unwrap();
+            let built = build_messages_request(&body, model, false, None).unwrap();
             assert!(built.body.get("thinking").is_none());
             assert!(built.body.get("fallbacks").is_none());
             assert_eq!(built.body["output_config"]["effort"], "low");
@@ -1736,6 +1770,18 @@ mod tests {
         assert_eq!(cloud.cfg.max_requests, 30_000);
         assert_eq!(cloud.cfg.halt_path(), PathBuf::from("l.json.HALT"));
         assert!(cloud.cfg.cache_marker);
+        assert_eq!(cloud.cfg.answer_tokens, None);
+        let mut wider = args.clone();
+        wider.extend(["--cloud-answer-tokens".to_string(), "300".to_string()]);
+        assert_eq!(
+            split_cloud_args(&wider)
+                .unwrap()
+                .0
+                .unwrap()
+                .cfg
+                .answer_tokens,
+            Some(300)
+        );
         let mut no_marker = args.clone();
         no_marker.push("--cloud-no-cache-marker".to_string());
         let (cloud, rest2) = split_cloud_args(&no_marker).unwrap();
