@@ -1,14 +1,16 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-14 from commit ac86fbe by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 65cab21 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, in Rust (87 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-14 (6600a68)
+## What changed since 2026-11-14 (ac86fbe)
 
-Nothing structural changed since 2026-11-14; 10 files changed content.
+- In rust/etv-core/src/play.rs, `connect_narrator_with` gained a step, `model_for_display`, before `profile_interface_name`.
+- In rust/etv-core/src/play.rs, `connect_narrator_with` gained a step, `model_for_display`, before `profile_interface_name`.
+- 9 files changed content.
 
 ## What comes in
 
@@ -85,7 +87,7 @@ CI writes nothing this map can see.
 
 Confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
-Window: 180 days; a pair counts from 3 shared commits, since 12 source files reach 10 revisions; the floor rises to 10 when 25 do.
+Window: 180 days; a pair counts from 3 shared commits, since 13 source files reach 10 revisions; the floor rises to 10 when 25 do.
 
 ## What no test touches
 

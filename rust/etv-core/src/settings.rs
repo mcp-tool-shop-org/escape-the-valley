@@ -15,20 +15,6 @@ pub const SETTINGS_FILE: &str = "settings.json";
 /// Longest model name the settings screen accepts, in characters.
 pub const MAX_MODEL_NAME_CHARS: usize = 100;
 
-/// Prefixes that start a provider credential (Anthropic, OpenAI and OpenRouter, Google, Hugging
-/// Face, Groq, xAI, GitHub). A model name that starts with one is refused, unechoed.
-pub const CREDENTIAL_PREFIXES: [&str; 9] = [
-    "sk-",
-    "sk-ant-",
-    "sk-or-",
-    "AIza",
-    "hf_",
-    "gsk_",
-    "xai-",
-    "ghp_",
-    "github_pat_",
-];
-
 /// Path of the player settings file under `base_path`.
 pub fn settings_path(base_path: &Path) -> PathBuf {
     base_path.join(SAVE_DIR).join(SETTINGS_FILE)
@@ -127,11 +113,6 @@ pub fn validate_model_name(raw: &str) -> Result<String, String> {
             "the model name is longer than {MAX_MODEL_NAME_CHARS} characters"
         ));
     }
-    // A model name is shown back to the player ("model qwen3:4b"), so a key pasted here must be
-    // refused before it can be: none of these is how a model is named.
-    if CREDENTIAL_PREFIXES.iter().any(|p| name.starts_with(p)) {
-        return Err("the model name looks like a key, not a model name".to_string());
-    }
     if let Some(bad) = name
         .chars()
         .find(|c| !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':' | '/')))
@@ -142,3 +123,23 @@ pub fn validate_model_name(raw: &str) -> Result<String, String> {
     }
     Ok(name.to_string())
 }
+
+/// The model name as it may be shown to the player, or `None` when it may not be.
+///
+/// A model name comes from the settings file, where a key may have been pasted, so it is shown
+/// only when it is exactly one the game knows: the built-in default
+/// ([`crate::narrator::DEFAULT_NARRATOR_MODEL`]), one of the Claude models
+/// ([`crate::narrator_provider::CLAUDE_MODELS`]), or a name the local Ollama service listed as
+/// installed (`installed`; pass none for a hosted provider, whose listing is its own setting).
+/// Every place that shows a model asks this; anything else reads "the configured model".
+pub fn model_for_display<'a>(model: &'a str, installed: &[String]) -> Option<&'a str> {
+    let known = model == crate::narrator::DEFAULT_NARRATOR_MODEL
+        || crate::narrator_provider::CLAUDE_MODELS
+            .iter()
+            .any(|(id, _)| *id == model)
+        || installed.iter().any(|n| n == model);
+    known.then_some(model)
+}
+
+/// What a model is called where it may not be named.
+pub const CONFIGURED_MODEL: &str = "the configured model";

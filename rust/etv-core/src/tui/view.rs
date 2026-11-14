@@ -12,7 +12,7 @@ use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph};
 use ratatui::Frame;
 
 use crate::play::StatusFacts;
-use crate::screens::{about_screen_lines, settings_screen_lines, title_screen_lines, MODEL_PROMPT};
+use crate::screens::{about_screen_lines, title_screen_lines, MODEL_PROMPT};
 
 use super::layout::{self, wrap};
 use super::model::{Model, Overlay, Screen, BUSY_LINE, MIN_HEIGHT, MIN_WIDTH, PACES};
@@ -273,7 +273,7 @@ fn draw_settings(model: &Model, th: &Theme, frame: &mut Frame, area: Rect) {
     ])
     .split(area);
     draw_header(model, th, frame, rows[0]);
-    let mut lines = settings_screen_lines(&model.settings.settings);
+    let mut lines = model.settings.lines();
     lines.push(String::new());
     if let Some(entry) = &model.settings_entry {
         lines.push(MODEL_PROMPT.to_string());

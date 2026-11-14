@@ -207,6 +207,11 @@ struct Case {
 
 impl Case {
     fn new(body: serde_json::Value, key: &str) -> Case {
+        Case::raw(&body.to_string(), key)
+    }
+
+    /// A settings file written as `body`, which need not be JSON at all.
+    fn raw(body: &str, key: &str) -> Case {
         let mut env = BTreeMap::new();
         env.insert("ETV_SET".to_string(), GOOD_KEY.to_string());
         Case {
@@ -532,7 +537,7 @@ fn a_variable_name_is_never_named() {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(
         &path,
-        r#"{"provider": "claude", "key": {"env": "ETV_UNSET"}}"#,
+        r#"{"provider": "claude", "model": "claude-haiku-5-5", "key": {"env": "ETV_UNSET"}}"#,
     )
     .unwrap();
     let loaded = load_settings_or_default(dir.path());
@@ -617,18 +622,162 @@ fn a_key_pasted_as_the_model_is_not_shown() {
             .local(Local::Listing)
             .check();
     }
-    // A real model name is still shown.
-    let loaded_line = {
-        let dir = tempfile::tempdir().unwrap();
-        let path = settings_path(dir.path());
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, r#"{"model": "llama3.2:3b"}"#).unwrap();
-        let loaded = load_settings_or_default(dir.path());
-        connect_narrator_with(&loaded.settings, |s| {
-            narrator_transport(s, Local::Listing.transport(), None, &|_| None)
-        })
-        .lines[0]
-            .clone()
+}
+
+/// The lines a settings file gives at start, with `local` as the local service.
+fn connect_lines(body: &str, local: Local) -> (Option<String>, Vec<String>) {
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, body).unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    let lines = connect_narrator_with(&loaded.settings, |s| {
+        narrator_transport(s, local.transport(), None, &|_| None)
+    })
+    .lines;
+    (loaded.warning, lines)
+}
+
+/// A made-up key of 32 letters and digits, with no known prefix.
+const PLAIN_KEY: &str = "Q7xK2mN9pL4vR8tW1zY6bC3dF5gH0jAs";
+
+#[test]
+fn a_prefixless_key_as_the_model_is_not_shown() {
+    // A key of model-name characters passes the name check, so it is never shown as free text:
+    // for the local narrator (service listing other models, and service not answering), for an
+    // OpenAI-compatible provider, and for Claude (which refuses any model it does not list).
+    for key in [NAME_SHAPED_KEY, PLAIN_KEY] {
+        Case::new(serde_json::json!({"model": key}), key)
+            .local(Local::Listing)
+            .check();
+        Case::new(serde_json::json!({"model": key}), key).check();
+        Case::new(
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": key,
+                "provider_url": "https://example.com/v1",
+                "key": {"env": "ETV_SET"},
+            }),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"provider": "claude", "model": key, "key": {"env": "ETV_SET"}}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_key_with_odd_characters_as_the_model_is_not_shown() {
+    Case::new(serde_json::json!({"model": ODD_KEY}), ODD_KEY)
+        .local(Local::Listing)
+        .check();
+}
+
+#[test]
+fn a_key_in_the_endpoint_path_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://127.0.0.1:11434/{key}")}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn malformed_json_holding_a_key_is_not_shown() {
+    // A syntax error (the key alone) and an unexpected end (an unclosed string).
+    for key in [KEY, NAME_SHAPED_KEY] {
+        Case::raw(key, key).check();
+        Case::raw(&format!("{{\"model\": \"{key}"), key).check();
+    }
+}
+
+#[test]
+fn a_known_model_is_still_named() {
+    // A model the local service lists as installed is named.
+    let (warning, lines) = connect_lines(r#"{"model": "qwen3:4b"}"#, Local::Listing);
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines[0],
+        "The narrator model 'qwen3:4b' did not load in time."
+    );
+    // The built-in default is named, with its pull hint, when it is not installed.
+    let (warning, lines) = connect_lines("{}", Local::Listing);
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines[0],
+        format!(
+            "The narrator model '{0}' is not installed in Ollama. Install it with: ollama pull {0}",
+            etv_core::narrator::DEFAULT_NARRATOR_MODEL
+        )
+    );
+    // A real model with a prefix once refused is accepted again, and, not installed, unnamed.
+    let (warning, lines) = connect_lines(r#"{"model": "xai-org/grok-1"}"#, Local::Listing);
+    assert_eq!(warning, None, "xai-org/grok-1 is a model name");
+    assert_eq!(
+        lines[0],
+        "The configured narrator model is not installed in Ollama."
+    );
+    // The options screen names a Claude model, and not a free-text one.
+    let claude = NarratorSettings::default().with_cloud();
+    let screen = etv_core::screens::settings_screen_lines(&claude).join(
+        "
+",
+    );
+    assert!(screen.contains("4. Model     claude-haiku-5-5"), "{screen}");
+    let custom = NarratorSettings {
+        model: "xai-org/grok-1".to_string(),
+        ..NarratorSettings::default()
     };
-    assert!(loaded_line.contains("llama3.2:3b"), "{loaded_line}");
+    let screen = etv_core::screens::settings_screen_lines(&custom).join(
+        "
+",
+    );
+    assert!(
+        screen.contains("4. Model     the configured model"),
+        "{screen}"
+    );
+    // A name the player types on the screen is shown back there.
+    let mut typed = etv_core::screens::SettingsScreen::new(custom);
+    typed.handle_line("4");
+    let said = typed.handle_line("mistral:7b");
+    assert_eq!(
+        said,
+        etv_core::screens::SettingsEvent::Changed("Model is now mistral:7b.".to_string())
+    );
+    assert!(typed
+        .lines()
+        .join(
+            "
+"
+        )
+        .contains("4. Model     mistral:7b"));
+}
+
+#[test]
+fn an_endpoint_error_carries_no_endpoint_text() {
+    use etv_core::narrator::validate_endpoint;
+    for key in [KEY, ODD_KEY, NAME_SHAPED_KEY] {
+        for endpoint in [
+            format!("ftp://{key}"),
+            format!("http://{key}:11434"),
+            format!("http://127.0.0.1:{key}"),
+            format!("http://{key}@127.0.0.1:11434"),
+            format!("http://127.0.0.1:11434/?key={key}"),
+            format!("http://[{key}]:11434"),
+        ] {
+            for allow in [false, true] {
+                let Err(e) = validate_endpoint(&endpoint, allow) else {
+                    continue;
+                };
+                for text in [format!("{e:?}"), format!("{e}")] {
+                    assert_clean("an endpoint error", &text, key);
+                }
+            }
+        }
+    }
 }

@@ -1551,7 +1551,7 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
         );
         assert_eq!(
             validate_endpoint(non_loopback, false),
-            Err(EndpointError::NonLoopbackRefused(non_loopback.to_string()))
+            Err(EndpointError::NonLoopbackRefused)
         );
     }
 
@@ -1560,7 +1560,7 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
     assert!(!is_loopback_endpoint(userinfo));
     assert_eq!(
         validate_endpoint(userinfo, false),
-        Err(EndpointError::InvalidAuthority(userinfo.to_string()))
+        Err(EndpointError::InvalidAuthority)
     );
 
     // Explicit opt-in in settings permits a valid non-loopback endpoint (still rejecting @ userinfo)

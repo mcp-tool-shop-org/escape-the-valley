@@ -19,6 +19,7 @@ use crate::narrator::{
 };
 use crate::physics::current_node;
 use crate::screens::title_screen_lines;
+use crate::settings::{model_for_display, CONFIGURED_MODEL};
 
 /// The camp menu, shown with the status panel at every camp stop.
 pub const CAMP_MENU: &str =
@@ -540,13 +541,26 @@ pub fn connect_narrator_with(
         Err(reason) => return off(reason),
     };
     let narrator = LiveNarrator::with_transport(settings.clone(), transport);
-    let status = narrator.check_startup();
+    let (status, listed) = narrator.check_startup_listing();
+    // Only the local Ollama service's own listing says what is installed: a hosted provider's
+    // listing is just its setting repeated back.
+    let installed: &[String] =
+        if settings.provider == crate::narrator_provider::NarratorProvider::Ollama {
+            &listed
+        } else {
+            &[]
+        };
+    let shown = model_for_display(&settings.model, installed);
     if !status.available {
         let reason = if status.installed {
-            format!(
-                "The narrator model '{}' is not installed in Ollama. Install it with: ollama pull {}",
-                settings.model, settings.model
-            )
+            if settings.model == crate::narrator::DEFAULT_NARRATOR_MODEL {
+                format!(
+                    "The narrator model '{0}' is not installed in Ollama. Install it with: ollama pull {0}",
+                    crate::narrator::DEFAULT_NARRATOR_MODEL
+                )
+            } else {
+                "The configured narrator model is not installed in Ollama.".to_string()
+            }
         } else {
             format!(
                 "The narrator service did not answer at {}. Start it with: ollama serve",
@@ -556,16 +570,16 @@ pub fn connect_narrator_with(
         return off(reason);
     }
     if narrator.warmup().is_err() {
-        return off(format!(
-            "The narrator model '{}' did not load in time.",
-            settings.model
-        ));
+        return off(match shown {
+            Some(m) => format!("The narrator model '{m}' did not load in time."),
+            None => "The configured narrator model did not load in time.".to_string(),
+        });
     }
     let line = format!(
         "Narrator: {}, {}, model {}.",
         profile_interface_name(settings.profile),
         settings.length.as_str(),
-        settings.model
+        shown.unwrap_or(CONFIGURED_MODEL)
     );
     NarratorConnection {
         narrator: Some(narrator),

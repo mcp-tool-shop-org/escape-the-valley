@@ -380,6 +380,17 @@ pub fn validate_provider(settings: &crate::narrator::NarratorSettings) -> Result
                     settings.provider.name()
                 ));
             }
+            // The Claude provider takes only a model it lists, so the model is always one the game
+            // can name; anything else is refused without being shown.
+            if settings.provider == NarratorProvider::Claude
+                && !CLAUDE_MODELS.iter().any(|(id, _)| *id == settings.model)
+            {
+                let names: Vec<&str> = CLAUDE_MODELS.iter().map(|(id, _)| *id).collect();
+                return Err(format!(
+                    "the claude provider needs one of its models ({})",
+                    names.join(", ")
+                ));
+            }
             if settings.provider == NarratorProvider::OpenaiCompatible {
                 let url = settings.provider_url.trim();
                 if !url.starts_with("https://") || url.len() <= "https://".len() {

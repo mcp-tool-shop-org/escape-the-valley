@@ -3652,12 +3652,28 @@ pub fn resolve_fallback_line_with_mode(
 // Endpoint Validation & Settings Stub (Player Settings File Only)
 // ============================================================================
 
-/// Errors returned when validating an Ollama HTTP endpoint.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Errors returned when validating an Ollama HTTP endpoint. They carry no text from the
+/// endpoint: it comes from the settings file, where a key may have been pasted, and an error's
+/// `Debug` or `Display` form can reach a message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EndpointError {
-    InvalidScheme(String),
-    InvalidAuthority(String),
-    NonLoopbackRefused(String),
+    InvalidScheme,
+    InvalidAuthority,
+    NonLoopbackRefused,
+}
+
+impl std::fmt::Display for EndpointError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            EndpointError::NonLoopbackRefused => {
+                "the endpoint is not on this computer (set allow_non_loopback to use another host)"
+            }
+            EndpointError::InvalidScheme => "the endpoint must start with http:// or https://",
+            EndpointError::InvalidAuthority => {
+                "the endpoint is not valid (a host, an optional numeric port and an optional path only; no user name, query or fragment)"
+            }
+        })
+    }
 }
 
 fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
@@ -3667,9 +3683,9 @@ fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
     } else if let Some(r) = trimmed.strip_prefix("https://") {
         r
     } else {
-        return Err(EndpointError::InvalidScheme(endpoint.to_string()));
+        return Err(EndpointError::InvalidScheme);
     };
-    let bad = || EndpointError::InvalidAuthority(endpoint.to_string());
+    let bad = || EndpointError::InvalidAuthority;
     // An endpoint is a scheme, a host, an optional numeric port and an optional path. A query, a
     // fragment or userinfo has no place in it, and each could carry anything (a key included).
     if rest.contains(['?', '#']) {
@@ -3744,7 +3760,7 @@ pub fn validate_endpoint(
     // it points.
     let _host = parse_endpoint_host(endpoint)?;
     if !allow_non_loopback && !is_loopback_endpoint(endpoint) {
-        return Err(EndpointError::NonLoopbackRefused(endpoint.to_string()));
+        return Err(EndpointError::NonLoopbackRefused);
     }
     Ok(endpoint.trim().trim_end_matches('/').to_string())
 }
@@ -3831,20 +3847,7 @@ impl NarratorSettings {
             format!("{what} (at line {}, column {})", e.line(), e.column())
         })?;
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
-            .map_err(|e| {
-                match e {
-                    EndpointError::NonLoopbackRefused(_) => {
-                        "the endpoint is not on this computer (set allow_non_loopback to use another host)"
-                    }
-                    EndpointError::InvalidScheme(_) => {
-                        "the endpoint must start with http:// or https://"
-                    }
-                    EndpointError::InvalidAuthority(_) => {
-                        "the endpoint is not valid (a host, an optional numeric port and an optional path only; no user name, query or fragment)"
-                    }
-                }
-                .to_string()
-            })?;
+            .map_err(|e| e.to_string())?;
         settings.endpoint = normalized;
         crate::narrator_provider::validate_provider(&settings)?;
         Ok(settings)
@@ -4355,6 +4358,19 @@ impl LiveNarrator {
     /// Check Ollama connectivity and model installation at startup, returning plain-words
     /// guidance and `offer_narrator_off = true` if the service is down or the model is missing.
     pub fn check_startup(&self) -> StartupCheckStatus {
+        self.check_startup_listing().0
+    }
+
+    /// As [`Self::check_startup`], with the model names the service listed as installed (empty
+    /// when it did not answer), so a caller can tell whether a model name is one the service
+    /// itself knows.
+    pub fn check_startup_listing(&self) -> (StartupCheckStatus, Vec<String>) {
+        let mut listed = Vec::new();
+        let status = self.check_startup_with(&mut listed);
+        (status, listed)
+    }
+
+    fn check_startup_with(&self, listed: &mut Vec<String>) -> StartupCheckStatus {
         if !self.settings.enabled {
             return StartupCheckStatus {
                 installed: false,
@@ -4379,6 +4395,7 @@ impl LiveNarrator {
         match self.transport.get_tags(&endpoint, timeout) {
             Ok((200, body)) => {
                 let names = extract_tag_names(&body);
+                listed.clone_from(&names);
                 if model_listed(&self.settings.model, &names) {
                     StartupCheckStatus {
                         installed: true,
