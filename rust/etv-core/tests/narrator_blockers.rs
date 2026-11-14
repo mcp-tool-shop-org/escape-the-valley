@@ -8,7 +8,8 @@ use etv_core::model::{GMProfile, GamePhase, IntentAction, PlayerIntent};
 use etv_core::narrator::{
     build_narration_context_from_turn, compute_applied_turn_deltas, evaluate_turn_matters,
     narration_call_seed, resolve_fallback_line_with_mode, CheckerContext, ComposedFallbackComposer,
-    FallbackPhraseTable, NarrationContext, NarratorLength, PreTurnObservation,
+    FallbackComposerError, FallbackPhraseTable, NarrationContext, NarratorLength,
+    PreTurnObservation,
 };
 use etv_core::worldgen::create_new_run_with_content;
 
@@ -132,6 +133,52 @@ fn no_composed_line_carries_a_placeholder_for_any_supply_key() {
             assert!(!line.contains("PLACEHOLDER"), "{key} {delta}: {line:?}");
         }
     }
+}
+
+#[test]
+fn a_table_without_a_real_neutral_phrase_never_composes_a_placeholder() {
+    // A custom table with no "none" entry, and a debug table whose "none" entry is only a
+    // stand-in. Before, a turn with nothing phrased composed "The party PLACEHOLDER-none-neutral."
+    let no_none = FallbackPhraseTable::from_json_str(
+        r#"{"schema_version":1,"phrases":{"food":{"neg":"uses food","pos":"gains food"}}}"#,
+    )
+    .unwrap();
+    assert!(!no_none.has_placeholders());
+    let mut stand_in = FallbackPhraseTable::embedded();
+    stand_in.phrases.get_mut("none").unwrap().insert(
+        "neutral".to_string(),
+        "PLACEHOLDER-none-neutral".to_string(),
+    );
+    for table in [&no_none, &stand_in] {
+        for release in [false, true] {
+            let refused = ComposedFallbackComposer::try_start_with_mode(Some(table), release);
+            let expected = if release && table.has_placeholders() {
+                FallbackComposerError::PlaceholdersInReleaseBuild
+            } else {
+                FallbackComposerError::NeutralPhraseMissing
+            };
+            assert_eq!(refused.unwrap_err(), expected, "release {release}");
+        }
+    }
+
+    // The caller then shows the engine's own line, which carries no stand-in either.
+    let nothing_phrased = turn_spending("water", 1);
+    for table in [&no_none, &stand_in] {
+        for release in [false, true] {
+            let line = resolve_fallback_line_with_mode(&nothing_phrased, Some(table), release);
+            assert_eq!(line, nothing_phrased.fallback_line());
+            assert!(!line.contains("PLACEHOLDER"), "{line:?}");
+        }
+    }
+
+    // The shipped table has a real neutral phrase and still composes it.
+    let shipped = FallbackPhraseTable::embedded();
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&shipped), true).unwrap();
+    let neutral = shipped.phrase("none", "neutral").unwrap();
+    assert_eq!(
+        composer.compose_from_effects(&[]),
+        format!("{} {neutral}.", shipped.subject)
+    );
 }
 
 #[test]

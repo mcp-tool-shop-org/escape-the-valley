@@ -1123,7 +1123,8 @@ pub struct RunState {
     /// adds one on every call, choice and fork turns included, before anything else. The
     /// narrator's sampling seed reads it as the turn index, so two turns with the same facts
     /// never share a seed. Not a game rule: nothing in play reads it. Saved in v5 saves; the
-    /// frozen v4 (Legacy) save does not carry it, so a resumed Legacy run counts from 0.
+    /// frozen v4 (Legacy) save does not carry it, so a Legacy run keeps it in the narration
+    /// sidecar beside the save ([`crate::save::write_narration_sidecar`]).
     #[serde(default)]
     pub turns_stepped: u64,
     #[serde(

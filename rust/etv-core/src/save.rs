@@ -6,7 +6,9 @@
 //! - Supply clamps on load (`SuppliesState::set`, floor 0, catalog filter);
 //! - Atomic write of `.trail/run.json` and `.trail/secrets.json` (keyed by `run_id`,
 //!   0o600 on POSIX and owner-only ACL on Windows);
-//! - Audit L-2 fix: `last_settle_failed` and `minted_initial` persisted directly.
+//! - Audit L-2 fix: `last_settle_failed` and `minted_initial` persisted directly;
+//! - `.trail/narration.json`, the narration sidecar: the run's step counter beside the frozen
+//!   v4 save (see [`write_narration_sidecar`]).
 
 use crate::content::EMBEDDED_CONTENT_HASH_HEX;
 use crate::model::{
@@ -27,6 +29,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub const SAVE_DIR: &str = ".trail";
 pub const SAVE_FILE: &str = "run.json";
 pub const SECRETS_FILE: &str = "secrets.json";
+/// The narration sidecar beside `run.json`: `{"run_id": ..., "turns_stepped": ...}`. Only the
+/// narrator's sampling seed reads it; deleting it is safe (a resumed run then counts from 0).
+pub const NARRATION_FILE: &str = "narration.json";
 
 /// Python 1.3.1 writes `save_version = 1` (and 1.3.x supports 0..=3).
 /// Rust 2.0 bumps the save schema to `SAVE_VERSION = 4` (carrying `content_hash`)
@@ -158,6 +163,9 @@ pub fn has_save(base_path: &Path) -> bool {
 
 /// Save the current `RunState` to `<base_path>/.trail/run.json` atomically,
 /// and update `<base_path>/.trail/secrets.json` atomically.
+///
+/// The narration sidecar (`.trail/narration.json`) is written first, and `run.json` only after
+/// it has been renamed into place; see [`write_narration_sidecar`] for why the order matters.
 pub fn save_game(state: &RunState, base_path: &Path) -> std::io::Result<PathBuf> {
     let save_dir = base_path.join(SAVE_DIR);
     fs::create_dir_all(&save_dir)?;
@@ -167,6 +175,7 @@ pub fn save_game(state: &RunState, base_path: &Path) -> std::io::Result<PathBuf>
     let payload = serde_json::to_string_pretty(&data)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
+    write_narration_sidecar(&save_dir, state)?;
     atomic_write_text(&save_path, &payload, false)?;
     write_secrets_sidecar(&save_dir, state)?;
 
@@ -260,8 +269,58 @@ pub fn load_game_result_with_content_hash(
         state.backpack.wallet_secret = secrets.wallet_secret;
         state.backpack.issuer_secret = secrets.issuer_secret;
     }
+    state.turns_stepped = read_narration_sidecar(&save_dir, &state.run_id);
 
     LoadResult::success(state)
+}
+
+/// Write the narration sidecar `<save_dir>/narration.json` atomically (temp file, then rename):
+/// the run's id and its step counter, [`RunState::turns_stepped`].
+///
+/// The frozen v4 `run.json` cannot carry the counter, and nothing it does carry can stand in
+/// for it: some camp turns (a pace change, a refused hunt or repair) leave every field of
+/// `run.json` as it was, so the save after one such turn and after five is the same file, and
+/// those turns share every other input of the narration seed. Any count derived from `run.json`
+/// would hand a resumed run the index of a turn it already played.
+///
+/// The sidecar gives the guarantee instead, by write order. [`save_game`] writes it, with the
+/// count the state has reached, before it writes `run.json`, and each write is a rename of a
+/// complete temp file. So whatever `run.json` is on disk, the sidecar beside it was written at
+/// the same save or a later one, and its count is at least the number of steps taken before
+/// that `run.json` was written. A crash between the two writes leaves the sidecar ahead, never
+/// behind. A resumed run starts from that count, and its first turn takes the next index,
+/// which no earlier turn of the run has used.
+///
+/// If the sidecar cannot be written, `save_game` fails before touching `run.json`, so the two
+/// files on disk are the earlier pair, which already hold the guarantee.
+pub fn write_narration_sidecar(save_dir: &Path, state: &RunState) -> std::io::Result<()> {
+    let payload = serde_json::to_string_pretty(&json!({
+        "run_id": state.run_id,
+        "turns_stepped": state.turns_stepped,
+    }))
+    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    atomic_write_text(&save_dir.join(NARRATION_FILE), &payload, false)
+}
+
+/// Read the step counter from `<save_dir>/narration.json` for `run_id`.
+///
+/// Returns 0, the count a v4 save had before the sidecar existed, when the file is missing,
+/// unreadable, not JSON, not an object, names another run, or holds no non-negative integer.
+/// None of these is an error: the counter only feeds the narrator's sampling seed, so a bad
+/// sidecar changes no mechanic and the file is left as it is.
+pub fn read_narration_sidecar(save_dir: &Path, run_id: &str) -> u64 {
+    let Ok(text) = fs::read_to_string(save_dir.join(NARRATION_FILE)) else {
+        return 0;
+    };
+    let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(&text) else {
+        return 0;
+    };
+    if obj.get("run_id").and_then(Value::as_str) != Some(run_id) {
+        return 0;
+    }
+    obj.get("turns_stepped")
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
 }
 
 /// Write `text` to `target` atomically via a temp file in the same directory, `sync_all()`,
@@ -1076,8 +1135,8 @@ pub(crate) fn parse_state_fields(
         journal,
         map_nodes,
         rng_counter,
-        // The v4 save does not carry the step counter (see `RunState::turns_stepped`); the
-        // v5 loader reads it on top.
+        // The v4 save does not carry the step counter (see `RunState::turns_stepped`): the v4
+        // file loader reads it from the narration sidecar, and the v5 loader from its own key.
         turns_stepped: 0,
         rng_state,
         recent_event_tags,
