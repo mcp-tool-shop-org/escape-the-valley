@@ -1,24 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-14 from commit 11a402b by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit ea10909 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, in Rust (85 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-14 (3f80665)
+## What changed since 2026-11-14 (11a402b)
 
-- CI now also runs rust/etv-core/src/cloud_claude.rs.
-- Release now also runs rust/etv-core/src/cloud_claude.rs.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `default`, before `hosted_transport`.
-- In rust/etv-core/src/bin/etv.rs, `main` gained a step, `hosted_transport`, before `connect_narrator`.
-- In rust/etv-core/src/bin/etv.rs, `main` lost a step, `from_engine`.
-- And 10 more changes to the order of work.
-- rust/etv-core/src/cloud_claude.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/src/narrator_provider.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/tests/narrator_providers.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- And 1 more new file that belongs to no part.
-- 4 files added and 22 changed content.
+Nothing structural changed since 2026-11-14; 3 files changed content.
 
 ## What comes in
 

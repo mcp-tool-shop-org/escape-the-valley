@@ -226,8 +226,8 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 35,
-        "lines": 500,
+        "commits": 36,
+        "lines": 504,
         "path": "CHANGELOG.md"
       },
       {
@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 59,
-        "lines": 1887,
+        "commits": 60,
+        "lines": 1923,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 59,
-        "lines": 6496,
+        "commits": 60,
+        "lines": 6580,
         "path": "atlas/page.json"
       },
       {
-        "commits": 59,
-        "lines": 30086,
+        "commits": 60,
+        "lines": 30328,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 59,
-        "lines": 45938,
+        "commits": 60,
+        "lines": 46904,
         "path": "atlas/structure.json"
       },
       {
@@ -4491,9 +4491,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T14:45:35.896Z",
+  "generatedAt": "2026-11-14T16:18:49.283Z",
   "generatedFrom": {
-    "commit": "11a402b802ee1c17c3f4421b51b2bfc70f980fc8"
+    "commit": "ea109093a2ada8a4faf2cd050b4234dc34171c53"
   },
   "pairs": [
     {
@@ -4646,43 +4646,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 48,
-      "shared": 48,
+      "either": 49,
+      "shared": 49,
       "strength": 1
     },
     {
@@ -4871,16 +4871,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T09:45:26-05:00",
-    "inScopeFiles": 857,
+    "headDate": "2026-11-14T09:45:56-05:00",
+    "inScopeFiles": 865,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 167,
+    "qualifyingCommits": 169,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T14:45:26.000Z",
+    "since": "2026-05-18T14:45:56.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

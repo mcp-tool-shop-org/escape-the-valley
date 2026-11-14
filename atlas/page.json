@@ -84,92 +84,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 4,
-      "changed": 22,
+      "added": 0,
+      "changed": 3,
       "moved": 0,
-      "parts": 0,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also runs rust/etv-core/src/cloud_claude.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "rust/etv-core/src/cloud_claude.rs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Release now also runs rust/etv-core/src/cloud_claude.rs.",
-        "subjects": [
-          ".github/workflows/release.yml",
-          "rust/etv-core/src/cloud_claude.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `default`, before `hosted_transport`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `hosted_transport`, before `connect_narrator`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` lost a step, `from_engine`.",
-        "subjects": [
-          "rust/etv-core/src/bin/etv.rs"
-        ]
-      },
-      {
-        "kind": "sequence",
-        "sentence": "And 10 more changes to the order of work.",
-        "subjects": []
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/cloud_claude.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/cloud_claude.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/narrator_provider.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/narrator_provider.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/narrator_providers.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/narrator_providers.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "And 1 more new file that belongs to no part.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "4 files added and 22 changed content.",
+        "sentence": "Nothing structural changed since 2026-11-14; 3 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "3f806657e2b7c2e81a71a057a7bb2e7132851fae",
-      "generatedAt": "2026-11-14T13:43:54.749Z"
+      "commit": "11a402b802ee1c17c3f4421b51b2bfc70f980fc8",
+      "generatedAt": "2026-11-14T14:45:35.896Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -254,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 12 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "11a402b802ee1c17c3f4421b51b2bfc70f980fc8",
+  "commit": "ea109093a2ada8a4faf2cd050b4234dc34171c53",
   "defaultBranch": "main",
   "derived": "10 parts, in Rust (85 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -746,7 +678,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T14:45:35.896Z",
+  "generatedAt": "2026-11-14T16:18:49.283Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",

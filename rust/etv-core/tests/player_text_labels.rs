@@ -3,7 +3,10 @@
 //! the one label table in `etv_core::labels`. These tests play whole runs through the real line
 //! mode (`run_play`) and the real full-screen interface (`App` drawn with `view`), over several
 //! seeds and styles of play, through camp, events, forks, crises, the end of a run and the
-//! Trail Ledger, and look for a key-shaped token (`[a-z]+_[a-z_]+`) in every line shown.
+//! Trail Ledger, under both rulesets, and look for a raw key in every line shown: a key-shaped
+//! token (`[a-z]+_[a-z_]+`), or a key whose label is a different word (`ammo`, `meds`) in any
+//! case. They also check that every key the engine emits on the way has its own entry in the
+//! table, since `label()` would quietly turn an unknown key into words.
 
 use std::collections::BTreeSet;
 use std::io::Cursor;
@@ -17,9 +20,13 @@ use etv_core::content::embedded_content_pack;
 use etv_core::engine::{EventChoiceInfo, StepEngine};
 use etv_core::labels::{label, label_in_sentence, relabel_text, LABELS};
 use etv_core::memory::emit_resource_crisis_card;
-use etv_core::model::{GamePhase, RESOURCE_CATALOG};
-use etv_core::narrator::{FallbackPhraseTable, NarratorSettings, NullNarrator};
+use etv_core::model::{GamePhase, RunState, RESOURCE_CATALOG};
+use etv_core::narrator::{
+    compute_applied_turn_deltas, FallbackPhraseTable, NarratorSettings, NullNarrator,
+    PreTurnObservation,
+};
 use etv_core::play::{choice_line, deltas_line, run_play, status_lines};
+use etv_core::ruleset::Ruleset;
 use etv_core::tui::{view, App, Model, Screen, ViewData};
 use etv_core::worldgen::create_new_run_with_content;
 use etv_core::{trail_ledger, trail_ledger_for_player};
@@ -80,8 +87,8 @@ fn without_labels(line: &str) -> String {
 /// Every raw key in `text`, one entry per hit with the line it was on:
 /// - a key-shaped token: a lowercase letter, an underscore, then a lowercase letter or another
 ///   underscore (`[a-z]+_[a-z_]+`);
-/// - a key from [`renamed_keys`] as a whole word, in its raw lowercase form (`ammo`, `meds`,
-///   `oil`), outside any label. "Ammunition" and "Lantern oil" never match.
+/// - a key from [`renamed_keys`] as a whole word, in any case (`ammo`, `Meds`, `AMMO`), outside
+///   any label or approved phrase. "Ammunition" and "Lantern oil" never match.
 fn key_tokens(text: &str) -> Vec<String> {
     let mut found = Vec::new();
     for line in text.lines() {
@@ -98,12 +105,73 @@ fn key_tokens(text: &str) -> Vec<String> {
         }
         let masked = without_labels(line);
         for word in masked.split(|c: char| !is_word_char(c)) {
-            if renamed_keys().iter().any(|k| k == word) {
+            let lower = word.to_lowercase();
+            if renamed_keys().contains(&lower) {
                 found.push(format!("{word}  <-  {}", line.trim()));
             }
         }
     }
     found
+}
+
+/// A drawn screen as the text of each box: the rows are split at the box edges (`│`), and the
+/// cells of consecutive rows with the same boxes are joined, so a label wrapped across rows
+/// ("Lantern" / "oil") reads as one label again. One line per box.
+fn screen_boxes(screen: &str) -> String {
+    let mut out = Vec::new();
+    let mut group: Vec<Vec<String>> = Vec::new();
+    let flush = |group: &mut Vec<Vec<String>>, out: &mut Vec<String>| {
+        if let Some(first) = group.first() {
+            for k in 0..first.len() {
+                let joined: Vec<&str> = group.iter().map(|cells| cells[k].trim()).collect();
+                out.push(joined.join(" "));
+            }
+        }
+        group.clear();
+    };
+    for row in screen.lines() {
+        let cells: Vec<String> = row.split('\u{2502}').map(str::to_string).collect();
+        if group.first().is_some_and(|g| g.len() != cells.len()) {
+            flush(&mut group, &mut out);
+        }
+        group.push(cells);
+    }
+    flush(&mut group, &mut out);
+    out.join("\n")
+}
+
+/// The keys the engine has emitted in `state`: every supply it holds, the supplies each journal
+/// entry changed, the supplies that ran out, and the supply each crisis card names.
+fn emitted_keys(state: &RunState, keys: &mut BTreeSet<String>) {
+    keys.extend(state.supplies.items.keys().cloned());
+    for entry in &state.journal {
+        keys.extend(entry.deltas.keys().cloned());
+    }
+    keys.extend(state.resource_crises_seen.iter().cloned());
+    for card in &state.memory_cards {
+        // A resource crisis card is tagged with the supply first; other crisis cards (an escape
+        // valve, a wagon breakdown) are tagged with what happened, not with a key.
+        if card.source == "engine" && card.id.starts_with("eng_crisis_") {
+            keys.extend(card.tags.first().cloned());
+        }
+    }
+}
+
+/// Every emitted key must have its own entry in the table: `label()` turns an unknown key into
+/// words, so a new or misspelt key would never show as a raw key.
+fn assert_all_labelled(keys: &BTreeSet<String>, must_include: &[&str]) {
+    let missing: Vec<&String> = keys
+        .iter()
+        .filter(|k| !LABELS.iter().any(|(t, _)| t == k))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "emitted keys with no label: {missing:?}"
+    );
+    // The emitted set must reach past the supplies, or it proves little.
+    for &k in must_include {
+        assert!(keys.contains(k), "{k} was never emitted: {keys:?}");
+    }
 }
 
 /// Each key shown, once, with one line it was shown on.
@@ -112,18 +180,12 @@ fn report(hits: &[String]) -> String {
     for h in hits {
         let (key, line) = h.split_once("  <-  ").unwrap_or((h, ""));
         let key = key.rsplit(' ').next().unwrap_or(key).to_string();
-        first.entry(key).or_insert_with(|| line.to_string());
+        first
+            .entry(key)
+            .or_insert_with(|| line.chars().take(200).collect());
     }
     let shown: Vec<String> = first.iter().map(|(k, l)| format!("{k}: {l}")).collect();
-    format!(
-        "{} lines show a key:
-{}",
-        hits.len(),
-        shown.join(
-            "
-"
-        )
-    )
+    format!("{} lines show a key:\n{}", hits.len(), shown.join("\n"))
 }
 
 fn table() -> &'static FallbackPhraseTable {
@@ -134,6 +196,12 @@ fn table() -> &'static FallbackPhraseTable {
 fn new_engine(seed: i128) -> StepEngine {
     let content = embedded_content_pack();
     StepEngine::with_content(create_new_run_with_content(seed, content), content)
+}
+
+fn new_engine_with(seed: i128, ruleset: Ruleset) -> StepEngine {
+    let mut engine = new_engine(seed);
+    engine.set_ruleset(ruleset);
+    engine
 }
 
 /// The styles of play, as line-mode input. A line the current screen does not take is refused
@@ -155,30 +223,60 @@ fn line_mode_shows_no_internal_key() {
     let mut crises = BTreeSet::new();
     let mut ledgers = 0;
     let mut hits = Vec::new();
-    // With the shipped phrase table, and without one (the engine's own fallback lines).
-    let runs = SEEDS
-        .iter()
-        .flat_map(|&seed| LINE_SCRIPTS.iter().map(move |&script| (seed, script, true)))
-        .chain(SEEDS.iter().map(|&seed| (seed, LINE_SCRIPTS[1], false)));
+    let mut emitted = BTreeSet::new();
+    // Under both rulesets with the shipped phrase table, and Legacy without one (the engine's
+    // own fallback lines).
+    let runs = [Ruleset::Legacy, Ruleset::V2]
+        .into_iter()
+        .flat_map(|ruleset| {
+            SEEDS.iter().flat_map(move |&seed| {
+                LINE_SCRIPTS
+                    .iter()
+                    .map(move |&script| (ruleset, seed, script, true))
+            })
+        })
+        .chain(
+            SEEDS
+                .iter()
+                .map(|&seed| (Ruleset::Legacy, seed, LINE_SCRIPTS[1], false)),
+        );
     let mut run_count = 0;
-    for (seed, script, with_table) in runs {
+    let mut v2_endings = 0;
+    for (ruleset, seed, script, with_table) in runs {
         run_count += 1;
         {
-            let mut engine = new_engine(seed);
+            let mut engine = new_engine_with(seed, ruleset);
             let mut out = Vec::new();
             run_play(
                 &mut engine,
                 &NullNarrator,
                 with_table.then(table),
                 "TEST",
-                Cursor::new(script.repeat(1500)),
+                // V2 refuses a choice the party cannot afford, so every script also offers the
+                // other options in turn.
+                Cursor::new(if ruleset == Ruleset::V2 {
+                    format!(
+                        "{script}a
+b
+c
+d
+"
+                    )
+                    .repeat(1500)
+                } else {
+                    script.repeat(1500)
+                }),
                 &mut out,
             )
             .unwrap();
             let text = String::from_utf8(out).unwrap();
             if engine.state.game_over {
                 endings += 1;
+                if ruleset == Ruleset::V2 {
+                    v2_endings += 1;
+                }
             }
+            emitted_keys(&engine.state, &mut emitted);
             if text.contains("TRAIL LEDGER") {
                 ledgers += 1;
             }
@@ -186,14 +284,18 @@ fn line_mode_shows_no_internal_key() {
             hits.extend(
                 key_tokens(&text)
                     .into_iter()
-                    .map(|h| format!("seed {seed}: {h}")),
+                    .map(|h| format!("{ruleset:?} seed {seed}: {h}")),
             );
         }
     }
     assert!(hits.is_empty(), "{}", report(&hits));
     assert_eq!(endings, run_count, "every run must end");
+    assert_eq!(v2_endings, SEEDS.len() * LINE_SCRIPTS.len());
     assert_eq!(ledgers, endings);
     assert!(crises.len() >= 3, "the runs must reach crises: {crises:?}");
+    // Line mode shows the engine only through its output, so the keys here are the ones the
+    // final states hold; the full-screen test also takes each turn's changes.
+    assert_all_labelled(&emitted, &["lantern_oil", "meds", "ammo"]);
 }
 
 fn screen(model: &Model, size: (u16, u16)) -> String {
@@ -218,88 +320,145 @@ fn the_full_screen_interface_shows_no_internal_key() {
     let mut hits = BTreeSet::new();
     let mut endings = 0;
     let mut screens_seen = BTreeSet::new();
-    for seed in SEEDS {
-        for (camp_keys, choice_keys) in TUI_STYLES {
-            let engine = new_engine(seed);
-            let model = Model::new(
-                ViewData::from_engine(&engine),
-                NarratorSettings::default(),
-                "TEST",
-                "HASH",
-                Vec::new(),
-                false,
-            );
-            let dir = tempfile::tempdir().unwrap();
-            let mut app = App::new(
-                model,
-                engine,
-                &NullNarrator,
-                Some(table()),
-                dir.path().into(),
-                false,
-            );
-            let (camp, choice): (Vec<char>, Vec<char>) =
-                (camp_keys.chars().collect(), choice_keys.chars().collect());
-            let check = |app: &App<'_>, hits: &mut BTreeSet<String>| {
-                for size in [(80, 24), (120, 40)] {
-                    for h in key_tokens(&screen(&app.model, size)) {
-                        hits.insert(h);
-                    }
-                }
-            };
-            // The title, help, settings and about screens once per run.
-            check(&app, &mut hits);
-            app.press_char('?');
-            check(&app, &mut hits);
-            app.press_code(KeyCode::Esc);
-            app.press_char('o');
-            check(&app, &mut hits);
-            app.press_char('q');
-            app.press_char('a');
-            check(&app, &mut hits);
-            app.press_code(KeyCode::Esc);
-            app.press_code(KeyCode::Enter);
-            for n in 0..4000usize {
-                screens_seen.insert(format!("{:?}", app.model.screen));
-                if app.model.resolved.is_some() {
-                    app.press_code(KeyCode::Enter);
+    let mut emitted = BTreeSet::new();
+    let mut runs = 0;
+    let mut unfinished: Vec<String> = Vec::new();
+    for ruleset in [Ruleset::Legacy, Ruleset::V2] {
+        // V2 on three of the seeds, to keep the test's time in bounds.
+        let seeds = if ruleset == Ruleset::V2 {
+            &SEEDS[..3]
+        } else {
+            &SEEDS[..]
+        };
+        for &seed in seeds {
+            for (camp_keys, choice_keys) in TUI_STYLES {
+                runs += 1;
+                // V2 refuses a choice the party cannot afford: offer every option in turn.
+                let choice_keys = if ruleset == Ruleset::V2 {
+                    format!("{choice_keys}abcd")
                 } else {
-                    match app.model.screen {
-                        Screen::Camp => {
-                            let k = camp[n % camp.len()];
-                            if k == 'p' {
-                                app.press_char('p');
-                                check(&app, &mut hits);
-                                app.press_char('h');
-                            } else {
-                                app.press_char(k);
-                            }
+                    choice_keys.to_string()
+                };
+                let engine = new_engine_with(seed, ruleset);
+                let model = Model::new(
+                    ViewData::from_engine(&engine),
+                    NarratorSettings::default(),
+                    "TEST",
+                    "HASH",
+                    Vec::new(),
+                    false,
+                );
+                let dir = tempfile::tempdir().unwrap();
+                let mut app = App::new(
+                    model,
+                    engine,
+                    &NullNarrator,
+                    Some(table()),
+                    dir.path().into(),
+                    false,
+                );
+                let (camp, choice): (Vec<char>, Vec<char>) =
+                    (camp_keys.chars().collect(), choice_keys.chars().collect());
+                // Every screen at 80x24, where labels wrap soonest; the larger size on the
+                // fixed screens, every tenth key and the end of the run.
+                let check_at = |app: &App<'_>, hits: &mut BTreeSet<String>, both: bool| {
+                    let sizes: &[(u16, u16)] = if both {
+                        &[(80, 24), (120, 40)]
+                    } else {
+                        &[(80, 24)]
+                    };
+                    for &size in sizes {
+                        for h in key_tokens(&screen_boxes(&screen(&app.model, size))) {
+                            hits.insert(h);
                         }
-                        Screen::Event | Screen::Fork => app.press_char(choice[n % choice.len()]),
-                        Screen::GameOver => {
-                            check(&app, &mut hits);
-                            for _ in 0..40 {
-                                app.press_code(KeyCode::PageDown);
-                                check(&app, &mut hits);
-                            }
-                            break;
-                        }
-                        _ => app.press_code(KeyCode::Enter),
                     }
+                };
+                // The title, help, settings and about screens once per run.
+                check_at(&app, &mut hits, true);
+                app.press_char('?');
+                check_at(&app, &mut hits, true);
+                app.press_code(KeyCode::Esc);
+                app.press_char('o');
+                check_at(&app, &mut hits, true);
+                app.press_char('q');
+                app.press_char('a');
+                check_at(&app, &mut hits, true);
+                app.press_code(KeyCode::Esc);
+                app.press_code(KeyCode::Enter);
+                // Each cycle advances only when one of its keys is pressed, so a refused option
+                // (V2) is followed by the next one rather than skipped in step with Enter.
+                let (mut camp_at, mut choice_at) = (0usize, 0usize);
+                for n in 0..4000usize {
+                    screens_seen.insert(format!("{:?}", app.model.screen));
+                    // What this key press makes the engine emit: the changes a turn applies and,
+                    // under V2, the supplies a choice lacks.
+                    let pre = PreTurnObservation::capture(app.engine.phase, &app.engine.state);
+                    let stepped = app.engine.state.turns_stepped;
+                    for choice in app.engine.pending_event_choices() {
+                        emitted.extend(choice.missing.iter().cloned());
+                    }
+                    if app.model.resolved.is_some() {
+                        app.press_code(KeyCode::Enter);
+                    } else {
+                        match app.model.screen {
+                            Screen::Camp => {
+                                let k = camp[camp_at % camp.len()];
+                                camp_at += 1;
+                                if k == 'p' {
+                                    app.press_char('p');
+                                    check_at(&app, &mut hits, true);
+                                    app.press_char('h');
+                                } else {
+                                    app.press_char(k);
+                                }
+                            }
+                            Screen::Event | Screen::Fork => {
+                                choice_at += 1;
+                                app.press_char(choice[(choice_at - 1) % choice.len()])
+                            }
+                            Screen::GameOver => {
+                                check_at(&app, &mut hits, true);
+                                for _ in 0..40 {
+                                    app.press_code(KeyCode::PageDown);
+                                    check_at(&app, &mut hits, true);
+                                }
+                                break;
+                            }
+                            _ => app.press_code(KeyCode::Enter),
+                        }
+                    }
+                    if app.engine.state.turns_stepped != stepped {
+                        emitted.extend(
+                            compute_applied_turn_deltas(&pre, &app.engine.state).into_keys(),
+                        );
+                    }
+                    check_at(&app, &mut hits, n % 10 == 0);
                 }
-                check(&app, &mut hits);
-            }
-            if app.engine.phase == GamePhase::GameOver {
-                endings += 1;
+                if app.engine.phase == GamePhase::GameOver {
+                    endings += 1;
+                } else {
+                    unfinished.push(format!(
+                        "{ruleset:?} seed {seed} {camp_keys}/{choice_keys} on {:?} day {}",
+                        app.model.screen, app.engine.state.day
+                    ));
+                }
+                emitted_keys(&app.engine.state, &mut emitted);
             }
         }
     }
     let hits: Vec<String> = hits.into_iter().collect();
     assert!(hits.is_empty(), "{}", report(&hits));
-    assert_eq!(
-        endings,
-        SEEDS.len() * TUI_STYLES.len(),
-        "every run must end"
+    assert_eq!(endings, runs, "every run must end: {unfinished:?}");
+    assert_all_labelled(
+        &emitted,
+        &[
+            "lantern_oil",
+            "time_days",
+            "wagon_condition",
+            "animals_health",
+            "morale",
+            "distance",
+        ],
     );
     for s in ["Camp", "Event", "GameOver"] {
         assert!(
@@ -487,6 +646,8 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
     }
     for raw in [
         "Hunt successful! -1 ammo.",
+        "Meds.",
+        "AMMO LOW",
         "  meds -1",
         "Supplies: oil 3",
         "The party uses lantern_oil.",
@@ -501,6 +662,7 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
         "Food -2, Days +1, Wagon condition -2, Animals' health -1",
         "Gammon and ammonia; oiled boots.",
         "The party uses lamp oil and spends ammunition.",
+        "AMMUNITION 20, LANTERN OIL 6",
     ] {
         assert!(
             key_tokens(fine).is_empty(),
@@ -508,4 +670,35 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
             key_tokens(fine)
         );
     }
+}
+
+#[test]
+fn a_label_wrapped_across_rows_is_still_a_label() {
+    // Two boxes side by side, the right one wrapping "Lantern oil" over two rows.
+    let screen = "\u{2502} Party   \u{2502}\u{2502} Lantern  \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
+    assert!(
+        !key_tokens(screen).is_empty(),
+        "row by row, the wrapped \"oil\" looks like the key"
+    );
+    assert!(
+        key_tokens(&screen_boxes(screen)).is_empty(),
+        "{}",
+        screen_boxes(screen)
+    );
+    // A real key in a box is still caught.
+    let leak = "\u{2502} Party   \u{2502}\u{2502} ammo 20  \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
+    assert!(!key_tokens(&screen_boxes(leak)).is_empty());
+}
+
+#[test]
+fn relabel_handles_case_and_the_plural_possessive() {
+    assert_eq!(relabel_text("AMMO."), "Ammunition.");
+    assert_eq!(relabel_text("Meds."), "Medicine.");
+    assert_eq!(relabel_text("the meds' cost"), "the medicine's cost");
+    assert_eq!(relabel_text("the meds'"), "the medicine's");
+    // An apostrophe that starts a contraction or another word is left alone.
+    assert_eq!(relabel_text("ammo's gone"), "ammunition's gone");
+    assert_eq!(relabel_text("'ammo'"), "'ammunition'");
+    // A plural label keeps a plain apostrophe.
+    assert_eq!(relabel_text("the time_days' toll"), "the days' toll");
 }
