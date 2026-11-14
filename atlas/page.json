@@ -85,21 +85,21 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 9,
+      "changed": 2,
       "moved": 0,
-      "parts": 1,
+      "parts": 0,
       "removed": 0
     },
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 9 files changed content.",
+        "sentence": "Nothing structural changed since 2026-11-14; 2 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "417a2a3237d7aa01df06761d7f5f4b75bd47c325",
-      "generatedAt": "2026-11-14T14:05:20.923Z"
+      "commit": "f0e72b7b08400767c1c1a129cda2f58cffd89575",
+      "generatedAt": "2026-11-14T19:52:27.889Z"
     },
     "unchanged": true
   },
@@ -135,21 +135,6 @@
       "shared": 6
     },
     {
-      "a": "rust/etv-core/src/model.rs",
-      "b": "rust/etv-core/src/save.rs",
-      "either": 6,
-      "partLabels": [
-        null,
-        null
-      ],
-      "parts": [
-        null,
-        null
-      ],
-      "relation": "unassigned",
-      "shared": 5
-    },
-    {
       "a": "src/escape_the_valley/engine.py",
       "b": "tests/test_step_engine.py",
       "either": 18,
@@ -178,6 +163,21 @@
       ],
       "relation": "b-imports-a",
       "shared": 7
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "src/escape_the_valley/step_engine.py",
+      "either": 17,
+      "partLabels": [
+        "src",
+        "src"
+      ],
+      "parts": [
+        "src",
+        "src"
+      ],
+      "relation": "inside",
+      "shared": 13
     }
   ],
   "changesTogetherNote": [
@@ -186,7 +186,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 11 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "dc234d821df829cc4da0265b1947b4ba3b80779b",
+  "commit": "7a03cb325ad7871c0c9829b7cb83d8cc6847f30d",
   "defaultBranch": "main",
   "derived": "10 parts, in Rust (81 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -676,7 +676,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T14:10:31.739Z",
+  "generatedAt": "2026-11-14T21:38:38.397Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",

@@ -5,9 +5,9 @@
 │ Miles     0 of 396                                    ││  Cloth         5                                            │
 │ Next stop 21                                          ││  Firewood     15                                            │
 │ Wagon 80  Animals 90  Pace steady                     ││  Food         50                                            │
-│ Party     morale 70                                   ││  Lantern oil   6                                            │
+│ Party     morale 70                                   ││  Lamp oil      6                                            │
 │   Ruth    100  healthy                                ││  Medicine      5                                            │
-│   Josiah   94  healthy                                ││  Parts         4                                            │
+│   Josiah   94  healthy                                ││  Spare parts   4                                            │
 │   Elias    87  healthy                                ││  Rope          2                                            │
 │   Agnes    80  healthy                                ││  Salt          8                                            │
 └───────────────────────────────────────────────────────┘└─────────────────────────────────────────────────────────────┘

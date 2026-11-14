@@ -18,7 +18,7 @@ pub fn trail_ledger(state: &RunState) -> Vec<String> {
 }
 
 /// The Trail Ledger as the player reads it: the same lines as [`trail_ledger`], with every
-/// supply named by its label (`"The lantern oil ran out first."`) and keys in remembered card
+/// supply named by its label (`"The lamp oil ran out first."`) and keys in remembered card
 /// text relabelled when shown. The run state and the frozen form are unchanged.
 pub fn trail_ledger_for_player(state: &RunState) -> Vec<String> {
     build(state, &Naming::LABELS)
