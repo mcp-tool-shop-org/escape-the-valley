@@ -84,62 +84,90 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 2,
-      "changed": 19,
+      "added": 4,
+      "changed": 22,
       "moved": 0,
-      "parts": 1,
+      "parts": 0,
       "removed": 0
     },
     "items": [
       {
-        "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `trail_ledger_for_player`, before `current_node`.",
+        "kind": "door",
+        "sentence": "CI now also runs rust/etv-core/src/cloud_claude.rs.",
         "subjects": [
-          "rust/etv-core/src/play.rs"
+          ".github/workflows/ci.yml",
+          "rust/etv-core/src/cloud_claude.rs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Release now also runs rust/etv-core/src/cloud_claude.rs.",
+        "subjects": [
+          ".github/workflows/release.yml",
+          "rust/etv-core/src/cloud_claude.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `label`, before `relabel_text`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `default`, before `hosted_transport`.",
         "subjects": [
-          "rust/etv-core/src/play.rs"
+          "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `label_in_sentence`.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `hosted_transport`, before `connect_narrator`.",
         "subjects": [
-          "rust/etv-core/src/play.rs"
+          "rust/etv-core/src/bin/etv.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "And 5 more changes to the order of work.",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` lost a step, `from_engine`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "And 10 more changes to the order of work.",
         "subjects": []
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/src/labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/etv-core/src/cloud_claude.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/src/labels.rs"
+          "rust/etv-core/src/cloud_claude.rs"
         ]
       },
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/player_text_labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/etv-core/src/narrator_provider.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/tests/player_text_labels.rs"
+          "rust/etv-core/src/narrator_provider.rs"
         ]
       },
       {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/narrator_providers.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/narrator_providers.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "And 1 more new file that belongs to no part.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "2 files added and 19 changed content, across 1 part.",
+        "sentence": "4 files added and 22 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "f59eea0d940eb4642e3af1d66b0fabb7cb031254",
-      "generatedAt": "2026-11-14T13:12:09.601Z"
+      "commit": "3f806657e2b7c2e81a71a057a7bb2e7132851fae",
+      "generatedAt": "2026-11-14T13:43:54.749Z"
     },
     "unchanged": false
   },
@@ -223,12 +251,12 @@
   "changesTogetherNote": [
     "8 files changed together with their own tests, as expected.",
     "Confidence is low: fewer than 25 source files reach 10 revisions in the window.",
-    "Window: 180 days; a pair counts from 3 shared commits, since 11 source files reach 10 revisions; the floor rises to 10 when 25 do."
+    "Window: 180 days; a pair counts from 3 shared commits, since 12 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "3f806657e2b7c2e81a71a057a7bb2e7132851fae",
+  "commit": "11a402b802ee1c17c3f4421b51b2bfc70f980fc8",
   "defaultBranch": "main",
-  "derived": "10 parts, in Rust (81 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Rust (85 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -274,6 +302,7 @@
       "runs": [
         "scripts/gen_third_party_notices.py",
         "tests/",
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -284,8 +313,8 @@
         "rust/etv-core/src/worldgen.rs",
         "rust/etv-core/tests/"
       ],
-      "runsCount": 11,
-      "runsMore": 45,
+      "runsCount": 12,
+      "runsMore": 48,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -341,6 +370,7 @@
       "runs": [
         "scripts/gen_third_party_notices.py",
         "tests/",
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/events.rs",
         "rust/etv-core/src/memory.rs",
@@ -351,8 +381,8 @@
         "rust/etv-core/src/worldgen.rs",
         "rust/etv-core/tests/"
       ],
-      "runsCount": 11,
-      "runsMore": 45,
+      "runsCount": 12,
+      "runsMore": 48,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -716,13 +746,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T13:43:54.749Z",
+  "generatedAt": "2026-11-14T14:45:35.896Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "133 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 130 more.",
+    "137 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 134 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -750,7 +780,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 95,
+  "testFiles": 97,
   "testedBy": {
     "agents": 1,
     "bin": 0,
