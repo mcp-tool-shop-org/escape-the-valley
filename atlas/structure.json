@@ -10323,7 +10323,7 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "f0e72b7b08400767c1c1a129cda2f58cffd89575",
+    "commit": "7a03cb325ad7871c0c9829b7cb83d8cc6847f30d",
     "tracked": 848
   },
   "landings": [
@@ -13093,7 +13093,7 @@
         "label_in_sentence",
         "relabel_text"
       ],
-      "hash": "38a7c96faaaf1fe6a159ed67aceff89aa7feaf801a98291c0a4a4c22c491d108",
+      "hash": "21cc70b47442b3a450cfb0d84073ad9f9c90e616d0ccc8f15ea44913182f76d1",
       "path": "rust/etv-core/src/labels.rs"
     },
     {
@@ -17300,7 +17300,7 @@
       "testsInside": true
     },
     {
-      "hash": "b778a9e324dc3b01a0d72fb3b9d152b8fd3a6e4bd8185e1e38fee1ba52d38094",
+      "hash": "9a68d99c71096189efd6160ec148838521b5ee58bbad62f636c1bd1805b76d8e",
       "importOrder": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -17313,7 +17313,8 @@
         "rust/etv-core/src/tui/view.rs",
         "rust/etv-core/src/tui/mod.rs",
         "rust/etv-core/src/worldgen.rs",
-        "rust/etv-core/src/lib.rs"
+        "rust/etv-core/src/lib.rs",
+        "rust/etv-core/src/save_v5.rs"
       ],
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -17325,6 +17326,7 @@
         "rust/etv-core/src/narrator.rs",
         "rust/etv-core/src/play.rs",
         "rust/etv-core/src/ruleset.rs",
+        "rust/etv-core/src/save_v5.rs",
         "rust/etv-core/src/tui/mod.rs",
         "rust/etv-core/src/tui/view.rs",
         "rust/etv-core/src/worldgen.rs"

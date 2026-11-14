@@ -72,7 +72,8 @@ pub fn label_in_sentence(key: &str) -> String {
 /// word: `oil`, the phrase table's short name for lantern oil ("uses lamp oil"), and `parts`
 /// ("in these parts", "the fog parts at dawn"). Wherever a supply is named (the supplies panel,
 /// the supply line, a turn's changes, the cannot-afford tag, the player's ledger) its label is
-/// used directly, "Lamp oil" and "Spare parts" included; only free text is left as written.
+/// used directly, "Lamp oil" and "Spare parts" included; free text is left as written, apart
+/// from a signed change such as "-1 parts" (see [`relabel_text`]).
 pub const PHRASE_ONLY_KEYS: [&str; 2] = ["oil", "parts"];
 
 /// Whether [`relabel_text`] renames `word` (written in lowercase) when it stands alone: a key of
@@ -84,9 +85,17 @@ fn renamed_in_prose(word: &str) -> bool {
         && label(word).to_lowercase() != word
 }
 
-/// Whether a single quote opened before position `at` is still open there, on the same line:
-/// an opening quote is a `'` that starts a word (nothing alphanumeric before it, something
-/// after it), and a closing one ends a word. An apostrophe inside a word ("don't") is neither.
+/// Whether a single quote opened before position `at` is still open there, on the same line.
+///
+/// A `'` opens a quote when nothing alphanumeric comes before it and a word character, or any
+/// other non-space character, comes after it (`'no meds'`, `'-1 meds'`, `'...no meds'`). It
+/// closes one when a word character or one of `,` `.` `!` `?` comes before it and no word
+/// character after it (`'wait!'`, `'No,'`). An apostrophe inside a word ("don't") is neither.
+///
+/// Known limits, left as they are: a word-initial elision (`'tis`, `'em`) reads as an opening
+/// quote; curly quotes are not quotes here; nested quotes are not tracked; a plural possessive
+/// inside a quoted span reads as the span's closing quote; and a quote opened on an earlier
+/// line is not seen.
 fn inside_single_quotes(chars: &[char], at: usize) -> bool {
     let line_start = chars[..at]
         .iter()
@@ -100,9 +109,11 @@ fn inside_single_quotes(chars: &[char], at: usize) -> bool {
         }
         let before = k.checked_sub(1).and_then(|b| chars.get(b));
         let after = chars.get(k + 1);
-        if !word_char(before) && word_char(after) {
+        let after_is_mark = after.is_some_and(|c| !c.is_whitespace());
+        let before_ends_clause = before.is_some_and(|c| matches!(c, ',' | '.' | '!' | '?'));
+        if !word_char(before) && !before_ends_clause && after_is_mark {
             open = true;
-        } else if word_char(before) && !word_char(after) {
+        } else if (word_char(before) || before_ends_clause) && !word_char(after) {
             open = false;
         }
     }
@@ -114,7 +125,9 @@ fn inside_single_quotes(chars: &[char], at: usize) -> bool {
 /// lantern_oil"` reads `"ran out of lamp oil"`, and `"No Lantern_oil Left"` reads `"No Lamp oil
 /// Left"`. Any case of the key is caught (`"AMMO"`, `"Meds"`); the label keeps a capital first
 /// letter if the key had one, and is written in capitals if the key was (`"AMMO'S GONE"` reads
-/// `"AMMUNITION'S GONE"`). The words in [`PHRASE_ONLY_KEYS`] are left as written.
+/// `"AMMUNITION'S GONE"`). The words in [`PHRASE_ONLY_KEYS`] are left as written, except right
+/// after a signed number, where they name a supply change: `"-1 parts"` reads `"-1 spare
+/// parts"`, while `"3 parts water"` and `"in these parts"` stay.
 ///
 /// A plural key's possessive follows the label: `"the meds' cost"` reads `"the medicine's
 /// cost"`, since "medicine" is not a plural. A key that is not plural keeps its apostrophe as
@@ -126,8 +139,32 @@ fn inside_single_quotes(chars: &[char], at: usize) -> bool {
 /// narrator's own lines (see [`LABELS`]). Each keeps its stored form and is relabelled only when
 /// shown.
 pub fn relabel_text(text: &str) -> String {
-    let chars: Vec<char> = text.chars().collect();
-    let mut out = String::with_capacity(text.len());
+    relabel_chars(&text.chars().collect::<Vec<char>>())
+}
+
+/// Whether the word starting at `start` comes right after a signed number and one space:
+/// `+2 parts`, `-1 parts`, at the start of the text or after a character that is not part of a
+/// word.
+fn after_signed_number(chars: &[char], start: usize) -> bool {
+    let Some(space) = start.checked_sub(1) else {
+        return false;
+    };
+    if chars[space] != ' ' {
+        return false;
+    }
+    let mut k = space;
+    while k > 0 && chars[k - 1].is_ascii_digit() {
+        k -= 1;
+    }
+    if k == space || k == 0 || !matches!(chars[k - 1], '+' | '-') {
+        return false;
+    }
+    let sign = k - 1;
+    sign == 0 || !(chars[sign - 1].is_alphanumeric() || chars[sign - 1] == '_')
+}
+
+fn relabel_chars(chars: &[char]) -> String {
+    let mut out = String::with_capacity(chars.len());
     let mut i = 0;
     while i < chars.len() {
         if !(chars[i].is_alphanumeric() || chars[i] == '_') {
@@ -141,7 +178,12 @@ pub fn relabel_text(text: &str) -> String {
         }
         let word: String = chars[start..i].iter().collect();
         let lower = word.to_lowercase();
-        if !renamed_in_prose(&lower) {
+        // A word in PHRASE_ONLY_KEYS is prose, except right after a signed number, where it is a
+        // supply change ("-1 parts" reads "-1 spare parts"; "3 parts water" stays).
+        let change = PHRASE_ONLY_KEYS.contains(&lower.as_str())
+            && label(&lower).to_lowercase() != lower
+            && after_signed_number(chars, start);
+        if !renamed_in_prose(&lower) && !change {
             out.push_str(&word);
             continue;
         }
@@ -160,7 +202,7 @@ pub fn relabel_text(text: &str) -> String {
         // "meds'" (the plural possessive, an apostrophe not followed by a letter) reads
         // "medicine's" when the label is not a plural. Inside a single-quoted span ("'the
         // meds'"), the apostrophe closes the span and stays a quote.
-        let plural_possessive = !inside_single_quotes(&chars, start)
+        let plural_possessive = !inside_single_quotes(chars, start)
             && chars.get(i) == Some(&'\'')
             && !chars.get(i + 1).is_some_and(|c| c.is_alphanumeric())
             && lower.ends_with('s')

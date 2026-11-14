@@ -44,11 +44,11 @@ fn renamed_keys() -> &'static Vec<String> {
             RESOURCE_CATALOG.iter().map(|r| r.key.to_string()).collect();
         keys.extend(table().ordered_keys().iter().map(|k| k.to_string()));
         keys.remove("none");
-        // `oil` and `parts` are ordinary words too ("lamp oil", "in these parts"): prose keeps
-        // them as written, so only the places that name a supply are checked for them (the
-        // supplies panel and supply line tests below).
+        // `parts` is an ordinary word and a real supply ("in these parts"), so prose keeps it and
+        // the single-word check leaves it out; `key_tokens` catches it where a supply is named
+        // ("-1 parts", "Supplies: parts 3"). `oil` names no supply, so a bare `oil` is a leak.
         keys.into_iter()
-            .filter(|k| label(k).to_lowercase() != *k && !PHRASE_ONLY_KEYS.contains(&k.as_str()))
+            .filter(|k| label(k).to_lowercase() != *k && k != "parts")
             .collect()
     })
 }
@@ -111,6 +111,28 @@ fn key_tokens(text: &str) -> Vec<String> {
             let lower = word.to_lowercase();
             if renamed_keys().contains(&lower) {
                 found.push(format!("{word}  <-  {}", line.trim()));
+            }
+        }
+        // `parts` where a supply is named: after a signed number ("-1 parts") or before a count
+        // ("parts 3"). Prose ("in these parts", "3 parts water") is not flagged.
+        let lower = masked.to_lowercase();
+        for (at, _) in lower.match_indices("parts") {
+            let before = &lower[..at];
+            let after = &lower[at + "parts".len()..];
+            let whole = !before.ends_with(|c: char| is_word_char(c))
+                && !after.starts_with(|c: char| is_word_char(c));
+            let signed_before = {
+                let t = before.strip_suffix(' ').unwrap_or("");
+                let digits = t.trim_end_matches(|c: char| c.is_ascii_digit());
+                digits.len() < t.len()
+                    && (digits.ends_with('+') || digits.ends_with('-'))
+                    && !digits[..digits.len() - 1].ends_with(|c: char| is_word_char(c))
+            };
+            let count_after = after
+                .strip_prefix(' ')
+                .is_some_and(|a| a.starts_with(|c: char| c.is_ascii_digit()));
+            if whole && (signed_before || count_after) {
+                found.push(format!("parts  <-  {}", line.trim()));
             }
         }
     }
@@ -634,6 +656,7 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
     for k in [
         "ammo",
         "meds",
+        "oil",
         "lantern_oil",
         "time_days",
         "wagon_condition",
@@ -643,16 +666,19 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
     for k in ["food", "water", "health", "distance", "morale"] {
         assert!(!keys.iter().any(|x| x == k), "{k} is its own label");
     }
-    // Ordinary words that prose keeps as written.
-    for k in PHRASE_ONLY_KEYS {
-        assert!(!keys.iter().any(|x| x == k), "{k} is prose");
-    }
+    // `parts` is an ordinary word: the single-word check leaves it out.
+    assert!(!keys.iter().any(|x| x == "parts"), "parts is prose");
+    assert!(PHRASE_ONLY_KEYS.contains(&"parts"));
     for raw in [
         "Hunt successful! -1 ammo.",
         "Meds.",
         "AMMO LOW",
         "  meds -1",
         "Supplies: meds 3",
+        "Supplies: oil 3",
+        "-1 parts",
+        "Supplies: parts 3",
+        "food -2, +1 parts",
         "The party uses lantern_oil.",
         "Days +1, time_days +1",
     ] {
@@ -665,6 +691,9 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
         "Food -2, Days +1, Wagon condition -2, Animals' health -1",
         "Gammon and ammonia; oiled boots.",
         "In these parts the fog parts at dawn.",
+        "3 parts water",
+        "No parts for repairs.",
+        "-1 spare parts",
         "The party uses lamp oil and spends ammunition.",
         "AMMUNITION 20, LAMP OIL 6",
     ] {
@@ -681,6 +710,11 @@ fn a_label_wrapped_across_rows_is_still_a_label() {
     // Two boxes side by side, the right one wrapping "Lamp oil" over two rows: joined box by
     // box, the label reads as one again.
     let screen = "\u{2502} Party   \u{2502}\u{2502} Lamp     \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
+    // Row by row, the wrapped "oil" looks like the key; joined box by box it is the label.
+    assert!(
+        !key_tokens(screen).is_empty(),
+        "row by row, the wrapped \"oil\" looks like the key"
+    );
     let boxes = screen_boxes(screen);
     assert!(boxes.lines().any(|l| l == "Lamp oil 6"), "{boxes}");
     assert!(boxes.lines().any(|l| l == "Party Ruth 90"), "{boxes}");
@@ -771,9 +805,17 @@ parts",
         "Wagon breakdown! No parts. Damage: 3",
         "The wagon broke down. Damage: 9. No spare parts on hand.",
         "PARTS",
+        "3 parts water",
     ] {
         assert_eq!(relabel_text(prose), prose);
     }
+    // A signed number right before it makes it a supply change, named by its label.
+    assert_eq!(relabel_text("-1 parts"), "-1 spare parts");
+    assert_eq!(
+        relabel_text("+2 parts, -1 ammo"),
+        "+2 spare parts, -1 ammunition"
+    );
+    assert_eq!(relabel_text("food -2, -1 parts"), "food -2, -1 spare parts");
     // Where a supply is named, it is "Spare parts".
     let state = create_new_run_with_content(42, embedded_content_pack());
     let status = status_lines(&state).join(
@@ -809,6 +851,23 @@ the meds' cost"
         "'open
 the medicine's cost"
     );
+    // A quote closes after , . ! or ?, and opens before a non-word character.
+    assert_eq!(
+        relabel_text("'No,' she said, checking the meds' count."),
+        "'No,' she said, checking the medicine's count."
+    );
+    assert_eq!(
+        relabel_text("He yelled 'wait!' and checked the meds' cost"),
+        "He yelled 'wait!' and checked the medicine's cost"
+    );
+    assert_eq!(
+        relabel_text("The log read '-1 meds'"),
+        "The log read '-1 medicine'"
+    );
+    assert_eq!(
+        relabel_text("he said '...no meds'"),
+        "he said '...no medicine'"
+    );
     // An apostrophe inside a word opens nothing.
     assert_eq!(
         relabel_text("don't count the meds' cost"),
@@ -825,4 +884,92 @@ the medicine's cost"
     assert_eq!(relabel_text("LANTERN_OIL LOW"), "LAMP OIL LOW");
     // A capital first letter alone keeps the label's own case.
     assert_eq!(relabel_text("Ammo's gone"), "Ammunition's gone");
+}
+
+/// An engine whose run waits on `event_id`, as a saved V2 run reloads it.
+fn engine_at_event(event_id: &str) -> StepEngine {
+    let content = embedded_content_pack();
+    let event = content
+        .all_events
+        .iter()
+        .find(|e| e.event_id == event_id)
+        .unwrap()
+        .clone();
+    let letters = etv_core::engine::template_choice_letters(&event);
+    let choices: Vec<EventChoiceInfo> = event
+        .fallback_choices
+        .iter()
+        .zip(letters)
+        .map(|(c, id)| EventChoiceInfo {
+            id,
+            label: c.label.clone(),
+            risk_hint: c.risk_hint.clone(),
+            cost_hint: c.cost_hint.clone(),
+            affordable: true,
+            missing: Vec::new(),
+        })
+        .collect();
+    let block = etv_core::save_v5::PendingBlock {
+        phase: GamePhase::Event,
+        event_id: event.event_id.clone(),
+        choices,
+        title: event.title.clone(),
+        narration: event.fallback_narration.clone(),
+        routes: Vec::new(),
+    };
+    StepEngine::resume(
+        create_new_run_with_content(42, content),
+        Some(block),
+        content,
+        Ruleset::V2,
+        false,
+        None,
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_parts_change_in_the_engines_own_line_reads_spare_parts() {
+    // broken_axle's first choice costs a part and has no outcome sentence, so its outcome is the
+    // engine's own line ("-1 parts"), shown when no phrase table is in use.
+    let mut engine = engine_at_event("broken_axle");
+    assert_eq!(engine.phase, GamePhase::Event);
+    let choice = engine.pending_event_choices()[0].clone();
+    let shown = etv_core::play::play_turn(
+        &mut engine,
+        &NullNarrator,
+        None,
+        &etv_core::model::PlayerIntent::new(etv_core::model::IntentAction::Choose)
+            .with_choice(&choice.id),
+        Some(&choice.label),
+    )
+    .join("\n");
+    assert!(shown.contains("-1 spare parts"), "{shown}");
+    assert!(!shown.contains("-1 parts"), "{shown}");
+    assert!(key_tokens(&shown).is_empty(), "{shown}");
+
+    // The full-screen interface shows the same line in its log.
+    let engine = engine_at_event("broken_axle");
+    let model = Model::new(
+        ViewData::from_engine(&engine),
+        NarratorSettings::default(),
+        "TEST",
+        "HASH",
+        Vec::new(),
+        false,
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(model, engine, &NullNarrator, None, dir.path().into(), false);
+    app.press_code(KeyCode::Enter);
+    assert_eq!(app.model.screen, Screen::Event);
+    app.press_char('a');
+    let mut seen = app.model.log.join("\n");
+    while app.model.resolved.is_some() {
+        seen.push('\n');
+        seen.push_str(&screen(&app.model, (120, 40)));
+        app.press_code(KeyCode::Enter);
+    }
+    seen.push_str(&app.model.log.join("\n"));
+    assert!(seen.contains("-1 spare parts"), "{seen}");
+    assert!(!seen.contains("-1 parts"), "{seen}");
 }
