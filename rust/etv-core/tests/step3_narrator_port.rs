@@ -285,13 +285,12 @@ fn step3_fallback_table_equivalent_to_source_and_keys_equal_464_choice_effect_pr
         "shipped table keys must equal the 16 engine_effect_profile keys plus meds, salt and 'none'"
     );
 
-    // Unused extra keys from Step 3 placeholder table must not be present.
-    for removed_key in ["lantern_oil"] {
-        assert!(
-            !table.phrases.contains_key(removed_key),
-            "shipped table must not contain unused key {removed_key:?}"
-        );
-    }
+    // The unused extra key from the Step 3 placeholder table must not be present (lamp oil is
+    // shown as `oil`).
+    assert!(
+        !table.phrases.contains_key("lantern_oil"),
+        "shipped table must not contain unused key \"lantern_oil\""
+    );
 
     // key_order has all 18 effect keys with ammo first, meds and salt after boots.
     assert_eq!(table.key_order.len(), 18);
