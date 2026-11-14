@@ -113,8 +113,10 @@ fn key_tokens(text: &str) -> Vec<String> {
                 found.push(format!("{word}  <-  {}", line.trim()));
             }
         }
-        // `parts` where a supply is named: after a signed number ("-1 parts") or before a count
-        // ("parts 3"). Prose ("in these parts", "3 parts water") is not flagged.
+        // `parts` where a supply is named: after a signed number ("-1 parts") or before a count,
+        // signed or not, after any spaces and an optional `:` ("parts 3", "parts -1",
+        // "parts: 3", "parts   3"). Prose ("in these parts", "3 parts water", "parts of the
+        // wagon") is not flagged.
         let lower = masked.to_lowercase();
         for (at, _) in lower.match_indices("parts") {
             let before = &lower[..at];
@@ -128,9 +130,12 @@ fn key_tokens(text: &str) -> Vec<String> {
                     && (digits.ends_with('+') || digits.ends_with('-'))
                     && !digits[..digits.len() - 1].ends_with(|c: char| is_word_char(c))
             };
-            let count_after = after
-                .strip_prefix(' ')
-                .is_some_and(|a| a.starts_with(|c: char| c.is_ascii_digit()));
+            let count_after = {
+                let a = after.trim_start_matches(' ');
+                let a = a.strip_prefix(':').unwrap_or(a).trim_start_matches(' ');
+                let a = a.strip_prefix(['+', '-']).unwrap_or(a);
+                a.starts_with(|c: char| c.is_ascii_digit())
+            };
             if whole && (signed_before || count_after) {
                 found.push(format!("parts  <-  {}", line.trim()));
             }
@@ -972,4 +977,63 @@ fn a_parts_change_in_the_engines_own_line_reads_spare_parts() {
     seen.push_str(&app.model.log.join("\n"));
     assert!(seen.contains("-1 spare parts"), "{seen}");
     assert!(!seen.contains("-1 parts"), "{seen}");
+}
+
+#[test]
+fn the_raw_key_check_catches_a_key_first_parts_listing() {
+    for raw in [
+        "parts -1",
+        "parts +2",
+        "parts: 3",
+        "parts   3",
+        "Supplies: parts: -2",
+        "food 3, parts -1",
+    ] {
+        assert!(!key_tokens(raw).is_empty(), "missed: {raw}");
+    }
+    for fine in [
+        "3 parts water",
+        "in these parts",
+        "parts of the wagon",
+        "In these parts, 3 days on.",
+        "Spare parts -1",
+        "Spare parts: 3",
+    ] {
+        assert!(
+            key_tokens(fine).is_empty(),
+            "false hit: {fine} {:?}",
+            key_tokens(fine)
+        );
+    }
+}
+
+#[test]
+fn relabel_quote_rule_edges() {
+    // A quoted mark or an empty quote closes before the possessive.
+    assert_eq!(
+        relabel_text("Marked '-' on the meds' crate"),
+        "Marked '-' on the medicine's crate"
+    );
+    assert_eq!(
+        relabel_text("The tag was '' on the meds' crate"),
+        "The tag was '' on the medicine's crate"
+    );
+    // A quote opens right after a mark that ends a clause.
+    assert_eq!(relabel_text("Wait...'meds'"), "Wait...'medicine'");
+}
+
+#[test]
+fn a_sign_after_another_sign_is_not_a_change() {
+    // A double hyphen is a dash, not a sign.
+    assert_eq!(relabel_text("--3 parts water"), "--3 parts water");
+    assert_eq!(
+        relabel_text("snapped--2 parts fell"),
+        "snapped--2 parts fell"
+    );
+    // A spaced sum or range is not a signed number (as the code already read it).
+    assert_eq!(relabel_text("1 - 2 parts"), "1 - 2 parts");
+    assert_eq!(relabel_text("1 + 2 parts"), "1 + 2 parts");
+    // A signed change still reads as one.
+    assert_eq!(relabel_text("-1 parts"), "-1 spare parts");
+    assert_eq!(relabel_text("(+3 parts)"), "(+3 spare parts)");
 }

@@ -87,15 +87,25 @@ fn renamed_in_prose(word: &str) -> bool {
 
 /// Whether a single quote opened before position `at` is still open there, on the same line.
 ///
-/// A `'` opens a quote when nothing alphanumeric comes before it and a word character, or any
-/// other non-space character, comes after it (`'no meds'`, `'-1 meds'`, `'...no meds'`). It
-/// closes one when a word character or one of `,` `.` `!` `?` comes before it and no word
-/// character after it (`'wait!'`, `'No,'`). An apostrophe inside a word ("don't") is neither.
+/// One small state machine, scanning the line up to `at`. For each `'`:
+/// - between two word characters it is an apostrophe, and nothing changes (`don't`, `AMMO'S`);
+/// - while a quote is open, it closes the quote when the next character is not a word
+///   character, whatever came before it (`'wait!'`, `'-'`, `''`, `'No;'`); otherwise nothing
+///   changes;
+/// - while no quote is open, it opens one when the character before it is not a word character
+///   (or it starts the line) and the character after it exists and is not whitespace (`'meds'`,
+///   `'-1 meds'`, `Wait...'meds'`); otherwise nothing changes (a trailing possessive such as
+///   `drivers'`).
 ///
 /// Known limits, left as they are: a word-initial elision (`'tis`, `'em`) reads as an opening
 /// quote; curly quotes are not quotes here; nested quotes are not tracked; a plural possessive
 /// inside a quoted span reads as the span's closing quote; and a quote opened on an earlier
-/// line is not seen.
+/// line is not seen. Two more were there before and are now written down: an open quote is not
+/// closed by a `'` that a word character follows (`'no meds'x`), and a `'` right after a bracket
+/// or other mark, with a word after it, opens a quote even when it is a possessive
+/// (`(the scout)'s`). One comes with this rule, since a quote may now open after `.` `,` `!` or
+/// `?`: the closing quote of a quote opened on an earlier line, when a mark follows it, opens
+/// one instead (`the end.') and the meds' crate` keeps `meds'` as a quote).
 fn inside_single_quotes(chars: &[char], at: usize) -> bool {
     let line_start = chars[..at]
         .iter()
@@ -109,12 +119,15 @@ fn inside_single_quotes(chars: &[char], at: usize) -> bool {
         }
         let before = k.checked_sub(1).and_then(|b| chars.get(b));
         let after = chars.get(k + 1);
-        let after_is_mark = after.is_some_and(|c| !c.is_whitespace());
-        let before_ends_clause = before.is_some_and(|c| matches!(c, ',' | '.' | '!' | '?'));
-        if !word_char(before) && !before_ends_clause && after_is_mark {
+        if word_char(before) && word_char(after) {
+            continue;
+        }
+        if open {
+            if !word_char(after) {
+                open = false;
+            }
+        } else if !word_char(before) && after.is_some_and(|c| !c.is_whitespace()) {
             open = true;
-        } else if (word_char(before) || before_ends_clause) && !word_char(after) {
-            open = false;
         }
     }
     open
@@ -144,7 +157,7 @@ pub fn relabel_text(text: &str) -> String {
 
 /// Whether the word starting at `start` comes right after a signed number and one space:
 /// `+2 parts`, `-1 parts`, at the start of the text or after a character that is not part of a
-/// word.
+/// word and is not itself `+` or `-` (`--3 parts water` stays).
 fn after_signed_number(chars: &[char], start: usize) -> bool {
     let Some(space) = start.checked_sub(1) else {
         return false;
@@ -160,7 +173,12 @@ fn after_signed_number(chars: &[char], start: usize) -> bool {
         return false;
     }
     let sign = k - 1;
-    sign == 0 || !(chars[sign - 1].is_alphanumeric() || chars[sign - 1] == '_')
+    // The sign starts the text or follows a character that is neither part of a word nor
+    // another sign (`--3 parts water` is a dash, not a change).
+    sign == 0
+        || !(chars[sign - 1].is_alphanumeric()
+            || chars[sign - 1] == '_'
+            || matches!(chars[sign - 1], '+' | '-'))
 }
 
 fn relabel_chars(chars: &[char]) -> String {
