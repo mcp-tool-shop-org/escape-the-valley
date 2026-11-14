@@ -56,30 +56,43 @@ pub fn label_in_sentence(key: &str) -> String {
     }
 }
 
-/// `text` with every key of the table that has an underscore in it (`lantern_oil`) replaced by
-/// its label, as a whole word, in the case it was written in: `"ran out of lantern_oil"` reads
-/// `"ran out of lantern oil"`, and `"No Lantern_oil Left"` reads `"No Lantern oil Left"`.
+/// The phrase table's short name for lantern oil. It names no supply of its own and the engine
+/// never writes it in a line, while the word "oil" is ordinary prose ("uses lamp oil"), so
+/// [`relabel_text`] leaves it alone.
+pub const PHRASE_ONLY_KEYS: [&str; 1] = ["oil"];
+
+/// Whether [`relabel_text`] renames `word` (written in lowercase) when it stands alone: a key of
+/// the table whose label is a different word (`ammo`, `meds`, `lantern_oil`, `time_days`, ...).
+/// A key that is its own label (`food`) needs no renaming.
+fn renamed_in_prose(word: &str) -> bool {
+    !PHRASE_ONLY_KEYS.contains(&word)
+        && LABELS.iter().any(|(k, _)| *k == word)
+        && label(word).to_lowercase() != word
+}
+
+/// `text` with every key that [`renamed_in_prose`] names replaced by its label, as a whole word,
+/// in the case it was written in: `"-1 ammo"` reads `"-1 ammunition"`, `"ran out of
+/// lantern_oil"` reads `"ran out of lantern oil"`, and `"No Lantern_oil Left"` reads `"No
+/// Lantern oil Left"`.
 ///
-/// For prose stored with keys in it, such as a remembered card's text, which keeps its saved
-/// form and is relabelled only when shown.
+/// For text the player reads that was written with keys in it: the engine's own lines, event
+/// text and choice hints from the content pack, and a remembered card's saved text. Each keeps
+/// its stored form and is relabelled only when shown.
 pub fn relabel_text(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut word = String::new();
     let flush = |word: &mut String, out: &mut String| {
-        if word.contains('_') {
-            let lower = word.to_lowercase();
-            if LABELS.iter().any(|(k, _)| *k == lower) {
-                let capital = word.chars().next().is_some_and(char::is_uppercase);
-                out.push_str(&if capital {
-                    label(&lower)
-                } else {
-                    label_in_sentence(&lower)
-                });
-                word.clear();
-                return;
-            }
+        let lower = word.to_lowercase();
+        if renamed_in_prose(&lower) {
+            let capital = word.chars().next().is_some_and(char::is_uppercase);
+            out.push_str(&if capital {
+                label(&lower)
+            } else {
+                label_in_sentence(&lower)
+            });
+        } else {
+            out.push_str(word);
         }
-        out.push_str(word);
         word.clear();
     };
     for c in text.chars() {

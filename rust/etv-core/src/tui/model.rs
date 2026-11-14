@@ -82,7 +82,10 @@ impl ViewData {
     /// number is drawn.
     pub fn from_engine(engine: &StepEngine) -> Self {
         let (event_title, event_text) = match (engine.phase, engine.pending_event()) {
-            (GamePhase::Event, Some(e)) => (e.title.clone(), e.fallback_narration.clone()),
+            (GamePhase::Event, Some(e)) => (
+                crate::labels::relabel_text(&e.title),
+                crate::labels::relabel_text(&e.fallback_narration),
+            ),
             _ => (String::new(), String::new()),
         };
         let choices = match engine.phase {

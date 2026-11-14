@@ -39,7 +39,10 @@ pub const QUIT_SAVED_LINE: &str = "Saved. Come back with: etv continue";
 
 /// One fork option: `  A. Name (N miles)`.
 pub fn route_line(letter: &str, route: &crate::engine::RouteOption) -> String {
-    format!("  {letter}. {} ({} miles)", route.name, route.distance)
+    relabel_text(&format!(
+        "  {letter}. {} ({} miles)",
+        route.name, route.distance
+    ))
 }
 
 /// What a line typed at camp means.
@@ -111,6 +114,9 @@ pub fn choice_line(choice: &EventChoiceInfo) -> String {
     } else {
         format!("  {}. {} ({})", choice.id, choice.label, hints.join("; "))
     };
+    // The label and hints come from the content pack, which writes some supplies by key
+    // ("Food for meds"); they are relabelled as shown.
+    let line = relabel_text(&line);
     if choice.affordable {
         line
     } else {
@@ -363,8 +369,8 @@ pub fn run_play<R: BufRead, W: Write>(
             }
             GamePhase::Event => {
                 if let Some(event) = engine.pending_event() {
-                    writeln!(out, "== {} ==", event.title)?;
-                    writeln!(out, "{}", event.fallback_narration)?;
+                    writeln!(out, "== {} ==", relabel_text(&event.title))?;
+                    writeln!(out, "{}", relabel_text(&event.fallback_narration))?;
                 }
                 for choice in engine.pending_event_choices() {
                     writeln!(out, "{}", choice_line(choice))?;

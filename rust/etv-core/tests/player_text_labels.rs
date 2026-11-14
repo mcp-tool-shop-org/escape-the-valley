@@ -26,8 +26,62 @@ use etv_core::{trail_ledger, trail_ledger_for_player};
 
 const SEEDS: [i128; 5] = [1, 7, 42, 99, 2026];
 
-/// Every key-shaped token in `text`: a lowercase letter, an underscore, then a lowercase letter
-/// or another underscore.
+/// The keys whose label is a different word: every supply in the engine's catalogue and every
+/// change key in the phrase table's order, kept when its label, lowercased, is not the key
+/// itself (`ammo` -> "Ammunition", `meds` -> "Medicine", `oil` -> "Lantern oil", and every key
+/// with an underscore). `food` -> "Food" is the same word and is left out.
+fn renamed_keys() -> &'static Vec<String> {
+    static KEYS: OnceLock<Vec<String>> = OnceLock::new();
+    KEYS.get_or_init(|| {
+        let mut keys: BTreeSet<String> =
+            RESOURCE_CATALOG.iter().map(|r| r.key.to_string()).collect();
+        keys.extend(table().ordered_keys().iter().map(|k| k.to_string()));
+        keys.remove("none");
+        keys.into_iter()
+            .filter(|k| label(k).to_lowercase() != *k)
+            .collect()
+    })
+}
+
+fn is_word_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// `line` with every label in the table and every approved fallback phrase blanked out, in any
+/// case, so a key that is part of player text ("oil" in "Lantern oil" or in the approved "uses
+/// lamp oil") is not taken for the key.
+fn without_labels(line: &str) -> String {
+    let mut out: Vec<char> = line.chars().collect();
+    let lower: Vec<char> = line.to_lowercase().chars().collect();
+    if lower.len() != out.len() {
+        return line.to_string();
+    }
+    let approved = table()
+        .phrases
+        .values()
+        .flat_map(|dirs| dirs.values().map(String::as_str));
+    for l in LABELS.iter().map(|(_, l)| *l).chain(approved) {
+        let needle: Vec<char> = l.to_lowercase().chars().collect();
+        let mut i = 0;
+        while i + needle.len() <= lower.len() {
+            if lower[i..i + needle.len()] == needle[..] {
+                for c in &mut out[i..i + needle.len()] {
+                    *c = ' ';
+                }
+                i += needle.len();
+            } else {
+                i += 1;
+            }
+        }
+    }
+    out.into_iter().collect()
+}
+
+/// Every raw key in `text`, one entry per hit with the line it was on:
+/// - a key-shaped token: a lowercase letter, an underscore, then a lowercase letter or another
+///   underscore (`[a-z]+_[a-z_]+`);
+/// - a key from [`renamed_keys`] as a whole word, in its raw lowercase form (`ammo`, `meds`,
+///   `oil`), outside any label. "Ammunition" and "Lantern oil" never match.
 fn key_tokens(text: &str) -> Vec<String> {
     let mut found = Vec::new();
     for line in text.lines() {
@@ -39,6 +93,12 @@ fn key_tokens(text: &str) -> Vec<String> {
                     && (b[i + 1].is_ascii_lowercase() || b[i + 1] == b'_')
             });
             if shaped {
+                found.push(format!("{word}  <-  {}", line.trim()));
+            }
+        }
+        let masked = without_labels(line);
+        for word in masked.split(|c: char| !is_word_char(c)) {
+            if renamed_keys().iter().any(|k| k == word) {
                 found.push(format!("{word}  <-  {}", line.trim()));
             }
         }
@@ -338,6 +398,16 @@ fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
     );
     assert_eq!(relabel_text("No Lantern_oil Left"), "No Lantern oil Left");
     assert_eq!(relabel_text("an unknown_key stays"), "an unknown_key stays");
+    assert_eq!(
+        relabel_text("Hunt successful! +12 food. -1 ammo."),
+        "Hunt successful! +12 food. -1 ammunition."
+    );
+    assert_eq!(
+        relabel_text("Food for meds; Ammo low"),
+        "Food for medicine; Ammunition low"
+    );
+    assert_eq!(relabel_text("uses lamp oil"), "uses lamp oil");
+    assert_eq!(relabel_text("Gammon, ammonia"), "Gammon, ammonia");
 
     // A victory names the supply that carried the party.
     let mut won = create_new_run_with_content(42, embedded_content_pack());
@@ -397,4 +467,45 @@ fn the_status_panel_the_changes_line_and_a_choice_name_supplies_by_label() {
         choice_line(&choice),
         "  A. Light the way [cannot afford: lantern oil, rope]"
     );
+}
+
+#[test]
+fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
+    let keys = renamed_keys();
+    for k in [
+        "ammo",
+        "meds",
+        "oil",
+        "lantern_oil",
+        "time_days",
+        "wagon_condition",
+    ] {
+        assert!(keys.iter().any(|x| x == k), "{k} missing from {keys:?}");
+    }
+    for k in ["food", "water", "health", "distance", "morale"] {
+        assert!(!keys.iter().any(|x| x == k), "{k} is its own label");
+    }
+    for raw in [
+        "Hunt successful! -1 ammo.",
+        "  meds -1",
+        "Supplies: oil 3",
+        "The party uses lantern_oil.",
+        "Days +1, time_days +1",
+    ] {
+        assert!(!key_tokens(raw).is_empty(), "missed: {raw}");
+    }
+    for fine in [
+        "Supplies: Ammunition 20, Lantern oil 6, Medicine 5.",
+        "The party uses lantern oil and medicine.",
+        "LANTERN OIL 3",
+        "Food -2, Days +1, Wagon condition -2, Animals' health -1",
+        "Gammon and ammonia; oiled boots.",
+        "The party uses lamp oil and spends ammunition.",
+    ] {
+        assert!(
+            key_tokens(fine).is_empty(),
+            "false hit: {fine} {:?}",
+            key_tokens(fine)
+        );
+    }
 }

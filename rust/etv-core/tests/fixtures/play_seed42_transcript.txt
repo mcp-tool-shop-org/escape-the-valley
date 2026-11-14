@@ -49,7 +49,7 @@ Wagon 78, animals 90, pace steady.
 Supplies: Ammunition 20, Boots 2, Cloth 5, Firewood 13, Food 46, Lantern oil 4, Medicine 5, Parts 4, Rope 2, Salt 8, Tools 1, Water 46.
 T travel   R rest   H hunt   F repair   P pace <slow|steady|hard>   Q save and quit
 Last resorts: X abandon cargo   D desperate repair   N hard ration
-> Hunt successful! +16 food. -1 ammo.
+> Hunt successful! +16 food. -1 ammunition.
 
 Day 2, afternoon. Coldspring (plains). 20 of 396 miles, 5 to the next stop.
 Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 73.
