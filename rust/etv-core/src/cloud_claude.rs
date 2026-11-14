@@ -176,9 +176,16 @@ impl ApiKey {
 
     /// A key from text read elsewhere (an environment variable): trimmed, and it must be one
     /// token of 20 characters or more with no spaces. Errors never include the text.
+    ///
+    /// A `"` or `\` is refused too: no provider issues one, and JSON writes them escaped, so a
+    /// key holding one would not match itself in a logged line and could slip past redaction.
     pub fn from_text(text: &str) -> Result<ApiKey, String> {
         let key = text.trim().trim_start_matches('\u{feff}').trim();
-        if key.len() < 20 || key.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        if key.len() < 20
+            || key
+                .chars()
+                .any(|c| c.is_whitespace() || c.is_control() || c == '"' || c == '\\')
+        {
             return Err("does not hold one key".to_string());
         }
         Ok(ApiKey(key.to_string()))
@@ -202,6 +209,27 @@ impl ApiKey {
     /// `text` with every occurrence of the key replaced.
     pub fn redact(&self, text: &str) -> String {
         text.replace(self.0.as_str(), "[redacted]")
+    }
+
+    /// `value` with the key replaced in every string it holds, object keys included, so the key
+    /// is gone before the value is written out as JSON (which would escape a `"` or `\`).
+    fn redact_value(&self, value: &mut Value) {
+        match value {
+            Value::String(s) => {
+                if s.contains(self.0.as_str()) {
+                    *s = self.redact(s);
+                }
+            }
+            Value::Array(items) => items.iter_mut().for_each(|v| self.redact_value(v)),
+            Value::Object(map) => {
+                let old = std::mem::take(map);
+                for (k, mut v) in old {
+                    self.redact_value(&mut v);
+                    map.insert(self.redact(&k), v);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -649,6 +677,8 @@ impl ClaudeTransport {
     fn log_line(&self, mut line: Value) {
         line["ts_ms"] = json!(unix_ms());
         line["model"] = json!(self.cfg.model);
+        // Redact the values before they are written as JSON, then the written line as well.
+        self.key.redact_value(&mut line);
         let text = self.key.redact(&line.to_string());
         if let Ok(mut file) = fs::OpenOptions::new()
             .create(true)
@@ -1613,6 +1643,49 @@ mod tests {
             "ApiKey(redacted)"
         );
         assert!(!format!("{t:?}").contains(TEST_KEY));
+    }
+
+    #[test]
+    fn a_key_with_a_quote_or_backslash_is_refused_and_never_logged() {
+        // Such a key is refused where keys come in.
+        for bad in [
+            "test-key-0123456789\"abcdefghij",
+            "test-key-0123456789\\abcdefghij",
+        ] {
+            assert_eq!(
+                ApiKey::from_text(bad).unwrap_err(),
+                "does not hold one key",
+                "{bad}"
+            );
+        }
+        assert!(ApiKey::from_text(TEST_KEY).is_ok());
+
+        // And if one got in anyway, an error body that echoes it still never reaches the log,
+        // neither as written nor in its JSON-escaped form.
+        let key = "test-key-0123456789\"quote\\slash-KLMNOPQRST";
+        let rig = Rig::new(vec![error_reply(
+            401,
+            "authentication_error",
+            &format!("bad key {key}"),
+        )]);
+        let waits = rig.waits.clone();
+        let t = ClaudeTransport::with_sleep(
+            ApiKey::for_tests(key),
+            rig.cfg(HAIKU, ONE_DOLLAR),
+            Box::new(Scripted(rig.script.clone())),
+            Box::new(move |d| waits.lock().unwrap().push(d.as_secs())),
+        )
+        .unwrap();
+        let _ = t.post_generate("", &ollama_body(HAIKU), Duration::from_secs(5));
+        let quoted = serde_json::to_string(key).unwrap();
+        let escaped = &quoted[1..quoted.len() - 1];
+        assert_ne!(escaped, key, "the key must change when escaped");
+        let log = rig.log();
+        assert!(!log.is_empty());
+        assert!(!log.contains(key), "{log}");
+        assert!(!log.contains(escaped), "{log}");
+        let first: Value = serde_json::from_str(log.lines().next().unwrap()).unwrap();
+        assert_eq!(first["error_message"], "bad key [redacted]");
     }
 
     #[test]

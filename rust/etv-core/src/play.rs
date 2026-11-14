@@ -453,6 +453,26 @@ pub fn connect_narrator(
     settings: &NarratorSettings,
     transport: Option<Arc<dyn NarratorTransport>>,
 ) -> NarratorConnection {
+    connect_narrator_with(settings, |_| {
+        transport.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string())
+    })
+}
+
+/// Line shown when this build has no narrator connection compiled in at all.
+pub const NO_NARRATOR_CONNECTION_LINE: &str = "This build has no narrator connection.";
+
+/// Try to connect the live narrator described by `settings`, over the transport `transport`
+/// builds for them.
+///
+/// The narrator being switched off is checked first, so `transport` is not called then (no key
+/// is looked up for a narrator that is off). When `transport` cannot give a connection, its
+/// reason is what the player is told. Nothing is written to the terminal here: every message is
+/// in the returned lines, for the caller to show (line mode prints them; the full-screen
+/// interface puts them in its log).
+pub fn connect_narrator_with(
+    settings: &NarratorSettings,
+    transport: impl FnOnce(&NarratorSettings) -> Result<Arc<dyn NarratorTransport>, String>,
+) -> NarratorConnection {
     let off = |reason: String| NarratorConnection {
         narrator: None,
         lines: vec![reason, NARRATOR_OFF_LINE.to_string()],
@@ -460,8 +480,9 @@ pub fn connect_narrator(
     if !settings.enabled {
         return off("The narrator is switched off in the settings.".to_string());
     }
-    let Some(transport) = transport else {
-        return off("This build has no narrator connection.".to_string());
+    let transport = match transport(settings) {
+        Ok(t) => t,
+        Err(reason) => return off(reason),
     };
     let narrator = LiveNarrator::with_transport(settings.clone(), transport);
     let status = narrator.check_startup();
@@ -494,6 +515,38 @@ pub fn connect_narrator(
     NarratorConnection {
         narrator: Some(narrator),
         lines: vec![line],
+    }
+}
+
+/// The transport for the settings' provider, from what this build has: `local`, the local
+/// Ollama connection (`None` without the `narrator-ollama` feature), and `hosted_http`, the
+/// HTTPS client for a hosted provider (`None` without the `narrator-claude` feature).
+/// `lookup` reads an environment variable, for a key the settings name.
+///
+/// Every failure says what is actually wrong, in a line for the player: the provider's own
+/// reason (a key variable that is not set, a key file that cannot be read), a build without the
+/// hosted narrator for a hosted provider, and [`NO_NARRATOR_CONNECTION_LINE`] only for a build
+/// with no narrator connection at all.
+pub fn narrator_transport(
+    settings: &NarratorSettings,
+    local: Option<Arc<dyn NarratorTransport>>,
+    hosted_http: Option<Box<dyn crate::cloud_claude::HttpsPost>>,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<Arc<dyn NarratorTransport>, String> {
+    use crate::narrator_provider::{hosted_transport, NarratorProvider};
+    if settings.provider == NarratorProvider::Ollama {
+        return local.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string());
+    }
+    let Some(http) = hosted_http else {
+        return Err(format!(
+            "This build has no cloud narrator, so the {} provider in the settings cannot be used.",
+            settings.provider.name()
+        ));
+    };
+    match hosted_transport(settings, http, lookup) {
+        Ok(Some(t)) => Ok(Arc::new(t)),
+        Ok(None) => local.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string()),
+        Err(why) => Err(format!("The cloud narrator could not start: {why}.")),
     }
 }
 

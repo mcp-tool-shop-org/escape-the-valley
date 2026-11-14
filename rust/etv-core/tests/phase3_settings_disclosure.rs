@@ -15,6 +15,7 @@ use etv_core::screens::{
 };
 use etv_core::settings::{
     load_settings_or_default, save_settings, settings_path, settings_to_json, validate_model_name,
+    USING_DEFAULTS_LINE,
 };
 
 const APPROVED_TITLE: &str = "When a narrator model is running, the story is written and voiced by AI, live, as you play, and every telling is new. Without one, the game shows plain text lines instead.";
@@ -362,19 +363,27 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
     let path = settings_path(dir.path());
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-    let cases: [(&str, &str); 3] = [
-        (
-            "{ not json",
-            "The settings file could not be read. Using the default settings.",
-        ),
+    // Each warning names the reason and the settings used instead.
+    let cases: [(&str, &str); 5] = [
+        ("{ not json", "The settings file was not used: invalid settings JSON"),
         // A non-loopback endpoint without the explicit opt-in is refused by the loader.
         (
             r#"{"endpoint": "http://example.com:11434"}"#,
-            "The settings file could not be read. Using the default settings.",
+            "The settings file was not used: endpoint rejected",
         ),
         (
             r#"{"model": "two words"}"#,
-            "The settings file was ignored (the model name contains ' '; use letters, digits and . _ - : / only). Using the default settings.",
+            "The settings file was ignored (the model name contains ' '; use letters, digits and . _ - : / only).",
+        ),
+        // A cloud narrator with no key: the provider's own reason, not "could not be read".
+        (
+            r#"{"provider": "claude", "model": "claude-haiku-5-5"}"#,
+            "The settings file was not used: the claude provider needs a key: name its environment variable (key.env) or key file (key.file).",
+        ),
+        // An OpenAI-compatible provider over plain HTTP.
+        (
+            r#"{"provider": "openai-compatible", "provider_url": "http://192.168.1.5:11434/v1", "key": {"env": "K"}}"#,
+            "The settings file was not used: the openai-compatible provider needs an https:// provider_url",
         ),
     ];
     for (body, warning) in cases {
@@ -382,10 +391,25 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
         let loaded = load_settings_or_default(dir.path());
         assert_eq!(loaded.settings, NarratorSettings::default(), "body {body}");
         assert!(!loaded.from_file);
-        assert_eq!(loaded.warning.as_deref(), Some(warning));
+        let shown = loaded.warning.unwrap();
+        assert!(shown.starts_with(warning), "body {body}: {shown}");
+        // It says the local narrator is used instead, so a cloud choice never silently turns
+        // into the local one.
+        assert!(shown.ends_with(USING_DEFAULTS_LINE), "body {body}: {shown}");
+        assert!(!shown.contains("could not be read"), "body {body}: {shown}");
         // The unusable file is left as it was.
         assert_eq!(std::fs::read_to_string(&path).unwrap(), body);
     }
+
+    // Only a file that cannot be read at all says so.
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    assert_eq!(
+        loaded.warning.as_deref(),
+        Some(format!("The settings file could not be read. {USING_DEFAULTS_LINE}").as_str())
+    );
+    std::fs::remove_dir(&path).unwrap();
 
     // A partial file fills the rest from the defaults.
     std::fs::write(&path, r#"{"profile": "lantern", "length": "rich"}"#).unwrap();

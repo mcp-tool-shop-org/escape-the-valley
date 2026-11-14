@@ -85,23 +85,49 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 3,
+      "changed": 9,
       "moved": 0,
-      "parts": 1,
+      "parts": 2,
       "removed": 0
     },
     "items": [
       {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator_with`, before `run_play`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `connect_narrator_with`, before `no_color_requested`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/bin/etv.rs, `main` gained a step, `from_engine`, before `new`.",
+        "subjects": [
+          "rust/etv-core/src/bin/etv.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "And 11 more changes to the order of work.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 3 files changed content.",
+        "sentence": "9 files changed content, across 2 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "11a402b802ee1c17c3f4421b51b2bfc70f980fc8",
-      "generatedAt": "2026-11-14T14:45:35.896Z"
+      "commit": "ea109093a2ada8a4faf2cd050b4234dc34171c53",
+      "generatedAt": "2026-11-14T16:18:49.283Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -186,7 +212,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 12 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "ea109093a2ada8a4faf2cd050b4234dc34171c53",
+  "commit": "e2bd6741cec54031be4dbc311e2a92220509cece",
   "defaultBranch": "main",
   "derived": "10 parts, in Rust (85 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -678,7 +704,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T16:18:49.283Z",
+  "generatedAt": "2026-11-14T16:45:12.776Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
