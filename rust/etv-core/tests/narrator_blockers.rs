@@ -6,8 +6,9 @@ use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepMessages;
 use etv_core::model::{GMProfile, GamePhase, IntentAction, PlayerIntent};
 use etv_core::narrator::{
-    build_narration_context_from_turn, compute_applied_turn_deltas, evaluate_turn_matters,
-    narration_call_seed, resolve_fallback_line_with_mode, CheckerContext, ComposedFallbackComposer,
+    build_narration_context_from_turn, compose_all_464_choice_fallbacks,
+    compute_applied_turn_deltas, evaluate_turn_matters, narration_call_seed,
+    resolve_fallback_line_with_mode, CheckerContext, ComposedFallbackComposer,
     FallbackComposerError, FallbackPhraseTable, NarrationContext, NarratorLength,
     PreTurnObservation,
 };
@@ -210,4 +211,86 @@ fn turns_that_differ_only_in_phase_or_action_get_different_seeds() {
     assert_ne!(seed(&at_camp), seed(&on_route), "the phase is in the seed");
     // The same turn asks for the same seed every time.
     assert_eq!(seed(&rest), seed(&rest.clone()));
+}
+
+#[test]
+fn a_placeholder_anywhere_in_a_table_is_caught() {
+    let shipped = FallbackPhraseTable::embedded();
+    assert!(!shipped.has_placeholders());
+
+    // Inside a phrase, not only at its start.
+    let mut inside = shipped.clone();
+    inside
+        .phrases
+        .get_mut("food")
+        .unwrap()
+        .insert("neg".to_string(), "uses PLACEHOLDER food".to_string());
+    assert!(inside.has_placeholders());
+    assert_eq!(inside.placeholder_entries().len(), 1);
+    assert_eq!(inside.phrase("food", "neg"), None);
+    assert_eq!(
+        ComposedFallbackComposer::try_start_with_mode(Some(&inside), true).unwrap_err(),
+        FallbackComposerError::PlaceholdersInReleaseBuild
+    );
+    // A debug build still starts on it, and leaves the stand-in out of the line.
+    let debug = ComposedFallbackComposer::try_start_with_mode(Some(&inside), false).unwrap();
+    let line = debug.compose_from_effects(&[("food", -1), ("water", -1)]);
+    assert!(!line.contains("PLACEHOLDER"), "{line}");
+
+    // In the subject: refused in every build, since every composed line starts with it.
+    let mut subject = shipped.clone();
+    subject.subject = "PLACEHOLDER-subject".to_string();
+    assert!(subject.has_placeholders());
+    assert_eq!(
+        ComposedFallbackComposer::try_start_with_mode(Some(&subject), false).unwrap_err(),
+        FallbackComposerError::PlaceholderSubject
+    );
+    assert_eq!(
+        ComposedFallbackComposer::try_start_with_mode(Some(&subject), true).unwrap_err(),
+        FallbackComposerError::PlaceholdersInReleaseBuild
+    );
+
+    // An empty or whitespace "nothing changed" phrase is no phrase.
+    for blank in ["", "   ", "\t\n"] {
+        let mut t = shipped.clone();
+        t.phrases
+            .get_mut("none")
+            .unwrap()
+            .insert("neutral".to_string(), blank.to_string());
+        for release in [false, true] {
+            assert_eq!(
+                ComposedFallbackComposer::try_start_with_mode(Some(&t), release).unwrap_err(),
+                FallbackComposerError::NeutralPhraseMissing,
+                "{blank:?} release {release}"
+            );
+        }
+    }
+    // A blank phrase for a key adds no clause.
+    let mut blank_food = shipped.clone();
+    blank_food
+        .phrases
+        .get_mut("food")
+        .unwrap()
+        .insert("neg".to_string(), " ".to_string());
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(&blank_food), true).unwrap();
+    let water = shipped.phrase("water", "neg").unwrap();
+    assert_eq!(
+        composer.compose_from_effects(&[("food", -1), ("water", -1)]),
+        format!("{} {water}.", shipped.subject)
+    );
+
+    // The 464-choice audit is checked as a release build checks the table.
+    let pack = embedded_content_pack();
+    assert_eq!(
+        compose_all_464_choice_fallbacks(pack, &shipped)
+            .unwrap()
+            .len(),
+        464
+    );
+    for bad in [&inside, &subject] {
+        assert_eq!(
+            compose_all_464_choice_fallbacks(pack, bad).unwrap_err(),
+            FallbackComposerError::PlaceholdersInReleaseBuild
+        );
+    }
 }
