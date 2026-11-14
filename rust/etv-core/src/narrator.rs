@@ -3433,13 +3433,19 @@ impl FallbackPhraseTable {
 pub enum FallbackComposerError {
     TableMissing,
     PlaceholdersInReleaseBuild,
+    /// The table has no real `"none"."neutral"` phrase (missing, or only a `PLACEHOLDER-`
+    /// stand-in), so a turn with no phrased change would have nothing to say. Refused in every
+    /// build: the caller falls back to the engine's plain line.
+    NeutralPhraseMissing,
 }
 
 /// Composes fallback outcome sentences from effect keys and directions using a
 /// [`FallbackPhraseTable`].
 ///
 /// In a release build (`cfg(not(debug_assertions))`), [`ComposedFallbackComposer::try_start`]
-/// refuses to start if the phrase table is missing or contains any `"PLACEHOLDER-"` entry.
+/// refuses to start if the phrase table is missing or contains any `"PLACEHOLDER-"` entry. In
+/// every build it refuses a table without a real `"none"."neutral"` phrase, so a composed line
+/// never needs a stand-in.
 #[derive(Debug, Clone)]
 pub struct ComposedFallbackComposer<'a> {
     table: &'a FallbackPhraseTable,
@@ -3462,6 +3468,9 @@ impl<'a> ComposedFallbackComposer<'a> {
         let tbl = table.ok_or(FallbackComposerError::TableMissing)?;
         if is_release_build && tbl.has_placeholders() {
             return Err(FallbackComposerError::PlaceholdersInReleaseBuild);
+        }
+        if tbl.phrase("none", "neutral").is_none() {
+            return Err(FallbackComposerError::NeutralPhraseMissing);
         }
         Ok(Self { table: tbl })
     }
@@ -3520,7 +3529,9 @@ impl<'a> ComposedFallbackComposer<'a> {
             }
         }
         if clauses.is_empty() {
-            clauses.push(self.table.lookup("none", "neutral"));
+            // `try_start_with_mode` refused any table without a real neutral phrase, so this is
+            // always the table's own text, never a `PLACEHOLDER-` stand-in.
+            clauses.extend(self.table.phrase("none", "neutral"));
         }
 
         let body = match clauses.len() {

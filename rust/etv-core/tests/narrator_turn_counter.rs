@@ -11,6 +11,7 @@ use etv_core::narrator::{
     PreTurnObservation,
 };
 use etv_core::ruleset::Ruleset;
+use etv_core::save::SaveLoadError;
 use etv_core::save_v5::{state_to_value_v5, value_to_saved_game};
 use etv_core::simulate::{choose_intent, Policy};
 use etv_core::worldgen::create_new_run_with_rng;
@@ -197,16 +198,23 @@ fn a_v5_save_carries_the_counter_and_an_older_one_reads_zero() {
     );
 
     // A value that is not a count is a corrupt save, not a silent 0.
+    // A JSON null is not "no counter": the key is there with no count in it.
     for bad in [
         serde_json::json!(-1),
         serde_json::json!("12"),
         serde_json::json!(1.5),
+        serde_json::Value::Null,
+        serde_json::json!(true),
+        serde_json::json!([12]),
+        serde_json::json!({"n": 12}),
     ] {
         let mut v = value.clone();
         v["turns_stepped"] = bad.clone();
+        let loaded = value_to_saved_game(&v, content);
         assert!(
-            value_to_saved_game(&v, content).is_err(),
-            "{bad} was accepted"
+            matches!(loaded, Err(SaveLoadError::Corrupt(_))),
+            "{bad} was not refused as corrupt: {:?}",
+            loaded.map(|g| g.state.turns_stepped)
         );
     }
 }
