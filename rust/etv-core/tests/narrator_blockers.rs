@@ -78,12 +78,42 @@ fn a_turn_that_spends_meds_shows_it_in_the_facts_the_fallback_and_the_allowed_se
         for release in [false, true] {
             let line = resolve_fallback_line_with_mode(&ctx, Some(&table), release);
             assert!(!line.contains("PLACEHOLDER"), "placeholder in {line:?}");
-            if let Some(phrase) = table.phrase(key, "neg") {
-                assert!(
-                    line.contains(&phrase),
-                    "{line:?} lacks the {key} phrase {phrase:?}"
-                );
-            }
+            // The approved phrases (2026-11-14) are in the line.
+            let phrase = table
+                .phrase(key, "neg")
+                .unwrap_or_else(|| panic!("the shipped table has no {key} phrase"));
+            let expected = if key == "meds" {
+                "uses medicine"
+            } else {
+                "uses salt"
+            };
+            assert_eq!(phrase, expected);
+            assert!(
+                line.contains(expected),
+                "{line:?} lacks the {key} phrase {expected:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_turn_that_gains_meds_or_salt_says_so_in_the_fallback() {
+    for (key, expected) in [("meds", "gains medicine"), ("salt", "gains salt")] {
+        let mut state = create_new_run_with_content(42, embedded_content_pack());
+        let pre = PreTurnObservation::capture(GamePhase::Camp, &state);
+        let before = state.supplies.get(key);
+        state.supplies.set(key, before + 1);
+        let mut msgs = StepMessages::default();
+        msgs.outcome_deltas.insert(key.to_string(), 1);
+        let flags =
+            evaluate_turn_matters(&pre, &PlayerIntent::new(IntentAction::Rest), &msgs, &state);
+        let ctx =
+            build_narration_context_from_turn(&pre, &state, GamePhase::Camp, "", "", &msgs, flags);
+        assert_eq!(ctx.shown_deltas().get(key), Some(&1));
+        let table = FallbackPhraseTable::embedded();
+        for release in [false, true] {
+            let line = resolve_fallback_line_with_mode(&ctx, Some(&table), release);
+            assert!(line.contains(expected), "{line:?} lacks {expected:?}");
         }
     }
 }

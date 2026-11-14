@@ -193,7 +193,8 @@ fn step3_fallback_table_has_no_placeholders_and_pins_sha256() {
     );
     assert!(table.placeholder_entries().is_empty());
     assert!(!table.all_placeholders());
-    assert_eq!(table.non_placeholder_entries().len(), 33);
+    // 33 from draft 2, plus the four meds and salt phrases approved on 2026-11-14.
+    assert_eq!(table.non_placeholder_entries().len(), 37);
 
     // Pin the SHA-256 of the shipped table (both canonical JSON and LF-normalized file bytes).
     assert_eq!(
@@ -206,6 +207,8 @@ fn step3_fallback_table_has_no_placeholders_and_pins_sha256() {
         SHIPPED_FALLBACK_PHRASES_LF_SHA256,
         "shipped fallback_phrases.json LF-normalized SHA-256 must match pinned value"
     );
+    // Still the draft-2 source hash: the shipped table is draft 2 extended by the four meds and
+    // salt phrases (approved 2026-11-14), which draft 2 does not hold.
     assert_eq!(
         SOURCE_PHRASE_TABLE_SHA256,
         "ef29eecf13ba985708d21ad9f002ab4a2de5af4aa70dc914f8c1135f4bf12a22"
@@ -267,30 +270,40 @@ fn step3_fallback_table_equivalent_to_source_and_keys_equal_464_choice_effect_pr
         "event_skeletons.json must have 16 distinct engine_effect_profile keys"
     );
 
-    let mut expected_table_keys = profile_keys.clone();
+    // The supplies no choice profile names but the engine holds and a turn can change (meds and
+    // salt), phrased since 2026-11-14.
+    let supply_keys: BTreeSet<String> = ["meds", "salt"].iter().map(|k| k.to_string()).collect();
+    assert!(profile_keys.is_disjoint(&supply_keys));
+    let mut effect_keys = profile_keys.clone();
+    effect_keys.extend(supply_keys.iter().cloned());
+
+    let mut expected_table_keys = effect_keys.clone();
     expected_table_keys.insert("none".to_string());
     let actual_table_keys: BTreeSet<String> = table.phrases.keys().cloned().collect();
     assert_eq!(
         actual_table_keys, expected_table_keys,
-        "shipped table keys must equal the 16 engine_effect_profile keys plus 'none'"
+        "shipped table keys must equal the 16 engine_effect_profile keys plus meds, salt and 'none'"
     );
 
     // Unused extra keys from Step 3 placeholder table must not be present.
-    for removed_key in ["lantern_oil", "meds", "salt"] {
+    for removed_key in ["lantern_oil"] {
         assert!(
             !table.phrases.contains_key(removed_key),
             "shipped table must not contain unused key {removed_key:?}"
         );
     }
 
-    // key_order has all 16 effect keys with ammo first.
-    assert_eq!(table.key_order.len(), 16);
+    // key_order has all 18 effect keys with ammo first, meds and salt after boots.
+    assert_eq!(table.key_order.len(), 18);
     assert_eq!(table.key_order.first().map(String::as_str), Some("ammo"));
+    let boots = table.key_order.iter().position(|k| k == "boots").unwrap();
+    assert_eq!(table.key_order[boots + 1], "meds");
+    assert_eq!(table.key_order[boots + 2], "salt");
     let key_order_set: BTreeSet<String> = table.key_order.iter().cloned().collect();
-    assert_eq!(key_order_set, profile_keys);
+    assert_eq!(key_order_set, effect_keys);
 
-    // Each of the 16 effect keys has exactly {"neg", "pos"}, and "none" has {"neutral"}.
-    for key in &profile_keys {
+    // Each of the 18 effect keys has exactly {"neg", "pos"}, and "none" has {"neutral"}.
+    for key in &effect_keys {
         let dirs = table
             .phrases
             .get(key)
@@ -310,7 +323,7 @@ fn step3_fallback_table_equivalent_to_source_and_keys_equal_464_choice_effect_pr
     // 2. Round-trip equivalence between source format ("+" / "-", none_phrase, phrases)
     // and the shipped FallbackPhraseTable format ("pos" / "neg", none.neutral, key_order, phrases).
     let (none_phrase, source_entries) = table.to_source_entries().expect("to_source_entries");
-    assert_eq!(source_entries.len(), 32);
+    assert_eq!(source_entries.len(), 36);
     assert_eq!(source_entries[0].key, "ammo");
     assert_eq!(source_entries[0].dir, "+");
     assert_eq!(source_entries[1].key, "ammo");
@@ -345,7 +358,7 @@ fn step3_fallback_table_equivalent_to_source_and_keys_equal_464_choice_effect_pr
 
     let mut no_order = table.clone();
     no_order.key_order.clear();
-    assert_eq!(no_order.ordered_keys().len(), 16);
+    assert_eq!(no_order.ordered_keys().len(), 18);
 
     let minimal_json = r#"{"schema_version": 1, "phrases": {"food": {"neg": "a", "pos": "b"}}}"#;
     let minimal = FallbackPhraseTable::from_json_str(minimal_json).expect("minimal table");
@@ -784,7 +797,8 @@ fn step3_fallback_composer_464_choices_reproduce_word_and_distinct_counts() {
 #[test]
 fn step3_fallback_table_phrases_pass_voice_rules() {
     let table = FallbackPhraseTable::embedded();
-    assert_eq!(table.non_placeholder_entries().len(), 33);
+    // 33 from draft 2, plus the four meds and salt phrases approved on 2026-11-14.
+    assert_eq!(table.non_placeholder_entries().len(), 37);
 
     let banned_quantifiers = ["one", "both", "pair", "half"];
     let banned_death_words = [

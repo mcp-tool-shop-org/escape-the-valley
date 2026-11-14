@@ -36,17 +36,20 @@ use crate::physics::{current_node, journey_pressure, HealthEffect};
 pub const EMBEDDED_FALLBACK_PHRASES_JSON: &str = include_str!("../content/fallback_phrases.json");
 
 /// Expected SHA-256 digest of the approved source phrase table (`PHRASE-TABLE-DRAFT-2-2026-11-02.json`).
+///
+/// The shipped table extends draft 2 by four phrases that draft 2 does not hold: meds and salt,
+/// each spent and gained (approved by the Director on 2026-11-14). This stays the draft-2 hash.
 pub const SOURCE_PHRASE_TABLE_SHA256: &str =
     "ef29eecf13ba985708d21ad9f002ab4a2de5af4aa70dc914f8c1135f4bf12a22";
 
 /// Expected SHA-256 digest of the canonical JSON form (`canonicalize_json_value_no_floats`) of
 /// `rust/etv-core/content/fallback_phrases.json`.
 pub const SHIPPED_FALLBACK_PHRASES_CANONICAL_SHA256: &str =
-    "7d9c4eb4c86ac3cab2089041e180234ffb403abc7120a542e4fec8b948a6959f";
+    "f330779e72b7c41b6f008d5c92be4212b3d6de9e7e3f2142c156176db0fb4418";
 
 /// Expected SHA-256 digest of the LF-normalized bytes of `rust/etv-core/content/fallback_phrases.json`.
 pub const SHIPPED_FALLBACK_PHRASES_LF_SHA256: &str =
-    "42fa23cb0016971cbd7960693880854cc81296b6649af93186c2328ec2067e75";
+    "ebc9e9a05ac4e3e964f241a8cde9f7ed37ddd6c1197001b634b400f0e705ea57";
 
 /// Default local loopback Ollama endpoint (`src/escape_the_valley/gm.py:106`).
 pub const DEFAULT_OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
