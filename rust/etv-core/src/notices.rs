@@ -122,7 +122,20 @@ pub struct LicenseAllowlist {
     pub allowed_license_expressions: Vec<String>,
     #[serde(default)]
     pub reviewed_crates: Vec<ReviewedCratePin>,
+    /// Licences allowed for one named crate only, each with the review that allowed it. A
+    /// licence here is not on the general allow-list: any other crate carrying it still fails.
+    #[serde(default)]
+    pub crate_exceptions: Vec<CrateLicenseException>,
     pub prohibited_copyleft_prefixes: Vec<String>,
+}
+
+/// One crate allowed one licence expression outside the general allow-list.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CrateLicenseException {
+    pub name: String,
+    pub license: String,
+    /// Why it is allowed, and the condition the notices meet.
+    pub reason: String,
 }
 
 /// Validation failure returned by [`validate_notices_against_allowlist`].
@@ -463,7 +476,13 @@ pub fn validate_notices_against_allowlist(
         }
         prev_key = Some(sort_key);
 
-        validate_license_expression(&subj, &c.license, allowlist, &mut errors);
+        let excepted = allowlist
+            .crate_exceptions
+            .iter()
+            .any(|e| e.name == c.name && e.license == c.license);
+        if !excepted {
+            validate_license_expression(&subj, &c.license, allowlist, &mut errors);
+        }
 
         if c.cargo_lock_checksum.trim().is_empty() {
             errors.push(NoticesValidationError {
@@ -635,9 +654,12 @@ fn is_non_release_target_only_crate(name: &str) -> bool {
     //
     // The terminal front end (`ratatui`, `crossterm`) adds more of the same kind, each reached
     // only through a target gate no release target satisfies: `redox_syscall` (`parking_lot_core`
-    // on Redox), `wasi` (`mio` on WASI), the two `winapi-*-gnu` import-library crates (`winapi`
-    // on the windows-gnu targets) and `windows-sys` (`errno` and `mio` on Windows, but `errno` is
-    // only reached on the unix release targets and `crossterm` uses `winapi` on Windows).
+    // on Redox), `wasi` (`mio` on WASI) and the two `winapi-*-gnu` import-library crates
+    // (`winapi` on the windows-gnu targets).
+    //
+    // `windows-sys` used to be listed here too. Since the cloud narrator's TLS (`native-tls`) it
+    // is compiled on the Windows release target, through `schannel` and `tempfile`, so it is a
+    // shipped crate like any other.
     matches!(
         name,
         "r-efi"
@@ -647,7 +669,6 @@ fn is_non_release_target_only_crate(name: &str) -> bool {
             | "wasi"
             | "winapi-i686-pc-windows-gnu"
             | "winapi-x86_64-pc-windows-gnu"
-            | "windows-sys"
     )
 }
 
