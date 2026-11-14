@@ -144,7 +144,7 @@ fn status_panel_for_seed_42_at_the_start() {
             "Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 70."
                 .to_string(),
             "Wagon 80, animals 90, pace steady.".to_string(),
-            "Supplies: Ammunition 20, Boots 2, Cloth 5, Firewood 15, Food 50, Lantern oil 6, Medicine 5, Parts 4, Rope 2, Salt 8, Tools 1, Water 50."
+            "Supplies: Ammunition 20, Boots 2, Cloth 5, Firewood 15, Food 50, Lamp oil 6, Medicine 5, Spare parts 4, Rope 2, Salt 8, Tools 1, Water 50."
                 .to_string(),
         ]
     );
@@ -357,7 +357,8 @@ fn a_full_run_reaches_an_ending_with_the_narrator_off() {
         assert_eq!(exit, PlayExit::Finished, "seed {seed}");
         assert!(engine.state.game_over);
         let transcript = String::from_utf8(out).unwrap();
-        let ledger = etv_core::trail_ledger(&engine.state).join("\n");
+        // Line mode shows the player's ledger (supplies named by label), not the frozen form.
+        let ledger = etv_core::trail_ledger_for_player(&engine.state).join("\n");
         assert!(!ledger.is_empty());
         assert!(transcript.ends_with(&format!("{ledger}\n")), "seed {seed}");
         // Every event shown is resolved once, and shows its bracketed option line once.

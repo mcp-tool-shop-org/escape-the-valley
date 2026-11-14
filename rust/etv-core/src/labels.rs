@@ -8,6 +8,10 @@
 /// `(key, label)` for every key the engine names: the twelve supplies, the other changes a turn
 /// can show, and `oil`, the phrase table's short name for lantern oil.
 ///
+/// A supply's label uses the approved fallback phrase table's word for it, so the panel and
+/// the narrator's fallback line agree ("Lamp oil" beside "uses lamp oil"); a test holds them
+/// together.
+///
 /// **Adding or changing an entry rewrites prose, narrator text included.** `play_turn` runs
 /// [`relabel_text`] over every line it shows, the live narrator's scene and outcome among them,
 /// so any key here whose label is a different word (other than [`PHRASE_ONLY_KEYS`]) is
@@ -23,10 +27,10 @@ pub const LABELS: [(&str, &str); 19] = [
     ("ammo", "Ammunition"),
     ("cloth", "Cloth"),
     ("rope", "Rope"),
-    ("lantern_oil", "Lantern oil"),
-    ("oil", "Lantern oil"),
+    ("lantern_oil", "Lamp oil"),
+    ("oil", "Lamp oil"),
     ("tools", "Tools"),
-    ("parts", "Parts"),
+    ("parts", "Spare parts"),
     ("boots", "Boots"),
     ("salt", "Salt"),
     ("health", "Health"),
@@ -37,7 +41,7 @@ pub const LABELS: [(&str, &str); 19] = [
     ("time_days", "Days"),
 ];
 
-/// The label for `key`, as it starts a line or a list item: `"Lantern oil"`.
+/// The label for `key`, as it starts a line or a list item: `"Lamp oil"`.
 ///
 /// A key the table does not hold still reads as words, never as a key: its underscores become
 /// spaces and its first letter is capitalised (`"some_new_key"` reads `"Some new key"`).
@@ -53,7 +57,7 @@ pub fn label(key: &str) -> String {
     }
 }
 
-/// The label for `key` inside a sentence: `"lantern oil"` (`"The lantern oil ran out first."`).
+/// The label for `key` inside a sentence: `"lamp oil"` (`"The lamp oil ran out first."`).
 /// Only the first letter is lowered, so `"Animals' health"` reads `"animals' health"`.
 pub fn label_in_sentence(key: &str) -> String {
     let l = label(key);
@@ -78,15 +82,46 @@ fn renamed_in_prose(word: &str) -> bool {
         && label(word).to_lowercase() != word
 }
 
+/// Whether the text before a word (`before`) already ends with the words that open `key`'s
+/// label, so the word completes the label: "spare " before "parts". Case is ignored.
+fn label_already_written(before: &[char], key: &str) -> bool {
+    let shown = label(key).to_lowercase();
+    let Some(opening) = shown.strip_suffix(key).filter(|o| !o.is_empty()) else {
+        return false;
+    };
+    let opening: Vec<char> = opening.chars().collect();
+    let n = opening.len();
+    if before.len() < n {
+        return false;
+    }
+    let tail = &before[before.len() - n..];
+    let same = tail
+        .iter()
+        .zip(&opening)
+        .all(|(a, b)| a.to_lowercase().eq(b.to_lowercase()));
+    // The opening must start a word of its own ("spare", not "unspare").
+    let starts_a_word = before.len() == n || {
+        let c = before[before.len() - n - 1];
+        !(c.is_alphanumeric() || c == '_')
+    };
+    same && starts_a_word
+}
+
 /// `text` with every key that [`renamed_in_prose`] names replaced by its label, as a whole word,
 /// in the case it was written in: `"-1 ammo"` reads `"-1 ammunition"`, `"ran out of
-/// lantern_oil"` reads `"ran out of lantern oil"`, and `"No Lantern_oil Left"` reads `"No
-/// Lantern oil Left"`. Any case of the key is caught (`"AMMO"`, `"Meds"`); the label keeps a
-/// capital first letter if the key had one.
+/// lantern_oil"` reads `"ran out of lamp oil"`, and `"No Lantern_oil Left"` reads `"No Lamp oil
+/// Left"`. Any case of the key is caught (`"AMMO"`, `"Meds"`); the label keeps a capital first
+/// letter if the key had one, and is written in capitals if the key was (`"AMMO'S GONE"` reads
+/// `"AMMUNITION'S GONE"`).
 ///
 /// A plural key's possessive follows the label: `"the meds' cost"` reads `"the medicine's
 /// cost"`, since "medicine" is not a plural. A key that is not plural keeps its apostrophe as
-/// it was.
+/// it was, and so does a key opened by a quote mark: `"'meds'"` reads `"'medicine'"`, a quoted
+/// word and not a possessive.
+///
+/// A key whose label ends with the key itself ("Spare parts" for `parts`) is left alone where
+/// the text already writes the whole label: "uses spare parts" stays as it is, while "No parts
+/// for repairs" reads "No spare parts for repairs".
 ///
 /// For text the player reads that was written with keys in it: the engine's own lines, event
 /// text and choice hints from the content pack, a remembered card's saved text, and the
@@ -108,25 +143,33 @@ pub fn relabel_text(text: &str) -> String {
         }
         let word: String = chars[start..i].iter().collect();
         let lower = word.to_lowercase();
-        if !renamed_in_prose(&lower) {
+        if !renamed_in_prose(&lower) || label_already_written(&chars[..start], &lower) {
             out.push_str(&word);
             continue;
         }
         let capital = word.chars().next().is_some_and(char::is_uppercase);
-        let shown = if capital {
+        // All capitals (two letters or more, none lower case): the label in capitals too.
+        let all_caps = word.chars().filter(|c| c.is_alphabetic()).count() > 1
+            && !word.chars().any(char::is_lowercase);
+        let shown = if all_caps {
+            label(&lower).to_uppercase()
+        } else if capital {
             label(&lower)
         } else {
             label_in_sentence(&lower)
         };
         out.push_str(&shown);
         // "meds'" (the plural possessive, an apostrophe not followed by a letter) reads
-        // "medicine's" when the label is not a plural.
-        let plural_possessive = chars.get(i) == Some(&'\'')
+        // "medicine's" when the label is not a plural. A word opened by a quote mark ("'meds'")
+        // is quoted, and its closing quote stays a quote.
+        let opened_by_quote = start > 0 && chars[start - 1] == '\'';
+        let plural_possessive = !opened_by_quote
+            && chars.get(i) == Some(&'\'')
             && !chars.get(i + 1).is_some_and(|c| c.is_alphanumeric())
             && lower.ends_with('s')
-            && !shown.ends_with('s');
+            && !shown.to_lowercase().ends_with('s');
         if plural_possessive {
-            out.push_str("'s");
+            out.push_str(if all_caps { "'S" } else { "'s" });
             i += 1;
         }
     }

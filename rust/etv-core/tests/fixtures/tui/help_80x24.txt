@@ -5,7 +5,7 @@
 │ Miles     0 of 396                 ││  Cloth         5                       │
 │ Next stop 21                       ││  Firewood     15                       │
 │ Wagon 80  Animals 90  Pace steady  ││  Food         50                       │
-│ Party     morale 70                ││  Lantern oil   6                       │
+│ Party     morale 70                ││  Lamp oil      6                       │
 │   Ruth  ┌ Help ────────────────────────────────────────────────────┐         │
 │   Josiah│ T Travel   R Rest   H Hunt   F Repair                    │         │
 │   Elias │ P Pace, then S slow, T steady or H hard                  │         │

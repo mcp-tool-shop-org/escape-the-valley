@@ -7,8 +7,8 @@ All notable changes to Escape the Valley are documented here.
 ### Changed
 
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
-- **Supplies and changes are named in words.** The camp status, the supplies panel, the line of numbers after a choice, a choice you cannot afford, the game's own lines ("-1 ammunition"), event text and choice hints, and the Trail Ledger now read "Lantern oil", "Medicine", "Ammunition", "Days", "Wagon condition" and "Animals' health" instead of the game's internal names (`lantern_oil`, `meds`, `ammo`, `time_days`, `wagon_condition`, `animals_health`). Saves and game rules are unchanged.
-- **A plural supply name's possessive follows its label.** "the meds' cost" now reads "the medicine's cost" rather than "the medicine' cost". The checks that no internal name reaches the screen now also run under the V2 rules, catch a name in any case, and require every name the game uses to have its own label.
+- **Supplies and changes are named in words.** The camp status, the supplies panel, the line of numbers after a choice, a choice you cannot afford, the game's own lines ("-1 ammunition"), event text and choice hints, and the Trail Ledger now read "Lamp oil", "Spare parts", "Medicine", "Ammunition", "Days", "Wagon condition" and "Animals' health" instead of the game's internal names (`lantern_oil`, `parts`, `meds`, `ammo`, `time_days`, `wagon_condition`, `animals_health`). Each supply is named with the same words as the narrator's plain fallback lines ("uses lamp oil", "uses spare parts"). Saves and game rules are unchanged.
+- **A plural supply name's possessive follows its label.** "the meds' cost" now reads "the medicine's cost" rather than "the medicine' cost", while a quoted name keeps its quotes ("'meds'" reads "'medicine'") and a name in capitals reads in capitals ("AMMO'S GONE" reads "AMMUNITION'S GONE"). The checks that no internal name reaches the screen now also run under the V2 rules, catch a name in any case, and require every name the game uses to have its own label.
 
 ### Fixed
 

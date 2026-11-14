@@ -35,7 +35,7 @@ const SEEDS: [i128; 5] = [1, 7, 42, 99, 2026];
 
 /// The keys whose label is a different word: every supply in the engine's catalogue and every
 /// change key in the phrase table's order, kept when its label, lowercased, is not the key
-/// itself (`ammo` -> "Ammunition", `meds` -> "Medicine", `oil` -> "Lantern oil", and every key
+/// itself (`ammo` -> "Ammunition", `meds` -> "Medicine", `oil` -> "Lamp oil", and every key
 /// with an underscore). `food` -> "Food" is the same word and is left out.
 fn renamed_keys() -> &'static Vec<String> {
     static KEYS: OnceLock<Vec<String>> = OnceLock::new();
@@ -55,7 +55,7 @@ fn is_word_char(c: char) -> bool {
 }
 
 /// `line` with every label in the table and every approved fallback phrase blanked out, in any
-/// case, so a key that is part of player text ("oil" in "Lantern oil" or in the approved "uses
+/// case, so a key that is part of player text ("oil" in "Lamp oil" or in the approved "uses
 /// lamp oil") is not taken for the key.
 fn without_labels(line: &str) -> String {
     let mut out: Vec<char> = line.chars().collect();
@@ -88,7 +88,7 @@ fn without_labels(line: &str) -> String {
 /// - a key-shaped token: a lowercase letter, an underscore, then a lowercase letter or another
 ///   underscore (`[a-z]+_[a-z_]+`);
 /// - a key from [`renamed_keys`] as a whole word, in any case (`ammo`, `Meds`, `AMMO`), outside
-///   any label or approved phrase. "Ammunition" and "Lantern oil" never match.
+///   any label or approved phrase. "Ammunition" and "Lamp oil" never match.
 fn key_tokens(text: &str) -> Vec<String> {
     let mut found = Vec::new();
     for line in text.lines() {
@@ -116,7 +116,7 @@ fn key_tokens(text: &str) -> Vec<String> {
 
 /// A drawn screen as the text of each box: the rows are split at the box edges (`│`), and the
 /// cells of consecutive rows with the same boxes are joined, so a label wrapped across rows
-/// ("Lantern" / "oil") reads as one label again. One line per box.
+/// ("Lamp" / "oil") reads as one label again. One line per box.
 fn screen_boxes(screen: &str) -> String {
     let mut out = Vec::new();
     let mut group: Vec<Vec<String>> = Vec::new();
@@ -499,7 +499,7 @@ fn every_key_the_engine_can_name_has_a_label() {
 
 #[test]
 fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
-    // A run that ran out of lantern oil, then food: the crisis lines, the remembered card and
+    // A run that ran out of lamp oil, then food: the crisis lines, the remembered card and
     // the list all name the supply by its label in the ledger the player reads.
     let mut state = create_new_run_with_content(42, embedded_content_pack());
     state.game_over = true;
@@ -522,17 +522,14 @@ fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
         frozen.contains("Closest call: No Lantern_oil Left"),
         "{frozen}"
     );
-    assert!(
-        shown.contains("What ran dry: lantern oil, food."),
-        "{shown}"
-    );
+    assert!(shown.contains("What ran dry: lamp oil, food."), "{shown}");
     assert!(key_tokens(&shown).is_empty(), "{shown}");
     // Only the supply names differ.
     assert_eq!(frozen.lines().count(), shown.lines().count());
     for (f, s) in frozen.lines().zip(shown.lines()) {
         let relabelled = f
-            .replace("lantern_oil", "lantern oil")
-            .replace("Lantern_oil", "Lantern oil");
+            .replace("lantern_oil", "lamp oil")
+            .replace("Lantern_oil", "Lamp oil");
         assert_eq!(relabelled, s);
     }
 
@@ -541,7 +538,7 @@ fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
         "
 ",
     );
-    assert!(shown.contains("The lantern oil ran out first."), "{shown}");
+    assert!(shown.contains("The lamp oil ran out first."), "{shown}");
     assert!(key_tokens(&shown).is_empty(), "{shown}");
 
     // The card keeps its saved text; only the shown copy is relabelled.
@@ -553,9 +550,9 @@ fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
     assert!(card.text.contains("lantern_oil"));
     assert_eq!(
         relabel_text(&card.text),
-        card.text.replace("lantern_oil", "lantern oil")
+        card.text.replace("lantern_oil", "lamp oil")
     );
-    assert_eq!(relabel_text("No Lantern_oil Left"), "No Lantern oil Left");
+    assert_eq!(relabel_text("No Lantern_oil Left"), "No Lamp oil Left");
     assert_eq!(relabel_text("an unknown_key stays"), "an unknown_key stays");
     assert_eq!(
         relabel_text("Hunt successful! +12 food. -1 ammo."),
@@ -581,7 +578,7 @@ fn the_ledger_names_supplies_by_label_and_keeps_its_frozen_form() {
 ",
     );
     assert!(
-        shown.contains("Supplies that carried you: Lantern oil"),
+        shown.contains("Supplies that carried you: Lamp oil"),
         "{shown}"
     );
 }
@@ -593,7 +590,7 @@ fn the_status_panel_the_changes_line_and_a_choice_name_supplies_by_label() {
         "
 ",
     );
-    assert!(status.contains("Lantern oil 6"), "{status}");
+    assert!(status.contains("Lamp oil 6"), "{status}");
     assert!(status.contains("Ammunition 20"), "{status}");
     assert!(status.contains("Medicine 5"), "{status}");
     assert!(key_tokens(&status).is_empty(), "{status}");
@@ -624,7 +621,7 @@ fn the_status_panel_the_changes_line_and_a_choice_name_supplies_by_label() {
     };
     assert_eq!(
         choice_line(&choice),
-        "  A. Light the way [cannot afford: lantern oil, rope]"
+        "  A. Light the way [cannot afford: lamp oil, rope]"
     );
 }
 
@@ -656,13 +653,13 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
         assert!(!key_tokens(raw).is_empty(), "missed: {raw}");
     }
     for fine in [
-        "Supplies: Ammunition 20, Lantern oil 6, Medicine 5.",
-        "The party uses lantern oil and medicine.",
-        "LANTERN OIL 3",
+        "Supplies: Ammunition 20, Lamp oil 6, Medicine 5.",
+        "The party uses lamp oil and medicine.",
+        "LAMP OIL 3",
         "Food -2, Days +1, Wagon condition -2, Animals' health -1",
         "Gammon and ammonia; oiled boots.",
         "The party uses lamp oil and spends ammunition.",
-        "AMMUNITION 20, LANTERN OIL 6",
+        "AMMUNITION 20, LAMP OIL 6",
     ] {
         assert!(
             key_tokens(fine).is_empty(),
@@ -674,8 +671,8 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
 
 #[test]
 fn a_label_wrapped_across_rows_is_still_a_label() {
-    // Two boxes side by side, the right one wrapping "Lantern oil" over two rows.
-    let screen = "\u{2502} Party   \u{2502}\u{2502} Lantern  \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
+    // Two boxes side by side, the right one wrapping "Lamp oil" over two rows.
+    let screen = "\u{2502} Party   \u{2502}\u{2502} Lamp     \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
     assert!(
         !key_tokens(screen).is_empty(),
         "row by row, the wrapped \"oil\" looks like the key"
@@ -692,7 +689,7 @@ fn a_label_wrapped_across_rows_is_still_a_label() {
 
 #[test]
 fn relabel_handles_case_and_the_plural_possessive() {
-    assert_eq!(relabel_text("AMMO."), "Ammunition.");
+    assert_eq!(relabel_text("AMMO."), "AMMUNITION.");
     assert_eq!(relabel_text("Meds."), "Medicine.");
     assert_eq!(relabel_text("the meds' cost"), "the medicine's cost");
     assert_eq!(relabel_text("the meds'"), "the medicine's");
@@ -701,4 +698,91 @@ fn relabel_handles_case_and_the_plural_possessive() {
     assert_eq!(relabel_text("'ammo'"), "'ammunition'");
     // A plural label keeps a plain apostrophe.
     assert_eq!(relabel_text("the time_days' toll"), "the days' toll");
+}
+
+#[test]
+fn every_supply_label_uses_the_phrase_tables_word() {
+    // Where the table and the approved fallback phrases both name a supply, they use the same
+    // words: the panel says "Lamp oil" because the fallback line says "uses lamp oil", and
+    // "Spare parts" because it says "uses spare parts". A supply's two phrases differ only in
+    // their verb ("uses"/"gains", "wears down"/"gains"), so the words they end on in common are
+    // the supply's name, and the label must be exactly that name. The phrase table names lantern
+    // oil by its short key, `oil`.
+    let phrases = &table().phrases;
+    let mut checked = 0;
+    for (key, shown) in LABELS {
+        let is_supply = RESOURCE_CATALOG.iter().any(|r| r.key == key) || key == "oil";
+        if !is_supply {
+            continue;
+        }
+        let phrase_key = if key == "lantern_oil" { "oil" } else { key };
+        let dirs = phrases
+            .get(phrase_key)
+            .unwrap_or_else(|| panic!("the phrase table has no {phrase_key}"));
+        let neg: Vec<String> = dirs["neg"]
+            .to_lowercase()
+            .split(' ')
+            .map(str::to_string)
+            .collect();
+        let pos: Vec<String> = dirs["pos"]
+            .to_lowercase()
+            .split(' ')
+            .map(str::to_string)
+            .collect();
+        let common = neg
+            .iter()
+            .rev()
+            .zip(pos.iter().rev())
+            .take_while(|(a, b)| a == b)
+            .count();
+        let name = neg[neg.len() - common..].join(" ");
+        assert_eq!(
+            shown.to_lowercase(),
+            name,
+            "{key} is labelled {shown:?}, but its phrases ({:?}, {:?}) name it {name:?}",
+            dirs["neg"],
+            dirs["pos"]
+        );
+        checked += 1;
+    }
+    assert_eq!(checked, 13, "the twelve supplies and oil");
+    assert_eq!(label("lantern_oil"), "Lamp oil");
+    assert_eq!(label("oil"), "Lamp oil");
+    assert_eq!(label("parts"), "Spare parts");
+}
+
+#[test]
+fn spare_parts_is_written_once() {
+    // A bare "parts" gains its label; text that already says "spare parts" is left alone.
+    assert_eq!(
+        relabel_text("No parts for repairs."),
+        "No spare parts for repairs."
+    );
+    assert_eq!(relabel_text("Parts."), "Spare parts.");
+    assert_eq!(
+        relabel_text("The wagon broke down. Damage: 9. No spare parts on hand."),
+        "The wagon broke down. Damage: 9. No spare parts on hand."
+    );
+    assert_eq!(relabel_text("uses spare parts"), "uses spare parts");
+    assert_eq!(relabel_text("SPARE PARTS LOW"), "SPARE PARTS LOW");
+    assert_eq!(relabel_text("Spare Parts"), "Spare Parts");
+    // "spare" must be a word of its own.
+    assert_eq!(relabel_text("unspare parts"), "unspare spare parts");
+}
+
+#[test]
+fn relabel_keeps_quotes_and_capitals() {
+    // A quoted key is a quoted word, not a possessive.
+    assert_eq!(relabel_text("'meds'"), "'medicine'");
+    assert_eq!(
+        relabel_text("they said 'meds' twice"),
+        "they said 'medicine' twice"
+    );
+    assert_eq!(relabel_text("the meds' cost"), "the medicine's cost");
+    // All capitals give the label in capitals, the possessive too.
+    assert_eq!(relabel_text("AMMO'S GONE"), "AMMUNITION'S GONE");
+    assert_eq!(relabel_text("THE MEDS' COST"), "THE MEDICINE'S COST");
+    assert_eq!(relabel_text("LANTERN_OIL LOW"), "LAMP OIL LOW");
+    // A capital first letter alone keeps the label's own case.
+    assert_eq!(relabel_text("Ammo's gone"), "Ammunition's gone");
 }
