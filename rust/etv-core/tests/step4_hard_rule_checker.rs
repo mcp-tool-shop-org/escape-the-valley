@@ -74,6 +74,15 @@ fn reason_code_names_are_stable_strings_twelve_hard_rules_then_seven_truth_rules
             "action_with_no_one_left",
             "event_text_copied",
             "repeated_opening",
+            // Off in the game: the narrator-fixes arms.
+            "pyrrhic_loss_not_conveyed",
+            "choice_not_conveyed",
+            "lead_only",
+            "time_of_day_contradiction",
+            "anachronism",
+            "taboo_broken",
+            "taboo_as_filler",
+            "invented_water_source",
         ]
     );
 }

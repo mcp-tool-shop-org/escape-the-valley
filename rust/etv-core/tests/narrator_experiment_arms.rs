@@ -666,7 +666,7 @@ fn the_command_line_switches_arms_on_and_refuses_bad_values() {
     for (extra, message) in [
         (
             vec!["--arm", "faster"],
-            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening or no-event-copy, not \"faster\"",
+            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening, no-event-copy, parrot-verbatim, opening-three-words, pyrrhic-loss-word, choice-result-lead, choice-conveyed, scene-rules, no-anachronism, lead-guard, present-lead, taboo-rules or no-water-source, not \"faster\"",
         ),
         (vec!["--candidates", "4"], "--candidates must be 1 to 3"),
         (vec!["--candidates", "0"], "--candidates must be 1 to 3"),

@@ -27,7 +27,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::GMProfile;
 use crate::narrator::{CheckerContext, NarrationContext, NarratorLength};
-use crate::narrator_truth::{what_happened, TruthFacts};
+use crate::narrator_truth::{
+    changed_supplies, stem, what_happened_in, LeadStyle, TruthFacts, LEAD_SUBJECTS,
+};
 
 /// Most candidates one line may be given.
 pub const MAX_CANDIDATES: u8 = 3;
@@ -60,6 +62,35 @@ pub struct ExperimentArms {
     pub no_repeat_opening: bool,
     /// A line may not open with five or more words of the event's own text.
     pub no_event_copy: bool,
+    /// Checker change: choice parroting rejects only a line that copies the whole choice label
+    /// (two or more words) in a row, or five or more of its words in a row. Naming what the
+    /// party did passes.
+    pub parrot_verbatim: bool,
+    /// Checker change: the repeated-opening rule compares the first three words, not two, and
+    /// a line that opens with one of the lead's own subjects ([`LEAD_SUBJECTS`]) is exempt.
+    pub opening_three_words: bool,
+    /// The narrator fixes. A pyrrhic ending's outcome line must say what it cost.
+    pub pyrrhic_loss_word: bool,
+    /// The outcome lead on a choice turn says what the choice did, not its label.
+    pub choice_result_lead: bool,
+    /// On a choice turn the outcome line must carry the choice's verb or a supply it changed.
+    pub choice_conveyed: bool,
+    /// The scene line also gets the repeated-opening rule (event copying already covers it).
+    pub scene_rules: bool,
+    /// Both lines: no word from the anachronism list.
+    pub no_anachronism: bool,
+    /// The outcome line adds words of its own to the lead (one at Brief, two at Standard and
+    /// Rich), names no time of day opposite to the turn's, and the lead's heading asks for one
+    /// concrete detail.
+    pub lead_guard: bool,
+    /// The outcome lead is worded in the present tense.
+    pub present_lead: bool,
+    /// Both lines: the party is not shown breaking its taboo or doctrine, and the taboo is not
+    /// stated as filler.
+    pub taboo_rules: bool,
+    /// Both lines: no river, stream, lake or ford the place, the biome, the run's themes and
+    /// the turn's facts do not provide.
+    pub no_water_source: bool,
     /// Measurement only: how many of the model's layers to put on the GPU (`num_gpu`), to
     /// see latency on a weaker card. `None` leaves the server's own choice.
     pub num_gpu: Option<u32>,
@@ -77,6 +108,17 @@ impl Default for ExperimentArms {
             outcome_lead: false,
             no_repeat_opening: false,
             no_event_copy: false,
+            parrot_verbatim: false,
+            opening_three_words: false,
+            pyrrhic_loss_word: false,
+            choice_result_lead: false,
+            choice_conveyed: false,
+            scene_rules: false,
+            no_anachronism: false,
+            lead_guard: false,
+            present_lead: false,
+            taboo_rules: false,
+            no_water_source: false,
             num_gpu: None,
         }
     }
@@ -86,6 +128,27 @@ impl ExperimentArms {
     /// `true` when nothing is switched on.
     pub fn is_shipped(&self) -> bool {
         *self == Self::default()
+    }
+
+    /// How the outcome lead is worded under these arms.
+    pub fn lead_style(&self) -> LeadStyle {
+        LeadStyle {
+            present: self.present_lead,
+            choice_result: self.choice_result_lead,
+        }
+    }
+
+    /// `true` when some arm needs the turn's facts in the checker.
+    fn needs_truth(&self) -> bool {
+        self.says_what_happened
+            || self.no_event_copy
+            || self.no_repeat_opening
+            || self.pyrrhic_loss_word
+            || self.choice_conveyed
+            || self.no_anachronism
+            || self.lead_guard
+            || self.taboo_rules
+            || self.no_water_source
     }
 
     /// A short name for run records: the arms that are on, joined by `+`, or `shipped`.
@@ -117,6 +180,27 @@ impl ExperimentArms {
         }
         if self.no_event_copy {
             parts.push("no-event-copy".to_string());
+        }
+        if self.parrot_verbatim {
+            parts.push("parrot-verbatim".to_string());
+        }
+        if self.opening_three_words {
+            parts.push("opening-three-words".to_string());
+        }
+        for (on, name) in [
+            (self.pyrrhic_loss_word, "pyrrhic-loss-word"),
+            (self.choice_result_lead, "choice-result-lead"),
+            (self.choice_conveyed, "choice-conveyed"),
+            (self.scene_rules, "scene-rules"),
+            (self.no_anachronism, "no-anachronism"),
+            (self.lead_guard, "lead-guard"),
+            (self.present_lead, "present-lead"),
+            (self.taboo_rules, "taboo-rules"),
+            (self.no_water_source, "no-water-source"),
+        ] {
+            if on {
+                parts.push(name.to_string());
+            }
         }
         if let Some(layers) = self.num_gpu {
             parts.push(format!("num-gpu-{layers}"));
@@ -272,10 +356,11 @@ pub fn checker_context_for(
     previous_opening: Option<&str>,
 ) -> CheckerContext {
     let mut checker = CheckerContext::from_narration_context(ctx, length);
+    checker.parrot_verbatim = arms.parrot_verbatim;
     if arms.rulings_prompt {
         checker.team_species = rulings_team_species(profile);
     }
-    if arms.says_what_happened || arms.no_event_copy || arms.no_repeat_opening {
+    if arms.needs_truth() {
         let mut facts = TruthFacts::from_context(ctx, is_outcome);
         facts.check_says_what_happened = arms.says_what_happened;
         facts.check_event_copy = arms.no_event_copy;
@@ -284,6 +369,108 @@ pub fn checker_context_for(
         } else {
             None
         };
+        if arms.opening_three_words {
+            facts.opening_words = 3;
+            facts.opening_exempt = LEAD_SUBJECTS.iter().map(|s| s.to_string()).collect();
+        }
+        facts.scene_repeat_opening = arms.scene_rules && arms.no_repeat_opening;
+        facts.pyrrhic_loss_word = arms.pyrrhic_loss_word;
+        facts.check_anachronism = arms.no_anachronism;
+        let label = ctx.check_choice_label();
+        if arms.choice_conveyed && is_outcome && !label.is_empty() {
+            if let Some(verb) = label.split_whitespace().map(clean).find(|w| w.len() >= 3) {
+                facts.choice_stems = vec![stem(&verb)];
+            }
+            let (mut spent, gained) = changed_supplies(ctx);
+            spent.extend(gained);
+            facts.choice_supplies = spent;
+        }
+        let turn_text = format!(
+            "{} {} {}",
+            ctx.event_title(),
+            ctx.check_event_seed(),
+            ctx.check_choice_label()
+        )
+        .to_ascii_lowercase();
+        let turn_words: Vec<String> = turn_text
+            .split(|c: char| !c.is_ascii_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .map(str::to_string)
+            .collect();
+        if arms.taboo_rules {
+            let situation = ctx.situation().to_ascii_lowercase();
+            let after = |label: &str| {
+                situation
+                    .split(label)
+                    .nth(1)
+                    .and_then(|rest| rest.split('.').next())
+                    .map(|s| s.trim().to_string())
+                    .unwrap_or_default()
+            };
+            facts.taboo = after("their taboo:");
+            facts.doctrine = after("their doctrine:");
+            facts.check_taboo = true;
+            facts.action = ctx.action().to_string();
+            facts.is_night = ctx.time_of_day().as_str() == "night";
+            facts.turn_words = turn_words.clone();
+        }
+        if arms.no_water_source {
+            let mut allowed = crate::narrator_truth::place_water_words(ctx.place());
+            allowed.extend(
+                crate::narrator_truth::biome_water_words(ctx.biome())
+                    .iter()
+                    .map(|w| w.to_string()),
+            );
+            for w in &turn_words {
+                if crate::narrator_truth::WATER_SOURCE_WORDS.contains(&w.as_str()) {
+                    allowed.push(w.clone());
+                    // The plural and singular go together.
+                    let other = if let Some(s) = w.strip_suffix('s') {
+                        s.to_string()
+                    } else {
+                        format!("{w}s")
+                    };
+                    allowed.push(other);
+                }
+            }
+            // Water gained on the turn came from somewhere: every source word is allowed.
+            if ctx.shown_deltas().get("water").is_some_and(|d| *d > 0) {
+                allowed.extend(
+                    crate::narrator_truth::WATER_SOURCE_WORDS
+                        .iter()
+                        .map(|w| w.to_string()),
+                );
+            }
+            // The run's "river" theme is the designer's flavour: it provides river scenery
+            // (Publisher's ruling). The taboo rule still catches the party drinking from it.
+            if ctx.themes().iter().any(|t| t == "river") {
+                for w in [
+                    "river",
+                    "rivers",
+                    "riverbank",
+                    "riverbed",
+                    "stream",
+                    "streams",
+                    "ford",
+                    "fords",
+                ] {
+                    allowed.push(w.to_string());
+                }
+            }
+            facts.water_allowed = Some(allowed);
+        }
+        if arms.lead_guard && is_outcome {
+            facts.lead = if arms.outcome_lead {
+                what_happened_in(ctx, arms.lead_style())
+            } else {
+                String::new()
+            };
+            facts.lead_guard_min = match length {
+                NarratorLength::Brief => 1,
+                _ => 2,
+            };
+            facts.time_of_day = ctx.time_of_day().as_str().to_string();
+        }
         checker.truth = Some(facts);
     }
     checker
@@ -293,11 +480,39 @@ pub fn checker_context_for(
 pub const OUTCOME_LEAD_HEADING: &str =
     "WHAT HAPPENED (say this first, plainly, then at most one detail of the place):";
 
+/// The head of the outcome prompt with the `lead-guard` arm: the line tells the fact in its
+/// own words and adds one concrete detail drawn from the turn facts.
+pub const OUTCOME_LEAD_HEADING_GUARD: &str = "WHAT HAPPENED (tell this first, plainly, in your own words, and add one concrete detail from the turn facts: the place, the time of day, the weather, or a body or party detail):";
+
+/// A label word as the choice rule reads it: lowercase, punctuation trimmed.
+fn clean(raw: &str) -> String {
+    raw.trim_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_ascii_lowercase()
+}
+
 /// The outcome call's system prompt in the outcome-lead arm, made from the one it would have
 /// had: the turn's one main fact is put first, before the turn facts, and the event's own text
 /// and the list of choices on offer are taken out (that is the scene call's material).
 pub fn lead_outcome_system_prompt(outcome_system: &str, ctx: &NarrationContext) -> String {
-    let lead = format!("{OUTCOME_LEAD_HEADING}\n- {}\n\n", what_happened(ctx));
+    lead_outcome_system_prompt_for(outcome_system, ctx, ExperimentArms::default())
+}
+
+/// [`lead_outcome_system_prompt`] with the lead worded and headed as `arms` ask (the
+/// `present-lead`, `choice-result-lead` and `lead-guard` arms).
+pub fn lead_outcome_system_prompt_for(
+    outcome_system: &str,
+    ctx: &NarrationContext,
+    arms: ExperimentArms,
+) -> String {
+    let heading = if arms.lead_guard {
+        OUTCOME_LEAD_HEADING_GUARD
+    } else {
+        OUTCOME_LEAD_HEADING
+    };
+    let lead = format!(
+        "{heading}\n- {}\n\n",
+        what_happened_in(ctx, arms.lead_style())
+    );
     let mut out = String::with_capacity(outcome_system.len() + lead.len());
     for line in outcome_system.split_inclusive('\n') {
         if line.starts_with("- event_text: ") || line.starts_with("- choices_offered: ") {

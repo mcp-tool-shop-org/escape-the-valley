@@ -45,9 +45,66 @@ pub struct TruthFacts {
     pub event_text: String,
     /// Check that the line does not open with the event's text.
     pub check_event_copy: bool,
-    /// The first two words of the previous accepted line in the same run, when the
-    /// repeated-opening rule is on and there is one.
+    /// The opening of the previous accepted line in the same run (its first three words; see
+    /// [`opening_words`]), when the repeated-opening rule is on and there is one.
     pub previous_opening: Option<String>,
+    /// How many opening words the repeated-opening rule compares: two (the rule as first
+    /// measured; also what 0 means) or three (the `opening-three-words` arm).
+    #[serde(default)]
+    pub opening_words: usize,
+    /// Openings the repeated-opening rule never rejects: the lead's own subjects, as lowercase
+    /// words (see [`LEAD_SUBJECTS`]). A line whose first words are one of these is exempt.
+    #[serde(default)]
+    pub opening_exempt: Vec<String>,
+    /// The `scene-rules` arm: the repeated-opening rule also checks the scene line.
+    #[serde(default)]
+    pub scene_repeat_opening: bool,
+    /// The `pyrrhic-loss-word` arm: a pyrrhic ending's outcome line must also carry a word
+    /// from [`PYRRHIC_LOSS_WORDS`].
+    #[serde(default)]
+    pub pyrrhic_loss_word: bool,
+    /// The `choice-conveyed` arm, on a turn with a choice: the outcome line carries one of
+    /// these crude stems (see [`stem`]; the choice label's first content word), or names a
+    /// supply in `choice_supplies`. Both empty = the rule is off.
+    #[serde(default)]
+    pub choice_stems: Vec<String>,
+    /// The supply keys the turn changed (spent or gained), for the `choice-conveyed` rule.
+    #[serde(default)]
+    pub choice_supplies: Vec<String>,
+    /// The `lead-guard` arm: the lead the outcome prompt was given (empty = the guard is off).
+    #[serde(default)]
+    pub lead: String,
+    /// The `lead-guard` arm: how many words of its own the outcome line must add to the lead.
+    #[serde(default)]
+    pub lead_guard_min: usize,
+    /// The `lead-guard` arm: the turn's time of day (`morning`, `afternoon`, `evening`,
+    /// `night`); empty = the time-of-day rule is off.
+    #[serde(default)]
+    pub time_of_day: String,
+    /// The `no-anachronism` arm: reject a word from [`ANACHRONISM_WORDS`].
+    #[serde(default)]
+    pub check_anachronism: bool,
+    /// The `taboo-rules` arm: the party's taboo and doctrine as the situation states them
+    /// (lowercase; empty = none stated), and the words of the turn's own event and choice, which
+    /// may make the taboo part of the turn.
+    #[serde(default)]
+    pub taboo: String,
+    #[serde(default)]
+    pub doctrine: String,
+    #[serde(default)]
+    pub check_taboo: bool,
+    /// The turn's action (`travel`, `rest`, ... or empty) and whether it is night.
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub is_night: bool,
+    /// The `no-water-source` arm: the water-source words the turn provides (from the place's
+    /// name, the biome, the event and the choice). `None` = the rule is off.
+    #[serde(default)]
+    pub water_allowed: Option<Vec<String>>,
+    /// Words of the turn's event title, event text and choice label, lowercase.
+    #[serde(default)]
+    pub turn_words: Vec<String>,
 }
 
 /// Keys of `shown_deltas` that are conditions or measures, not supplies.
@@ -84,6 +141,23 @@ impl TruthFacts {
             event_text: ctx.check_event_seed().to_string(),
             check_event_copy: false,
             previous_opening: None,
+            opening_words: 2,
+            opening_exempt: Vec::new(),
+            scene_repeat_opening: false,
+            pyrrhic_loss_word: false,
+            choice_stems: Vec::new(),
+            choice_supplies: Vec::new(),
+            lead: String::new(),
+            lead_guard_min: 0,
+            time_of_day: String::new(),
+            check_anachronism: false,
+            taboo: String::new(),
+            doctrine: String::new(),
+            check_taboo: false,
+            action: String::new(),
+            is_night: false,
+            water_allowed: None,
+            turn_words: Vec::new(),
         }
     }
 }
@@ -150,6 +224,121 @@ pub const PYRRHIC_WORDS: [&str; 22] = [
     "fewer",
     "graves behind",
     "cost",
+];
+
+/// With the `pyrrhic-loss-word` arm a pyrrhic ending's line also carries one of these: what
+/// the journey cost. The arrival words of [`PYRRHIC_WORDS`] alone no longer do.
+pub const PYRRHIC_LOSS_WORDS: [&str; 26] = [
+    "lost",
+    "loss",
+    "losses",
+    "fallen",
+    "dead",
+    "died",
+    "death",
+    "deaths",
+    "grave",
+    "graves",
+    "buried",
+    "mourn",
+    "mourning",
+    "mourned",
+    "missing",
+    "absent",
+    "empty places",
+    "fewer",
+    "survivors",
+    "those left",
+    "what is left",
+    "few remain",
+    "not all",
+    "cost",
+    "costly",
+    "behind them",
+];
+
+/// Things the trail's world does not have. With the `no-anachronism` arm a line that names one
+/// is rejected, in either slot. Whole words only.
+pub const ANACHRONISM_WORDS: [&str; 44] = [
+    "tire",
+    "tires",
+    "tyre",
+    "tyres",
+    "engine",
+    "engines",
+    "motor",
+    "motors",
+    "motorway",
+    "car",
+    "cars",
+    "truck",
+    "trucks",
+    "phone",
+    "phones",
+    "telephone",
+    "radio",
+    "radios",
+    "electric",
+    "electricity",
+    "plastic",
+    "battery",
+    "batteries",
+    "headlight",
+    "headlights",
+    "gasoline",
+    "petrol",
+    "diesel",
+    "asphalt",
+    "highway",
+    "freeway",
+    "pavement",
+    "flashlight",
+    "computer",
+    "screen",
+    "screens",
+    "internet",
+    "airplane",
+    "helicopter",
+    "siren",
+    "sirens",
+    "chainsaw",
+    "nylon",
+    "smartphone",
+];
+
+/// Words that name a time of day, by the turn time they belong to. With the `lead-guard` arm a
+/// line may name its own turn's time or a neighbouring one (morning and afternoon, afternoon
+/// and evening, evening and night), never an opposite one.
+pub const TIME_WORDS: [(&str, &[&str]); 4] = [
+    (
+        "morning",
+        &["morning", "dawn", "sunrise", "daybreak", "first light"],
+    ),
+    ("afternoon", &["afternoon", "noon", "midday"]),
+    (
+        "evening",
+        &[
+            "evening",
+            "dusk",
+            "sunset",
+            "twilight",
+            "nightfall",
+            "sundown",
+        ],
+    ),
+    (
+        "night",
+        &["night", "midnight", "moonlight", "starlight", "moonlit"],
+    ),
+];
+
+/// Words that count as adding nothing to the lead: articles, pronouns, linking words and the
+/// commonest verbs. Every other word of three letters or more is a word of the line's own.
+pub const LEAD_GUARD_STOP_WORDS: [&str; 40] = [
+    "the", "and", "its", "his", "her", "their", "they", "them", "this", "that", "with", "from",
+    "into", "onto", "upon", "for", "but", "not", "now", "all", "are", "was", "were", "has", "had",
+    "have", "been", "being", "who", "which", "where", "there", "here", "then", "than", "out",
+    "off", "yet", "too", "very",
 ];
 
 /// A lost ending's line carries one of these.
@@ -349,12 +538,31 @@ fn supply_key_matches(list: &[String], res_key: &str) -> bool {
 
 /// The first two words of a line, lowercased and trimmed of punctuation, joined by a space.
 pub fn opening_two_words(line: &str) -> String {
+    opening_words(line, 2)
+}
+
+/// The first `n` words of a line, lowercased and trimmed of punctuation, joined by a space.
+/// The narrator remembers the first three words of each accepted line; the two-word rule
+/// compares the first two of those.
+pub fn opening_words(line: &str, n: usize) -> String {
     words(line)
         .into_iter()
-        .take(2)
+        .take(n)
         .collect::<Vec<_>>()
         .join(" ")
 }
+
+/// The subjects the outcome lead ([`what_happened`]) opens its sentences with, and "the
+/// wagon", which the repeated-opening ruling also names. A line that opens with one of these
+/// is telling the turn's fact in the lead's own words, so the `opening-three-words` arm does
+/// not count it as a repeated opening.
+pub const LEAD_SUBJECTS: [&str; 5] = [
+    "the party",
+    "a traveller",
+    "the last",
+    "the turn",
+    "the wagon",
+];
 
 /// `true` when `line` opens with [`EVENT_COPY_WORDS`] or more words that appear in a row in
 /// `event_text`.
@@ -517,15 +725,27 @@ pub fn event_copy_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure
     })
 }
 
-/// The repetition rule: an outcome line may not open with the same two words as the previous
-/// accepted line of the run.
+/// The repetition rule: an outcome line may not open with the same words as the previous
+/// accepted line of the run (two words, or three with the `opening-three-words` arm, which
+/// also exempts a line that opens with one of the lead's subjects).
 pub fn repeated_opening_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
-    if !facts.is_outcome {
+    if !facts.is_outcome && !facts.scene_repeat_opening {
         return None;
     }
     let previous = facts.previous_opening.as_deref()?;
-    let opening = opening_two_words(line);
-    (!previous.is_empty() && opening == previous).then(|| {
+    let n = if facts.opening_words == 0 {
+        2
+    } else {
+        facts.opening_words
+    };
+    let opening = opening_words(line, n);
+    let previous = opening_words(previous, n);
+    let exempt = facts.opening_exempt.iter().any(|subject| {
+        let subject = words(subject);
+        let head = words(line);
+        !subject.is_empty() && head.len() >= subject.len() && head[..subject.len()] == subject[..]
+    });
+    (!exempt && !previous.is_empty() && opening == previous).then(|| {
         fail(
             CheckReasonCode::RepeatedOpening,
             format!("opens with '{opening}', as the previous line did"),
@@ -533,8 +753,360 @@ pub fn repeated_opening_failure(line: &str, facts: &TruthFacts) -> Option<CheckF
     })
 }
 
+/// A crude stem for comparing words of a line with words of the lead or a label: lowercase,
+/// with a final "ing", "ed", "es", "s", "d" or "e" taken off when three letters or more
+/// remain, and a doubled last letter then made single ("travelled" and "travels" both give
+/// "travel"; "died" and "dies" both give "die").
+pub fn stem(word: &str) -> String {
+    let w = word.to_ascii_lowercase();
+    for suffix in ["ing", "ed", "es", "s", "d", "e"] {
+        if let Some(head) = w.strip_suffix(suffix) {
+            if head.len() >= 3 {
+                let b = head.as_bytes();
+                let n = b.len();
+                if n >= 4 && b[n - 1] == b[n - 2] && suffix != "s" && suffix != "es" {
+                    return head[..n - 1].to_string();
+                }
+                return head.to_string();
+            }
+        }
+    }
+    w
+}
+
+/// The words of a text that count for the lead guard: three letters or more, not a stop word.
+fn own_words(text: &str) -> Vec<String> {
+    words(text)
+        .into_iter()
+        .filter(|w| w.len() >= 3 && !LEAD_GUARD_STOP_WORDS.contains(&w.as_str()))
+        .collect()
+}
+
+/// The words of `line` the lead guard counts as the line's own: by crude stem, not in the
+/// lead, each once, in order of first use.
+pub fn words_beyond_lead(line: &str, lead: &str) -> Vec<String> {
+    let lead: Vec<String> = own_words(lead).iter().map(|w| stem(w)).collect();
+    let mut added: Vec<String> = Vec::new();
+    for w in own_words(line).iter().map(|w| stem(w)) {
+        if !lead.contains(&w) && !added.contains(&w) {
+            added.push(w);
+        }
+    }
+    added
+}
+
+/// The `pyrrhic-loss-word` rule: a pyrrhic ending's outcome line says what it cost.
+pub fn pyrrhic_loss_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.is_outcome || !facts.pyrrhic_loss_word || facts.ending != "pyrrhic" {
+        return None;
+    }
+    (!has_any(&words(line), &PYRRHIC_LOSS_WORDS)).then(|| {
+        fail(
+            CheckReasonCode::PyrrhicLossNotConveyed,
+            "the journey ended at a cost (pyrrhic) and the line does not say what was lost"
+                .to_string(),
+        )
+    })
+}
+
+/// The `choice-conveyed` rule: on a choice turn the outcome line carries the choice's verb
+/// (compared by crude stem) or names a supply the turn changed.
+pub fn choice_conveyed_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.is_outcome || (facts.choice_stems.is_empty() && facts.choice_supplies.is_empty()) {
+        return None;
+    }
+    let tokens = words(line);
+    let line_stems: Vec<String> = tokens.iter().map(|w| stem(w)).collect();
+    let verb = facts.choice_stems.iter().any(|s| line_stems.contains(s));
+    let supply = tokens.iter().any(|w| {
+        supply_key_of(w).is_some_and(|key| supply_key_matches(&facts.choice_supplies, key))
+    });
+    (!verb && !supply).then(|| {
+        fail(
+            CheckReasonCode::ChoiceNotConveyed,
+            format!(
+                "the line carries none of the choice's words ({})",
+                facts.choice_stems.join(", ")
+            ),
+        )
+    })
+}
+
+/// The `lead-guard` rule: the outcome line adds at least `lead_guard_min` words of its own to
+/// the lead (see [`words_beyond_lead`]).
+pub fn lead_only_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.is_outcome || facts.lead.is_empty() || facts.lead_guard_min == 0 {
+        return None;
+    }
+    let added = words_beyond_lead(line, &facts.lead);
+    (added.len() < facts.lead_guard_min).then(|| {
+        fail(
+            CheckReasonCode::LeadOnly,
+            format!(
+                "the line adds {} word(s) of its own to the lead; at least {} wanted",
+                added.len(),
+                facts.lead_guard_min
+            ),
+        )
+    })
+}
+
+/// The `lead-guard` time rule: a line names no time of day opposite to the turn's.
+pub fn time_of_day_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if facts.time_of_day.is_empty() {
+        return None;
+    }
+    let order = ["morning", "afternoon", "evening", "night"];
+    let own = order.iter().position(|t| *t == facts.time_of_day)?;
+    let tokens = words(line);
+    for (i, (time, list)) in TIME_WORDS.iter().enumerate() {
+        if i.abs_diff(own) >= 2 && has_any(&tokens, list) {
+            return Some(fail(
+                CheckReasonCode::TimeOfDayContradiction,
+                format!("names the {time} on a turn in the {}", facts.time_of_day),
+            ));
+        }
+    }
+    None
+}
+
+/// The `no-anachronism` rule: a line names nothing from [`ANACHRONISM_WORDS`].
+pub fn anachronism_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.check_anachronism {
+        return None;
+    }
+    words(line)
+        .into_iter()
+        .find(|w| ANACHRONISM_WORDS.contains(&w.as_str()))
+        .map(|w| fail(CheckReasonCode::Anachronism, format!("names '{w}'")))
+}
+
+/// Water sources a line may name only when the turn provides one.
+pub const WATER_SOURCE_WORDS: [&str; 18] = [
+    "river",
+    "rivers",
+    "riverbank",
+    "riverbed",
+    "stream",
+    "streams",
+    "creek",
+    "creeks",
+    "brook",
+    "brooks",
+    "lake",
+    "lakes",
+    "pond",
+    "ponds",
+    "ford",
+    "fords",
+    "waterfall",
+    "rapids",
+];
+
+/// Water sources a biome provides of itself: a swamp has standing water.
+pub fn biome_water_words(biome: &str) -> &'static [&'static str] {
+    match biome {
+        "swamp" => &["pond", "ponds"],
+        _ => &[],
+    }
+}
+
+/// The water-source words a place's name provides ("Ironbrook" gives brook and brooks;
+/// "Stillwater Crossing" and "Broken Bridge" give river and ford, as a crossing or a bridge
+/// is over water).
+pub fn place_water_words(place: &str) -> Vec<String> {
+    let p = place.to_ascii_lowercase();
+    let mut out: Vec<String> = Vec::new();
+    for w in WATER_SOURCE_WORDS {
+        let stem = w.trim_end_matches('s');
+        if p.contains(stem) {
+            out.push(w.to_string());
+        }
+    }
+    if p.contains("crossing")
+        || p.contains("bridge")
+        || p.contains("water")
+        || p.contains("landing")
+    {
+        for w in ["river", "rivers", "riverbank", "ford", "fords", "stream"] {
+            out.push(w.to_string());
+        }
+    }
+    out
+}
+
+/// Drinking or drawing water: with a river word in the same sentence, it breaks "no river
+/// water".
+pub const DRINK_WORDS: [&str; 14] = [
+    "drink", "drinks", "drank", "drinking", "sip", "sips", "sipped", "fill", "fills", "filled",
+    "scoop", "scoops", "scooped", "cupped",
+];
+/// A river's water, for the "no river water" taboo.
+pub const RIVER_WORDS: [&str; 8] = [
+    "river",
+    "rivers",
+    "riverbank",
+    "stream",
+    "streams",
+    "creek",
+    "brook",
+    "ford",
+];
+/// Travel words, for the "no travel at night" taboo.
+pub const TRAVEL_WORDS: [&str; 14] = [
+    "travel",
+    "travels",
+    "travelling",
+    "rolls on",
+    "roll on",
+    "push on",
+    "pushes on",
+    "presses on",
+    "press on",
+    "moves on",
+    "move on",
+    "onward",
+    "drive on",
+    "drives on",
+];
+/// Leaving things, for the "leave nothing behind" taboo.
+pub const LEAVE_WORDS: [&str; 10] = [
+    "left behind",
+    "leave behind",
+    "leaves behind",
+    "abandon",
+    "abandons",
+    "abandoned",
+    "discard",
+    "discards",
+    "discarded",
+    "cast off",
+];
+/// Owing, for the "no debts" doctrine.
+pub const DEBT_WORDS: [&str; 10] = [
+    "debt", "debts", "owe", "owes", "owed", "borrow", "borrows", "borrowed", "loan", "credit",
+];
+/// Carelessness, for the "careful hands" doctrine.
+pub const CARELESS_WORDS: [&str; 8] = [
+    "careless",
+    "carelessly",
+    "reckless",
+    "recklessly",
+    "clumsy",
+    "clumsily",
+    "fumble",
+    "fumbles",
+];
+
+/// The `taboo-rules` rule (a): no sentence shows the party doing what its taboo forbids, or
+/// going against its doctrine. The game's own action is allowed: leaving cargo on an
+/// `abandon_cargo` turn, travelling on a night `travel` turn.
+pub fn taboo_broken_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.check_taboo {
+        return None;
+    }
+    for sentence in line.split('.') {
+        let t = words(sentence);
+        let broken = match facts.taboo.as_str() {
+            // Read over the whole line: the river may be named in one sentence and the
+            // drinking in the next.
+            "no river water" => {
+                let all = words(line);
+                has_any(&all, &RIVER_WORDS) && has_any(&all, &DRINK_WORDS)
+            }
+            "no travel at night" => {
+                facts.is_night && facts.action != "travel" && has_any(&t, &TRAVEL_WORDS)
+            }
+            "leave nothing behind" => facts.action != "abandon_cargo" && has_any(&t, &LEAVE_WORDS),
+            _ => false,
+        };
+        if broken {
+            return Some(fail(
+                CheckReasonCode::TabooBroken,
+                format!("shows the party breaking its taboo ({})", facts.taboo),
+            ));
+        }
+        let against = match facts.doctrine.as_str() {
+            "no debts" => {
+                has_any(&t, &DEBT_WORDS)
+                    && !facts
+                        .turn_words
+                        .iter()
+                        .any(|w| DEBT_WORDS.contains(&w.as_str()))
+            }
+            "careful hands" => has_any(&t, &CARELESS_WORDS),
+            _ => false,
+        };
+        if against {
+            return Some(fail(
+                CheckReasonCode::TabooBroken,
+                format!(
+                    "shows the party going against its doctrine ({})",
+                    facts.doctrine
+                ),
+            ));
+        }
+    }
+    None
+}
+
+/// The `taboo-rules` rule (c): the taboo is not stated as filler. A line may name it only when
+/// the turn's event or choice touches it (a river, the night, something left).
+pub fn taboo_filler_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    if !facts.check_taboo || facts.taboo.is_empty() {
+        return None;
+    }
+    let (phrases, touches): (&[&str], &[&str]) = match facts.taboo.as_str() {
+        "no river water" => (
+            &["river water"],
+            &["river", "water", "stream", "ford", "drink", "well"],
+        ),
+        "no travel at night" => (
+            &["travel at night", "night travel", "travel by night"],
+            &["night", "dark"],
+        ),
+        "leave nothing behind" => (
+            &["nothing behind", "leave nothing"],
+            &["leave", "left", "behind", "abandon"],
+        ),
+        _ => return None,
+    };
+    let t = words(line);
+    if !has_any(&t, phrases) {
+        return None;
+    }
+    let involved = facts
+        .turn_words
+        .iter()
+        .any(|w| touches.contains(&w.as_str()));
+    (!involved).then(|| {
+        fail(
+            CheckReasonCode::TabooAsFiller,
+            format!(
+                "states the taboo ({}) on a turn that does not involve it",
+                facts.taboo
+            ),
+        )
+    })
+}
+
+/// The `no-water-source` rule (b): a line names no river, stream, lake or ford the turn does not
+/// provide.
+pub fn water_source_failure(line: &str, facts: &TruthFacts) -> Option<CheckFailure> {
+    let allowed = facts.water_allowed.as_ref()?;
+    words(line)
+        .into_iter()
+        .find(|w| WATER_SOURCE_WORDS.contains(&w.as_str()) && !allowed.contains(w))
+        .map(|w| {
+            fail(
+                CheckReasonCode::InventedWaterSource,
+                format!("names '{w}', which the place and the turn do not provide"),
+            )
+        })
+}
+
 /// Every truth failure for a line, in order: rules 1a to 1e, then event copying, then the
-/// repeated opening.
+/// repeated opening, then the narrator-fixes rules (each off unless its arm set it).
 pub fn truth_failures(line: &str, facts: &TruthFacts) -> Vec<CheckFailure> {
     let mut out = if facts.check_says_what_happened {
         says_what_happened_failures(line, facts)
@@ -543,15 +1115,171 @@ pub fn truth_failures(line: &str, facts: &TruthFacts) -> Vec<CheckFailure> {
     };
     out.extend(event_copy_failure(line, facts));
     out.extend(repeated_opening_failure(line, facts));
+    out.extend(pyrrhic_loss_failure(line, facts));
+    out.extend(choice_conveyed_failure(line, facts));
+    out.extend(lead_only_failure(line, facts));
+    out.extend(time_of_day_failure(line, facts));
+    out.extend(anachronism_failure(line, facts));
+    out.extend(taboo_broken_failure(line, facts));
+    out.extend(taboo_filler_failure(line, facts));
+    out.extend(water_source_failure(line, facts));
     out
 }
 
 // ---- the outcome line's lead -------------------------------------------------------------------
 
+/// How the outcome lead is worded. The default is the lead as first measured (past tense, the
+/// choice given by its label).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct LeadStyle {
+    /// The `present-lead` arm: the lead in the present tense ("A traveller dies.").
+    pub present: bool,
+    /// The `choice-result-lead` arm: on a choice turn the lead says what the choice did (the
+    /// supplies it cost or brought, and any hurt), not the choice's label.
+    pub choice_result: bool,
+}
+
+/// Supply keys a turn changed, spent first, then gained, each in key order.
+pub fn changed_supplies(ctx: &NarrationContext) -> (Vec<String>, Vec<String>) {
+    let mut spent = Vec::new();
+    let mut gained = Vec::new();
+    for (key, delta) in ctx.shown_deltas() {
+        if NOT_SUPPLIES.contains(&key.as_str()) {
+            continue;
+        }
+        if *delta < 0 {
+            spent.push(key.clone());
+        } else if *delta > 0 {
+            gained.push(key.clone());
+        }
+    }
+    (spent, gained)
+}
+
+/// Supply keys as words for the lead: "lantern_oil" becomes "lantern oil", "ammo" becomes
+/// "ammunition"; joined "a", "a and b", "a, b and c".
+fn supply_list(keys: &[String]) -> String {
+    let names: Vec<String> = keys
+        .iter()
+        .map(|k| match k.as_str() {
+            "ammo" => "ammunition".to_string(),
+            other => other.replace('_', " "),
+        })
+        .collect();
+    match names.len() {
+        0 => String::new(),
+        1 => names[0].clone(),
+        n => format!("{} and {}", names[..n - 1].join(", "), names[n - 1]),
+    }
+}
+
+/// The lead of a choice turn in the `choice-result-lead` arm: what the choice did.
+fn choice_result_lead(ctx: &NarrationContext, present: bool) -> String {
+    let (spent, gained) = changed_supplies(ctx);
+    let (cost, brought, nothing, hurt) = if present {
+        (
+            "costs",
+            "brings",
+            "The choice costs the party nothing it carries.",
+            "A traveller is hurt.",
+        )
+    } else {
+        (
+            "cost",
+            "brought",
+            "The choice cost the party nothing it carried.",
+            "A traveller was hurt.",
+        )
+    };
+    let mut out = match (spent.is_empty(), gained.is_empty()) {
+        (true, true) => nothing.to_string(),
+        (false, true) => format!("The choice {cost} the party {}.", supply_list(&spent)),
+        (true, false) => format!("The choice {brought} the party {}.", supply_list(&gained)),
+        (false, false) => format!(
+            "The choice {cost} the party {} and {brought} it {}.",
+            supply_list(&spent),
+            supply_list(&gained)
+        ),
+    };
+    if ctx.flags().injury {
+        out.push(' ');
+        out.push_str(hurt);
+    }
+    out
+}
+
 /// The one main fact of a turn, stated plainly, for the head of the outcome prompt. An ending
 /// comes before a death, which comes before an arrival, which comes before the choice taken,
 /// which comes before the camp action.
 pub fn what_happened(ctx: &NarrationContext) -> String {
+    what_happened_in(ctx, LeadStyle::default())
+}
+
+/// [`what_happened`] worded as `style` asks.
+pub fn what_happened_in(ctx: &NarrationContext, style: LeadStyle) -> String {
+    if !style.present {
+        if style.choice_result
+            && ctx.ending().is_empty()
+            && !(ctx.flags().death && death_may_be_stated(ctx))
+            && !ctx.flags().landmark_arrival
+            && !ctx.check_choice_label().is_empty()
+        {
+            return choice_result_lead(ctx, false);
+        }
+        return what_happened_past(ctx);
+    }
+    let place = ctx.place();
+    match ctx.ending() {
+        "triumphant" | "weathered" => {
+            return format!(
+                "The party reaches {place} and the end of the trail. The journey is over."
+            );
+        }
+        "pyrrhic" => {
+            return format!(
+                "The party reaches {place} and the end of the trail, with some of its number lost on the way. The journey is over."
+            );
+        }
+        "lost" => return "The last of the party dies. The journey ends here.".to_string(),
+        _ => {}
+    }
+    if ctx.flags().death && death_may_be_stated(ctx) {
+        return "A traveller dies.".to_string();
+    }
+    if ctx.flags().landmark_arrival {
+        return format!("The party arrives at {place}.");
+    }
+    if !ctx.check_choice_label().is_empty() {
+        if style.choice_result {
+            return choice_result_lead(ctx, true);
+        }
+        return format!(
+            "The party chooses: {}.",
+            ctx.check_choice_label().trim_end_matches('.')
+        );
+    }
+    let gained = |key: &str| ctx.shown_deltas().get(key).is_some_and(|d| *d > 0);
+    match ctx.action() {
+        "travel" => "The party travels on.".to_string(),
+        "rest" => "The party rests.".to_string(),
+        "hunt" => {
+            if gained("food") {
+                "The party hunts and brings back food.".to_string()
+            } else {
+                "The party hunts and brings back nothing.".to_string()
+            }
+        }
+        "repair" => "The party repairs the wagon.".to_string(),
+        "desperate_repair" => "The party makes a desperate repair to the wagon.".to_string(),
+        "abandon_cargo" => "The party leaves cargo behind to lighten the wagon.".to_string(),
+        "hard_ration" => "The party cuts its rations.".to_string(),
+        "" => "The turn passes.".to_string(),
+        other => format!("The party chooses to {other}."),
+    }
+}
+
+/// The lead as first measured: past tense, the choice given by its label.
+fn what_happened_past(ctx: &NarrationContext) -> String {
     match ctx.ending() {
         "triumphant" | "weathered" => {
             return format!(
