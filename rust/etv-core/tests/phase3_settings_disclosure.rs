@@ -71,8 +71,8 @@ fn settings_screen_renders_the_defaults() {
             "  1. Narrator  on".to_string(),
             "  2. Profile   Fireside - Serious campfire narrator. Subtle uncanny moments. The default."
                 .to_string(),
-            "  3. Length    Standard (medium)".to_string(),
-            "  4. Model     llama3.2".to_string(),
+            "  3. Length    Brief (short)".to_string(),
+            "  4. Model     qwen3:4b-instruct-2507-q4_K_M".to_string(),
             "  S. Save and leave    Q. Leave without saving".to_string(),
             String::new(),
             APPROVED_TITLE.to_string(),
@@ -131,11 +131,11 @@ fn number_keys_cycle_each_setting_in_order_and_wrap() {
     assert_eq!(screen.handle_line("2"), changed("Profile is now Fireside."));
     assert_eq!(screen.settings.profile, GMProfile::Fireside);
 
-    // Standard -> Rich -> Brief -> Standard.
+    // Brief (the default) -> Standard -> Rich -> Brief.
+    assert_eq!(screen.handle_line("3"), changed("Length is now Standard."));
     assert_eq!(screen.handle_line("3"), changed("Length is now Rich."));
     assert_eq!(screen.handle_line("3"), changed("Length is now Brief."));
-    assert_eq!(screen.handle_line("3"), changed("Length is now Standard."));
-    assert_eq!(screen.settings.length, NarratorLength::Standard);
+    assert_eq!(screen.settings.length, NarratorLength::Brief);
 }
 
 #[test]
@@ -240,7 +240,10 @@ fn unknown_input_is_rejected_and_changes_nothing() {
         if bad == "model" {
             // "model" alone asks for the name on the next line, like "4".
             assert_eq!(event, SettingsEvent::AskModel);
-            assert_eq!(screen.handle_line(""), changed("Model is still llama3.2."));
+            assert_eq!(
+                screen.handle_line(""),
+                changed("Model is still qwen3:4b-instruct-2507-q4_K_M.")
+            );
         } else {
             assert_eq!(
                 event,
@@ -270,7 +273,7 @@ fn screen_loop_saves_only_when_asked() {
         panic!("expected Save, got {exit:?}");
     };
     assert_eq!(saved.profile, GMProfile::Lantern);
-    assert_eq!(saved.length, NarratorLength::Rich);
+    assert_eq!(saved.length, NarratorLength::Standard);
     assert_eq!(saved.model, "qwen3:4b");
     let text = String::from_utf8(out).unwrap();
     assert!(text.starts_with("SETTINGS\n  1. Narrator  on\n"));
@@ -390,7 +393,7 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
     assert!(loaded.from_file);
     assert_eq!(loaded.settings.profile, GMProfile::Lantern);
     assert_eq!(loaded.settings.length, NarratorLength::Rich);
-    assert_eq!(loaded.settings.model, "llama3.2");
+    assert_eq!(loaded.settings.model, "qwen3:4b-instruct-2507-q4_K_M");
 }
 
 #[test]

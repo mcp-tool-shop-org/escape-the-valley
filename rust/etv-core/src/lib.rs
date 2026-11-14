@@ -27,6 +27,7 @@ pub mod memory;
 pub mod model;
 pub mod narrator;
 pub mod narrator_experiment;
+pub mod narrator_provider;
 pub mod narrator_truth;
 pub mod notices;
 pub mod physics;

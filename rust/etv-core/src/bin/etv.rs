@@ -39,9 +39,37 @@ fn random_seed() -> i128 {
     i128::from(u32::from_le_bytes(bytes) >> 1)
 }
 
-/// The narrator transport this build was compiled with: a local Ollama connection with the
-/// `narrator-ollama` feature, none without it.
-fn build_transport() -> Option<std::sync::Arc<dyn NarratorTransport>> {
+/// The narrator transport for the settings' provider: the local Ollama connection with the
+/// `narrator-ollama` feature; a hosted provider (Claude, OpenAI-compatible) with the
+/// `narrator-claude` feature, its key read from the variable or file the settings name; none
+/// otherwise. A hosted provider that cannot start says why and plays with the narrator off.
+fn build_transport(
+    settings: &etv_core::narrator::NarratorSettings,
+) -> Option<std::sync::Arc<dyn NarratorTransport>> {
+    use etv_core::narrator_provider::NarratorProvider;
+    if settings.provider != NarratorProvider::Ollama {
+        #[cfg(feature = "narrator-claude")]
+        {
+            let http = Box::new(etv_core::cloud_claude::UreqHttpsPost::default());
+            let lookup = |name: &str| std::env::var(name).ok();
+            return match etv_core::narrator_provider::hosted_transport(settings, http, &lookup) {
+                Ok(Some(t)) => Some(std::sync::Arc::new(t)),
+                Ok(None) => None,
+                Err(why) => {
+                    eprintln!("Cloud narrator: {why}");
+                    None
+                }
+            };
+        }
+        #[cfg(not(feature = "narrator-claude"))]
+        {
+            eprintln!(
+                "Cloud narrator: this build has no cloud connection (provider {}).",
+                settings.provider.name()
+            );
+            return None;
+        }
+    }
     #[cfg(feature = "narrator-ollama")]
     {
         Some(std::sync::Arc::new(etv_core::narrator::UreqTransport))
@@ -130,7 +158,7 @@ fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>
     if let Some(warning) = &loaded.warning {
         let _ = writeln!(out, "{warning}");
     }
-    let connection = connect_narrator(&loaded.settings, build_transport());
+    let connection = connect_narrator(&loaded.settings, build_transport(&loaded.settings));
     for line in &connection.lines {
         let _ = writeln!(out, "{line}");
     }
@@ -180,7 +208,7 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
     let base = std::path::PathBuf::from(".");
     let table = FallbackPhraseTable::embedded();
     let loaded = load_settings_or_default(&base);
-    let connection = connect_narrator(&loaded.settings, build_transport());
+    let connection = connect_narrator(&loaded.settings, build_transport(&loaded.settings));
     let mut log: Vec<String> = Vec::new();
     if let Some(warning) = &loaded.warning {
         log.push(warning.clone());
