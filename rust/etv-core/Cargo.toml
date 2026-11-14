@@ -9,6 +9,9 @@ publish = false
 default = []
 authoring = []
 narrator-ollama = ["dep:ureq"]
+# The hosted narrator over HTTPS (native TLS): in play, Claude or an OpenAI-compatible endpoint
+# chosen in the settings; in narrator_measure, the Claude API for measurement runs.
+narrator-claude = ["narrator-ollama", "ureq/native-tls"]
 
 [[bin]]
 name = "etv"

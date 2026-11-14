@@ -677,3 +677,75 @@ fn the_command_line_switches_arms_on_and_refuses_bad_values() {
         assert_eq!(err, message);
     }
 }
+
+// ---- running a named list of turns -------------------------------------------------------------
+
+#[test]
+fn the_only_turns_list_runs_just_those_turns_in_set_order() {
+    // Named out of order; the run keeps the set's order and skips every other turn.
+    let mut cfg = cell(GMProfile::Fireside, NarratorLength::Brief, 360);
+    cfg.only_turns = Some(vec!["v2-w0-005".to_string(), "v2-w0-002".to_string()]);
+    let (report, rows, _) = run(&cfg, &[OK]);
+    let ids: Vec<&str> = rows.iter().map(|r| r.turn_id.as_str()).collect();
+    assert_eq!(ids, ["v2-w0-002", "v2-w0-005"]);
+    assert_eq!(report.cells[0].slots, 4);
+    // A cap on turns counts the listed turns only.
+    cfg.max_turns = Some(1);
+    let (_, rows, _) = run(&cfg, &[OK]);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].turn_id, "v2-w0-002");
+}
+
+#[test]
+fn the_only_turns_flag_reads_one_id_per_line_and_refuses_an_empty_file() {
+    let set_path = format!(
+        "{}/tests/fixtures/narrator_turn_set_v2.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let dir = std::env::temp_dir().join(format!("etv-only-turns-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let list = dir.join("only.txt");
+    let empty = dir.join("empty.txt");
+    std::fs::write(&list, "v2-w0-003\n\n  v2-w0-001  \n").unwrap();
+    std::fs::write(&empty, "\n \n").unwrap();
+    let args = |path: &std::path::Path| -> Vec<String> {
+        [
+            "--turn-set",
+            &set_path,
+            "--turn-set-sha256",
+            V2_SHA256,
+            "--model",
+            "fixture-model",
+            "--profiles",
+            "fireside",
+            "--lengths",
+            "brief",
+            "--only-turns",
+            path.to_str().unwrap(),
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+    };
+    let mut out = Vec::new();
+    run_cli(
+        &args(&list),
+        Script::new(&["Smoke drifts over the camp"]),
+        &mut out,
+    )
+    .unwrap();
+    let report: MeasureReport = serde_json::from_slice(&out).unwrap();
+    assert_eq!(report.cells[0].slots, 4);
+    let mut out = Vec::new();
+    assert_eq!(
+        run_cli(&args(&empty), Script::new(&[OK]), &mut out).unwrap_err(),
+        "--only-turns: the file names no turn"
+    );
+    let missing = dir.join("missing.txt");
+    let mut out = Vec::new();
+    let err = run_cli(&args(&missing), Script::new(&[OK]), &mut out).unwrap_err();
+    assert!(err.starts_with("--only-turns: cannot read "), "{err}");
+    std::fs::remove_file(&list).unwrap();
+    std::fs::remove_file(&empty).unwrap();
+    std::fs::remove_dir(&dir).unwrap();
+}

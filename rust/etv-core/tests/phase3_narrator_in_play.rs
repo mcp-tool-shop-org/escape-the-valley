@@ -205,7 +205,9 @@ fn a_connected_narrator_tells_every_turn_and_the_numbers_stay() {
     let (text, _, stats, lines, generate_calls) = play(Script::Good);
     assert_eq!(
         lines,
-        vec!["Narrator: Chronicler, Brief, model fixture-model.".to_string()]
+        // "fixture-model" is not one the game knows by exact name (the service lists
+        // "fixture-model:latest"), so it is not shown.
+        vec!["Narrator: Chronicler, Brief, model the configured model.".to_string()]
     );
     // The outcome of the first choice is the narrator's line, not the bracketed fallback.
     assert!(
@@ -270,12 +272,12 @@ fn a_narrator_that_cannot_start_says_why_and_the_game_plays_without_it() {
         ),
         (
             Script::ModelMissing,
-            "The narrator model 'fixture-model' is not installed in Ollama. Install it with: ollama pull fixture-model",
+            "The configured narrator model is not installed in Ollama.",
             0,
         ),
         (
             Script::WarmupTimeout,
-            "The narrator model 'fixture-model' did not load in time.",
+            "The configured narrator model did not load in time.",
             1,
         ),
     ];

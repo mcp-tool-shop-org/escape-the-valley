@@ -19,6 +19,7 @@ use crate::narrator::{
 };
 use crate::physics::current_node;
 use crate::screens::title_screen_lines;
+use crate::settings::{model_for_display, CONFIGURED_MODEL};
 
 /// The camp menu, shown with the status panel at every camp stop.
 pub const CAMP_MENU: &str =
@@ -453,6 +454,81 @@ pub fn connect_narrator(
     settings: &NarratorSettings,
     transport: Option<Arc<dyn NarratorTransport>>,
 ) -> NarratorConnection {
+    connect_narrator_with(settings, |_| {
+        transport.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string())
+    })
+}
+
+/// An endpoint as it may be shown: `scheme://host[:port]`, and only for a loopback host
+/// (`localhost`, `127.x.y.z`, `[::1]`) with a numeric port. Anything else, a remote host
+/// included, reads "the configured endpoint": a host name is text from the settings that could
+/// hold anything, a pasted key included. A path, query or fragment is never shown.
+pub fn endpoint_for_display(endpoint: &str) -> String {
+    const HIDDEN: &str = "the configured endpoint";
+    let trimmed = endpoint.trim();
+    let (scheme, rest) = match trimmed.split_once("://") {
+        Some((s, r)) if s == "http" || s == "https" => (s, r),
+        _ => return HIDDEN.to_string(),
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let (host, port) = if let Some(after) = authority.strip_prefix("[::1]") {
+        if after.is_empty() {
+            ("[::1]", None)
+        } else if let Some(p) = after.strip_prefix(':') {
+            ("[::1]", Some(p))
+        } else {
+            return HIDDEN.to_string();
+        }
+    } else {
+        match authority.split_once(':') {
+            Some((h, p)) => (h, Some(p)),
+            None => (authority, None),
+        }
+    };
+    let loopback = host == "localhost" || host == "[::1]" || is_loopback_ipv4(host);
+    let port_ok = port.is_none_or(|p| {
+        !p.is_empty()
+            && p.len() <= 5
+            && p.chars().all(|c| c.is_ascii_digit())
+            && (1..=65535).contains(&p.parse::<u32>().unwrap_or(0))
+    });
+    if !loopback || !port_ok {
+        return HIDDEN.to_string();
+    }
+    match port {
+        Some(p) => format!("{scheme}://{host}:{p}"),
+        None => format!("{scheme}://{host}"),
+    }
+}
+
+/// `127.x.y.z`, each part a number from 0 to 255.
+fn is_loopback_ipv4(host: &str) -> bool {
+    let parts: Vec<&str> = host.split('.').collect();
+    parts.len() == 4
+        && parts[0] == "127"
+        && parts.iter().all(|p| {
+            !p.is_empty()
+                && p.len() <= 3
+                && p.chars().all(|c| c.is_ascii_digit())
+                && p.parse::<u32>().is_ok_and(|n| n <= 255)
+        })
+}
+
+/// Line shown when this build has no narrator connection compiled in at all.
+pub const NO_NARRATOR_CONNECTION_LINE: &str = "This build has no narrator connection.";
+
+/// Try to connect the live narrator described by `settings`, over the transport `transport`
+/// builds for them.
+///
+/// The narrator being switched off is checked first, so `transport` is not called then (no key
+/// is looked up for a narrator that is off). When `transport` cannot give a connection, its
+/// reason is what the player is told. Nothing is written to the terminal here: every message is
+/// in the returned lines, for the caller to show (line mode prints them; the full-screen
+/// interface puts them in its log).
+pub fn connect_narrator_with(
+    settings: &NarratorSettings,
+    transport: impl FnOnce(&NarratorSettings) -> Result<Arc<dyn NarratorTransport>, String>,
+) -> NarratorConnection {
     let off = |reason: String| NarratorConnection {
         narrator: None,
         lines: vec![reason, NARRATOR_OFF_LINE.to_string()],
@@ -460,40 +536,89 @@ pub fn connect_narrator(
     if !settings.enabled {
         return off("The narrator is switched off in the settings.".to_string());
     }
-    let Some(transport) = transport else {
-        return off("This build has no narrator connection.".to_string());
+    let transport = match transport(settings) {
+        Ok(t) => t,
+        Err(reason) => return off(reason),
     };
     let narrator = LiveNarrator::with_transport(settings.clone(), transport);
-    let status = narrator.check_startup();
+    let (status, listed) = narrator.check_startup_listing();
+    // Only the local Ollama service's own listing says what is installed: a hosted provider's
+    // listing is just its setting repeated back, and a service on another host could list
+    // anything, so its listing never makes a model name showable.
+    let installed: &[String] = if settings.provider
+        == crate::narrator_provider::NarratorProvider::Ollama
+        && crate::narrator::is_loopback_endpoint(&settings.endpoint)
+    {
+        &listed
+    } else {
+        &[]
+    };
+    let shown = model_for_display(&settings.model, installed);
     if !status.available {
         let reason = if status.installed {
-            format!(
-                "The narrator model '{}' is not installed in Ollama. Install it with: ollama pull {}",
-                settings.model, settings.model
-            )
+            if settings.model == crate::narrator::DEFAULT_NARRATOR_MODEL {
+                format!(
+                    "The narrator model '{0}' is not installed in Ollama. Install it with: ollama pull {0}",
+                    crate::narrator::DEFAULT_NARRATOR_MODEL
+                )
+            } else {
+                "The configured narrator model is not installed in Ollama.".to_string()
+            }
         } else {
             format!(
                 "The narrator service did not answer at {}. Start it with: ollama serve",
-                settings.endpoint
+                endpoint_for_display(&settings.endpoint)
             )
         };
         return off(reason);
     }
     if narrator.warmup().is_err() {
-        return off(format!(
-            "The narrator model '{}' did not load in time.",
-            settings.model
-        ));
+        return off(match shown {
+            Some(m) => format!("The narrator model '{m}' did not load in time."),
+            None => "The configured narrator model did not load in time.".to_string(),
+        });
     }
     let line = format!(
         "Narrator: {}, {}, model {}.",
         profile_interface_name(settings.profile),
         settings.length.as_str(),
-        settings.model
+        shown.unwrap_or(CONFIGURED_MODEL)
     );
     NarratorConnection {
         narrator: Some(narrator),
         lines: vec![line],
+    }
+}
+
+/// The transport for the settings' provider, from what this build has: `local`, the local
+/// Ollama connection (`None` without the `narrator-ollama` feature), and `hosted_http`, the
+/// HTTPS client for a hosted provider (`None` without the `narrator-claude` feature).
+/// `lookup` reads an environment variable, for a key the settings name.
+///
+/// Every failure says what is actually wrong, in a line for the player: the provider's own
+/// reason (a key variable that is not set, a key file that cannot be read), a build without the
+/// hosted narrator for a hosted provider, and [`NO_NARRATOR_CONNECTION_LINE`] only for a build
+/// with no narrator connection at all.
+pub fn narrator_transport(
+    settings: &NarratorSettings,
+    local: Option<Arc<dyn NarratorTransport>>,
+    hosted_http: Option<Box<dyn crate::cloud_claude::HttpsPost>>,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<Arc<dyn NarratorTransport>, String> {
+    use crate::narrator_provider::{hosted_transport, NarratorProvider};
+    if settings.provider == NarratorProvider::Ollama {
+        return local.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string());
+    }
+    let Some(http) = hosted_http else {
+        return Err(format!(
+            "This build has no cloud narrator, so the {} provider in the settings cannot be used.",
+            settings.provider.name()
+        ));
+    };
+    match hosted_transport(settings, http, lookup) {
+        Ok(Some(t)) => Ok(Arc::new(t)),
+        Ok(None) => local.ok_or_else(|| NO_NARRATOR_CONNECTION_LINE.to_string()),
+        Err(why) => Err(format!("The cloud narrator could not start: {why}.")),
     }
 }
 

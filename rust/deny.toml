@@ -7,3 +7,8 @@ allow = [
     "Unicode-3.0",
     "Zlib",
 ]
+# Mozilla's root certificates, pulled in by ureq's native-tls feature (the cloud narrator).
+# Allowed for this crate only; the generated notices carry the agreement's full text.
+exceptions = [
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
+]

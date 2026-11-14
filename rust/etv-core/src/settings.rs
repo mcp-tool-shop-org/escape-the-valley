@@ -52,10 +52,21 @@ pub fn load_settings_or_default(base_path: &Path) -> LoadedSettings {
             warning: None,
         };
     }
-    let Ok(settings) = NarratorSettings::load_from_file(&path) else {
-        return defaults_with_warning(
-            "The settings file could not be read. Using the default settings.".to_string(),
-        );
+    let Ok(raw) = std::fs::read_to_string(&path) else {
+        return defaults_with_warning(format!(
+            "The settings file could not be read. {USING_DEFAULTS_LINE}"
+        ));
+    };
+    // A file that reads but does not hold usable settings says why: a cloud provider with no
+    // key, a non-https provider URL, a refused endpoint or broken JSON. The defaults it falls
+    // back to are named, so a player who chose a cloud narrator is told it is not in use.
+    let settings = match NarratorSettings::from_json_str(&raw) {
+        Ok(settings) => settings,
+        Err(reason) => {
+            return defaults_with_warning(format!(
+                "The settings file was not used: {reason}. {USING_DEFAULTS_LINE}"
+            ))
+        }
     };
     match validate_model_name(&settings.model) {
         Ok(_) => LoadedSettings {
@@ -64,10 +75,14 @@ pub fn load_settings_or_default(base_path: &Path) -> LoadedSettings {
             warning: None,
         },
         Err(reason) => defaults_with_warning(format!(
-            "The settings file was ignored ({reason}). Using the default settings."
+            "The settings file was ignored ({reason}). {USING_DEFAULTS_LINE}"
         )),
     }
 }
+
+/// What a settings warning ends with: the settings the game uses instead.
+pub const USING_DEFAULTS_LINE: &str =
+    "Using the default settings: the local narrator (Ollama), until the settings are fixed.";
 
 /// Serialise `settings` as the pretty JSON text written to the settings file (LF line endings,
 /// trailing newline).
@@ -108,3 +123,23 @@ pub fn validate_model_name(raw: &str) -> Result<String, String> {
     }
     Ok(name.to_string())
 }
+
+/// The model name as it may be shown to the player, or `None` when it may not be.
+///
+/// A model name comes from the settings file, where a key may have been pasted, so it is shown
+/// only when it is exactly one the game knows: the built-in default
+/// ([`crate::narrator::DEFAULT_NARRATOR_MODEL`]), one of the Claude models
+/// ([`crate::narrator_provider::CLAUDE_MODELS`]), or a name the local Ollama service listed as
+/// installed (`installed`; pass none for a hosted provider, whose listing is its own setting).
+/// Every place that shows a model asks this; anything else reads "the configured model".
+pub fn model_for_display<'a>(model: &'a str, installed: &[String]) -> Option<&'a str> {
+    let known = model == crate::narrator::DEFAULT_NARRATOR_MODEL
+        || crate::narrator_provider::CLAUDE_MODELS
+            .iter()
+            .any(|(id, _)| *id == model)
+        || installed.iter().any(|n| n == model);
+    known.then_some(model)
+}
+
+/// What a model is called where it may not be named.
+pub const CONFIGURED_MODEL: &str = "the configured model";

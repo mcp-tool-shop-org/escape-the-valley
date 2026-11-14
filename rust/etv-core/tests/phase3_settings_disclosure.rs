@@ -15,6 +15,7 @@ use etv_core::screens::{
 };
 use etv_core::settings::{
     load_settings_or_default, save_settings, settings_path, settings_to_json, validate_model_name,
+    USING_DEFAULTS_LINE,
 };
 
 const APPROVED_TITLE: &str = "When a narrator model is running, the story is written and voiced by AI, live, as you play, and every telling is new. Without one, the game shows plain text lines instead.";
@@ -71,8 +72,8 @@ fn settings_screen_renders_the_defaults() {
             "  1. Narrator  on".to_string(),
             "  2. Profile   Fireside - Serious campfire narrator. Subtle uncanny moments. The default."
                 .to_string(),
-            "  3. Length    Standard (medium)".to_string(),
-            "  4. Model     llama3.2".to_string(),
+            "  3. Length    Brief (short)".to_string(),
+            "  4. Model     qwen3:4b-instruct-2507-q4_K_M".to_string(),
             "  S. Save and leave    Q. Leave without saving".to_string(),
             String::new(),
             APPROVED_TITLE.to_string(),
@@ -131,11 +132,11 @@ fn number_keys_cycle_each_setting_in_order_and_wrap() {
     assert_eq!(screen.handle_line("2"), changed("Profile is now Fireside."));
     assert_eq!(screen.settings.profile, GMProfile::Fireside);
 
-    // Standard -> Rich -> Brief -> Standard.
+    // Brief (the default) -> Standard -> Rich -> Brief.
+    assert_eq!(screen.handle_line("3"), changed("Length is now Standard."));
     assert_eq!(screen.handle_line("3"), changed("Length is now Rich."));
     assert_eq!(screen.handle_line("3"), changed("Length is now Brief."));
-    assert_eq!(screen.handle_line("3"), changed("Length is now Standard."));
-    assert_eq!(screen.settings.length, NarratorLength::Standard);
+    assert_eq!(screen.settings.length, NarratorLength::Brief);
 }
 
 #[test]
@@ -240,7 +241,10 @@ fn unknown_input_is_rejected_and_changes_nothing() {
         if bad == "model" {
             // "model" alone asks for the name on the next line, like "4".
             assert_eq!(event, SettingsEvent::AskModel);
-            assert_eq!(screen.handle_line(""), changed("Model is still llama3.2."));
+            assert_eq!(
+                screen.handle_line(""),
+                changed("Model is still qwen3:4b-instruct-2507-q4_K_M.")
+            );
         } else {
             assert_eq!(
                 event,
@@ -270,7 +274,7 @@ fn screen_loop_saves_only_when_asked() {
         panic!("expected Save, got {exit:?}");
     };
     assert_eq!(saved.profile, GMProfile::Lantern);
-    assert_eq!(saved.length, NarratorLength::Rich);
+    assert_eq!(saved.length, NarratorLength::Standard);
     assert_eq!(saved.model, "qwen3:4b");
     let text = String::from_utf8(out).unwrap();
     assert!(text.starts_with("SETTINGS\n  1. Narrator  on\n"));
@@ -359,19 +363,27 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
     let path = settings_path(dir.path());
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-    let cases: [(&str, &str); 3] = [
-        (
-            "{ not json",
-            "The settings file could not be read. Using the default settings.",
-        ),
+    // Each warning names the reason and the settings used instead.
+    let cases: [(&str, &str); 5] = [
+        ("{ not json", "The settings file was not used: the file is not valid JSON (at line 1, column "),
         // A non-loopback endpoint without the explicit opt-in is refused by the loader.
         (
             r#"{"endpoint": "http://example.com:11434"}"#,
-            "The settings file could not be read. Using the default settings.",
+            "The settings file was not used: the endpoint is not on this computer",
         ),
         (
             r#"{"model": "two words"}"#,
-            "The settings file was ignored (the model name contains ' '; use letters, digits and . _ - : / only). Using the default settings.",
+            "The settings file was ignored (the model name contains ' '; use letters, digits and . _ - : / only).",
+        ),
+        // A cloud narrator with no key: the provider's own reason, not "could not be read".
+        (
+            r#"{"provider": "claude", "model": "claude-haiku-5-5"}"#,
+            "The settings file was not used: the claude provider needs a key: name its environment variable (key.env) or key file (key.file).",
+        ),
+        // An OpenAI-compatible provider over plain HTTP.
+        (
+            r#"{"provider": "openai-compatible", "provider_url": "http://192.168.1.5:11434/v1", "key": {"env": "K"}}"#,
+            "The settings file was not used: the openai-compatible provider needs an https:// provider_url",
         ),
     ];
     for (body, warning) in cases {
@@ -379,10 +391,25 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
         let loaded = load_settings_or_default(dir.path());
         assert_eq!(loaded.settings, NarratorSettings::default(), "body {body}");
         assert!(!loaded.from_file);
-        assert_eq!(loaded.warning.as_deref(), Some(warning));
+        let shown = loaded.warning.unwrap();
+        assert!(shown.starts_with(warning), "body {body}: {shown}");
+        // It says the local narrator is used instead, so a cloud choice never silently turns
+        // into the local one.
+        assert!(shown.ends_with(USING_DEFAULTS_LINE), "body {body}: {shown}");
+        assert!(!shown.contains("could not be read"), "body {body}: {shown}");
         // The unusable file is left as it was.
         assert_eq!(std::fs::read_to_string(&path).unwrap(), body);
     }
+
+    // Only a file that cannot be read at all says so.
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    assert_eq!(
+        loaded.warning.as_deref(),
+        Some(format!("The settings file could not be read. {USING_DEFAULTS_LINE}").as_str())
+    );
+    std::fs::remove_dir(&path).unwrap();
 
     // A partial file fills the rest from the defaults.
     std::fs::write(&path, r#"{"profile": "lantern", "length": "rich"}"#).unwrap();
@@ -390,7 +417,7 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
     assert!(loaded.from_file);
     assert_eq!(loaded.settings.profile, GMProfile::Lantern);
     assert_eq!(loaded.settings.length, NarratorLength::Rich);
-    assert_eq!(loaded.settings.model, "llama3.2");
+    assert_eq!(loaded.settings.model, "qwen3:4b-instruct-2507-q4_K_M");
 }
 
 #[test]

@@ -537,14 +537,15 @@ fn two_timeouts_in_a_row_pause_the_narrator_for_the_session() {
     // Five turns, two slots each, all fell back.
     assert_eq!(stats.fallbacks, 10);
 
-    // One timeout followed by an answer does not trip it.
+    // One timeout followed by an answer does not trip it. The turn whose scene call timed out
+    // skips its outcome call, so three turns make five calls, not six.
     let rec = Recorder::new(Reply::TimeoutThenOk(1));
     let narrator = LiveNarrator::with_transport(settings(NarratorLength::Brief), rec.clone());
     for _ in 0..3 {
         narrator.narrate_turn(&ctx);
     }
     assert!(!narrator.is_paused());
-    assert_eq!(rec.generate_calls.load(Ordering::SeqCst), 6);
+    assert_eq!(rec.generate_calls.load(Ordering::SeqCst), 5);
     assert_eq!(narrator.stats().timeouts, 1);
 
     // With the breaker off (as the harness runs), every call is still made.

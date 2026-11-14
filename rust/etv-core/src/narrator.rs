@@ -1666,8 +1666,17 @@ pub const NARRATOR_NUM_PREDICT_CITED_EXTRA: u32 = 50;
 /// list fact keys, at Brief and Standard.
 pub const NARRATOR_NUM_PREDICT_CITED: u32 = 160;
 
-/// Per-call timeouts in a row after which the narrator is paused for the rest of the session.
+/// Failed calls in a row (timeouts, connection failures, server errors) after which the
+/// narrator is paused for the rest of the session.
 pub const TIMEOUT_BREAKER_STRIKES: usize = 2;
+
+/// Most bytes read from one narrator server answer. A narrator line is a few hundred bytes; a
+/// model list a few kilobytes. A longer body is cut off and fails as unreadable.
+pub const NARRATOR_MAX_BODY_BYTES: u64 = 1_000_000;
+
+/// Most slot records kept between two reads by the measurement harness. Recording is off in
+/// the game; the harness reads them after every turn, so the cap is never reached there.
+pub const MAX_SLOT_RECORDS: usize = 64;
 
 /// Which answer shape the request's `format` schema asks for.
 ///
@@ -3643,12 +3652,28 @@ pub fn resolve_fallback_line_with_mode(
 // Endpoint Validation & Settings Stub (Player Settings File Only)
 // ============================================================================
 
-/// Errors returned when validating an Ollama HTTP endpoint.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Errors returned when validating an Ollama HTTP endpoint. They carry no text from the
+/// endpoint: it comes from the settings file, where a key may have been pasted, and an error's
+/// `Debug` or `Display` form can reach a message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EndpointError {
-    InvalidScheme(String),
-    InvalidAuthority(String),
-    NonLoopbackRefused(String),
+    InvalidScheme,
+    InvalidAuthority,
+    NonLoopbackRefused,
+}
+
+impl std::fmt::Display for EndpointError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            EndpointError::NonLoopbackRefused => {
+                "the endpoint is not on this computer (set allow_non_loopback to use another host)"
+            }
+            EndpointError::InvalidScheme => "the endpoint must start with http:// or https://",
+            EndpointError::InvalidAuthority => {
+                "the endpoint is not valid (a host, an optional numeric port and an optional path only; no user name, query or fragment)"
+            }
+        })
+    }
 }
 
 fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
@@ -3658,24 +3683,60 @@ fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
     } else if let Some(r) = trimmed.strip_prefix("https://") {
         r
     } else {
-        return Err(EndpointError::InvalidScheme(endpoint.to_string()));
+        return Err(EndpointError::InvalidScheme);
     };
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    if authority.is_empty() || authority.contains('@') || authority.chars().any(char::is_whitespace)
-    {
-        return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    let bad = || EndpointError::InvalidAuthority;
+    // An endpoint is a scheme, a host, an optional numeric port and an optional path. A query, a
+    // fragment or userinfo has no place in it, and each could carry anything (a key included).
+    if rest.contains(['?', '#']) {
+        return Err(bad());
     }
-    let host = if authority.starts_with('[') {
-        if let Some(end_bracket) = authority.find(']') {
-            &authority[..=end_bracket]
-        } else {
-            return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    let authority = rest.split('/').next().unwrap_or("");
+    if authority.is_empty()
+        || authority.contains('@')
+        || authority
+            .chars()
+            .any(|c| c.is_whitespace() || c.is_control())
+    {
+        return Err(bad());
+    }
+    let (host, port) = if authority.starts_with('[') {
+        let end_bracket = authority.find(']').ok_or_else(bad)?;
+        let inner = &authority[1..end_bracket];
+        if inner.is_empty()
+            || !inner
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.')
+        {
+            return Err(bad());
         }
+        let after = &authority[end_bracket + 1..];
+        let port = match after.strip_prefix(':') {
+            Some(p) => Some(p),
+            None if after.is_empty() => None,
+            None => return Err(bad()),
+        };
+        (&authority[..=end_bracket], port)
     } else {
-        authority.split(':').next().unwrap_or("")
+        let (host, port) = match authority.split_once(':') {
+            Some((h, p)) => (h, Some(p)),
+            None => (authority, None),
+        };
+        if host.is_empty()
+            || !host
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        {
+            return Err(bad());
+        }
+        (host, port)
     };
-    if host.is_empty() {
-        return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    if let Some(port) = port {
+        let digits_only =
+            !port.is_empty() && port.len() <= 5 && port.chars().all(|c| c.is_ascii_digit());
+        if !digits_only || !(1..=65535).contains(&port.parse::<u32>().unwrap_or(0)) {
+            return Err(bad());
+        }
     }
     Ok(host.to_ascii_lowercase())
 }
@@ -3695,10 +3756,12 @@ pub fn validate_endpoint(
     endpoint: &str,
     allow_non_loopback: bool,
 ) -> Result<String, EndpointError> {
-    if !allow_non_loopback && !is_loopback_endpoint(endpoint) {
-        return Err(EndpointError::NonLoopbackRefused(endpoint.to_string()));
-    }
+    // The shape first (scheme, host, numeric port, no userinfo, query or fragment), then where
+    // it points.
     let _host = parse_endpoint_host(endpoint)?;
+    if !allow_non_loopback && !is_loopback_endpoint(endpoint) {
+        return Err(EndpointError::NonLoopbackRefused);
+    }
     Ok(endpoint.trim().trim_end_matches('/').to_string())
 }
 
@@ -3719,7 +3782,22 @@ pub struct NarratorSettings {
     pub warmup_timeout_ms: u64,
     /// Per-call timeout during play (10,000 ms = 10s default).
     pub per_call_timeout_ms: u64,
+    /// Which service writes the narration: the local Ollama server by default. Written to the
+    /// settings file only when it is not the default, so a local player's file keeps its shape.
+    #[serde(skip_serializing_if = "crate::narrator_provider::NarratorProvider::is_local")]
+    pub provider: crate::narrator_provider::NarratorProvider,
+    /// The base URL of an OpenAI-compatible provider (OpenRouter, a LAN server). Unused by the
+    /// other providers.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub provider_url: String,
+    /// Where a hosted provider's key is read from: an environment variable's name or a key
+    /// file's path. The key itself is never stored here.
+    #[serde(skip_serializing_if = "crate::narrator_provider::KeySource::is_empty")]
+    pub key: crate::narrator_provider::KeySource,
 }
+
+/// The model the game narrates with by default: small and local.
+pub const DEFAULT_NARRATOR_MODEL: &str = "qwen3:4b-instruct-2507-q4_K_M";
 
 impl Default for NarratorSettings {
     fn default() -> Self {
@@ -3728,22 +3806,60 @@ impl Default for NarratorSettings {
             profile: GMProfile::Fireside,
             endpoint: DEFAULT_OLLAMA_ENDPOINT.to_string(),
             allow_non_loopback: false,
-            model: "llama3.2".to_string(),
-            length: NarratorLength::Standard,
+            model: DEFAULT_NARRATOR_MODEL.to_string(),
+            length: NarratorLength::Brief,
             warmup_timeout_ms: 30_000,
             per_call_timeout_ms: 10_000,
+            provider: crate::narrator_provider::NarratorProvider::Ollama,
+            provider_url: String::new(),
+            key: crate::narrator_provider::KeySource::default(),
+        }
+    }
+}
+
+impl NarratorSettings {
+    /// These settings with the cloud narrator chosen: Claude is preselected, on its default
+    /// model. The voice, the length and the key source are kept.
+    pub fn with_cloud(&self) -> Self {
+        Self {
+            provider: crate::narrator_provider::CLOUD_DEFAULT_PROVIDER,
+            model: crate::narrator_provider::CLOUD_DEFAULT_MODEL.to_string(),
+            ..self.clone()
         }
     }
 }
 
 impl NarratorSettings {
     /// Load and validate [`NarratorSettings`] from a JSON string.
+    ///
+    /// No error carries text from the file: a settings file can hold a key pasted in the wrong
+    /// place, and these messages are shown to the player. A JSON error says only what kind it is
+    /// and where; an endpoint error says only what is wrong with it.
     pub fn from_json_str(raw: &str) -> Result<Self, String> {
-        let mut settings: Self =
-            serde_json::from_str(raw).map_err(|e| format!("invalid settings JSON: {e}"))?;
+        let mut settings: Self = serde_json::from_str(raw).map_err(|e| {
+            let what = match e.classify() {
+                serde_json::error::Category::Data => "a setting has the wrong type or value",
+                serde_json::error::Category::Syntax | serde_json::error::Category::Eof => {
+                    "the file is not valid JSON"
+                }
+                serde_json::error::Category::Io => "the file could not be read",
+            };
+            format!("{what} (at line {}, column {})", e.line(), e.column())
+        })?;
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
-            .map_err(|e| format!("endpoint rejected: {e:?}"))?;
+            .map_err(|e| e.to_string())?;
         settings.endpoint = normalized;
+        // A claude file that names no model takes the Claude default; the local default name
+        // would be refused for the claude provider. An explicit model is checked as written.
+        if settings.provider == crate::narrator_provider::NarratorProvider::Claude {
+            let names_model = serde_json::from_str::<Value>(raw)
+                .ok()
+                .is_some_and(|v| v.get("model").is_some());
+            if !names_model {
+                settings.model = crate::narrator_provider::CLOUD_DEFAULT_MODEL.to_string();
+            }
+        }
+        crate::narrator_provider::validate_provider(&settings)?;
         Ok(settings)
     }
 
@@ -3908,6 +4024,8 @@ impl NarratorTransport for UreqTransport {
         let status = resp.status().as_u16();
         let body = resp
             .body_mut()
+            .with_config()
+            .limit(NARRATOR_MAX_BODY_BYTES)
             .read_to_string()
             .map_err(|e| TransportError::ConnectionFailed(e.to_string()))?;
         Ok((status, body))
@@ -3936,6 +4054,8 @@ impl NarratorTransport for UreqTransport {
         let status = resp.status().as_u16();
         let body = resp
             .body_mut()
+            .with_config()
+            .limit(NARRATOR_MAX_BODY_BYTES)
             .read_to_string()
             .map_err(|e| TransportError::ConnectionFailed(e.to_string()))?;
         Ok((status, body))
@@ -3982,7 +4102,10 @@ pub struct LiveNarrator {
     /// arm; kept always, used only when that arm is on).
     previous_opening: Mutex<Option<String>>,
     breaker_enabled: AtomicBool,
+    /// Failed calls in a row (timeouts, connection failures, server errors).
     consecutive_timeouts: AtomicUsize,
+    /// A call of the current turn timed out: the turn's other calls are skipped.
+    turn_timed_out: AtomicBool,
     paused: AtomicBool,
 }
 
@@ -4073,6 +4196,7 @@ impl LiveNarrator {
             format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
             consecutive_timeouts: AtomicUsize::new(0),
+            turn_timed_out: AtomicBool::new(false),
             paused: AtomicBool::new(false),
         }
     }
@@ -4171,6 +4295,15 @@ impl LiveNarrator {
             .unwrap_or_default()
     }
 
+    /// One failed call: with the breaker on, [`TIMEOUT_BREAKER_STRIKES`] in a row pause the
+    /// narrator.
+    fn strike(&self) {
+        let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
+        if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES {
+            self.paused.store(true, Ordering::SeqCst);
+        }
+    }
+
     fn push_record(
         &self,
         is_scene: bool,
@@ -4188,6 +4321,10 @@ impl LiveNarrator {
             None => (None, None),
         };
         if let Ok(mut log) = self.slot_log.lock() {
+            if log.len() >= MAX_SLOT_RECORDS {
+                // Nobody is reading them: keep the newest.
+                log.remove(0);
+            }
             log.push(SlotRecord {
                 is_scene,
                 outcome,
@@ -4231,6 +4368,19 @@ impl LiveNarrator {
     /// Check Ollama connectivity and model installation at startup, returning plain-words
     /// guidance and `offer_narrator_off = true` if the service is down or the model is missing.
     pub fn check_startup(&self) -> StartupCheckStatus {
+        self.check_startup_listing().0
+    }
+
+    /// As [`Self::check_startup`], with the model names the service listed as installed (empty
+    /// when it did not answer), so a caller can tell whether a model name is one the service
+    /// itself knows.
+    pub fn check_startup_listing(&self) -> (StartupCheckStatus, Vec<String>) {
+        let mut listed = Vec::new();
+        let status = self.check_startup_with(&mut listed);
+        (status, listed)
+    }
+
+    fn check_startup_with(&self, listed: &mut Vec<String>) -> StartupCheckStatus {
         if !self.settings.enabled {
             return StartupCheckStatus {
                 installed: false,
@@ -4255,6 +4405,7 @@ impl LiveNarrator {
         match self.transport.get_tags(&endpoint, timeout) {
             Ok((200, body)) => {
                 let names = extract_tag_names(&body);
+                listed.clone_from(&names);
                 if model_listed(&self.settings.model, &names) {
                     StartupCheckStatus {
                         installed: true,
@@ -4329,8 +4480,9 @@ impl LiveNarrator {
         call: SlotCall,
     ) -> Option<String> {
         let seed = call.seed;
-        if self.paused.load(Ordering::SeqCst) {
-            // Paused by the timeout breaker: no call, the plain line shows.
+        if self.paused.load(Ordering::SeqCst) || self.turn_timed_out.load(Ordering::SeqCst) {
+            // Paused by the breaker, or a call of this turn already timed out: no call, the
+            // plain line shows. So one turn waits at most one per-call timeout.
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             return None;
         }
@@ -4383,22 +4535,28 @@ impl LiveNarrator {
             Err(TransportError::Timeout) => {
                 self.timeouts.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
-                let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
-                if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES
-                {
-                    self.paused.store(true, Ordering::SeqCst);
+                if self.breaker_enabled.load(Ordering::SeqCst) {
+                    self.turn_timed_out.store(true, Ordering::SeqCst);
                 }
+                self.strike();
                 self.push_record(is_scene, SlotOutcome::Timeout, None, None, started);
                 return None;
             }
             Err(_) => {
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.strike();
                 self.push_record(is_scene, SlotOutcome::TransportError, None, None, started);
                 return None;
             }
         };
-        // Any answer at all, good or bad, ends a run of timeouts.
-        self.consecutive_timeouts.store(0, Ordering::SeqCst);
+        if status >= 500 {
+            // A server error counts as a strike, as a timeout does, and does not end a run of
+            // them.
+            self.strike();
+        } else {
+            // Any other answer, good or bad, ends a run of failures.
+            self.consecutive_timeouts.store(0, Ordering::SeqCst);
+        }
         if status != 200 {
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             self.push_record(
@@ -4510,6 +4668,7 @@ impl Narrator for LiveNarrator {
         if !self.settings.enabled {
             return TurnNarration::default();
         }
+        self.turn_timed_out.store(false, Ordering::SeqCst);
         let Ok(endpoint) =
             validate_endpoint(&self.settings.endpoint, self.settings.allow_non_loopback)
         else {
