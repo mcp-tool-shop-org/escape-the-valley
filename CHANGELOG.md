@@ -13,6 +13,8 @@ All notable changes to Escape the Valley are documented here.
 
 - **A resumed run no longer repeats a narrated turn.** The narrator samples each turn from a seed that counts the run's turns. The saved run (`.trail/run.json`) keeps its old format, which has no place for that count, so a run reopened after a quit started counting again from zero, and a camp turn that changed nothing saved (a pace change, a refused hunt or repair) could be narrated with the same words as an earlier one. The count now lives in a small file beside the save, `.trail/narration.json`, written just before `run.json` each time the game saves. It holds the run's id and the count and nothing else. Deleting it is safe: the game still opens the run, and only the narrator's count starts again from zero. `run.json` is unchanged.
 - **A custom fallback phrase table can no longer print a placeholder.** A phrase table without a real "nothing changed" phrase is now refused at start, and the turn shows the game's own plain line, so no build can show `PLACEHOLDER-none-neutral`. The shipped table is unaffected.
+- **A hand-edited save can no longer break the narrator's turn count.** A save or `.trail/narration.json` holding a count at the very top of its range now stays there instead of crashing a debug build or wrapping to zero, and a `narration.json` larger than 4 KB is ignored without being read in full. Nothing changes for a player whose files the game wrote.
+- **Placeholder checks are stricter.** A phrase table is refused if its subject, or any phrase, contains `PLACEHOLDER` anywhere, and an empty or blank "nothing changed" phrase counts as missing. The shipped table is unaffected.
 
 ## [1.3.3] - 2026-11-07
 

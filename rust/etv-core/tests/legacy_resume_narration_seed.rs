@@ -14,10 +14,12 @@ use etv_core::narrator::{
     build_narration_context_with_phase, evaluate_turn_matters, narration_call_seed,
     NarrationContext, NarratorLength, PreTurnObservation,
 };
+use etv_core::ruleset::Ruleset;
 use etv_core::save::{
     load_game_checked_with_content_hash, read_narration_sidecar, save_game, state_to_value,
-    write_narration_sidecar, NARRATION_FILE, SAVE_DIR, SAVE_FILE,
+    write_narration_sidecar, NARRATION_FILE, NARRATION_FILE_MAX_BYTES, SAVE_DIR, SAVE_FILE,
 };
+use etv_core::save_v5::{state_to_value_v5, value_to_saved_game};
 use etv_core::simulate::{choose_intent, Policy};
 use etv_core::worldgen::create_new_run_with_content;
 
@@ -361,4 +363,109 @@ fn the_v4_run_json_is_unchanged_by_the_sidecar() {
         sidecar,
         serde_json::json!({"run_id": engine.state.run_id, "turns_stepped": 2})
     );
+}
+
+#[test]
+fn a_failed_sidecar_write_leaves_run_json_untouched() {
+    // The write order is what keeps the sidecar ahead of run.json. With the sidecar write made to
+    // fail (a directory where the file goes), save_game must fail before it touches run.json.
+    // Swapping the two writes in save_game turns this test red.
+    let dir = tempfile::tempdir().unwrap();
+    let mut state = new_run(42, dir.path());
+    let before = run_json(dir.path());
+    let sidecar = dir.path().join(SAVE_DIR).join(NARRATION_FILE);
+    std::fs::remove_file(&sidecar).unwrap();
+    std::fs::create_dir(&sidecar).unwrap();
+
+    state.day += 1;
+    state.turns_stepped = 5;
+    assert!(
+        save_game(&state, dir.path()).is_err(),
+        "the sidecar write must fail"
+    );
+    assert_eq!(run_json(dir.path()), before, "run.json changed");
+
+    // The engine's autosave takes the same path and ignores the error: run.json still holds.
+    let mut engine = engine_at(state, dir.path());
+    step(&mut engine, &pace("hard"));
+    assert_eq!(
+        run_json(dir.path()),
+        before,
+        "run.json changed on an engine step"
+    );
+}
+
+#[test]
+fn a_count_at_the_top_neither_panics_nor_wraps() {
+    // A sidecar or a v5 save can be edited by hand to hold any count. The counter saturates: at
+    // u64::MAX it stays there, in debug (no overflow panic) and in release (no wrap to 0). The
+    // player sees nothing different: the run plays as it would, and only the narrator's turn
+    // index stops counting.
+    let content = embedded_content_pack();
+    for start in [u64::MAX, u64::MAX - 1] {
+        let dir = tempfile::tempdir().unwrap();
+        let state = new_run(42, dir.path());
+        let text = serde_json::json!({"run_id": state.run_id, "turns_stepped": start}).to_string();
+        std::fs::write(dir.path().join(SAVE_DIR).join(NARRATION_FILE), text).unwrap();
+        let mut engine = resume(dir.path());
+        assert_eq!(engine.state.turns_stepped, start);
+        let plain_dir = tempfile::tempdir().unwrap();
+        let mut plain = engine_at(state.clone(), plain_dir.path());
+        for _ in 0..3 {
+            let t = step(&mut engine, &pace("hard"));
+            assert_eq!(t.ctx.turn_index(), u64::MAX, "from {start}");
+            step(&mut plain, &pace("hard"));
+        }
+        assert_eq!(engine.state.turns_stepped, u64::MAX);
+        // Mechanics are the run's own: only the counter differs from a run that started at 0.
+        let mut same = engine.state.clone();
+        same.turns_stepped = plain.state.turns_stepped;
+        assert_eq!(same, plain.state);
+        drop(engine);
+        assert_eq!(resume(dir.path()).state.turns_stepped, u64::MAX);
+    }
+
+    // A v5 save at the top.
+    let (mut state, _) = etv_core::worldgen::create_new_run_with_rng(9, GMProfile::Fireside, 2);
+    state.content_hash = content.content_hash_hex.clone();
+    state.turns_stepped = u64::MAX;
+    let value = state_to_value_v5(&state, None);
+    assert_eq!(value["turns_stepped"].as_u64(), Some(u64::MAX));
+    let loaded = value_to_saved_game(&value, content).unwrap();
+    assert_eq!(loaded.state.turns_stepped, u64::MAX);
+    let mut engine = StepEngine::with_content(loaded.state, content);
+    engine.set_ruleset(Ruleset::V2);
+    for turn in 1..=3 {
+        let (intent, _) = choose_intent(Policy::Cautious, &engine, 9, turn);
+        engine.step(&intent);
+        assert_eq!(engine.state.turns_stepped, u64::MAX);
+    }
+}
+
+#[test]
+fn an_oversized_sidecar_reads_zero() {
+    // The read stops after a fixed number of bytes; a larger file is not a sidecar.
+    let dir = tempfile::tempdir().unwrap();
+    let state = new_run(42, dir.path());
+    let save_dir = dir.path().join(SAVE_DIR);
+    let body = serde_json::json!({"run_id": state.run_id, "turns_stepped": 7}).to_string();
+    let limit = NARRATION_FILE_MAX_BYTES as usize;
+
+    // Exactly at the limit (padded with JSON whitespace): still read.
+    let at_limit = format!("{body}{}", " ".repeat(limit - body.len()));
+    assert_eq!(at_limit.len(), limit);
+    std::fs::write(save_dir.join(NARRATION_FILE), &at_limit).unwrap();
+    assert_eq!(read_narration_sidecar(&save_dir, &state.run_id), 7);
+
+    // One byte over, and far over: read as no sidecar, and the run still loads.
+    for size in [limit + 1, 8 * 1024 * 1024] {
+        let big = format!("{body}{}", " ".repeat(size - body.len()));
+        std::fs::write(save_dir.join(NARRATION_FILE), &big).unwrap();
+        assert_eq!(
+            read_narration_sidecar(&save_dir, &state.run_id),
+            0,
+            "{size}"
+        );
+        assert_eq!(resume(dir.path()).state.turns_stepped, 0, "{size}");
+    }
 }

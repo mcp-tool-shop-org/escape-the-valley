@@ -3369,12 +3369,13 @@ impl FallbackPhraseTable {
         Ok(hex_encode_32(&out))
     }
 
-    /// Return all `(key, dir, value)` entries whose value starts with `"PLACEHOLDER-"`.
+    /// Return all `(key, dir, value)` entries whose value contains `"PLACEHOLDER"` anywhere
+    /// (`"PLACEHOLDER-food-neg"`, and also `"uses PLACEHOLDER food"`).
     pub fn placeholder_entries(&self) -> Vec<(String, String, String)> {
         let mut found = Vec::new();
         for (key, dirs) in &self.phrases {
             for (dir, val) in dirs {
-                if val.starts_with("PLACEHOLDER-") {
+                if val.contains("PLACEHOLDER") {
                     found.push((key.clone(), dir.clone(), val.clone()));
                 }
             }
@@ -3402,18 +3403,18 @@ impl FallbackPhraseTable {
         !self.phrases.is_empty() && self.non_placeholder_entries().is_empty()
     }
 
-    /// Returns `true` if any entry in the table starts with `"PLACEHOLDER-"`.
+    /// Returns `true` if the subject or any entry in the table contains `"PLACEHOLDER"`.
     pub fn has_placeholders(&self) -> bool {
-        !self.placeholder_entries().is_empty()
+        self.subject.contains("PLACEHOLDER") || !self.placeholder_entries().is_empty()
     }
 
-    /// The phrase for `key` in direction `dir`, or `None` when the table has none (or holds only
-    /// a `PLACEHOLDER-` stand-in for it).
+    /// The phrase for `key` in direction `dir`, or `None` when the table has none, or holds only
+    /// a stand-in for it: text containing `"PLACEHOLDER"`, or nothing but whitespace.
     pub fn phrase(&self, key: &str, dir: &str) -> Option<String> {
         self.phrases
             .get(key)
             .and_then(|dirs| dirs.get(dir))
-            .filter(|p| !p.starts_with("PLACEHOLDER-"))
+            .filter(|p| !p.contains("PLACEHOLDER") && !p.trim().is_empty())
             .cloned()
     }
 
@@ -3437,6 +3438,9 @@ pub enum FallbackComposerError {
     /// stand-in), so a turn with no phrased change would have nothing to say. Refused in every
     /// build: the caller falls back to the engine's plain line.
     NeutralPhraseMissing,
+    /// The table's subject (`"The party"`) contains `"PLACEHOLDER"`. Every composed line starts
+    /// with it, so it is refused in every build.
+    PlaceholderSubject,
 }
 
 /// Composes fallback outcome sentences from effect keys and directions using a
@@ -3469,6 +3473,10 @@ impl<'a> ComposedFallbackComposer<'a> {
         if is_release_build && tbl.has_placeholders() {
             return Err(FallbackComposerError::PlaceholdersInReleaseBuild);
         }
+        if tbl.subject.contains("PLACEHOLDER") {
+            return Err(FallbackComposerError::PlaceholderSubject);
+        }
+        // `phrase` also turns away an empty or whitespace-only neutral phrase.
         if tbl.phrase("none", "neutral").is_none() {
             return Err(FallbackComposerError::NeutralPhraseMissing);
         }
@@ -3563,11 +3571,15 @@ impl<'a> ComposedFallbackComposer<'a> {
 
 /// Compose one fallback sentence for each of the 464 choices across the 200 JSON events in
 /// `pack.json_events` from their static effect profiles.
+///
+/// The table is checked as a release build checks it ([`ComposedFallbackComposer::try_start_with_mode`]
+/// with `is_release_build = true`), whatever this build is: the lines are an audit of what a
+/// player could be shown, so a table a release build would refuse gives an error, not lines.
 pub fn compose_all_464_choice_fallbacks(
     pack: &ContentPack,
     table: &FallbackPhraseTable,
-) -> BTreeMap<(String, String), String> {
-    let composer = ComposedFallbackComposer { table };
+) -> Result<BTreeMap<(String, String), String>, FallbackComposerError> {
+    let composer = ComposedFallbackComposer::try_start_with_mode(Some(table), true)?;
     let mut out = BTreeMap::new();
     for event in &pack.json_events {
         for choice in &event.fallback_choices {
@@ -3601,7 +3613,7 @@ pub fn compose_all_464_choice_fallbacks(
             out.insert((event.event_id.clone(), choice.choice_id.clone()), sentence);
         }
     }
-    out
+    Ok(out)
 }
 
 /// Resolve a turn's fallback line using [`ComposedFallbackComposer`] when allowed, or

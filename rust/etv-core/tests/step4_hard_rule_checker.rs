@@ -358,7 +358,7 @@ fn a_label_that_is_missing_from_the_choice_list_gives_an_empty_label() {
 #[test]
 fn every_composed_fallback_line_passes_the_checker() {
     let table = FallbackPhraseTable::embedded();
-    let lines = compose_all_464_choice_fallbacks(embedded_content_pack(), &table);
+    let lines = compose_all_464_choice_fallbacks(embedded_content_pack(), &table).unwrap();
     assert_eq!(lines.len(), 464);
     let all_keys = table.key_order.clone();
     let mut failures: Vec<String> = Vec::new();

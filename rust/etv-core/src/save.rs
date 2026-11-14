@@ -32,6 +32,9 @@ pub const SECRETS_FILE: &str = "secrets.json";
 /// The narration sidecar beside `run.json`: `{"run_id": ..., "turns_stepped": ...}`. Only the
 /// narrator's sampling seed reads it; deleting it is safe (a resumed run then counts from 0).
 pub const NARRATION_FILE: &str = "narration.json";
+/// The most of [`NARRATION_FILE`] that is ever read. The sidecar the game writes is under 200
+/// bytes; a larger file reads as no sidecar.
+pub const NARRATION_FILE_MAX_BYTES: u64 = 4096;
 
 /// Python 1.3.1 writes `save_version = 1` (and 1.3.x supports 0..=3).
 /// Rust 2.0 bumps the save schema to `SAVE_VERSION = 4` (carrying `content_hash`)
@@ -305,11 +308,27 @@ pub fn write_narration_sidecar(save_dir: &Path, state: &RunState) -> std::io::Re
 /// Read the step counter from `<save_dir>/narration.json` for `run_id`.
 ///
 /// Returns 0, the count a v4 save had before the sidecar existed, when the file is missing,
-/// unreadable, not JSON, not an object, names another run, or holds no non-negative integer.
+/// unreadable, larger than [`NARRATION_FILE_MAX_BYTES`], not UTF-8, not JSON, not an object,
+/// names another run, or holds no non-negative integer.
 /// None of these is an error: the counter only feeds the narrator's sampling seed, so a bad
 /// sidecar changes no mechanic and the file is left as it is.
 pub fn read_narration_sidecar(save_dir: &Path, run_id: &str) -> u64 {
-    let Ok(text) = fs::read_to_string(save_dir.join(NARRATION_FILE)) else {
+    use std::io::Read;
+    // The sidecar is a few dozen bytes; one larger than the limit is not ours, and is never read
+    // in full.
+    let Ok(file) = fs::File::open(save_dir.join(NARRATION_FILE)) else {
+        return 0;
+    };
+    let mut bytes = Vec::new();
+    if file
+        .take(NARRATION_FILE_MAX_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .is_err()
+        || bytes.len() as u64 > NARRATION_FILE_MAX_BYTES
+    {
+        return 0;
+    }
+    let Ok(text) = String::from_utf8(bytes) else {
         return 0;
     };
     let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(&text) else {
