@@ -455,12 +455,13 @@ fn step3_fallback_composer_464_choices_and_release_build_behavior() {
         ctx.fallback_line()
     );
 
-    // In debug mode, placeholder table still composes placeholder text for testing.
+    // In debug mode the placeholder table still composes, but a key with only a placeholder adds
+    // no clause: no build ever composes `PLACEHOLDER-` text into a line.
     let debug_placeholder_line =
         resolve_fallback_line_with_mode(&ctx, Some(&placeholder_table), false);
     assert!(
-        debug_placeholder_line.contains("PLACEHOLDER-food-neg"),
-        "debug mode with placeholder table composes from effects, got: {debug_placeholder_line}"
+        !debug_placeholder_line.contains("PLACEHOLDER-"),
+        "no build composes placeholder text, got: {debug_placeholder_line}"
     );
 }
 

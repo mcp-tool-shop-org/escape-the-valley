@@ -14,7 +14,7 @@
 //! - [`NullNarrator`] is the default implementation and always returns `None`.
 
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -316,6 +316,12 @@ pub struct NarrationContext {
     /// no access to the engine's RNG. Never prompt material.
     #[serde(default)]
     run_seed: i128,
+    /// How many journal entries the run holds after this turn: a counter that grows with every
+    /// turn the engine steps. Used **only** in the sampling seed, so two turns with the same facts
+    /// (a rest repeated on the same day, say) ask for different samples. Never prompt material.
+    /// Turn sets written before it existed read it as 0.
+    #[serde(default)]
+    turn_index: u64,
     /// Supply keys that stand at zero after the turn, sorted. Not prompt material: the
     /// "says what happened" checks use it to tell "no water" on an empty cask from "no water"
     /// on a turn that only spent some.
@@ -411,6 +417,18 @@ impl NarrationContext {
         self.run_seed
     }
 
+    /// Attach the turn's index (the run's journal length after the turn; see
+    /// [`narration_call_seed`]).
+    pub fn with_turn_index(mut self, turn_index: u64) -> Self {
+        self.turn_index = turn_index;
+        self
+    }
+
+    /// The turn's index (0 unless attached).
+    pub fn turn_index(&self) -> u64 {
+        self.turn_index
+    }
+
     /// Party member names (checker-only; empty unless attached).
     pub fn check_party_names(&self) -> &[String] {
         &self.check_party_names
@@ -477,6 +495,7 @@ impl NarrationContext {
             action: String::new(),
             ending: String::new(),
             run_seed: 0,
+            turn_index: 0,
             supplies_at_zero: Vec::new(),
         }
     }
@@ -651,13 +670,14 @@ impl PreTurnObservation {
     }
 }
 
-/// Compute the change actually applied on a turn for each of the 16 phrase-table keys by a pure
-/// read of `pre` (before the turn) and `state` (after the turn), with zero RNG draws and zero
-/// state writes:
+/// Compute the change actually applied on a turn for every supply the run holds and the six
+/// non-supply keys, by a pure read of `pre` (before the turn) and `state` (after the turn), with
+/// zero RNG draws and zero state writes:
 ///
-/// - Supplies (`ammo`, `food`, `water`, `firewood`, `cloth`, `rope`, `oil`, `tools`, `parts`,
-///   `boots`): `state.supplies.get(key) - pre.supplies.get(key)` (with `"oil"` reading
-///   `"lantern_oil"` in `SuppliesState`, where `worldgen::resolve_resource_alias` maps `"oil"`).
+/// - Supplies: every key in `pre.supplies` or `state.supplies.items` (so `meds` and `salt` too,
+///   and any key the engine adds later): `state.supplies.get(key) - pre.supplies.get(key)`, with
+///   `"oil"` reading `"lantern_oil"` in `SuppliesState`, where `worldgen::resolve_resource_alias`
+///   maps `"oil"`.
 /// - `health`: sum across party members of `after.health - before_health` (each member clamped to
 ///   `0..=100` in `events::apply_outcome`).
 /// - `animals_health`: `state.wagon.animals_health - pre.animals_health` (clamped to `0..=100`).
@@ -675,9 +695,17 @@ pub fn compute_applied_turn_deltas(
 ) -> BTreeMap<String, i32> {
     let mut applied = BTreeMap::new();
 
-    for key in [
-        "ammo", "food", "water", "firewood", "cloth", "rope", "tools", "parts", "boots",
-    ] {
+    // Every supply the run holds before or after the turn, read off the engine's own maps rather
+    // than a hand-written list (a hand-written list once left out meds and salt). The lamp oil
+    // keys are handled below, because the phrase table names them `oil`.
+    let supply_keys: BTreeSet<&str> = pre
+        .supplies
+        .keys()
+        .chain(state.supplies.items.keys())
+        .map(String::as_str)
+        .filter(|k| *k != "lantern_oil" && *k != "oil")
+        .collect();
+    for key in supply_keys {
         let before_val = pre.supplies.get(key).copied().unwrap_or(0);
         let after_val = state.supplies.get(key);
         let delta = after_val - before_val;
@@ -1061,6 +1089,7 @@ pub fn build_narration_context_with_deltas(
     .with_event_facts(event_title, offered_labels, action)
     .with_ending(ending)
     .with_run_seed(state.seed)
+    .with_turn_index(state.journal.len() as u64)
     .with_supplies_at_zero(
         state
             .supplies
@@ -1742,10 +1771,12 @@ fn sentences_shape_text(length: NarratorLength, schema: FormatSchema) -> String 
     )
 }
 
-/// The sampling seed sent with one narrator call: a number derived from the run's seed and the
-/// turn's own facts (day, time of day, event, choice, place and shown changes), the profile, the
-/// length and the slot. The same run, turn and settings always give the same seed; it never
-/// touches the engine's RNG. The value fits in 31 bits.
+/// The sampling seed sent with one narrator call: a number derived from the run's seed, the
+/// turn's index (the journal length after it) and the turn's own facts (day, time of day, game
+/// phase, action, event, choice, place and shown changes), the profile, the length and the slot. The same run,
+/// turn and settings always give the same seed, so a replay asks for the same samples; two turns
+/// with the same facts but different places in the run do not. It never touches the engine's
+/// RNG. The value fits in 31 bits.
 pub fn narration_call_seed(
     ctx: &NarrationContext,
     profile: GMProfile,
@@ -1757,10 +1788,13 @@ pub fn narration_call_seed(
         deltas.push_str(&format!("{k}={v};"));
     }
     let material = format!(
-        "etv-narration-seed-1|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        "etv-narration-seed-2|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
         ctx.run_seed(),
+        ctx.turn_index(),
         ctx.day(),
         ctx.time_of_day().as_str(),
+        ctx.phase().as_str(),
+        ctx.action(),
         ctx.event_id(),
         ctx.choice_id(),
         ctx.place(),
@@ -3369,7 +3403,18 @@ impl FallbackPhraseTable {
         !self.placeholder_entries().is_empty()
     }
 
+    /// The phrase for `key` in direction `dir`, or `None` when the table has none (or holds only
+    /// a `PLACEHOLDER-` stand-in for it).
+    pub fn phrase(&self, key: &str, dir: &str) -> Option<String> {
+        self.phrases
+            .get(key)
+            .and_then(|dirs| dirs.get(dir))
+            .filter(|p| !p.starts_with("PLACEHOLDER-"))
+            .cloned()
+    }
+
     /// Look up the phrase for `(key, dir)`, falling back to `"PLACEHOLDER-<key>-<dir>"`.
+    /// Never used to compose a line (see [`Self::phrase`]).
     pub fn lookup(&self, key: &str, dir: &str) -> String {
         self.phrases
             .get(key)
@@ -3452,20 +3497,22 @@ impl<'a> ComposedFallbackComposer<'a> {
             normalized.insert(key.to_string(), delta);
         }
 
+        // A key the table has no phrase for adds no clause: the composed line never carries a
+        // `PLACEHOLDER-` stand-in, in any build.
         let mut clauses = Vec::new();
         let ordered = self.table.ordered_keys();
         for &key in &ordered {
             if let Some(&delta) = normalized.get(key) {
                 if delta != 0 {
                     let dir = if delta < 0 { "neg" } else { "pos" };
-                    clauses.push(self.table.lookup(key, dir));
+                    clauses.extend(self.table.phrase(key, dir));
                 }
             }
         }
         for (key, &delta) in &normalized {
             if delta != 0 && !ordered.contains(&key.as_str()) {
                 let dir = if delta < 0 { "neg" } else { "pos" };
-                clauses.push(self.table.lookup(key, dir));
+                clauses.extend(self.table.phrase(key, dir));
             }
         }
         if clauses.is_empty() {

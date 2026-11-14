@@ -13,7 +13,7 @@ pub mod model;
 pub mod terminal;
 pub mod view;
 
-pub use app::{run_terminal, App};
+pub use app::{run_terminal, App, Reconnected};
 pub use model::{
     key_to_msg, no_color_requested, update, ChoiceRow, Effect, Intent, Model, Msg, Overlay,
     Resolved, Screen, ViewData, BUSY_LINE, MIN_HEIGHT, MIN_WIDTH,
