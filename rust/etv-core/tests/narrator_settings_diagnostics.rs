@@ -165,6 +165,7 @@ fn a_reconnect_in_the_interface_logs_the_reason_instead_of_writing_to_the_screen
             live: connection.narrator.is_some(),
             lines: connection.lines,
             summary: None,
+            installed: Vec::new(),
         }
     });
     app.press_code(crossterm::event::KeyCode::Enter);

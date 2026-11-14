@@ -182,14 +182,27 @@ pub struct SettingsScreen {
     /// A model name the player typed on this screen. It may be shown back while the screen is
     /// open; a model that came from the settings file is shown only by [`model_for_display`].
     typed_model: Option<String>,
+    /// The models the local Ollama service listed as installed at the current connection's
+    /// startup check (empty when there is none). A model in it is named, as the connect line
+    /// names it.
+    installed: Vec<String>,
 }
 
 impl SettingsScreen {
     pub fn new(settings: NarratorSettings) -> Self {
+        Self::with_installed(settings, Vec::new())
+    }
+
+    /// The screen for `settings`, naming a model the local service listed as installed
+    /// (`installed`, from the current connection's startup check). The listing is used only for
+    /// the local `ollama` provider on a loopback endpoint; with no listing the screen names only
+    /// the built-in default, a Claude model and a name typed here.
+    pub fn with_installed(settings: NarratorSettings, installed: Vec<String>) -> Self {
         Self {
             settings,
             awaiting_model: false,
             typed_model: None,
+            installed,
         }
     }
 
@@ -202,7 +215,19 @@ impl SettingsScreen {
     fn shown_model(&self) -> Option<&str> {
         match &self.typed_model {
             Some(typed) if *typed == self.settings.model => Some(typed.as_str()),
-            _ => model_for_display(&self.settings.model, &[]),
+            _ => model_for_display(&self.settings.model, self.local_listing()),
+        }
+    }
+
+    /// The installed listing, when it may name a model: only for the local `ollama` provider on
+    /// a loopback endpoint (the same test the connect line makes).
+    fn local_listing(&self) -> &[String] {
+        let local = self.settings.provider == crate::narrator_provider::NarratorProvider::Ollama
+            && crate::narrator::is_loopback_endpoint(&self.settings.endpoint);
+        if local {
+            &self.installed
+        } else {
+            &[]
         }
     }
 

@@ -207,7 +207,8 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
         &content.content_hash_hex,
         log,
         color,
-    );
+    )
+    .with_installed(connection.installed.clone());
     let mut app = etv_core::tui::App::new(
         model,
         engine,

@@ -3676,78 +3676,146 @@ impl std::fmt::Display for EndpointError {
     }
 }
 
-fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
-    let trimmed = endpoint.trim();
-    let rest = if let Some(r) = trimmed.strip_prefix("http://") {
-        r
+/// The host part of an endpoint or a provider URL, as the one host rule reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum UrlHost {
+    /// A host name of letters, digits, `.`, `-` and `_`, lower-cased.
+    Name(String),
+    /// A dotted IPv4 address.
+    V4(std::net::Ipv4Addr),
+    /// A bracketed IPv6 address (no zone identifier).
+    V6(std::net::Ipv6Addr),
+}
+
+impl UrlHost {
+    /// Reads one host. A bracketed host must be an IPv6 address, and a host of digits and dots
+    /// only must be an IPv4 address (so `127.008.0.1` and `999.999.999.999` are refused); any
+    /// other host is a name of letters, digits, `.`, `-` and `_`.
+    fn parse(text: &str) -> Option<UrlHost> {
+        if let Some(inner) = text.strip_prefix('[') {
+            let inner = inner.strip_suffix(']')?;
+            return inner.parse::<std::net::Ipv6Addr>().ok().map(UrlHost::V6);
+        }
+        if text.is_empty() {
+            return None;
+        }
+        if text.chars().all(|c| c.is_ascii_digit() || c == '.') {
+            return text.parse::<std::net::Ipv4Addr>().ok().map(UrlHost::V4);
+        }
+        text.chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
+            .then(|| UrlHost::Name(text.to_ascii_lowercase()))
+    }
+
+    /// The one loopback rule: `localhost` in any letter case, an IPv4 address in `127.0.0.0/8`,
+    /// or the IPv6 loopback address. The loader and the display both ask this.
+    fn is_loopback(&self) -> bool {
+        match self {
+            UrlHost::Name(name) => name == "localhost",
+            UrlHost::V4(addr) => addr.is_loopback(),
+            UrlHost::V6(addr) => addr.is_loopback(),
+        }
+    }
+
+    /// The host in normal form: a lower-case name, or the parsed address written back.
+    fn normal_form(&self) -> String {
+        match self {
+            UrlHost::Name(name) => name.clone(),
+            UrlHost::V4(addr) => addr.to_string(),
+            UrlHost::V6(addr) => format!("[{addr}]"),
+        }
+    }
+}
+
+/// An endpoint or provider URL that has the allowed shape.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParsedUrl {
+    https: bool,
+    host: UrlHost,
+    port: Option<u16>,
+}
+
+/// Reads an endpoint or a provider URL: `http://` or `https://`, a host by [`UrlHost::parse`],
+/// an optional numeric port (1 to 65535) and an optional path. No user name, query or fragment
+/// is allowed, and no whitespace or control character anywhere: each could carry anything, a key
+/// included. The error is always [`EndpointError::InvalidScheme`] or
+/// [`EndpointError::InvalidAuthority`], which carry no text.
+fn parse_url(text: &str) -> Result<ParsedUrl, EndpointError> {
+    let trimmed = text.trim();
+    let (https, rest) = if let Some(r) = trimmed.strip_prefix("http://") {
+        (false, r)
     } else if let Some(r) = trimmed.strip_prefix("https://") {
-        r
+        (true, r)
     } else {
         return Err(EndpointError::InvalidScheme);
     };
-    let bad = || EndpointError::InvalidAuthority;
-    // An endpoint is a scheme, a host, an optional numeric port and an optional path. A query, a
-    // fragment or userinfo has no place in it, and each could carry anything (a key included).
-    if rest.contains(['?', '#']) {
-        return Err(bad());
+    let bad = EndpointError::InvalidAuthority;
+    if rest.contains(['?', '#']) || rest.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err(bad);
     }
     let authority = rest.split('/').next().unwrap_or("");
-    if authority.is_empty()
-        || authority.contains('@')
-        || authority
-            .chars()
-            .any(|c| c.is_whitespace() || c.is_control())
-    {
-        return Err(bad());
+    if authority.contains('@') {
+        return Err(bad);
     }
     let (host, port) = if authority.starts_with('[') {
-        let end_bracket = authority.find(']').ok_or_else(bad)?;
-        let inner = &authority[1..end_bracket];
-        if inner.is_empty()
-            || !inner
-                .chars()
-                .all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.')
-        {
-            return Err(bad());
-        }
-        let after = &authority[end_bracket + 1..];
+        let end = authority.find(']').ok_or(bad)?;
+        let after = &authority[end + 1..];
         let port = match after.strip_prefix(':') {
             Some(p) => Some(p),
             None if after.is_empty() => None,
-            None => return Err(bad()),
+            None => return Err(bad),
         };
-        (&authority[..=end_bracket], port)
+        (&authority[..=end], port)
     } else {
-        let (host, port) = match authority.split_once(':') {
+        match authority.split_once(':') {
             Some((h, p)) => (h, Some(p)),
             None => (authority, None),
-        };
-        if host.is_empty()
-            || !host
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
-        {
-            return Err(bad());
         }
-        (host, port)
     };
-    if let Some(port) = port {
-        let digits_only =
-            !port.is_empty() && port.len() <= 5 && port.chars().all(|c| c.is_ascii_digit());
-        if !digits_only || !(1..=65535).contains(&port.parse::<u32>().unwrap_or(0)) {
-            return Err(bad());
+    let host = UrlHost::parse(host).ok_or(bad)?;
+    let port = match port {
+        None => None,
+        Some(p) => {
+            let digits_only =
+                !p.is_empty() && p.len() <= 5 && p.chars().all(|c| c.is_ascii_digit());
+            match p.parse::<u16>() {
+                Ok(n) if digits_only && n >= 1 => Some(n),
+                _ => return Err(bad),
+            }
         }
-    }
-    Ok(host.to_ascii_lowercase())
+    };
+    Ok(ParsedUrl { https, host, port })
 }
 
-/// Returns `true` if `endpoint` points strictly to a loopback host (`127.0.0.1`, `localhost`,
-/// or `[::1]`) with `http://` or `https://` and no userinfo (`@`).
+/// Returns `true` if `endpoint` is a valid endpoint whose host is loopback: `localhost` in any
+/// letter case, an IPv4 address in `127.0.0.0/8`, or the IPv6 loopback address (`[::1]`,
+/// `[0:0:0:0:0:0:0:1]`).
 pub fn is_loopback_endpoint(endpoint: &str) -> bool {
-    match parse_endpoint_host(endpoint) {
-        Ok(host) => host == "127.0.0.1" || host == "localhost" || host == "[::1]",
-        Err(_) => false,
+    parse_url(endpoint).is_ok_and(|u| u.host.is_loopback())
+}
+
+/// `scheme://host[:port]` for a valid endpoint whose host is loopback, by the same rule as
+/// [`is_loopback_endpoint`], with the host in normal form (a lower-case name, or the parsed
+/// address written back) and the port as a number. `None` for anything else: a host the rule
+/// does not call loopback is text from the settings that could hold anything, a key included.
+/// A path is never shown.
+pub fn loopback_endpoint_for_display(endpoint: &str) -> Option<String> {
+    let url = parse_url(endpoint).ok()?;
+    if !url.host.is_loopback() {
+        return None;
     }
+    let scheme = if url.https { "https" } else { "http" };
+    let host = url.host.normal_form();
+    Some(match url.port {
+        Some(p) => format!("{scheme}://{host}:{p}"),
+        None => format!("{scheme}://{host}"),
+    })
+}
+
+/// `true` when `url` is a valid `https://` provider URL by the same host rule as an endpoint:
+/// a host, an optional numeric port and an optional path, with no user name, query or fragment.
+pub fn is_valid_provider_url(url: &str) -> bool {
+    parse_url(url).is_ok_and(|u| u.https)
 }
 
 /// Validate `endpoint`, refusing any non-loopback endpoint unless `allow_non_loopback` is
@@ -3756,10 +3824,10 @@ pub fn validate_endpoint(
     endpoint: &str,
     allow_non_loopback: bool,
 ) -> Result<String, EndpointError> {
-    // The shape first (scheme, host, numeric port, no userinfo, query or fragment), then where
-    // it points.
-    let _host = parse_endpoint_host(endpoint)?;
-    if !allow_non_loopback && !is_loopback_endpoint(endpoint) {
+    // The shape first (scheme, host, numeric port, no userinfo, query or fragment, nothing
+    // blank or unprintable), then where it points.
+    let url = parse_url(endpoint)?;
+    if !allow_non_loopback && !url.host.is_loopback() {
         return Err(EndpointError::NonLoopbackRefused);
     }
     Ok(endpoint.trim().trim_end_matches('/').to_string())
