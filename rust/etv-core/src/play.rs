@@ -458,21 +458,59 @@ pub fn connect_narrator(
     })
 }
 
-/// An endpoint as it may be shown: its scheme and authority (`http://127.0.0.1:11434`) only.
-/// A path, query or fragment is text from the settings that could hold anything, a pasted key
-/// included, so it is never shown. (The settings loader already refuses an authority with
-/// userinfo.)
+/// An endpoint as it may be shown: `scheme://host[:port]`, and only for a loopback host
+/// (`localhost`, `127.x.y.z`, `[::1]`) with a numeric port. Anything else, a remote host
+/// included, reads "the configured endpoint": a host name is text from the settings that could
+/// hold anything, a pasted key included. A path, query or fragment is never shown.
 pub fn endpoint_for_display(endpoint: &str) -> String {
+    const HIDDEN: &str = "the configured endpoint";
     let trimmed = endpoint.trim();
     let (scheme, rest) = match trimmed.split_once("://") {
         Some((s, r)) if s == "http" || s == "https" => (s, r),
-        _ => return "the configured endpoint".to_string(),
+        _ => return HIDDEN.to_string(),
     };
     let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    if authority.is_empty() || authority.contains('@') {
-        return "the configured endpoint".to_string();
+    let (host, port) = if let Some(after) = authority.strip_prefix("[::1]") {
+        if after.is_empty() {
+            ("[::1]", None)
+        } else if let Some(p) = after.strip_prefix(':') {
+            ("[::1]", Some(p))
+        } else {
+            return HIDDEN.to_string();
+        }
+    } else {
+        match authority.split_once(':') {
+            Some((h, p)) => (h, Some(p)),
+            None => (authority, None),
+        }
+    };
+    let loopback = host == "localhost" || host == "[::1]" || is_loopback_ipv4(host);
+    let port_ok = port.is_none_or(|p| {
+        !p.is_empty()
+            && p.len() <= 5
+            && p.chars().all(|c| c.is_ascii_digit())
+            && (1..=65535).contains(&p.parse::<u32>().unwrap_or(0))
+    });
+    if !loopback || !port_ok {
+        return HIDDEN.to_string();
     }
-    format!("{scheme}://{authority}")
+    match port {
+        Some(p) => format!("{scheme}://{host}:{p}"),
+        None => format!("{scheme}://{host}"),
+    }
+}
+
+/// `127.x.y.z`, each part a number from 0 to 255.
+fn is_loopback_ipv4(host: &str) -> bool {
+    let parts: Vec<&str> = host.split('.').collect();
+    parts.len() == 4
+        && parts[0] == "127"
+        && parts.iter().all(|p| {
+            !p.is_empty()
+                && p.len() <= 3
+                && p.chars().all(|c| c.is_ascii_digit())
+                && p.parse::<u32>().is_ok_and(|n| n <= 255)
+        })
 }
 
 /// Line shown when this build has no narrator connection compiled in at all.

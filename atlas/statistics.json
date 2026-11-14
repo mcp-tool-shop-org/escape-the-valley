@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 64,
-        "lines": 1988,
+        "commits": 65,
+        "lines": 2008,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 64,
-        "lines": 6845,
+        "commits": 65,
+        "lines": 6871,
         "path": "atlas/page.json"
       },
       {
-        "commits": 64,
-        "lines": 30716,
+        "commits": 65,
+        "lines": 30768,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 64,
-        "lines": 47472,
+        "commits": 65,
+        "lines": 47595,
         "path": "atlas/structure.json"
       },
       {
@@ -3136,8 +3136,8 @@
         "path": "rust/etv-core/src/model.rs"
       },
       {
-        "commits": 27,
-        "lines": 5705,
+        "commits": 28,
+        "lines": 5734,
         "path": "rust/etv-core/src/narrator.rs"
       },
       {
@@ -3146,8 +3146,8 @@
         "path": "rust/etv-core/src/narrator_experiment.rs"
       },
       {
-        "commits": 1,
-        "lines": 406,
+        "commits": 2,
+        "lines": 434,
         "path": "rust/etv-core/src/narrator_provider.rs"
       },
       {
@@ -3166,8 +3166,8 @@
         "path": "rust/etv-core/src/physics.rs"
       },
       {
-        "commits": 7,
-        "lines": 642,
+        "commits": 8,
+        "lines": 661,
         "path": "rust/etv-core/src/play.rs"
       },
       {
@@ -3536,8 +3536,8 @@
         "path": "rust/etv-core/tests/phase3_play_line_mode.rs"
       },
       {
-        "commits": 6,
-        "lines": 556,
+        "commits": 7,
+        "lines": 560,
         "path": "rust/etv-core/tests/phase3_settings_disclosure.rs"
       },
       {
@@ -3569,6 +3569,11 @@
         "commits": 1,
         "lines": 100,
         "path": "rust/etv-core/tests/save_v5_resume_cooldown.rs"
+      },
+      {
+        "commits": 1,
+        "lines": 272,
+        "path": "rust/etv-core/tests/settings_never_echo_a_key.rs"
       },
       {
         "commits": 1,
@@ -4496,9 +4501,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T18:18:15.946Z",
+  "generatedAt": "2026-11-14T19:37:06.632Z",
   "generatedFrom": {
-    "commit": "6600a6855eca9c35edf85f2390db9a8614ad5aac"
+    "commit": "ac86fbe25646d51773aaa89c2e0e4e09138610ac"
   },
   "pairs": [
     {
@@ -4651,43 +4656,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 52,
-      "shared": 52,
+      "either": 53,
+      "shared": 53,
       "strength": 1
     },
     {
@@ -4869,16 +4874,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T11:46:03-05:00",
+    "headDate": "2026-11-14T13:18:16-05:00",
     "inScopeFiles": 859,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 172,
+    "qualifyingCommits": 173,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T16:46:03.000Z",
+    "since": "2026-05-18T18:18:16.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

@@ -3669,22 +3669,58 @@ fn parse_endpoint_host(endpoint: &str) -> Result<String, EndpointError> {
     } else {
         return Err(EndpointError::InvalidScheme(endpoint.to_string()));
     };
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    if authority.is_empty() || authority.contains('@') || authority.chars().any(char::is_whitespace)
-    {
-        return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    let bad = || EndpointError::InvalidAuthority(endpoint.to_string());
+    // An endpoint is a scheme, a host, an optional numeric port and an optional path. A query, a
+    // fragment or userinfo has no place in it, and each could carry anything (a key included).
+    if rest.contains(['?', '#']) {
+        return Err(bad());
     }
-    let host = if authority.starts_with('[') {
-        if let Some(end_bracket) = authority.find(']') {
-            &authority[..=end_bracket]
-        } else {
-            return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    let authority = rest.split('/').next().unwrap_or("");
+    if authority.is_empty()
+        || authority.contains('@')
+        || authority
+            .chars()
+            .any(|c| c.is_whitespace() || c.is_control())
+    {
+        return Err(bad());
+    }
+    let (host, port) = if authority.starts_with('[') {
+        let end_bracket = authority.find(']').ok_or_else(bad)?;
+        let inner = &authority[1..end_bracket];
+        if inner.is_empty()
+            || !inner
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.')
+        {
+            return Err(bad());
         }
+        let after = &authority[end_bracket + 1..];
+        let port = match after.strip_prefix(':') {
+            Some(p) => Some(p),
+            None if after.is_empty() => None,
+            None => return Err(bad()),
+        };
+        (&authority[..=end_bracket], port)
     } else {
-        authority.split(':').next().unwrap_or("")
+        let (host, port) = match authority.split_once(':') {
+            Some((h, p)) => (h, Some(p)),
+            None => (authority, None),
+        };
+        if host.is_empty()
+            || !host
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        {
+            return Err(bad());
+        }
+        (host, port)
     };
-    if host.is_empty() {
-        return Err(EndpointError::InvalidAuthority(endpoint.to_string()));
+    if let Some(port) = port {
+        let digits_only =
+            !port.is_empty() && port.len() <= 5 && port.chars().all(|c| c.is_ascii_digit());
+        if !digits_only || !(1..=65535).contains(&port.parse::<u32>().unwrap_or(0)) {
+            return Err(bad());
+        }
     }
     Ok(host.to_ascii_lowercase())
 }
@@ -3704,10 +3740,12 @@ pub fn validate_endpoint(
     endpoint: &str,
     allow_non_loopback: bool,
 ) -> Result<String, EndpointError> {
+    // The shape first (scheme, host, numeric port, no userinfo, query or fragment), then where
+    // it points.
+    let _host = parse_endpoint_host(endpoint)?;
     if !allow_non_loopback && !is_loopback_endpoint(endpoint) {
         return Err(EndpointError::NonLoopbackRefused(endpoint.to_string()));
     }
-    let _host = parse_endpoint_host(endpoint)?;
     Ok(endpoint.trim().trim_end_matches('/').to_string())
 }
 
@@ -3801,7 +3839,9 @@ impl NarratorSettings {
                     EndpointError::InvalidScheme(_) => {
                         "the endpoint must start with http:// or https://"
                     }
-                    EndpointError::InvalidAuthority(_) => "the endpoint's host is not valid",
+                    EndpointError::InvalidAuthority(_) => {
+                        "the endpoint is not valid (a host, an optional numeric port and an optional path only; no user name, query or fragment)"
+                    }
                 }
                 .to_string()
             })?;

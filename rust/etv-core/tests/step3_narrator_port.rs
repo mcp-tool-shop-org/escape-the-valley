@@ -1544,7 +1544,6 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
         "https://api.example.com/v1",
         "http://0.0.0.0:11434",
         "http://localhost.evil.example:11434",
-        "http://127.0.0.1@evil.example:11434",
     ] {
         assert!(
             !is_loopback_endpoint(non_loopback),
@@ -1555,6 +1554,14 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
             Err(EndpointError::NonLoopbackRefused(non_loopback.to_string()))
         );
     }
+
+    // Userinfo is refused for its shape, before where it points is asked.
+    let userinfo = "http://127.0.0.1@evil.example:11434";
+    assert!(!is_loopback_endpoint(userinfo));
+    assert_eq!(
+        validate_endpoint(userinfo, false),
+        Err(EndpointError::InvalidAuthority(userinfo.to_string()))
+    );
 
     // Explicit opt-in in settings permits a valid non-loopback endpoint (still rejecting @ userinfo)
     assert!(validate_endpoint("http://192.168.1.50:11434", true).is_ok());

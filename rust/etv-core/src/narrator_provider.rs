@@ -122,22 +122,24 @@ impl KeySource {
     /// Reads the key: from the environment variable when one is named, else from the file.
     /// `lookup` reads a variable (the process environment in play; a table in tests).
     ///
-    /// Errors never carry the key, and never carry text from the settings that has not passed a
-    /// strict check, since a key may have been pasted where a name belongs. A variable name is
-    /// echoed only when it is a valid one ([`is_env_var_name`]); the key file's path is never
-    /// echoed.
+    /// Errors never carry the key, and never carry the variable's name or the key file's path:
+    /// a key may have been pasted where a name belongs, and some keys look like valid names. Each
+    /// error says what is wrong with "the environment variable named in the settings" or "the
+    /// key file". Any name is looked up, however long or unusual; only an empty name, or one
+    /// holding `=` or NUL (which no environment variable can have), is refused, unread.
     pub fn resolve(&self, lookup: &dyn Fn(&str) -> Option<String>) -> Result<ApiKey, String> {
         if let Some(name) = &self.env {
-            if !is_env_var_name(name) {
+            if name.is_empty() || name.contains(['=', '\0']) {
                 return Err(
-                    "the key's environment variable name is not a valid name (letters, digits and _ only, not starting with a digit, at most 64 characters)"
+                    "the environment variable named in the settings cannot be a variable's name"
                         .to_string(),
                 );
             }
-            let value = lookup(name)
-                .ok_or_else(|| format!("the environment variable {name} is not set"))?;
+            let value = lookup(name).ok_or_else(|| {
+                "the environment variable named in the settings is not set".to_string()
+            })?;
             return ApiKey::from_text(&value)
-                .map_err(|why| format!("the environment variable {name}: {why}"));
+                .map_err(|why| format!("the environment variable named in the settings {why}"));
         }
         if let Some(path) = &self.file {
             return ApiKey::read_from_file(std::path::Path::new(path));
@@ -147,20 +149,6 @@ impl KeySource {
                 .to_string(),
         )
     }
-}
-
-/// `true` for a name that may be echoed as an environment variable's: `[A-Za-z_][A-Za-z0-9_]*`,
-/// 64 characters at most. A name outside it is never shown. Claude and OpenRouter keys carry
-/// `-`, so they fail it; a key of letters, digits and `_` only, 64 characters or fewer, would
-/// pass and could be echoed.
-pub fn is_env_var_name(name: &str) -> bool {
-    let mut chars = name.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    name.len() <= 64
-        && (first.is_ascii_alphabetic() || first == '_')
-        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// The API a hosted transport speaks.

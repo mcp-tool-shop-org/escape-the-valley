@@ -15,6 +15,20 @@ pub const SETTINGS_FILE: &str = "settings.json";
 /// Longest model name the settings screen accepts, in characters.
 pub const MAX_MODEL_NAME_CHARS: usize = 100;
 
+/// Prefixes that start a provider credential (Anthropic, OpenAI and OpenRouter, Google, Hugging
+/// Face, Groq, xAI, GitHub). A model name that starts with one is refused, unechoed.
+pub const CREDENTIAL_PREFIXES: [&str; 9] = [
+    "sk-",
+    "sk-ant-",
+    "sk-or-",
+    "AIza",
+    "hf_",
+    "gsk_",
+    "xai-",
+    "ghp_",
+    "github_pat_",
+];
+
 /// Path of the player settings file under `base_path`.
 pub fn settings_path(base_path: &Path) -> PathBuf {
     base_path.join(SAVE_DIR).join(SETTINGS_FILE)
@@ -112,6 +126,11 @@ pub fn validate_model_name(raw: &str) -> Result<String, String> {
         return Err(format!(
             "the model name is longer than {MAX_MODEL_NAME_CHARS} characters"
         ));
+    }
+    // A model name is shown back to the player ("model qwen3:4b"), so a key pasted here must be
+    // refused before it can be: none of these is how a model is named.
+    if CREDENTIAL_PREFIXES.iter().any(|p| name.starts_with(p)) {
+        return Err("the model name looks like a key, not a model name".to_string());
     }
     if let Some(bad) = name
         .chars()

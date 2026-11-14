@@ -36,6 +36,34 @@ pub struct Reconnected<'a> {
     pub summary: Option<Box<dyn Fn() -> String + 'a>>,
 }
 
+impl Reconnected<'static> {
+    /// The reconnect result for `connection`, as `etv tui` builds it: the live narrator with
+    /// its session summary when one connected, otherwise the plain-text narrator. The
+    /// connection's lines are what the log shows.
+    pub fn from_connection(connection: crate::play::NarratorConnection) -> Self {
+        match connection.narrator {
+            Some(live) => {
+                let live = Rc::new(live);
+                let for_summary = Rc::clone(&live);
+                Reconnected {
+                    narrator: live,
+                    live: true,
+                    lines: connection.lines,
+                    summary: Some(Box::new(move || {
+                        crate::play::narrator_summary_line(&for_summary.stats())
+                    })),
+                }
+            }
+            None => Reconnected {
+                narrator: Rc::new(crate::narrator::NullNarrator),
+                live: false,
+                lines: connection.lines,
+                summary: None,
+            },
+        }
+    }
+}
+
 /// Builds the session's narrator from saved settings.
 type ReconnectFn<'a> = Box<dyn FnMut(&NarratorSettings) -> Reconnected<'a> + 'a>;
 

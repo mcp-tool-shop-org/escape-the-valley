@@ -68,7 +68,7 @@ fn a_missing_cloud_key_says_so_and_not_that_the_build_has_no_connection() {
     assert_eq!(
         connection.lines,
         vec![
-            "The cloud narrator could not start: the environment variable ETV_UNSET is not set."
+            "The cloud narrator could not start: the environment variable named in the settings is not set."
                 .to_string(),
             NARRATOR_OFF_LINE.to_string(),
         ]
@@ -175,7 +175,7 @@ fn a_reconnect_in_the_interface_logs_the_reason_instead_of_writing_to_the_screen
     let log = app.model.log.join("\n");
     assert!(
         log.contains(
-            "The cloud narrator could not start: the environment variable ETV_UNSET is not set."
+            "The cloud narrator could not start: the environment variable named in the settings is not set."
         ),
         "{log}"
     );

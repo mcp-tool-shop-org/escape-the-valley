@@ -125,7 +125,7 @@ fn a_hosted_provider_needs_a_key_source_and_an_https_url() {
     assert!(validate_provider(&s).unwrap_err().contains("https://"));
     s.provider_url = OPENROUTER_BASE_URL.to_string();
     assert_eq!(validate_provider(&s), Ok(()));
-    // A variable that is not set is named; the key is never in an error.
+    // A variable that is not set is reported without its name; the key is never in an error.
     let s = NarratorSettings {
         key: KeySource {
             env: Some("ETV_NOT_SET".to_string()),
@@ -135,7 +135,10 @@ fn a_hosted_provider_needs_a_key_source_and_an_https_url() {
     };
     let (http, _) = scripted(200, json!({}));
     let err = hosted_transport(&s, http, &env).unwrap_err();
-    assert_eq!(err, "the environment variable ETV_NOT_SET is not set");
+    assert_eq!(
+        err,
+        "the environment variable named in the settings is not set"
+    );
 }
 
 #[test]
