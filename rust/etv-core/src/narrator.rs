@@ -3849,6 +3849,16 @@ impl NarratorSettings {
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
             .map_err(|e| e.to_string())?;
         settings.endpoint = normalized;
+        // A claude file that names no model takes the Claude default; the local default name
+        // would be refused for the claude provider. An explicit model is checked as written.
+        if settings.provider == crate::narrator_provider::NarratorProvider::Claude {
+            let names_model = serde_json::from_str::<Value>(raw)
+                .ok()
+                .is_some_and(|v| v.get("model").is_some());
+            if !names_model {
+                settings.model = crate::narrator_provider::CLOUD_DEFAULT_MODEL.to_string();
+            }
+        }
         crate::narrator_provider::validate_provider(&settings)?;
         Ok(settings)
     }

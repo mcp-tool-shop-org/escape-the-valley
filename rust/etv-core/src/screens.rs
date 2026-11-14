@@ -213,6 +213,17 @@ impl SettingsScreen {
 
     fn set_model(&mut self, raw: &str) -> SettingsEvent {
         match validate_model_name(raw) {
+            // The claude provider takes only its listed models: refused here as the loader
+            // would refuse it at the next start, without showing what was typed.
+            Ok(name)
+                if self.settings.provider == crate::narrator_provider::NarratorProvider::Claude
+                    && !crate::narrator_provider::is_claude_model(&name) =>
+            {
+                SettingsEvent::Rejected(format!(
+                    "Model not changed: {}.",
+                    crate::narrator_provider::claude_model_refusal()
+                ))
+            }
             Ok(name) => {
                 self.settings.model = name.clone();
                 self.typed_model = Some(name);

@@ -90,6 +90,21 @@ pub const CLAUDE_MODELS: [(&str, &str); 4] = [
     ),
 ];
 
+/// `true` for a model in [`CLAUDE_MODELS`], the only models the `claude` provider takes.
+pub fn is_claude_model(model: &str) -> bool {
+    CLAUDE_MODELS.iter().any(|(id, _)| *id == model)
+}
+
+/// Why a model is refused for the `claude` provider: it names the models the provider takes,
+/// never the value that was refused. The loader and the options screen both use it.
+pub fn claude_model_refusal() -> String {
+    let names: Vec<&str> = CLAUDE_MODELS.iter().map(|(id, _)| *id).collect();
+    format!(
+        "the claude provider needs one of its models ({})",
+        names.join(", ")
+    )
+}
+
 /// The settings line for a Claude model, or `None` for a model the table does not list.
 pub fn claude_model_description(model: &str) -> Option<&'static str> {
     CLAUDE_MODELS
@@ -382,14 +397,8 @@ pub fn validate_provider(settings: &crate::narrator::NarratorSettings) -> Result
             }
             // The Claude provider takes only a model it lists, so the model is always one the game
             // can name; anything else is refused without being shown.
-            if settings.provider == NarratorProvider::Claude
-                && !CLAUDE_MODELS.iter().any(|(id, _)| *id == settings.model)
-            {
-                let names: Vec<&str> = CLAUDE_MODELS.iter().map(|(id, _)| *id).collect();
-                return Err(format!(
-                    "the claude provider needs one of its models ({})",
-                    names.join(", ")
-                ));
+            if settings.provider == NarratorProvider::Claude && !is_claude_model(&settings.model) {
+                return Err(claude_model_refusal());
             }
             if settings.provider == NarratorProvider::OpenaiCompatible {
                 let url = settings.provider_url.trim();

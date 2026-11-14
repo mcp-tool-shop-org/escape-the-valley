@@ -125,10 +125,37 @@ impl NarratorTransport for ListingLocal {
     }
 }
 
+/// A local narrator service that lists `0` as installed and answers every request, so a
+/// narrator connects and the connect line is "Narrator: …, model …".
+struct Answering(&'static str);
+
+impl NarratorTransport for Answering {
+    fn get_tags(
+        &self,
+        _endpoint: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Ok((
+            200,
+            serde_json::json!({"models": [{"name": self.0}]}).to_string(),
+        ))
+    }
+    fn post_generate(
+        &self,
+        _endpoint: &str,
+        _body_json: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Ok((200, r#"{"response":""}"#.to_string()))
+    }
+}
+
 #[derive(Clone, Copy)]
 enum Local {
     Dead,
     Listing,
+    /// A service that lists this name as installed and answers.
+    Lists(&'static str),
 }
 
 impl Local {
@@ -136,6 +163,7 @@ impl Local {
         Some(match self {
             Local::Dead => Arc::new(DeadLocal),
             Local::Listing => Arc::new(ListingLocal),
+            Local::Lists(name) => Arc::new(Answering(name)),
         })
     }
 }
@@ -277,6 +305,20 @@ impl Case {
             assert_clean("line mode", line, key);
         }
 
+        // Line mode's options screen, with the empty model prompt (4, then Enter).
+        let mut shown_options = Vec::new();
+        etv_core::screens::run_settings_screen(
+            loaded.settings.clone(),
+            std::io::Cursor::new("4\n\nq\n"),
+            &mut shown_options,
+        )
+        .unwrap();
+        assert_clean(
+            "line mode's options screen",
+            &String::from_utf8(shown_options).unwrap(),
+            key,
+        );
+
         // A connected narrator plays turns: every line they show, and the session summary.
         let content = embedded_content_pack();
         if let Some(live) = &connection.narrator {
@@ -335,6 +377,12 @@ impl Case {
         assert_screen_clean("the camp screen", &app.model, key);
         app.press_char('o');
         assert_screen_clean("the options view", &app.model, key);
+        // The empty model prompt: 4, then Enter, keeps the model and says so.
+        app.press_char('4');
+        assert_screen_clean("the model prompt", &app.model, key);
+        app.press_code(crossterm::event::KeyCode::Enter);
+        assert_screen_clean("the options view after an empty prompt", &app.model, key);
+        assert_clean("the options note", &app.model.settings_note, key);
         // Saving changed settings in the interface reconnects with them, once.
         app.press_char('2');
         assert_screen_clean("the options view after a change", &app.model, key);
@@ -760,7 +808,8 @@ fn a_known_model_is_still_named() {
 
 #[test]
 fn an_endpoint_error_carries_no_endpoint_text() {
-    use etv_core::narrator::validate_endpoint;
+    use etv_core::narrator::{validate_endpoint, EndpointError};
+    let mut seen = std::collections::BTreeSet::new();
     for key in [KEY, ODD_KEY, NAME_SHAPED_KEY] {
         for endpoint in [
             format!("ftp://{key}"),
@@ -774,10 +823,145 @@ fn an_endpoint_error_carries_no_endpoint_text() {
                 let Err(e) = validate_endpoint(&endpoint, allow) else {
                     continue;
                 };
+                seen.insert(format!("{e:?}"));
                 for text in [format!("{e:?}"), format!("{e}")] {
                     assert_clean("an endpoint error", &text, key);
                 }
             }
         }
     }
+    // Every variant was produced at least once.
+    for variant in [
+        EndpointError::InvalidScheme,
+        EndpointError::InvalidAuthority,
+        EndpointError::NonLoopbackRefused,
+    ] {
+        assert!(
+            seen.contains(&format!("{variant:?}")),
+            "{variant:?} never produced"
+        );
+    }
+}
+
+#[test]
+fn a_connected_narrator_names_a_model_the_local_service_lists() {
+    let (warning, lines) = connect_lines(r#"{"model": "qwen3:4b"}"#, Local::Lists("qwen3:4b"));
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines,
+        vec!["Narrator: Fireside, Brief, model qwen3:4b.".to_string()]
+    );
+}
+
+#[test]
+fn a_remote_services_listing_never_names_a_model() {
+    // A service on another host (allowed by the settings) may list anything, a pasted key
+    // included: its listing does not make the name showable.
+    let (warning, lines) = connect_lines(
+        r#"{"endpoint": "http://192.168.1.5:11434", "allow_non_loopback": true, "model": "qwen3:4b"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines,
+        vec!["Narrator: Fireside, Brief, model the configured model.".to_string()]
+    );
+    Case::new(
+        serde_json::json!({
+            "endpoint": "http://192.168.1.5:11434",
+            "allow_non_loopback": true,
+            "model": NAME_SHAPED_KEY,
+        }),
+        NAME_SHAPED_KEY,
+    )
+    .local(Local::Lists(NAME_SHAPED_KEY))
+    .check();
+}
+
+#[test]
+fn a_claude_file_without_a_model_takes_the_claude_default() {
+    use etv_core::narrator_provider::CLOUD_DEFAULT_MODEL;
+    // No model named: the Claude default, and the file loads.
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        r#"{"provider": "claude", "key": {"env": "ETV_SET"}}"#,
+    )
+    .unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    assert_eq!(loaded.warning, None);
+    assert!(loaded.from_file);
+    assert_eq!(loaded.settings.model, CLOUD_DEFAULT_MODEL);
+    // An explicit model the provider does not list is still refused, unshown.
+    for model in ["qwen3:4b", NAME_SHAPED_KEY] {
+        let body =
+            serde_json::json!({"provider": "claude", "model": model, "key": {"env": "ETV_SET"}})
+                .to_string();
+        std::fs::write(&path, &body).unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        let warning = loaded.warning.unwrap();
+        assert!(
+            warning.contains("the claude provider needs one of its models"),
+            "{warning}"
+        );
+        assert!(!warning.contains(model), "{warning}");
+        assert!(!loaded.from_file);
+    }
+    // Another provider without a model keeps the local default, as before.
+    std::fs::write(&path, r#"{"provider": "ollama"}"#).unwrap();
+    assert_eq!(
+        load_settings_or_default(dir.path()).settings.model,
+        etv_core::narrator::DEFAULT_NARRATOR_MODEL
+    );
+}
+
+#[test]
+fn the_options_screen_refuses_a_model_the_claude_provider_does_not_list() {
+    use etv_core::screens::{run_settings_screen, SettingsEvent, SettingsExit, SettingsScreen};
+    let claude = NarratorSettings::default().with_cloud();
+    let mut screen = SettingsScreen::new(claude.clone());
+    assert_eq!(screen.handle_line("4"), SettingsEvent::AskModel);
+    let said = screen.handle_line(NAME_SHAPED_KEY);
+    let SettingsEvent::Rejected(why) = said else {
+        panic!("not refused: {said:?}");
+    };
+    assert_eq!(
+        why,
+        format!(
+            "Model not changed: {}.",
+            etv_core::narrator_provider::claude_model_refusal()
+        )
+    );
+    assert!(!why.contains(NAME_SHAPED_KEY));
+    assert_eq!(
+        screen.settings.model, claude.model,
+        "the model is unchanged"
+    );
+    // A listed model is taken.
+    screen.handle_line("4");
+    assert!(matches!(
+        screen.handle_line("claude-opus-5-5"),
+        SettingsEvent::Changed(_)
+    ));
+    assert_eq!(screen.settings.model, "claude-opus-5-5");
+
+    // Typed and saved in line mode: what is saved is not the refused name.
+    let mut out = Vec::new();
+    let exit = run_settings_screen(
+        claude.clone(),
+        std::io::Cursor::new(format!("4\n{NAME_SHAPED_KEY}\ns\n")),
+        &mut out,
+    )
+    .unwrap();
+    let SettingsExit::Save(saved) = exit else {
+        panic!("expected a save");
+    };
+    assert_eq!(saved.model, claude.model);
+    assert_clean(
+        "line mode's options screen",
+        &String::from_utf8(out).unwrap(),
+        NAME_SHAPED_KEY,
+    );
 }

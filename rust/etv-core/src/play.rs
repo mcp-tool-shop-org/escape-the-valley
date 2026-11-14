@@ -543,13 +543,16 @@ pub fn connect_narrator_with(
     let narrator = LiveNarrator::with_transport(settings.clone(), transport);
     let (status, listed) = narrator.check_startup_listing();
     // Only the local Ollama service's own listing says what is installed: a hosted provider's
-    // listing is just its setting repeated back.
-    let installed: &[String] =
-        if settings.provider == crate::narrator_provider::NarratorProvider::Ollama {
-            &listed
-        } else {
-            &[]
-        };
+    // listing is just its setting repeated back, and a service on another host could list
+    // anything, so its listing never makes a model name showable.
+    let installed: &[String] = if settings.provider
+        == crate::narrator_provider::NarratorProvider::Ollama
+        && crate::narrator::is_loopback_endpoint(&settings.endpoint)
+    {
+        &listed
+    } else {
+        &[]
+    };
     let shown = model_for_display(&settings.model, installed);
     if !status.available {
         let reason = if status.installed {
