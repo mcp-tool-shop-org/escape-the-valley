@@ -226,8 +226,8 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 32,
-        "lines": 492,
+        "commits": 33,
+        "lines": 490,
         "path": "CHANGELOG.md"
       },
       {
@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 55,
-        "lines": 1802,
+        "commits": 57,
+        "lines": 1846,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 55,
-        "lines": 6207,
+        "commits": 57,
+        "lines": 6305,
         "path": "atlas/page.json"
       },
       {
-        "commits": 55,
-        "lines": 29396,
+        "commits": 57,
+        "lines": 29678,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 55,
-        "lines": 44901,
+        "commits": 57,
+        "lines": 45357,
         "path": "atlas/structure.json"
       },
       {
@@ -3091,8 +3091,13 @@
         "path": "rust/etv-core/src/events_builtin.rs"
       },
       {
-        "commits": 1,
-        "lines": 243,
+        "commits": 2,
+        "lines": 144,
+        "path": "rust/etv-core/src/labels.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 322,
         "path": "rust/etv-core/src/ledger.rs"
       },
       {
@@ -3101,8 +3106,8 @@
         "path": "rust/etv-core/src/ledger_proof.rs"
       },
       {
-        "commits": 19,
-        "lines": 79,
+        "commits": 20,
+        "lines": 82,
         "path": "rust/etv-core/src/lib.rs"
       },
       {
@@ -3121,13 +3126,13 @@
         "path": "rust/etv-core/src/memory.rs"
       },
       {
-        "commits": 7,
-        "lines": 1294,
+        "commits": 6,
+        "lines": 1291,
         "path": "rust/etv-core/src/model.rs"
       },
       {
-        "commits": 23,
-        "lines": 5567,
+        "commits": 22,
+        "lines": 5552,
         "path": "rust/etv-core/src/narrator.rs"
       },
       {
@@ -3151,8 +3156,8 @@
         "path": "rust/etv-core/src/physics.rs"
       },
       {
-        "commits": 5,
-        "lines": 548,
+        "commits": 7,
+        "lines": 585,
         "path": "rust/etv-core/src/play.rs"
       },
       {
@@ -3166,8 +3171,8 @@
         "path": "rust/etv-core/src/ruleset.rs"
       },
       {
-        "commits": 8,
-        "lines": 1873,
+        "commits": 7,
+        "lines": 1808,
         "path": "rust/etv-core/src/save.rs"
       },
       {
@@ -3211,8 +3216,8 @@
         "path": "rust/etv-core/src/tui/mod.rs"
       },
       {
-        "commits": 3,
-        "lines": 830,
+        "commits": 5,
+        "lines": 839,
         "path": "rust/etv-core/src/tui/model.rs"
       },
       {
@@ -3221,8 +3226,8 @@
         "path": "rust/etv-core/src/tui/terminal.rs"
       },
       {
-        "commits": 1,
-        "lines": 592,
+        "commits": 2,
+        "lines": 598,
         "path": "rust/etv-core/src/tui/view.rs"
       },
       {
@@ -3281,23 +3286,23 @@
         "path": "rust/etv-core/tests/fixtures/narrator_turn_set_v3.json"
       },
       {
-        "commits": 2,
-        "lines": 105,
+        "commits": 4,
+        "lines": 131,
         "path": "rust/etv-core/tests/fixtures/play_seed42_transcript.txt"
       },
       {
-        "commits": 1,
-        "lines": 30,
+        "commits": 2,
+        "lines": 50,
         "path": "rust/etv-core/tests/fixtures/tui/camp_100x30.txt"
       },
       {
-        "commits": 1,
-        "lines": 40,
+        "commits": 2,
+        "lines": 60,
         "path": "rust/etv-core/tests/fixtures/tui/camp_120x40.txt"
       },
       {
-        "commits": 1,
-        "lines": 24,
+        "commits": 2,
+        "lines": 44,
         "path": "rust/etv-core/tests/fixtures/tui/camp_80x24.txt"
       },
       {
@@ -3316,18 +3321,18 @@
         "path": "rust/etv-core/tests/fixtures/tui/event_80x24.txt"
       },
       {
-        "commits": 2,
-        "lines": 36,
+        "commits": 3,
+        "lines": 38,
         "path": "rust/etv-core/tests/fixtures/tui/event_after_100x30.txt"
       },
       {
-        "commits": 2,
-        "lines": 44,
+        "commits": 3,
+        "lines": 46,
         "path": "rust/etv-core/tests/fixtures/tui/event_after_120x40.txt"
       },
       {
-        "commits": 2,
-        "lines": 30,
+        "commits": 3,
+        "lines": 32,
         "path": "rust/etv-core/tests/fixtures/tui/event_after_80x24.txt"
       },
       {
@@ -3346,18 +3351,18 @@
         "path": "rust/etv-core/tests/fixtures/tui/game_over_80x24.txt"
       },
       {
-        "commits": 1,
-        "lines": 30,
+        "commits": 2,
+        "lines": 48,
         "path": "rust/etv-core/tests/fixtures/tui/help_100x30.txt"
       },
       {
-        "commits": 1,
-        "lines": 40,
+        "commits": 2,
+        "lines": 60,
         "path": "rust/etv-core/tests/fixtures/tui/help_120x40.txt"
       },
       {
-        "commits": 1,
-        "lines": 24,
+        "commits": 2,
+        "lines": 36,
         "path": "rust/etv-core/tests/fixtures/tui/help_80x24.txt"
       },
       {
@@ -3406,18 +3411,13 @@
         "path": "rust/etv-core/tests/ledger_proof_memo_body.rs"
       },
       {
-        "commits": 1,
-        "lines": 364,
-        "path": "rust/etv-core/tests/legacy_resume_narration_seed.rs"
-      },
-      {
         "commits": 4,
         "lines": 553,
         "path": "rust/etv-core/tests/measure_all_rules_paired.rs"
       },
       {
-        "commits": 4,
-        "lines": 393,
+        "commits": 3,
+        "lines": 344,
         "path": "rust/etv-core/tests/narrator_blockers.rs"
       },
       {
@@ -3456,8 +3456,8 @@
         "path": "rust/etv-core/tests/narrator_told_the_event.rs"
       },
       {
-        "commits": 4,
-        "lines": 442,
+        "commits": 3,
+        "lines": 430,
         "path": "rust/etv-core/tests/narrator_turn_counter.rs"
       },
       {
@@ -3476,8 +3476,8 @@
         "path": "rust/etv-core/tests/narrator_turn_set_v3.rs"
       },
       {
-        "commits": 6,
-        "lines": 3412,
+        "commits": 5,
+        "lines": 3404,
         "path": "rust/etv-core/tests/oracle_parity.rs"
       },
       {
@@ -3496,19 +3496,24 @@
         "path": "rust/etv-core/tests/phase2b_backpack_proof.rs"
       },
       {
-        "commits": 3,
-        "lines": 395,
+        "commits": 4,
+        "lines": 397,
         "path": "rust/etv-core/tests/phase3_narrator_in_play.rs"
       },
       {
-        "commits": 4,
-        "lines": 542,
+        "commits": 5,
+        "lines": 550,
         "path": "rust/etv-core/tests/phase3_play_line_mode.rs"
       },
       {
         "commits": 4,
         "lines": 497,
         "path": "rust/etv-core/tests/phase3_settings_disclosure.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 515,
+        "path": "rust/etv-core/tests/player_text_labels.rs"
       },
       {
         "commits": 3,
@@ -3557,7 +3562,7 @@
       },
       {
         "commits": 5,
-        "lines": 1575,
+        "lines": 1569,
         "path": "rust/etv-core/tests/tui_part1.rs"
       },
       {
@@ -4461,9 +4466,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T10:54:29.455Z",
+  "generatedAt": "2026-11-14T12:29:53.493Z",
   "generatedFrom": {
-    "commit": "dd6a004d458a097100b813b43050a4cb0c04fefe"
+    "commit": "c1d56a135996bae8d517e32b835c40754003e957"
   },
   "pairs": [
     {
@@ -4616,43 +4621,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 47,
+      "shared": 47,
       "strength": 1
     },
     {
@@ -4682,27 +4687,6 @@
       "either": 8,
       "shared": 5,
       "strength": 0.625
-    },
-    {
-      "a": "rust/etv-core/src/model.rs",
-      "b": "rust/etv-core/src/save.rs",
-      "either": 6,
-      "shared": 5,
-      "strength": 0.833333
-    },
-    {
-      "a": "rust/etv-core/src/model.rs",
-      "b": "rust/etv-core/tests/oracle_parity.rs",
-      "either": 6,
-      "shared": 4,
-      "strength": 0.666667
-    },
-    {
-      "a": "rust/etv-core/src/save.rs",
-      "b": "rust/etv-core/tests/oracle_parity.rs",
-      "either": 7,
-      "shared": 4,
-      "strength": 0.571429
     },
     {
       "a": "rust/etv-core/tests/fixtures/narrator_turn_set_v2.json",
@@ -4841,16 +4825,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T05:54:20-05:00",
-    "inScopeFiles": 851,
+    "headDate": "2026-11-14T07:14:40-05:00",
+    "inScopeFiles": 861,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 156,
+    "qualifyingCommits": 159,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T10:54:20.000Z",
+    "since": "2026-05-18T12:14:40.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

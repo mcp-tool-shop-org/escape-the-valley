@@ -1,11 +1,11 @@
  ESCAPE THE VALLEY                                                         Camp
 ┌ Status ────────────────────────────┐┌ Supplies ──────────────────────────────┐
-│ Place     Coldspring (plains)      ││  ammo         20    tools         1    │
-│ Day       1, morning               ││  boots         2    water        50    │
-│ Miles     0 of 396                 ││  cloth         5                       │
-│ Next stop 21                       ││  firewood     15                       │
-│ Wagon 80  Animals 90  Pace steady  ││  food         50                       │
-│ Party     morale 70                ││  lantern_oil   6                       │
+│ Place     Coldspring (plains)      ││  Ammunition   20    Tools         1    │
+│ Day       1, morning               ││  Boots         2    Water        50    │
+│ Miles     0 of 396                 ││  Cloth         5                       │
+│ Next stop 21                       ││  Firewood     15                       │
+│ Wagon 80  Animals 90  Pace steady  ││  Food         50                       │
+│ Party     morale 70                ││  Lantern oil   6                       │
 │   Ruth  ┌ Help ────────────────────────────────────────────────────┐         │
 │   Josiah│ T Travel   R Rest   H Hunt   F Repair                    │         │
 │   Elias │ P Pace, then S slow, T steady or H hard                  │         │

@@ -17,6 +17,7 @@ pub mod content_diff;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;
+pub mod labels;
 pub mod ledger;
 pub mod ledger_proof;
 pub mod measure;
@@ -42,7 +43,7 @@ pub mod turn_set;
 pub mod validator;
 pub mod worldgen;
 
-pub use ledger::trail_ledger;
+pub use ledger::{trail_ledger, trail_ledger_for_player};
 pub use narrator::{
     build_narration_context_from_turn, compute_applied_turn_deltas, CheckFailure, CheckReasonCode,
     CheckerContext, ComposedFallbackComposer, EndpointError, FallbackComposerError,

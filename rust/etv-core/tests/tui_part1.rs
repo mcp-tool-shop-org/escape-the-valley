@@ -197,22 +197,27 @@ fn golden_camp_screen_at_the_start_of_seed_42() {
         let text = screen_text(&app.model, size);
         golden("camp", size, &text);
         let flat_text = flat(&text);
-        for key in [
-            "ammo",
-            "boots",
-            "cloth",
-            "firewood",
-            "food",
-            "lantern_oil",
-            "meds",
-            "parts",
-            "rope",
-            "salt",
-            "tools",
-            "water",
+        for supply in [
+            "Ammunition 20",
+            "Boots 2",
+            "Cloth 5",
+            "Firewood 15",
+            "Food 50",
+            "Lantern oil 6",
+            "Medicine 5",
+            "Parts 4",
+            "Rope 2",
+            "Salt 8",
+            "Tools 1",
+            "Water 50",
         ] {
-            assert!(flat_text.contains(key), "supply {key} at {size:?}\n{text}");
+            assert!(
+                flat_text.contains(supply),
+                "supply {supply} at {size:?}
+{text}"
+            );
         }
+        assert!(!flat_text.contains("lantern_oil"), "{text}");
         for fact in [
             "Coldspring (plains)",
             "Ruth 100 healthy",
@@ -281,7 +286,7 @@ fn golden_first_event_on_seed_42_before_and_after_choosing() {
             ),
             "{after}"
         );
-        assert!(flat_after.contains("distance -4, morale -2, time_days +1, wagon_condition -2"));
+        assert!(flat_after.contains("Distance -4, Morale -2, Days +1, Wagon condition -2"));
         assert!(flat_after.contains("Persistent Rain"));
         assert!(flat_after.contains("Enter Continue"));
     }
@@ -994,7 +999,7 @@ fn an_outcome_stays_until_a_key_moves_on_and_a_camp_key_both_dismisses_and_acts(
     // The outcome stays in the log.
     let log = app.model.log.join("\n");
     assert!(log.contains("[Continue despite the wet] The party damages the wagon"));
-    assert!(log.contains("distance -4, morale -2, time_days +1, wagon_condition -2"));
+    assert!(log.contains("Distance -4, Morale -2, Days +1, Wagon condition -2"));
 
     // Another event, and this time a camp key dismisses and travels.
     let mut app = new_app(42, (80, 24));

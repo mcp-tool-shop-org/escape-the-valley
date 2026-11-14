@@ -105,8 +105,8 @@
       }
     ],
     "since": {
-      "commit": "a4c9748c963a2bc7fc2b0db8fce740fb76ffca85",
-      "generatedAt": "2026-11-14T08:59:53.707Z"
+      "commit": "077a5d06e1ca105a8d392a348f91001d430d3146",
+      "generatedAt": "2026-11-14T12:14:34.090Z"
     },
     "unchanged": false
   },
@@ -142,21 +142,6 @@
       "shared": 6
     },
     {
-      "a": "rust/etv-core/src/model.rs",
-      "b": "rust/etv-core/src/save.rs",
-      "either": 6,
-      "partLabels": [
-        null,
-        null
-      ],
-      "parts": [
-        null,
-        null
-      ],
-      "relation": "unassigned",
-      "shared": 5
-    },
-    {
       "a": "src/escape_the_valley/engine.py",
       "b": "tests/test_step_engine.py",
       "either": 18,
@@ -185,6 +170,21 @@
       ],
       "relation": "b-imports-a",
       "shared": 7
+    },
+    {
+      "a": "src/escape_the_valley/engine.py",
+      "b": "src/escape_the_valley/step_engine.py",
+      "either": 17,
+      "partLabels": [
+        "src",
+        "src"
+      ],
+      "parts": [
+        "src",
+        "src"
+      ],
+      "relation": "inside",
+      "shared": 13
     }
   ],
   "changesTogetherNote": [
@@ -193,9 +193,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 11 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "dd6a004d458a097100b813b43050a4cb0c04fefe",
+  "commit": "c1d56a135996bae8d517e32b835c40754003e957",
   "defaultBranch": "main",
-  "derived": "10 parts, in Rust (79 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Rust (81 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -252,7 +252,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 44,
+      "runsMore": 45,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -319,7 +319,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 44,
+      "runsMore": 45,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -683,13 +683,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T10:54:29.455Z",
+  "generatedAt": "2026-11-14T12:29:53.493Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "131 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 128 more.",
+    "133 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 130 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -717,7 +717,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 94,
+  "testFiles": 95,
   "testedBy": {
     "agents": 1,
     "bin": 0,
