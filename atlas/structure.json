@@ -8823,14 +8823,14 @@
         },
         {
           "dir": "rust",
-          "files": 49,
+          "files": 50,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
         },
         {
           "dir": "rust",
-          "files": 49,
+          "files": 50,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (all features)"
@@ -9969,7 +9969,7 @@
         },
         {
           "dir": "rust",
-          "files": 49,
+          "files": 50,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
@@ -9979,7 +9979,7 @@
         },
         {
           "dir": "rust",
-          "files": 49,
+          "files": 50,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test (all features)",
@@ -10402,8 +10402,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "e2bd6741cec54031be4dbc311e2a92220509cece",
-    "tracked": 852
+    "commit": "fa6f51ee1b6418069252b0a2891f4f0c6048111d",
+    "tracked": 853
   },
   "landings": [
     {
@@ -11283,7 +11283,7 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 97,
+  "testFiles": 98,
   "unassigned": [
     {
       "hash": "0bf1fa7d7c0780c55853bf76e4c3a1a035618792e2aa420f1faa197e69b2114b",
@@ -17728,6 +17728,22 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/narrator_says_what_happened.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "fe578a881ada1001dee39725880142f59dc3759309f3c601ac4e288e66f0098d",
+      "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
+        "rust/etv-core/src/play.rs",
+        "rust/etv-core/src/tui/mod.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/narrator_settings_diagnostics.rs",
       "testsInside": true
     },
     {
