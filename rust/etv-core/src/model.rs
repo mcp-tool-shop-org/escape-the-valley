@@ -1119,6 +1119,13 @@ pub struct RunState {
     pub map_nodes: Vec<MapNode>,
     #[serde(default)]
     pub rng_counter: u64,
+    /// How many times the engine has stepped this run: [`crate::engine::StepEngine::step`]
+    /// adds one on every call, choice and fork turns included, before anything else. The
+    /// narrator's sampling seed reads it as the turn index, so two turns with the same facts
+    /// never share a seed. Not a game rule: nothing in play reads it. Saved in v5 saves; the
+    /// frozen v4 (Legacy) save does not carry it, so a resumed Legacy run counts from 0.
+    #[serde(default)]
+    pub turns_stepped: u64,
     #[serde(
         default,
         deserialize_with = "crate::rng::deserialize_lenient_rng_state"
@@ -1185,6 +1192,7 @@ impl Default for RunState {
             journal: Vec::new(),
             map_nodes: Vec::new(),
             rng_counter: 0,
+            turns_stepped: 0,
             rng_state: None,
             recent_event_tags: Vec::new(),
             recent_event_ids: TransientEventIdCooldown::default(),

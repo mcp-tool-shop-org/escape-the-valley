@@ -12,6 +12,8 @@
     "tools",
     "parts",
     "boots",
+    "meds",
+    "salt",
     "health",
     "animals_health",
     "wagon_condition",
@@ -52,6 +54,10 @@
       "neg": "loses strength",
       "pos": "regains strength"
     },
+    "meds": {
+      "neg": "uses medicine",
+      "pos": "gains medicine"
+    },
     "morale": {
       "neg": "loses heart",
       "pos": "takes heart"
@@ -70,6 +76,10 @@
     "rope": {
       "neg": "uses rope",
       "pos": "gains rope"
+    },
+    "salt": {
+      "neg": "uses salt",
+      "pos": "gains salt"
     },
     "time_days": {
       "neg": "saves time",

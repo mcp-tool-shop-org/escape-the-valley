@@ -203,6 +203,12 @@ pub enum Msg {
     },
     /// The settings file was written, or could not be.
     SettingsSaved(Result<(), String>),
+    /// The narrator was rebuilt from newly saved settings: what to tell the player, and the new
+    /// narrator's summary (`None` when it is off or could not be reached).
+    NarratorReconnected {
+        lines: Vec<String>,
+        narrator_summary: Option<String>,
+    },
 }
 
 /// Work for the driver.
@@ -520,6 +526,15 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Effect> {
                     model.settings_note = format!("Could not save the settings file: {e}");
                 }
             }
+            Vec::new()
+        }
+        Msg::NarratorReconnected {
+            lines,
+            narrator_summary,
+        } => {
+            model.push_log(lines);
+            model.log_scroll = 0;
+            model.narrator_summary = narrator_summary;
             Vec::new()
         }
         Msg::Intent(intent) => update_intent(model, intent),

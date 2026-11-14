@@ -1,18 +1,15 @@
 //! Narrator turn set v1: the frozen set of turns the fallback-rate measurement runs on.
 //!
-//! The committed file is frozen by its SHA-256. If the generator, the engine or the content
-//! changes what it would produce, this test fails; that is the point. A new set is a new file
-//! with a new name and digest, never an edit of this one.
+//! The committed file is frozen by its SHA-256 and never edited: it is the record of the
+//! sessions measured on it. The generator has moved on since (see below); a new set is a new
+//! file with a new name and digest (turn set v3), never an edit of this one.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use etv_core::content::embedded_content_pack;
 use etv_core::measure::{build_turn_context, parse_turn_set, sha256_hex, TurnSpec};
 use etv_core::model::GMProfile;
-use etv_core::ruleset::Ruleset;
-use etv_core::turn_set::{
-    generate_turn_set, turn_set_to_json, TURN_SET_RULESET, TURN_SET_V1_QUOTAS,
-};
+use etv_core::turn_set::TURN_SET_V1_QUOTAS;
 
 /// The frozen digest of `tests/fixtures/narrator_turn_set_v1.json`.
 const TURN_SET_V1_SHA256: &str = "838e4346263507a112b6a161a4107a3647c253a39646b2427236afdd4e526f17";
@@ -28,15 +25,24 @@ fn committed_file_matches_its_frozen_digest_and_parses() {
     assert!(parse_turn_set(TURN_SET_V1_BYTES, &"0".repeat(64)).is_err());
 }
 
+/// The stored file is the record of the sessions run on it, and it stays as it was written.
+///
+/// Since the blockers fix (2026-11-14) the generator no longer reproduces it: every supply now
+/// reaches a turn's effects, so turn `w2-085` (friendly_travelers B) would record its meds +1 and
+/// a fallback line that says so. The stored file is checked by its digest instead, and the turn
+/// keeps the facts it was measured with. New measurements run on turn set v3.
 #[test]
-fn generator_reproduces_the_committed_bytes() {
+fn the_stored_file_is_frozen_and_keeps_the_turn_the_generator_has_moved_on_from() {
     assert_eq!(TURN_SET_V1_QUOTAS, [(0, 40), (1, 40), (2, 120), (3, 40)]);
-    // The set is drawn under the Legacy rules, pinned, so V2 rule changes cannot move it.
-    assert_eq!(TURN_SET_RULESET, Ruleset::Legacy);
-    let set = generate_turn_set(&TURN_SET_V1_QUOTAS, embedded_content_pack());
-    let text = turn_set_to_json(&set);
-    assert_eq!(sha256_hex(text.as_bytes()), TURN_SET_V1_SHA256);
-    assert!(text.as_bytes() == TURN_SET_V1_BYTES);
+    assert_eq!(sha256_hex(TURN_SET_V1_BYTES), TURN_SET_V1_SHA256);
+    let set = parse_turn_set(TURN_SET_V1_BYTES, TURN_SET_V1_SHA256).unwrap();
+    let t = set.turns.iter().find(|t| t.id == "w2-085").unwrap();
+    assert_eq!(
+        (t.event_id.as_str(), t.choice_id.as_str()),
+        ("friendly_travelers", "B")
+    );
+    assert_eq!(t.effects, BTreeMap::from([("food".to_string(), -3)]));
+    assert_eq!(t.fallback_line, "The party uses food.");
 }
 
 #[test]

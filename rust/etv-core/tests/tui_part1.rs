@@ -1266,3 +1266,132 @@ fn wrapping_keeps_words_whole_and_hangs_choice_rows() {
     assert_eq!(long.len(), 2);
     assert_eq!(wrap(&["short".to_string()], 20), vec!["short".to_string()]);
 }
+
+/// A narrator that counts its calls and always answers `line`.
+struct CountingNarrator {
+    calls: Arc<AtomicUsize>,
+    line: &'static str,
+}
+
+impl etv_core::narrator::Narrator for CountingNarrator {
+    fn narrate(&self, _ctx: &etv_core::narrator::NarrationContext) -> Option<String> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Some(self.line.to_string())
+    }
+}
+
+#[test]
+fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let rebuilt_calls = Arc::new(AtomicUsize::new(0));
+    let first = CountingNarrator {
+        calls: Arc::clone(&first_calls),
+        line: "The first narrator speaks.",
+    };
+    let engine = new_engine(42);
+    let model = Model::new(
+        ViewData::from_engine(&engine),
+        NarratorSettings::default(),
+        "TEST",
+        "HASH",
+        Vec::new(),
+        true,
+    );
+    let reconnects = Arc::new(AtomicUsize::new(0));
+    let (rebuilt_for_hook, reconnects_for_hook) =
+        (Arc::clone(&rebuilt_calls), Arc::clone(&reconnects));
+    let mut app = App::new(
+        model,
+        engine,
+        &first,
+        Some(table()),
+        dir.path().into(),
+        true,
+    )
+    .with_summary(|| "Narrator: the first one.".to_string())
+    .with_reconnect(move |settings: &NarratorSettings| {
+        reconnects_for_hook.fetch_add(1, Ordering::SeqCst);
+        if settings.enabled {
+            etv_core::tui::Reconnected {
+                narrator: std::rc::Rc::new(CountingNarrator {
+                    calls: Arc::clone(&rebuilt_for_hook),
+                    line: "The rebuilt narrator speaks.",
+                }),
+                live: true,
+                lines: vec!["Narrator: rebuilt.".to_string()],
+                summary: Some(Box::new(|| "Narrator: the rebuilt one.".to_string())),
+            }
+        } else {
+            etv_core::tui::Reconnected {
+                narrator: std::rc::Rc::new(NullNarrator),
+                live: false,
+                lines: vec!["The narrator is switched off in the settings.".to_string()],
+                summary: None,
+            }
+        }
+    });
+    enter(&mut app);
+    assert_eq!(app.model.screen, Screen::Camp);
+
+    // Play exactly one turn, whatever screen the run is on (travel at camp, the first option on
+    // an event or a fork), and check it was played.
+    let play_one_turn = |app: &mut App<'_>| {
+        let before = format!("{:?}", app.engine.state);
+        let key = if app.model.screen == Screen::Camp {
+            't'
+        } else {
+            'a'
+        };
+        app.press_char(key);
+        while app.model.resolved.is_some() {
+            enter(app);
+        }
+        assert!(
+            format!("{:?}", app.engine.state) != before,
+            "no turn was played on {:?}",
+            app.model.screen
+        );
+    };
+    play_one_turn(&mut app);
+    let after_first = first_calls.load(Ordering::SeqCst);
+    assert!(
+        after_first > 0,
+        "the first narrator is asked on the first turn"
+    );
+
+    // Switch the narrator off and save: the next turn asks no narrator at all.
+    app.press_char('o');
+    app.press_char('1');
+    app.press_char('s');
+    assert_eq!(app.model.notice.as_deref(), Some("Settings saved."));
+    assert_eq!(reconnects.load(Ordering::SeqCst), 1);
+    assert!(app.model.narrator_summary.is_none());
+    assert!(flat(&screen_text(&app.model, (80, 24))).contains("switched off"));
+    play_one_turn(&mut app);
+    assert_eq!(first_calls.load(Ordering::SeqCst), after_first);
+    assert_eq!(rebuilt_calls.load(Ordering::SeqCst), 0);
+    assert!(app.narrator_summary().is_none());
+
+    // Saving the same settings again does not reconnect.
+    app.press_char('o');
+    app.press_char('s');
+    assert_eq!(reconnects.load(Ordering::SeqCst), 1);
+
+    // Switch it back on: the next turn is asked of the rebuilt narrator.
+    app.press_char('o');
+    app.press_char('1');
+    app.press_char('s');
+    assert_eq!(reconnects.load(Ordering::SeqCst), 2);
+    play_one_turn(&mut app);
+    assert_eq!(first_calls.load(Ordering::SeqCst), after_first);
+    assert!(rebuilt_calls.load(Ordering::SeqCst) > 0);
+    assert_eq!(
+        app.narrator_summary().as_deref(),
+        Some("Narrator: the rebuilt one.")
+    );
+    assert_eq!(
+        app.model.narrator_summary.as_deref(),
+        Some("Narrator: the rebuilt one.")
+    );
+}

@@ -210,11 +210,35 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
     if let Some(live) = &connection.narrator {
         app = app.with_summary(|| narrator_summary_line(&live.stats()));
     }
+    // Settings saved in the interface rebuild the narrator, so the next turn uses them.
+    app = app.with_reconnect(|settings| {
+        let connection = connect_narrator(settings, build_transport());
+        match connection.narrator {
+            Some(live) => {
+                let live = std::rc::Rc::new(live);
+                let for_summary = std::rc::Rc::clone(&live);
+                etv_core::tui::Reconnected {
+                    narrator: live,
+                    live: true,
+                    lines: connection.lines,
+                    summary: Some(Box::new(move || {
+                        narrator_summary_line(&for_summary.stats())
+                    })),
+                }
+            }
+            None => etv_core::tui::Reconnected {
+                narrator: std::rc::Rc::new(NullNarrator),
+                live: false,
+                lines: connection.lines,
+                summary: None,
+            },
+        }
+    });
     let result = etv_core::tui::run_terminal(&mut app);
     let mut out = std::io::stdout();
     let _ = writeln!(out, "{QUIT_SAVED_LINE}");
-    if let Some(live) = &connection.narrator {
-        let _ = writeln!(out, "{}", narrator_summary_line(&live.stats()));
+    if let Some(summary) = app.narrator_summary() {
+        let _ = writeln!(out, "{summary}");
     }
     match result {
         Ok(()) => ExitCode::SUCCESS,

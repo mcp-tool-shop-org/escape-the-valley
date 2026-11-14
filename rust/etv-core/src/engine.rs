@@ -348,6 +348,9 @@ impl StepEngine {
     /// Process one player action (`step_engine.py:242-277`).
     pub fn step(&mut self, intent: &PlayerIntent) -> StepMessages {
         self.msgs = StepMessages::default();
+        // Every call is a step, whatever it does: camp actions, event choices, forks and the
+        // "run is over" answer alike. The narrator seed reads this as the turn index.
+        self.state.turns_stepped += 1;
 
         if self.phase == GamePhase::GameOver {
             self.msgs.lines.push("This run is over.".to_string());

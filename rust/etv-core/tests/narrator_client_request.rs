@@ -802,3 +802,35 @@ fn no_prompt_states_a_second_sentence_limit() {
         }
     }
 }
+
+#[test]
+fn two_turns_with_the_same_facts_get_different_seeds_and_a_replay_the_same() {
+    // The same run, day and facts at two places in the run: only the turn index differs.
+    let ctx = context(42, 3);
+    let first = ctx.clone().with_turn_index(7);
+    let again = ctx.clone().with_turn_index(8);
+    let seed = |c: &NarrationContext, scene: bool| {
+        narration_call_seed(c, GMProfile::Fireside, NarratorLength::Brief, scene)
+    };
+    assert_ne!(seed(&first, true), seed(&again, true));
+    assert_ne!(seed(&first, false), seed(&again, false));
+    // A replay of the same turn (the same index) asks for the same samples, byte for byte.
+    let replay = ctx.with_turn_index(7);
+    assert_eq!(seed(&first, true), seed(&replay, true));
+    assert_eq!(seed(&first, false), seed(&replay, false));
+    assert_eq!(
+        serde_json::to_string(&first).unwrap(),
+        serde_json::to_string(&replay).unwrap()
+    );
+}
+
+#[test]
+fn the_turn_index_is_the_runs_step_counter_after_the_turn() {
+    // A fresh run has stepped no turns; the context built from it carries that count. Every
+    // step advancing it is proved in `narrator_turn_counter.rs`.
+    let ctx = context(42, 1);
+    let mut state = create_new_run_with_content(42, embedded_content_pack());
+    state.day = 1;
+    assert_eq!(state.turns_stepped, 0);
+    assert_eq!(ctx.turn_index(), state.turns_stepped);
+}
