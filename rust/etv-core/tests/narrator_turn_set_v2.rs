@@ -1,15 +1,14 @@
 //! Narrator turn set v2: turns drawn mid-run, each stored with the whole narrator context the
 //! game built for it. Version 1 stays frozen beside it and is not touched.
 //!
-//! The committed file is frozen by its SHA-256. If the generator, the engine or the content
-//! changes what it would produce, the reproduce test fails on purpose. A new set is a new file
-//! with a new name and digest, never an edit of this one.
+//! The committed file is frozen by its SHA-256 and never edited: it is the record of sessions 1
+//! to 6. The generator has moved on since; its output is turn set v3, a new file with its own
+//! name and digest.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use etv_core::content::embedded_content_pack;
 use etv_core::measure::{
     parse_any_turn_set, parse_turn_set_v2, run_cli, run_measurement_any, sha256_hex, AnyTurnSet,
     MeasureConfig, TURN_SET_SCHEMA_V2,
@@ -19,10 +18,7 @@ use etv_core::narrator::{
     build_outcome_prompts, build_scene_prompts, NarratorLength, NarratorTransport, TransportError,
 };
 use etv_core::ruleset::Ruleset;
-use etv_core::turn_set::{
-    generate_turn_set_v2, turn_set_v2_to_json, TURN_SET_RULESET, TURN_SET_V2_PER_LEVEL,
-    TURN_SET_V2_QUOTAS,
-};
+use etv_core::turn_set::{TURN_SET_RULESET, TURN_SET_V2_PER_LEVEL, TURN_SET_V2_QUOTAS};
 
 const V2_SHA256: &str = "59a3e4f8870474d01b775a52071fae9a12629cec0f225606271e9d77f5f8ca46";
 const V2_BYTES: &[u8] = include_bytes!("fixtures/narrator_turn_set_v2.json");
@@ -52,14 +48,19 @@ fn both_files_match_their_frozen_digests_and_the_harness_reads_either() {
     assert!(parse_turn_set_v2(V1_BYTES, V1_SHA256).is_err());
 }
 
+/// The stored file is the record of sessions 1 to 6 and stays as it was written.
+///
+/// Since the blockers fix (2026-11-14) the generator no longer reproduces it: the contexts now
+/// carry the turn index, and eleven turns carry the meds they spend. The stored file is checked
+/// by its digest instead; the generator's output is turn set v3 (`narrator_turn_set_v3.rs`
+/// pins it and the exact v2 to v3 difference).
 #[test]
-fn generator_reproduces_the_committed_bytes() {
-    // Drawn under the Legacy rules, pinned, so V2 rule changes cannot move the file.
+fn the_stored_file_is_frozen_by_its_digest() {
     assert_eq!(TURN_SET_RULESET, Ruleset::Legacy);
-    let set = generate_turn_set_v2(embedded_content_pack());
-    let text = turn_set_v2_to_json(&set);
-    assert_eq!(sha256_hex(text.as_bytes()), V2_SHA256);
-    assert!(text.as_bytes() == V2_BYTES);
+    assert_eq!(sha256_hex(V2_BYTES), V2_SHA256);
+    // Written before the turn index existed: no stored context carries one.
+    let raw = std::str::from_utf8(V2_BYTES).unwrap();
+    assert!(!raw.contains("\"turn_index\""));
 }
 
 fn tag_counts() -> BTreeMap<String, usize> {

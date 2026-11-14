@@ -7,8 +7,8 @@ use etv_core::content::embedded_content_pack;
 use etv_core::engine::StepEngine;
 use etv_core::model::{GMProfile, GamePhase, IntentAction, PlayerIntent};
 use etv_core::narrator::{
-    build_narration_context_with_phase, evaluate_turn_matters, narration_call_seed,
-    NarratorLength, PreTurnObservation,
+    build_narration_context_with_phase, evaluate_turn_matters, narration_call_seed, NarratorLength,
+    PreTurnObservation,
 };
 use etv_core::ruleset::Ruleset;
 use etv_core::save_v5::{state_to_value_v5, value_to_saved_game};
@@ -197,7 +197,11 @@ fn a_v5_save_carries_the_counter_and_an_older_one_reads_zero() {
     );
 
     // A value that is not a count is a corrupt save, not a silent 0.
-    for bad in [serde_json::json!(-1), serde_json::json!("12"), serde_json::json!(1.5)] {
+    for bad in [
+        serde_json::json!(-1),
+        serde_json::json!("12"),
+        serde_json::json!(1.5),
+    ] {
         let mut v = value.clone();
         v["turns_stepped"] = bad.clone();
         assert!(
