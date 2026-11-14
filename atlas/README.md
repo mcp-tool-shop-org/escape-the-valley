@@ -1,20 +1,18 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-14 from commit 1b999a2 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 077a5d0 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, in Rust (80 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-14 (a4c9748)
+## What changed since 2026-11-14 (1b999a2)
 
-- In rust/etv-core/src/play.rs, `run_play` gained a step, `trail_ledger_for_player`, before `current_node`.
-- In rust/etv-core/src/play.rs, `run_play` gained a step, `label`, before `label_in_sentence`.
-- In rust/etv-core/src/play.rs, `run_play` gained a step, `label_in_sentence`, before `route_offered_letters`.
+- In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `label_in_sentence`.
+- In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `new`.
+- In rust/etv-core/src/play.rs, `run_play` lost a step, `build_narration_context_with_phase`.
 - And 1 more change to the order of work.
-- rust/etv-core/src/labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- rust/etv-core/tests/player_text_labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.
-- 2 files added and 19 changed content, across 1 part.
+- 6 files changed content, across 1 part.
 
 ## What comes in
 

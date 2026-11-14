@@ -84,8 +84,8 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 2,
-      "changed": 19,
+      "added": 0,
+      "changed": 6,
       "moved": 0,
       "parts": 1,
       "removed": 0
@@ -93,21 +93,21 @@
     "items": [
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `trail_ledger_for_player`, before `current_node`.",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `label_in_sentence`.",
         "subjects": [
           "rust/etv-core/src/play.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `label`, before `label_in_sentence`.",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `new`.",
         "subjects": [
           "rust/etv-core/src/play.rs"
         ]
       },
       {
         "kind": "sequence",
-        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `label_in_sentence`, before `route_offered_letters`.",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` lost a step, `build_narration_context_with_phase`.",
         "subjects": [
           "rust/etv-core/src/play.rs"
         ]
@@ -118,28 +118,14 @@
         "subjects": []
       },
       {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/src/labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/src/labels.rs"
-        ]
-      },
-      {
-        "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/player_text_labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
-        "subjects": [
-          "rust/etv-core/tests/player_text_labels.rs"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "2 files added and 19 changed content, across 1 part.",
+        "sentence": "6 files changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "a4c9748c963a2bc7fc2b0db8fce740fb76ffca85",
-      "generatedAt": "2026-11-14T08:59:53.707Z"
+      "commit": "1b999a23983dd2f6b09774772e00dc3c564039ae",
+      "generatedAt": "2026-11-14T11:38:29.399Z"
     },
     "unchanged": false
   },
@@ -226,7 +212,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 11 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "1b999a23983dd2f6b09774772e00dc3c564039ae",
+  "commit": "077a5d06e1ca105a8d392a348f91001d430d3146",
   "defaultBranch": "main",
   "derived": "10 parts, in Rust (80 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
@@ -716,7 +702,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T11:38:29.399Z",
+  "generatedAt": "2026-11-14T12:14:34.090Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",

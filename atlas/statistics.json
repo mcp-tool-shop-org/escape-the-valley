@@ -226,8 +226,8 @@
         "path": ".polyglot-terms.json"
       },
       {
-        "commits": 32,
-        "lines": 488,
+        "commits": 33,
+        "lines": 490,
         "path": "CHANGELOG.md"
       },
       {
@@ -286,8 +286,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 55,
-        "lines": 1802,
+        "commits": 56,
+        "lines": 1832,
         "path": "atlas/README.md"
       },
       {
@@ -296,18 +296,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 55,
-        "lines": 6207,
+        "commits": 56,
+        "lines": 6271,
         "path": "atlas/page.json"
       },
       {
-        "commits": 55,
-        "lines": 29396,
+        "commits": 56,
+        "lines": 29604,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 55,
-        "lines": 44901,
+        "commits": 56,
+        "lines": 45176,
         "path": "atlas/structure.json"
       },
       {
@@ -3091,8 +3091,8 @@
         "path": "rust/etv-core/src/events_builtin.rs"
       },
       {
-        "commits": 1,
-        "lines": 95,
+        "commits": 2,
+        "lines": 144,
         "path": "rust/etv-core/src/labels.rs"
       },
       {
@@ -3156,8 +3156,8 @@
         "path": "rust/etv-core/src/physics.rs"
       },
       {
-        "commits": 6,
-        "lines": 573,
+        "commits": 7,
+        "lines": 585,
         "path": "rust/etv-core/src/play.rs"
       },
       {
@@ -3216,8 +3216,8 @@
         "path": "rust/etv-core/src/tui/mod.rs"
       },
       {
-        "commits": 4,
-        "lines": 834,
+        "commits": 5,
+        "lines": 839,
         "path": "rust/etv-core/src/tui/model.rs"
       },
       {
@@ -3286,8 +3286,8 @@
         "path": "rust/etv-core/tests/fixtures/narrator_turn_set_v3.json"
       },
       {
-        "commits": 3,
-        "lines": 129,
+        "commits": 4,
+        "lines": 131,
         "path": "rust/etv-core/tests/fixtures/play_seed42_transcript.txt"
       },
       {
@@ -3511,8 +3511,8 @@
         "path": "rust/etv-core/tests/phase3_settings_disclosure.rs"
       },
       {
-        "commits": 1,
-        "lines": 400,
+        "commits": 2,
+        "lines": 515,
         "path": "rust/etv-core/tests/player_text_labels.rs"
       },
       {
@@ -4466,9 +4466,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T11:38:29.399Z",
+  "generatedAt": "2026-11-14T12:14:34.090Z",
   "generatedFrom": {
-    "commit": "1b999a23983dd2f6b09774772e00dc3c564039ae"
+    "commit": "077a5d06e1ca105a8d392a348f91001d430d3146"
   },
   "pairs": [
     {
@@ -4621,43 +4621,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 45,
-      "shared": 45,
+      "either": 46,
+      "shared": 46,
       "strength": 1
     },
     {
@@ -4825,16 +4825,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T06:38:20-05:00",
+    "headDate": "2026-11-14T07:14:16-05:00",
     "inScopeFiles": 852,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 156,
+    "qualifyingCommits": 158,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T11:38:20.000Z",
+    "since": "2026-05-18T12:14:16.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
