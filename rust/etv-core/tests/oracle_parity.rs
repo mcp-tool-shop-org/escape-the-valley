@@ -898,6 +898,14 @@ fn check_03_save_round_trip_20_saves() {
             sv.label
         );
 
+        // A Legacy run's step counter goes to the narration sidecar, never into run.json: the
+        // resaved file below must still be the frozen vector, whatever the count.
+        let mut loaded_state = loaded_state;
+        assert_eq!(
+            loaded_state.turns_stepped, 0,
+            "no sidecar beside the vector"
+        );
+        loaded_state.turns_stepped = 37;
         let tmp2 = tempfile::tempdir().expect("tempdir 2");
         let resaved_path = save_game(&loaded_state, tmp2.path()).expect("save_game");
         let resaved_text = std::fs::read_to_string(&resaved_path).unwrap();

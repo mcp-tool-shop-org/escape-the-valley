@@ -1299,8 +1299,11 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
         true,
     );
     let reconnects = Arc::new(AtomicUsize::new(0));
+    let last_reconnect: Arc<std::sync::Mutex<Option<NarratorSettings>>> =
+        Arc::new(std::sync::Mutex::new(None));
     let (rebuilt_for_hook, reconnects_for_hook) =
         (Arc::clone(&rebuilt_calls), Arc::clone(&reconnects));
+    let last_for_hook = Arc::clone(&last_reconnect);
     let mut app = App::new(
         model,
         engine,
@@ -1312,6 +1315,7 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
     .with_summary(|| "Narrator: the first one.".to_string())
     .with_reconnect(move |settings: &NarratorSettings| {
         reconnects_for_hook.fetch_add(1, Ordering::SeqCst);
+        *last_for_hook.lock().unwrap() = Some(settings.clone());
         if settings.enabled {
             etv_core::tui::Reconnected {
                 narrator: std::rc::Rc::new(CountingNarrator {
@@ -1394,4 +1398,43 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
         app.model.narrator_summary.as_deref(),
         Some("Narrator: the rebuilt one.")
     );
+
+    // The profile, the length and the model each reconnect too, with the edited value, and the
+    // next turn is asked of the narrator built from it.
+    let edits: [(&str, &[char]); 3] = [
+        ("profile", &['2']),
+        ("length", &['3']),
+        (
+            "model",
+            &['4', 't', 'e', 's', 't', '-', 'm', 'o', 'd', 'e', 'l'],
+        ),
+    ];
+    for (n, (field, keys)) in edits.iter().enumerate() {
+        let before = app.model.saved_settings.clone();
+        app.press_char('o');
+        for &k in *keys {
+            app.press_char(k);
+        }
+        if *field == "model" {
+            enter(&mut app);
+        }
+        app.press_char('s');
+        assert_eq!(
+            app.model.notice.as_deref(),
+            Some("Settings saved."),
+            "{field}"
+        );
+        assert_eq!(reconnects.load(Ordering::SeqCst), 3 + n, "{field}");
+        let used = last_reconnect.lock().unwrap().clone().unwrap();
+        assert_eq!(used, app.model.saved_settings, "{field}");
+        match *field {
+            "profile" => assert_ne!(used.profile, before.profile),
+            "length" => assert_ne!(used.length, before.length),
+            _ => assert_eq!(used.model, "test-model"),
+        }
+        let asked = rebuilt_calls.load(Ordering::SeqCst);
+        play_one_turn(&mut app);
+        assert!(rebuilt_calls.load(Ordering::SeqCst) > asked, "{field}");
+        assert_eq!(first_calls.load(Ordering::SeqCst), after_first);
+    }
 }
