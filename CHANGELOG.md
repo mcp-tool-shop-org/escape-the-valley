@@ -7,6 +7,7 @@ All notable changes to Escape the Valley are documented here.
 ### Changed
 
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
+- **Supplies and changes are named in words.** The camp status, the supplies panel, the line of numbers after a choice, a choice you cannot afford and the Trail Ledger now read "Lantern oil", "Medicine", "Ammunition", "Days", "Wagon condition" and "Animals' health" instead of the game's internal names (`lantern_oil`, `meds`, `ammo`, `time_days`, `wagon_condition`, `animals_health`). Saves and game rules are unchanged.
 
 ## [1.3.3] - 2026-11-07
 

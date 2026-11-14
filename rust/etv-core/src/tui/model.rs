@@ -8,7 +8,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::engine::{route_offered_letters, EventChoiceInfo, StepEngine};
-use crate::ledger::trail_ledger;
+use crate::ledger::trail_ledger_for_player;
 use crate::model::{GamePhase, IntentAction, PlayerIntent};
 use crate::narrator::NarratorSettings;
 use crate::play::{
@@ -103,7 +103,7 @@ impl ViewData {
             _ => Vec::new(),
         };
         let ledger = if engine.phase == GamePhase::GameOver {
-            trail_ledger(&engine.state)
+            trail_ledger_for_player(&engine.state)
         } else {
             Vec::new()
         };

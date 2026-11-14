@@ -4,7 +4,7 @@
 │                                                                              │
 │ [Continue despite the wet] The party damages the wagon, loses heart, falls   │
 │ back on the trail and loses time.                                            │
-│   distance -4, morale -2, time_days +1, wagon_condition -2                   │
+│   Distance -4, Morale -2, Days +1, Wagon condition -2                        │
 │                                                                              │
 │                                                                              │
 │                                                                              │

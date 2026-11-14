@@ -9,7 +9,8 @@ use std::io::{BufRead, Write};
 use std::sync::Arc;
 
 use crate::engine::{EventChoiceInfo, StepEngine};
-use crate::ledger::trail_ledger;
+use crate::labels::{label, label_in_sentence, relabel_text};
+use crate::ledger::trail_ledger_for_player;
 use crate::model::{GamePhase, IntentAction, PlayerIntent, RunState};
 use crate::narrator::{
     build_narration_context_with_phase, evaluate_turn_matters, profile_interface_name,
@@ -113,7 +114,12 @@ pub fn choice_line(choice: &EventChoiceInfo) -> String {
     if choice.affordable {
         line
     } else {
-        format!("{line} [cannot afford: {}]", choice.missing.join(", "))
+        let missing: Vec<String> = choice
+            .missing
+            .iter()
+            .map(|k| label_in_sentence(k))
+            .collect();
+        format!("{line} [cannot afford: {}]", missing.join(", "))
     }
 }
 
@@ -203,7 +209,7 @@ pub fn status_lines(state: &RunState) -> Vec<String> {
     let supplies = facts
         .supplies
         .iter()
-        .map(|(k, v)| format!("{k} {v}"))
+        .map(|(k, v)| format!("{} {v}", label(k)))
         .collect::<Vec<_>>()
         .join(", ");
     vec![
@@ -225,13 +231,14 @@ pub fn status_lines(state: &RunState) -> Vec<String> {
     ]
 }
 
-/// The changes a turn actually applied, as one line of numbers (`food -2, morale +1`), or `None`
-/// when nothing changed. Keys are in alphabetical order.
+/// The changes a turn actually applied, as one line of numbers (`Food -2, Morale +1`), or `None`
+/// when nothing changed. Each change is named by its label; they come in the keys' alphabetical
+/// order.
 pub fn deltas_line(deltas: &BTreeMap<String, i32>) -> Option<String> {
     let parts: Vec<String> = deltas
         .iter()
         .filter(|(_, v)| **v != 0)
-        .map(|(k, v)| format!("{k} {v:+}"))
+        .map(|(k, v)| format!("{} {v:+}", label(k)))
         .collect();
     if parts.is_empty() {
         None
@@ -305,7 +312,9 @@ pub fn play_turn(
             out.push(ending.headline.clone());
         }
     }
-    out
+    // Engine lines and the engine's own fallback line are written with keys in them in places
+    // (`-2 lantern_oil` when no phrase table is in use): they are relabelled as shown.
+    out.iter().map(|line| relabel_text(line)).collect()
 }
 
 /// How a play session ended.
@@ -343,7 +352,7 @@ pub fn run_play<R: BufRead, W: Write>(
         writeln!(out)?;
         let offered: Vec<String> = match engine.phase {
             GamePhase::GameOver => {
-                write_lines(out, &trail_ledger(&engine.state))?;
+                write_lines(out, &trail_ledger_for_player(&engine.state))?;
                 return Ok(PlayExit::Finished);
             }
             GamePhase::Camp => {

@@ -303,11 +303,15 @@ fn draw_settings(model: &Model, th: &Theme, frame: &mut Frame, area: Rect) {
 }
 
 /// The supplies laid out in as many columns as the rows allow, filled down each column in
-/// turn. Every supply is named, with its count beside it.
+/// turn. Every supply is named by its label, with its count beside it.
 fn supply_rows(supplies: &[(String, i32)], rows: usize, width: usize) -> Vec<String> {
     if supplies.is_empty() || rows == 0 {
         return Vec::new();
     }
+    let supplies: Vec<(String, i32)> = supplies
+        .iter()
+        .map(|(k, v)| (crate::labels::label(k), *v))
+        .collect();
     let cols = supplies.len().div_ceil(rows);
     let col_w = (width / cols).max(1);
     let key_w = supplies
