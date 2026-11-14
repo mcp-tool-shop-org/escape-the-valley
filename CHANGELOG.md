@@ -4,6 +4,10 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **The narrator can run on a hosted service.** Settings gain a provider: the local Ollama server stays the default (now `qwen3:4b-instruct-2507-q4_K_M`, Brief length), and a player can choose Claude (preselected as `claude-haiku-5-5`) or any OpenAI-compatible endpoint. The key is read from an environment variable or a key file the settings name; it is never stored in the settings, logged or shown. A rejected key switches the hosted narrator off, and any failure shows the game's own line. A turn whose first narrator call times out skips its second call. Builds with the cloud narrator carry the TLS crates' notices.
+
 ### Changed
 
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
