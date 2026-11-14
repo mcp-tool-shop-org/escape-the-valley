@@ -600,7 +600,8 @@ fn settings_changed_by_keys_are_saved_exactly_as_line_mode_saves_them() {
     let mut out = Vec::new();
     let exit = run_settings_screen(
         NarratorSettings::default(),
-        Cursor::new("1\n2\n2\n3\n3\n4\nqwen3:4b\ns\n"),
+        // Three length presses, as above: the default is Brief, so they come back to it.
+        Cursor::new("1\n2\n2\n3\n3\n3\n4\nqwen3:4b\ns\n"),
         &mut out,
     )
     .unwrap();

@@ -19,7 +19,10 @@ fn cdla_is_allowed_for_webpki_root_certs_only() {
 
     // The shipped manifest passes.
     let manifest = embedded_notices_manifest();
-    assert_eq!(validate_notices_against_allowlist(&manifest, &allowlist), Ok(()));
+    assert_eq!(
+        validate_notices_against_allowlist(&manifest, &allowlist),
+        Ok(())
+    );
 
     // The same licence on any other crate still fails.
     let mut other = manifest.clone();

@@ -1756,11 +1756,14 @@ fn step3_timeouts_fake_slow_server_triggers_per_call_fallback_and_separate_warmu
 
     let turn_res = narrator.narrate_turn(&ctx);
     assert_eq!(turn_res.scene, None, "slow scene call must time out");
-    assert_eq!(turn_res.outcome, None, "slow outcome call must time out");
+    assert_eq!(
+        turn_res.outcome, None,
+        "the turn's outcome call is skipped after its scene call timed out"
+    );
     assert_eq!(
         narrator.stats().timeouts,
-        2,
-        "both scene and outcome timeouts must be recorded on the turn"
+        1,
+        "the scene call's timeout is recorded, and the skipped outcome call makes none"
     );
     assert_eq!(
         ctx.resolve_display_line(&narrator),

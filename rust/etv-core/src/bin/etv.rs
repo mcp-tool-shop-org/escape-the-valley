@@ -240,7 +240,7 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
     }
     // Settings saved in the interface rebuild the narrator, so the next turn uses them.
     app = app.with_reconnect(|settings| {
-        let connection = connect_narrator(settings, build_transport());
+        let connection = connect_narrator(settings, build_transport(settings));
         match connection.narrator {
             Some(live) => {
                 let live = std::rc::Rc::new(live);

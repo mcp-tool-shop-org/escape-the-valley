@@ -658,8 +658,8 @@ fn is_non_release_target_only_crate(name: &str) -> bool {
     // (`winapi` on the windows-gnu targets).
     //
     // `windows-sys` used to be listed here too. Since the cloud narrator's TLS (`native-tls`) it
-    // is compiled on the Windows release target, through `schannel` and `tempfile`, so it is a
-    // shipped crate like any other.
+    // is compiled on the Windows release target, through `schannel`, so it is a shipped crate
+    // like any other.
     matches!(
         name,
         "r-efi"
@@ -890,24 +890,53 @@ fn parse_package_license_and_repo(crate_toml_text: &str) -> (String, String) {
     (license, repository)
 }
 
-fn crate_targets_in_build(name: &str) -> Vec<String> {
+fn crate_targets_in_build(name: &str, version: &str) -> Vec<String> {
     let apple = "aarch64-apple-darwin";
     let windows = "x86_64-pc-windows-msvc";
     let linux = "x86_64-unknown-linux-gnu";
     // Crates reached only through a `cfg(unix)`, `cfg(windows)` or `cfg(target_os)` gate. This
     // must agree with the target evaluation in `rust/tools/gen_notices.py`.
-    let targets: &[&str] = match name {
-        "libc"
-        | "errno"
-        | "mio"
-        | "num_threads"
-        | "rustix"
-        | "signal-hook"
-        | "signal-hook-mio"
-        | "signal-hook-registry" => &[apple, linux],
-        "linux-raw-sys" => &[linux],
-        "crossterm_winapi" | "winapi" | "windows-link" => &[windows],
-        _ => &[apple, windows, linux],
+    //
+    // The cloud narrator's TLS (`native-tls`) adds one platform stack per target: OpenSSL on
+    // Linux (`openssl*`, `foreign-types*` and the build helpers `cc`, `pkg-config`, `vcpkg`,
+    // `shlex`, `find-msvc-tools`), Security.framework on macOS (`security-framework*`,
+    // `core-foundation*`, and `tempfile`, `fastrand`, `once_cell` and the newer `getrandom`
+    // through it) and SChannel on Windows (`schannel`, `windows-sys`).
+    let targets: &[&str] = match (name, version) {
+        ("getrandom", "0.4.3") => &[apple],
+        _ => match name {
+            "libc"
+            | "errno"
+            | "mio"
+            | "num_threads"
+            | "rustix"
+            | "signal-hook"
+            | "signal-hook-mio"
+            | "signal-hook-registry" => &[apple, linux],
+            "linux-raw-sys"
+            | "cc"
+            | "find-msvc-tools"
+            | "foreign-types"
+            | "foreign-types-shared"
+            | "openssl"
+            | "openssl-macros"
+            | "openssl-probe"
+            | "openssl-sys"
+            | "pkg-config"
+            | "shlex"
+            | "vcpkg" => &[linux],
+            "core-foundation"
+            | "core-foundation-sys"
+            | "fastrand"
+            | "once_cell"
+            | "security-framework"
+            | "security-framework-sys"
+            | "tempfile" => &[apple],
+            "crossterm_winapi" | "winapi" | "windows-link" | "schannel" | "windows-sys" => {
+                &[windows]
+            }
+            _ => &[apple, windows, linux],
+        },
     };
     targets.iter().map(|t| (*t).to_string()).collect()
 }
@@ -1058,7 +1087,7 @@ pub fn generate_notices_from_workspace(
                 repo_url
             },
             cargo_lock_checksum: lock_pkg.checksum.clone().unwrap_or_default(),
-            targets: crate_targets_in_build(&name),
+            targets: crate_targets_in_build(&name, &version),
             license_files,
         });
     }
