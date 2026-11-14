@@ -85,7 +85,7 @@
   "changes": {
     "fileCounts": {
       "added": 1,
-      "changed": 0,
+      "changed": 4,
       "moved": 0,
       "parts": 0,
       "removed": 0
@@ -93,20 +93,20 @@
     "items": [
       {
         "kind": "unassigned",
-        "sentence": "rust/etv-core/tests/narrator_settings_diagnostics.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "sentence": "rust/etv-core/tests/settings_never_echo_a_key.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
         "subjects": [
-          "rust/etv-core/tests/narrator_settings_diagnostics.rs"
+          "rust/etv-core/tests/settings_never_echo_a_key.rs"
         ]
       },
       {
         "kind": "counts",
-        "sentence": "1 file added.",
+        "sentence": "1 file added and 4 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "e2bd6741cec54031be4dbc311e2a92220509cece",
-      "generatedAt": "2026-11-14T16:45:12.776Z"
+      "commit": "fa6f51ee1b6418069252b0a2891f4f0c6048111d",
+      "generatedAt": "2026-11-14T16:46:02.815Z"
     },
     "unchanged": false
   },
@@ -193,9 +193,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 12 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "fa6f51ee1b6418069252b0a2891f4f0c6048111d",
+  "commit": "6600a6855eca9c35edf85f2390db9a8614ad5aac",
   "defaultBranch": "main",
-  "derived": "10 parts, in Rust (86 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Rust (87 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -253,7 +253,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 12,
-      "runsMore": 49,
+      "runsMore": 50,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -321,7 +321,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 12,
-      "runsMore": 49,
+      "runsMore": 50,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -685,13 +685,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T16:46:02.815Z",
+  "generatedAt": "2026-11-14T18:18:15.946Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "138 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 135 more.",
+    "139 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 136 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -719,7 +719,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 98,
+  "testFiles": 99,
   "testedBy": {
     "agents": 1,
     "bin": 0,

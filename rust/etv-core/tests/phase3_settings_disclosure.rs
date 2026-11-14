@@ -365,11 +365,11 @@ fn unusable_settings_files_fall_back_to_defaults_with_a_warning() {
 
     // Each warning names the reason and the settings used instead.
     let cases: [(&str, &str); 5] = [
-        ("{ not json", "The settings file was not used: invalid settings JSON"),
+        ("{ not json", "The settings file was not used: the file is not valid JSON (at line 1, column "),
         // A non-loopback endpoint without the explicit opt-in is refused by the loader.
         (
             r#"{"endpoint": "http://example.com:11434"}"#,
-            "The settings file was not used: endpoint rejected",
+            "The settings file was not used: the endpoint is not on this computer",
         ),
         (
             r#"{"model": "two words"}"#,

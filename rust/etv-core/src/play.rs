@@ -458,6 +458,23 @@ pub fn connect_narrator(
     })
 }
 
+/// An endpoint as it may be shown: its scheme and authority (`http://127.0.0.1:11434`) only.
+/// A path, query or fragment is text from the settings that could hold anything, a pasted key
+/// included, so it is never shown. (The settings loader already refuses an authority with
+/// userinfo.)
+pub fn endpoint_for_display(endpoint: &str) -> String {
+    let trimmed = endpoint.trim();
+    let (scheme, rest) = match trimmed.split_once("://") {
+        Some((s, r)) if s == "http" || s == "https" => (s, r),
+        _ => return "the configured endpoint".to_string(),
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    if authority.is_empty() || authority.contains('@') {
+        return "the configured endpoint".to_string();
+    }
+    format!("{scheme}://{authority}")
+}
+
 /// Line shown when this build has no narrator connection compiled in at all.
 pub const NO_NARRATOR_CONNECTION_LINE: &str = "This build has no narrator connection.";
 
@@ -495,7 +512,7 @@ pub fn connect_narrator_with(
         } else {
             format!(
                 "The narrator service did not answer at {}. Start it with: ollama serve",
-                settings.endpoint
+                endpoint_for_display(&settings.endpoint)
             )
         };
         return off(reason);

@@ -3777,11 +3777,34 @@ impl NarratorSettings {
 
 impl NarratorSettings {
     /// Load and validate [`NarratorSettings`] from a JSON string.
+    ///
+    /// No error carries text from the file: a settings file can hold a key pasted in the wrong
+    /// place, and these messages are shown to the player. A JSON error says only what kind it is
+    /// and where; an endpoint error says only what is wrong with it.
     pub fn from_json_str(raw: &str) -> Result<Self, String> {
-        let mut settings: Self =
-            serde_json::from_str(raw).map_err(|e| format!("invalid settings JSON: {e}"))?;
+        let mut settings: Self = serde_json::from_str(raw).map_err(|e| {
+            let what = match e.classify() {
+                serde_json::error::Category::Data => "a setting has the wrong type or value",
+                serde_json::error::Category::Syntax | serde_json::error::Category::Eof => {
+                    "the file is not valid JSON"
+                }
+                serde_json::error::Category::Io => "the file could not be read",
+            };
+            format!("{what} (at line {}, column {})", e.line(), e.column())
+        })?;
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
-            .map_err(|e| format!("endpoint rejected: {e:?}"))?;
+            .map_err(|e| {
+                match e {
+                    EndpointError::NonLoopbackRefused(_) => {
+                        "the endpoint is not on this computer (set allow_non_loopback to use another host)"
+                    }
+                    EndpointError::InvalidScheme(_) => {
+                        "the endpoint must start with http:// or https://"
+                    }
+                    EndpointError::InvalidAuthority(_) => "the endpoint's host is not valid",
+                }
+                .to_string()
+            })?;
         settings.endpoint = normalized;
         crate::narrator_provider::validate_provider(&settings)?;
         Ok(settings)
