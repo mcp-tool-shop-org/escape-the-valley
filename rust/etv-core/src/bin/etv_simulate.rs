@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use etv_core::content::embedded_content_pack;
 use etv_core::ruleset::Ruleset;
 use etv_core::simulate::{
-    format_text, parse_args, seed_list, simulate_with_ruleset, SimCommand, USAGE,
+    format_text, parse_args, seed_list, simulate_with_levers, SimCommand, USAGE,
 };
 
 fn main() -> ExitCode {
@@ -28,7 +28,9 @@ fn main() -> ExitCode {
     let reports: Vec<_> = opts
         .policies
         .iter()
-        .map(|&p| simulate_with_ruleset(&seeds, p, opts.turns, content, opts.ruleset))
+        .map(|&p| {
+            simulate_with_levers(&seeds, p, opts.turns, content, opts.ruleset, opts.levers)
+        })
         .collect();
 
     if opts.json {

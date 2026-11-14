@@ -14,6 +14,7 @@
 pub mod backpack;
 pub mod content;
 pub mod content_diff;
+pub mod difficulty;
 pub mod engine;
 pub mod events;
 pub mod events_builtin;

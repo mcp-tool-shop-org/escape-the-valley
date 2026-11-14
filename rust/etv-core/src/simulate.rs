@@ -16,6 +16,7 @@ use crate::engine::{compute_ending, deaths_by_cause, StepEngine};
 use crate::model::{Condition, GamePhase, IntentAction, Pace, PlayerIntent};
 use crate::ruleset::Ruleset;
 use crate::snapshot::compute_mechanics_state_hash;
+use crate::difficulty::{apply_starting_levers, Difficulty, DifficultyLevers};
 use crate::worldgen::create_new_run_with_content;
 
 /// Default turn cap per run (one turn is one `StepEngine::step` call).
@@ -362,7 +363,33 @@ pub fn run_one_with_ruleset(
     content: &ContentPack,
     ruleset: Ruleset,
 ) -> RunRecord {
-    let state = create_new_run_with_content(seed, content);
+    run_one_with_levers(
+        seed,
+        seed_idx,
+        policy,
+        max_turns,
+        content,
+        ruleset,
+        DifficultyLevers::NONE,
+    )
+}
+
+/// [`run_one_with_ruleset`] with a difficulty mode's starting levers applied to the new run
+/// before its first turn. [`DifficultyLevers::NONE`] applies nothing, so it is exactly
+/// `run_one_with_ruleset`.
+pub fn run_one_with_levers(
+    seed: i128,
+    seed_idx: usize,
+    policy: Policy,
+    max_turns: usize,
+    content: &ContentPack,
+    ruleset: Ruleset,
+    levers: DifficultyLevers,
+) -> RunRecord {
+    let mut state = create_new_run_with_content(seed, content);
+    if levers != DifficultyLevers::NONE {
+        apply_starting_levers(&mut state, levers);
+    }
     let mut engine = StepEngine::with_content(state, content);
     engine.set_ruleset(ruleset);
 
@@ -617,10 +644,31 @@ pub fn simulate_with_ruleset(
     content: &ContentPack,
     ruleset: Ruleset,
 ) -> SimReport {
+    simulate_with_levers(
+        seeds,
+        policy,
+        max_turns,
+        content,
+        ruleset,
+        DifficultyLevers::NONE,
+    )
+}
+
+/// [`simulate_with_ruleset`] with starting levers applied to every run.
+pub fn simulate_with_levers(
+    seeds: &[i128],
+    policy: Policy,
+    max_turns: usize,
+    content: &ContentPack,
+    ruleset: Ruleset,
+    levers: DifficultyLevers,
+) -> SimReport {
     let records: Vec<RunRecord> = seeds
         .iter()
         .enumerate()
-        .map(|(idx, &seed)| run_one_with_ruleset(seed, idx, policy, max_turns, content, ruleset))
+        .map(|(idx, &seed)| {
+            run_one_with_levers(seed, idx, policy, max_turns, content, ruleset, levers)
+        })
         .collect();
     aggregate(
         policy.name(),
@@ -641,6 +689,8 @@ pub struct SimOptions {
     pub json: bool,
     /// Which rules the runs play by (`Legacy` unless `--ruleset v2`).
     pub ruleset: Ruleset,
+    /// Starting levers (a difficulty mode's, or set one by one); V2 only.
+    pub levers: DifficultyLevers,
 }
 
 /// What the command line asked for.
@@ -656,7 +706,8 @@ etv_simulate: balance simulation harness for Escape the Valley
 
 USAGE:
     etv_simulate [--seeds <n>] [--start <seed>] [--policy <name>|all] [--turns <n>]
-                 [--ruleset legacy|v2] [--json]
+                 [--ruleset legacy|v2] [--difficulty <mode>]
+                 [--start-food-pct <n>] [--start-water-pct <n>] [--json]
 
 OPTIONS:
     --seeds <n>        number of seeds to run (default 100, at least 1)
@@ -664,6 +715,9 @@ OPTIONS:
     --policy <name>    first | last | cautious | reckless | rotating | all (default all)
     --turns <n>        turn cap per run (default 500, at least 1)
     --ruleset <name>   legacy (default: the frozen rules) | v2 (the rules the game will play)
+    --difficulty <m>   hardcore | normal | easy: that mode's starting levers (v2 only)
+    --start-food-pct <n>   start with n% of the standard food (v2 only; after --difficulty)
+    --start-water-pct <n>  start with n% of the standard water (v2 only; after --difficulty)
     --json             print the reports as a JSON array instead of a table
     --help             print this help
 ";
@@ -688,6 +742,7 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
         turns: DEFAULT_MAX_TURNS,
         json: false,
         ruleset: Ruleset::Legacy,
+        levers: DifficultyLevers::NONE,
     };
     let mut i = 0;
     while i < args.len() {
@@ -695,6 +750,35 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
         match flag {
             "--help" | "-h" => return Ok(SimCommand::Help),
             "--json" => opts.json = true,
+            "--difficulty" | "--start-food-pct" | "--start-water-pct" => {
+                i += 1;
+                let Some(value) = args.get(i) else {
+                    return Err(format!("flag '{flag}' needs a value"));
+                };
+                match flag {
+                    "--difficulty" => {
+                        opts.levers = Difficulty::parse(value)
+                            .ok_or_else(|| {
+                                format!("unknown difficulty '{value}' (use hardcore, normal or easy)")
+                            })?
+                            .levers();
+                    }
+                    _ => {
+                        let pct = value
+                            .parse::<i32>()
+                            .ok()
+                            .filter(|n| (1..=1000).contains(n))
+                            .ok_or_else(|| {
+                                format!("invalid value for {flag}: '{value}' (need 1 to 1000)")
+                            })?;
+                        if flag == "--start-food-pct" {
+                            opts.levers.start_food_pct = pct;
+                        } else {
+                            opts.levers.start_water_pct = pct;
+                        }
+                    }
+                }
+            }
             "--seeds" | "--start" | "--policy" | "--turns" | "--ruleset" => {
                 i += 1;
                 let Some(value) = args.get(i) else {
@@ -737,6 +821,9 @@ pub fn parse_args(args: &[String]) -> Result<SimCommand, String> {
             other => return Err(format!("unknown argument '{other}'")),
         }
         i += 1;
+    }
+    if opts.levers != DifficultyLevers::NONE && opts.ruleset != Ruleset::V2 {
+        return Err("difficulty levers need --ruleset v2 (the Legacy rules have no modes)".to_string());
     }
     Ok(SimCommand::Run(opts))
 }
