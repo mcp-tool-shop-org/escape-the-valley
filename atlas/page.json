@@ -84,24 +84,64 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 9,
+      "added": 2,
+      "changed": 19,
       "moved": 0,
       "parts": 1,
       "removed": 0
     },
     "items": [
       {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `trail_ledger_for_player`, before `current_node`.",
+        "subjects": [
+          "rust/etv-core/src/play.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `label`, before `relabel_text`.",
+        "subjects": [
+          "rust/etv-core/src/play.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "In rust/etv-core/src/play.rs, `run_play` gained a step, `relabel_text`, before `label_in_sentence`.",
+        "subjects": [
+          "rust/etv-core/src/play.rs"
+        ]
+      },
+      {
+        "kind": "sequence",
+        "sentence": "And 5 more changes to the order of work.",
+        "subjects": []
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/src/labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/src/labels.rs"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "rust/etv-core/tests/player_text_labels.rs is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "rust/etv-core/tests/player_text_labels.rs"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 9 files changed content.",
+        "sentence": "2 files added and 19 changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "dd6a004d458a097100b813b43050a4cb0c04fefe",
-      "generatedAt": "2026-11-14T10:54:29.455Z"
+      "commit": "f59eea0d940eb4642e3af1d66b0fabb7cb031254",
+      "generatedAt": "2026-11-14T13:12:09.601Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -186,9 +226,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 11 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 8,
-  "commit": "f59eea0d940eb4642e3af1d66b0fabb7cb031254",
+  "commit": "3f806657e2b7c2e81a71a057a7bb2e7132851fae",
   "defaultBranch": "main",
-  "derived": "10 parts, in Rust (79 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
+  "derived": "10 parts, in Rust (81 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).",
   "doors": [
     {
       "checks": [
@@ -245,7 +285,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 44,
+      "runsMore": 45,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -312,7 +352,7 @@
         "rust/etv-core/tests/"
       ],
       "runsCount": 11,
-      "runsMore": 44,
+      "runsMore": 45,
       "sends": [
         "uploads coverage to Codecov",
         "publishes to npm",
@@ -676,13 +716,13 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T13:12:09.601Z",
+  "generatedAt": "2026-11-14T13:43:54.749Z",
   "limits": [
     "1 import could not be resolved: `src/escape_the_valley/notices.py` imports a path built at run time.",
     "2 writes and 6 reads use paths built at run time and are not named here.",
     "4 writes and 20 reads go to a path their caller passes, not to this repository.",
     "5 writes go to the directory the command is run in (.trail/) or a path their caller passes, not to this repository.",
-    "131 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 128 more.",
+    "133 files belong to no part: rust/Cargo.lock, rust/Cargo.toml, rust/deny.toml and 130 more.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",
@@ -710,7 +750,7 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 94,
+  "testFiles": 95,
   "testedBy": {
     "agents": 1,
     "bin": 0,

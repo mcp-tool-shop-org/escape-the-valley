@@ -127,7 +127,7 @@ fn deltas_line_shows_signed_numbers_in_key_order_and_skips_zeroes() {
     deltas.insert("water".to_string(), 3);
     deltas.insert("food".to_string(), -2);
     deltas.insert("ammo".to_string(), 0);
-    assert_eq!(deltas_line(&deltas), Some("food -2, water +3".to_string()));
+    assert_eq!(deltas_line(&deltas), Some("Food -2, Water +3".to_string()));
     deltas.clear();
     deltas.insert("ammo".to_string(), 0);
     assert_eq!(deltas_line(&deltas), None);
@@ -144,7 +144,7 @@ fn status_panel_for_seed_42_at_the_start() {
             "Party: Ruth 100 (healthy), Josiah 94 (healthy), Elias 87 (healthy), Agnes 80 (healthy). Morale 70."
                 .to_string(),
             "Wagon 80, animals 90, pace steady.".to_string(),
-            "Supplies: ammo 20, boots 2, cloth 5, firewood 15, food 50, lantern_oil 6, meds 5, parts 4, rope 2, salt 8, tools 1, water 50."
+            "Supplies: Ammunition 20, Boots 2, Cloth 5, Firewood 15, Food 50, Lantern oil 6, Medicine 5, Parts 4, Rope 2, Salt 8, Tools 1, Water 50."
                 .to_string(),
         ]
     );
@@ -200,7 +200,7 @@ fn narrator_off_shows_the_chosen_option_beside_the_fallback_line_once() {
         vec![
             "[Continue despite the wet] The party damages the wagon, loses heart, falls back on the trail and loses time."
                 .to_string(),
-            "  distance -4, morale -2, time_days +1, wagon_condition -2".to_string(),
+            "  Distance -4, Morale -2, Days +1, Wagon condition -2".to_string(),
         ]
     );
 }
@@ -223,7 +223,7 @@ fn narrated_turn_shows_the_narrator_text_and_the_numbers() {
         lines,
         vec![
             "FIXTURE NARRATION.".to_string(),
-            "  distance -4, morale -2, time_days +1, wagon_condition -2".to_string(),
+            "  Distance -4, Morale -2, Days +1, Wagon condition -2".to_string(),
         ]
     );
 }

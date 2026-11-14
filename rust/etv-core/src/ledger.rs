@@ -10,7 +10,44 @@ use crate::physics::journey_pressure;
 ///
 /// Mirrors legacy `build_trail_ledger(state: RunState) -> list[str]` in
 /// `src/escape_the_valley/ledger.py:13-27`.
+///
+/// This is the ledger's frozen form, line-exact to the Python game: supplies appear by their
+/// keys. What the player is shown is [`trail_ledger_for_player`].
 pub fn trail_ledger(state: &RunState) -> Vec<String> {
+    build(state, &Naming::KEYS)
+}
+
+/// The Trail Ledger as the player reads it: the same lines as [`trail_ledger`], with every
+/// supply named by its label (`"The lantern oil ran out first."`) and keys in remembered card
+/// text relabelled when shown. The run state and the frozen form are unchanged.
+pub fn trail_ledger_for_player(state: &RunState) -> Vec<String> {
+    build(state, &Naming::LABELS)
+}
+
+/// How the ledger names a supply: by key (the frozen form) or by label (what the player sees).
+struct Naming {
+    /// A supply after a colon, as a list item.
+    item: fn(&str) -> String,
+    /// A supply inside a sentence.
+    in_sentence: fn(&str) -> String,
+    /// Text remembered on a card, written with keys in it.
+    card_text: fn(&str) -> String,
+}
+
+impl Naming {
+    const KEYS: Naming = Naming {
+        item: str::to_string,
+        in_sentence: str::to_string,
+        card_text: str::to_string,
+    };
+    const LABELS: Naming = Naming {
+        item: crate::labels::label,
+        in_sentence: crate::labels::label_in_sentence,
+        card_text: crate::labels::relabel_text,
+    };
+}
+
+fn build(state: &RunState, naming: &Naming) -> Vec<String> {
     let mut lines = Vec::new();
     lines.extend(header(state));
     lines.push(String::new());
@@ -19,9 +56,9 @@ pub fn trail_ledger(state: &RunState) -> Vec<String> {
     lines.extend(roll_call(state));
     lines.push(String::new());
     lines.extend(costliest_day(state));
-    lines.extend(closest_call(state));
-    lines.extend(what_saved_or_killed(state));
-    lines.extend(promise(state));
+    lines.extend(closest_call(state, naming));
+    lines.extend(what_saved_or_killed(state, naming));
+    lines.extend(promise(state, naming));
     lines.extend(doctrine_echo(state));
     lines
 }
@@ -123,7 +160,7 @@ fn costliest_day(state: &RunState) -> Vec<String> {
     ]
 }
 
-fn closest_call(state: &RunState) -> Vec<String> {
+fn closest_call(state: &RunState, naming: &Naming) -> Vec<String> {
     let mut best: Option<&MemoryCard> = None;
     for c in &state.memory_cards {
         if (c.kind == "crisis" || c.kind == "wound")
@@ -137,13 +174,13 @@ fn closest_call(state: &RunState) -> Vec<String> {
         return Vec::new();
     };
     vec![
-        format!("Closest call: {}", closest.title),
-        format!("  {}", closest.text),
+        format!("Closest call: {}", (naming.card_text)(&closest.title)),
+        format!("  {}", (naming.card_text)(&closest.text)),
         String::new(),
     ]
 }
 
-fn what_saved_or_killed(state: &RunState) -> Vec<String> {
+fn what_saved_or_killed(state: &RunState, naming: &Naming) -> Vec<String> {
     let crises = &state.resource_crises_seen;
     if crises.is_empty() {
         if state.victory {
@@ -165,7 +202,10 @@ fn what_saved_or_killed(state: &RunState) -> Vec<String> {
             }
             if let Some(best) = best_name {
                 if best_val > 0 {
-                    return vec![format!("Supplies that carried you: {best}"), String::new()];
+                    return vec![
+                        format!("Supplies that carried you: {}", (naming.item)(best)),
+                        String::new(),
+                    ];
                 }
             }
         }
@@ -174,16 +214,23 @@ fn what_saved_or_killed(state: &RunState) -> Vec<String> {
 
     if crises.len() == 1 {
         return vec![
-            format!("The {} ran out first. That changed everything.", crises[0]),
+            format!(
+                "The {} ran out first. That changed everything.",
+                (naming.in_sentence)(&crises[0])
+            ),
             String::new(),
         ];
     }
 
-    let joined = crises.join(", ");
+    let joined = crises
+        .iter()
+        .map(|c| (naming.in_sentence)(c))
+        .collect::<Vec<_>>()
+        .join(", ");
     vec![format!("What ran dry: {joined}."), String::new()]
 }
 
-fn promise(state: &RunState) -> Vec<String> {
+fn promise(state: &RunState, naming: &Naming) -> Vec<String> {
     let mut best: Option<&MemoryCard> = None;
     for c in &state.memory_cards {
         if (c.kind == "promise" || c.kind == "omen")
@@ -196,10 +243,16 @@ fn promise(state: &RunState) -> Vec<String> {
         return Vec::new();
     };
     if state.victory {
-        vec![format!("A sign remembered: {}", card.title), String::new()]
+        vec![
+            format!("A sign remembered: {}", (naming.card_text)(&card.title)),
+            String::new(),
+        ]
     } else {
         vec![
-            format!("An omen from the trail: {}", card.title),
+            format!(
+                "An omen from the trail: {}",
+                (naming.card_text)(&card.title)
+            ),
             String::new(),
         ]
     }
