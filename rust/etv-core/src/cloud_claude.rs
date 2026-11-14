@@ -1068,6 +1068,8 @@ impl HttpsPost for UreqHttpsPost {
         let retry_after_s = header("retry-after").and_then(|v| v.trim().parse::<u64>().ok());
         let body = resp
             .body_mut()
+            .with_config()
+            .limit(crate::narrator::NARRATOR_MAX_BODY_BYTES)
             .read_to_string()
             .map_err(|_| TransportError::ConnectionFailed("network error".to_string()))?;
         Ok(HttpReply {

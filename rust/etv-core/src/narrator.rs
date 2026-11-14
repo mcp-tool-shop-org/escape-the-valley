@@ -1666,8 +1666,17 @@ pub const NARRATOR_NUM_PREDICT_CITED_EXTRA: u32 = 50;
 /// list fact keys, at Brief and Standard.
 pub const NARRATOR_NUM_PREDICT_CITED: u32 = 160;
 
-/// Per-call timeouts in a row after which the narrator is paused for the rest of the session.
+/// Failed calls in a row (timeouts, connection failures, server errors) after which the
+/// narrator is paused for the rest of the session.
 pub const TIMEOUT_BREAKER_STRIKES: usize = 2;
+
+/// Most bytes read from one narrator server answer. A narrator line is a few hundred bytes; a
+/// model list a few kilobytes. A longer body is cut off and fails as unreadable.
+pub const NARRATOR_MAX_BODY_BYTES: u64 = 1_000_000;
+
+/// Most slot records kept between two reads by the measurement harness. Recording is off in
+/// the game; the harness reads them after every turn, so the cap is never reached there.
+pub const MAX_SLOT_RECORDS: usize = 64;
 
 /// Which answer shape the request's `format` schema asks for.
 ///
@@ -3939,6 +3948,8 @@ impl NarratorTransport for UreqTransport {
         let status = resp.status().as_u16();
         let body = resp
             .body_mut()
+            .with_config()
+            .limit(NARRATOR_MAX_BODY_BYTES)
             .read_to_string()
             .map_err(|e| TransportError::ConnectionFailed(e.to_string()))?;
         Ok((status, body))
@@ -3967,6 +3978,8 @@ impl NarratorTransport for UreqTransport {
         let status = resp.status().as_u16();
         let body = resp
             .body_mut()
+            .with_config()
+            .limit(NARRATOR_MAX_BODY_BYTES)
             .read_to_string()
             .map_err(|e| TransportError::ConnectionFailed(e.to_string()))?;
         Ok((status, body))
@@ -4013,7 +4026,10 @@ pub struct LiveNarrator {
     /// arm; kept always, used only when that arm is on).
     previous_opening: Mutex<Option<String>>,
     breaker_enabled: AtomicBool,
+    /// Failed calls in a row (timeouts, connection failures, server errors).
     consecutive_timeouts: AtomicUsize,
+    /// A call of the current turn timed out: the turn's other calls are skipped.
+    turn_timed_out: AtomicBool,
     paused: AtomicBool,
 }
 
@@ -4104,6 +4120,7 @@ impl LiveNarrator {
             format_schema: AtomicUsize::new(0),
             breaker_enabled: AtomicBool::new(true),
             consecutive_timeouts: AtomicUsize::new(0),
+            turn_timed_out: AtomicBool::new(false),
             paused: AtomicBool::new(false),
         }
     }
@@ -4202,6 +4219,15 @@ impl LiveNarrator {
             .unwrap_or_default()
     }
 
+    /// One failed call: with the breaker on, [`TIMEOUT_BREAKER_STRIKES`] in a row pause the
+    /// narrator.
+    fn strike(&self) {
+        let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
+        if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES {
+            self.paused.store(true, Ordering::SeqCst);
+        }
+    }
+
     fn push_record(
         &self,
         is_scene: bool,
@@ -4219,6 +4245,10 @@ impl LiveNarrator {
             None => (None, None),
         };
         if let Ok(mut log) = self.slot_log.lock() {
+            if log.len() >= MAX_SLOT_RECORDS {
+                // Nobody is reading them: keep the newest.
+                log.remove(0);
+            }
             log.push(SlotRecord {
                 is_scene,
                 outcome,
@@ -4360,8 +4390,9 @@ impl LiveNarrator {
         call: SlotCall,
     ) -> Option<String> {
         let seed = call.seed;
-        if self.paused.load(Ordering::SeqCst) {
-            // Paused by the timeout breaker: no call, the plain line shows.
+        if self.paused.load(Ordering::SeqCst) || self.turn_timed_out.load(Ordering::SeqCst) {
+            // Paused by the breaker, or a call of this turn already timed out: no call, the
+            // plain line shows. So one turn waits at most one per-call timeout.
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             return None;
         }
@@ -4414,22 +4445,28 @@ impl LiveNarrator {
             Err(TransportError::Timeout) => {
                 self.timeouts.fetch_add(1, Ordering::SeqCst);
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
-                let strikes = self.consecutive_timeouts.fetch_add(1, Ordering::SeqCst) + 1;
-                if self.breaker_enabled.load(Ordering::SeqCst) && strikes >= TIMEOUT_BREAKER_STRIKES
-                {
-                    self.paused.store(true, Ordering::SeqCst);
+                if self.breaker_enabled.load(Ordering::SeqCst) {
+                    self.turn_timed_out.store(true, Ordering::SeqCst);
                 }
+                self.strike();
                 self.push_record(is_scene, SlotOutcome::Timeout, None, None, started);
                 return None;
             }
             Err(_) => {
                 self.fallbacks.fetch_add(1, Ordering::SeqCst);
+                self.strike();
                 self.push_record(is_scene, SlotOutcome::TransportError, None, None, started);
                 return None;
             }
         };
-        // Any answer at all, good or bad, ends a run of timeouts.
-        self.consecutive_timeouts.store(0, Ordering::SeqCst);
+        if status >= 500 {
+            // A server error counts as a strike, as a timeout does, and does not end a run of
+            // them.
+            self.strike();
+        } else {
+            // Any other answer, good or bad, ends a run of failures.
+            self.consecutive_timeouts.store(0, Ordering::SeqCst);
+        }
         if status != 200 {
             self.fallbacks.fetch_add(1, Ordering::SeqCst);
             self.push_record(
@@ -4541,6 +4578,7 @@ impl Narrator for LiveNarrator {
         if !self.settings.enabled {
             return TurnNarration::default();
         }
+        self.turn_timed_out.store(false, Ordering::SeqCst);
         let Ok(endpoint) =
             validate_endpoint(&self.settings.endpoint, self.settings.allow_non_loopback)
         else {

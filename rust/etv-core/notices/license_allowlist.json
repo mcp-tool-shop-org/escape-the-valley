@@ -31,6 +31,13 @@
       "reviewed_on": "2026-11-02"
     }
   ],
+  "crate_exceptions": [
+    {
+      "name": "webpki-root-certs",
+      "license": "CDLA-Permissive-2.0",
+      "reason": "Mozilla's root certificates, pulled in by ureq's native-tls feature (the cloud narrator). CDLA-Permissive-2.0 asks that whoever shares the data makes the agreement's text available with it; the notices carry the full text. Allowed for this crate only (Publisher's ruling, 2026-11-14; studio licence registry entry webpki-root-certs-licence)."
+    }
+  ],
   "prohibited_copyleft_prefixes": [
     "AGPL",
     "CDDL",
