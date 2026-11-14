@@ -409,6 +409,9 @@ pub struct MeasureConfig {
     pub per_call_timeout_ms: u64,
     /// Run only the first `n` turns of the set (`None` = all).
     pub max_turns: Option<usize>,
+    /// Run only the turns with these ids, in set order (`None` = all). For a supplement that
+    /// repeats chosen turns of an earlier run.
+    pub only_turns: Option<Vec<String>>,
     /// Wording of the shared rules in the system prompt (`Shipped` unless a comparison run
     /// asks for `Positive`, which names no banned word).
     pub prompt_rules: PromptRules,
@@ -440,6 +443,7 @@ impl MeasureConfig {
             warmup_timeout_ms: d.warmup_timeout_ms,
             per_call_timeout_ms: d.per_call_timeout_ms,
             max_turns: None,
+            only_turns: None,
             prompt_rules: PromptRules::Shipped,
             format_schema: FormatSchema::Plain,
             experiment: ExperimentArms::default(),
@@ -799,6 +803,11 @@ fn run_measurement_on(
 ) -> Result<(MeasureReport, Vec<TurnRow>), String> {
     let turns: Vec<&MeasuredTurn<'_>> = all
         .iter()
+        .filter(|t| {
+            cfg.only_turns
+                .as_ref()
+                .is_none_or(|ids| ids.iter().any(|id| id == t.id()))
+        })
         .take(cfg.max_turns.unwrap_or(usize::MAX))
         .collect();
     let mut cells = Vec::new();
@@ -1004,6 +1013,7 @@ USAGE:
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --check-only
   narrator_measure --turn-set PATH --turn-set-sha256 HEX --model NAME
                    [--endpoint URL] [--profiles LIST] [--lengths LIST] [--max-turns N]
+                   [--only-turns PATH]
                    [--warmup-timeout-ms N] [--per-call-timeout-ms N]
                    [--prompt-rules shipped|positive] [--format-schema plain|cited|text]
                    [--report PATH] [--rows PATH]
@@ -1012,6 +1022,7 @@ USAGE:
   --check-only        verify the digest and rebuild every turn; makes no model call
   --profiles          comma list of chronicler,fireside,lantern-bearer (default: all)
   --lengths           comma list of brief,standard,rich (default: all)
+  --only-turns        file of turn ids, one per line: run only those turns, in set order
   --prompt-rules      wording of the shared rules in the prompt: shipped (default), or
                       positive (says what to do and names no banned word), to compare
   --format-schema     answer shape asked for: plain (default, a sentences array); cited
@@ -1100,6 +1111,21 @@ pub fn run_cli(
                         .parse()
                         .map_err(|_| "--max-turns needs a whole number".to_string())?,
                 );
+            }
+            "--only-turns" => {
+                let path = take_value(args, &mut i, flag)?;
+                let text = std::fs::read_to_string(path)
+                    .map_err(|e| format!("--only-turns: cannot read {path}: {e}"))?;
+                let ids: Vec<String> = text
+                    .lines()
+                    .map(str::trim)
+                    .filter(|l| !l.is_empty())
+                    .map(str::to_string)
+                    .collect();
+                if ids.is_empty() {
+                    return Err("--only-turns: the file names no turn".to_string());
+                }
+                cfg.only_turns = Some(ids);
             }
             "--prompt-rules" => {
                 cfg.prompt_rules = match take_value(args, &mut i, flag)? {
