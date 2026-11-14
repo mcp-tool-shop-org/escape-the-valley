@@ -1019,7 +1019,10 @@ USAGE:
                       (no schema: plain sentences, checked as they stand), to compare
   --arm NAME          switch on an experiment arm (off by default; may be given more than
                       once): rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap
-                      says-what-happened, outcome-lead, no-repeat-opening, no-event-copy
+                      says-what-happened, outcome-lead, no-repeat-opening, no-event-copy,
+                      parrot-verbatim, opening-three-words, pyrrhic-loss-word,
+                      choice-result-lead, choice-conveyed, scene-rules, no-anachronism,
+                      lead-guard, present-lead, taboo-rules, no-water-source
   --candidates N      experiment: up to N calls per line (1 to 3), first accepted wins
   --num-gpu N         measurement: put N of the model's layers on the GPU (0 = CPU only),
                       to see latency on a weaker card
@@ -1134,9 +1137,20 @@ pub fn run_cli(
                     "outcome-lead" => cfg.experiment.outcome_lead = true,
                     "no-repeat-opening" => cfg.experiment.no_repeat_opening = true,
                     "no-event-copy" => cfg.experiment.no_event_copy = true,
+                    "parrot-verbatim" => cfg.experiment.parrot_verbatim = true,
+                    "opening-three-words" => cfg.experiment.opening_three_words = true,
+                    "pyrrhic-loss-word" => cfg.experiment.pyrrhic_loss_word = true,
+                    "choice-result-lead" => cfg.experiment.choice_result_lead = true,
+                    "choice-conveyed" => cfg.experiment.choice_conveyed = true,
+                    "scene-rules" => cfg.experiment.scene_rules = true,
+                    "no-anachronism" => cfg.experiment.no_anachronism = true,
+                    "lead-guard" => cfg.experiment.lead_guard = true,
+                    "present-lead" => cfg.experiment.present_lead = true,
+                    "taboo-rules" => cfg.experiment.taboo_rules = true,
+                    "no-water-source" => cfg.experiment.no_water_source = true,
                     other => {
                         return Err(format!(
-                            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening or no-event-copy, not {other:?}"
+                            "--arm must be rulings-prompt, brief-by-stop, model-card-sampling, trim-to-cap, says-what-happened, outcome-lead, no-repeat-opening, no-event-copy, parrot-verbatim, opening-three-words, pyrrhic-loss-word, choice-result-lead, choice-conveyed, scene-rules, no-anachronism, lead-guard, present-lead, taboo-rules or no-water-source, not {other:?}"
                         ))
                     }
                 }

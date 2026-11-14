@@ -2408,11 +2408,34 @@ pub enum CheckReasonCode {
     EventTextCopied,
     /// The outcome line opens with the same two words as the previous accepted line.
     RepeatedOpening,
+    /// The run ended pyrrhic and the outcome line carries no word of what it cost (the
+    /// `pyrrhic-loss-word` arm).
+    PyrrhicLossNotConveyed,
+    /// On a choice turn the outcome line carries neither the choice's verb nor a supply the
+    /// choice changed (the `choice-conveyed` arm).
+    ChoiceNotConveyed,
+    /// The outcome line adds too few words of its own to the lead it was given (the `lead-guard`
+    /// arm: one at Brief, two at Standard and Rich).
+    LeadOnly,
+    /// The line names a time of day that contradicts the turn's (the `lead-guard` arm).
+    TimeOfDayContradiction,
+    /// The line names a thing the trail's world does not have: tires, engines, phones (the
+    /// `no-anachronism` arm).
+    Anachronism,
+    /// The line shows the party doing what its taboo forbids, or going against its doctrine
+    /// (the `taboo-rules` arm).
+    TabooBroken,
+    /// The line states the party's taboo as filler on a turn that did not involve it (the
+    /// `taboo-rules` arm).
+    TabooAsFiller,
+    /// The line names a water source (river, stream, lake) the place, the biome and the turn's
+    /// facts do not provide (the `no-water-source` arm).
+    InventedWaterSource,
 }
 
 impl CheckReasonCode {
     /// Every reason code, in declaration order.
-    pub const ALL: [CheckReasonCode; 19] = [
+    pub const ALL: [CheckReasonCode; 27] = [
         CheckReasonCode::NumbersDigitsOrUnits,
         CheckReasonCode::QuantifierBeforeResourceOrHalf,
         CheckReasonCode::DeathWords,
@@ -2432,6 +2455,14 @@ impl CheckReasonCode {
         CheckReasonCode::ActionWithNoOneLeft,
         CheckReasonCode::EventTextCopied,
         CheckReasonCode::RepeatedOpening,
+        CheckReasonCode::PyrrhicLossNotConveyed,
+        CheckReasonCode::ChoiceNotConveyed,
+        CheckReasonCode::LeadOnly,
+        CheckReasonCode::TimeOfDayContradiction,
+        CheckReasonCode::Anachronism,
+        CheckReasonCode::TabooBroken,
+        CheckReasonCode::TabooAsFiller,
+        CheckReasonCode::InventedWaterSource,
     ];
 
     /// Stable snake_case name used in measurement reports.
@@ -2456,6 +2487,14 @@ impl CheckReasonCode {
             Self::ActionWithNoOneLeft => "action_with_no_one_left",
             Self::EventTextCopied => "event_text_copied",
             Self::RepeatedOpening => "repeated_opening",
+            Self::PyrrhicLossNotConveyed => "pyrrhic_loss_not_conveyed",
+            Self::ChoiceNotConveyed => "choice_not_conveyed",
+            Self::LeadOnly => "lead_only",
+            Self::TimeOfDayContradiction => "time_of_day_contradiction",
+            Self::Anachronism => "anachronism",
+            Self::TabooBroken => "taboo_broken",
+            Self::TabooAsFiller => "taboo_as_filler",
+            Self::InventedWaterSource => "invented_water_source",
         }
     }
 }
@@ -2496,6 +2535,11 @@ pub struct CheckerContext {
     /// rules do not run; set only by an experiment arm.
     #[serde(default)]
     pub truth: Option<crate::narrator_truth::TruthFacts>,
+    /// Choice parroting as changed by the `parrot-verbatim` arm: only a copy of the whole
+    /// label (two words or more) in a row, or of [`PARROT_RUN_WORDS`] or more of its words in a
+    /// row, is rejected. `false` in the game.
+    #[serde(default)]
+    pub parrot_verbatim: bool,
 }
 
 impl Default for CheckerContext {
@@ -2513,6 +2557,7 @@ impl Default for CheckerContext {
             death_allowed: false,
             team_species: Vec::new(),
             truth: None,
+            parrot_verbatim: false,
         }
     }
 }
@@ -2547,6 +2592,7 @@ impl CheckerContext {
             death_allowed: death_may_be_stated(ctx),
             team_species: Vec::new(),
             truth: None,
+            parrot_verbatim: false,
         }
     }
 }
@@ -2622,6 +2668,38 @@ fn crude_stem(word: &str) -> String {
         s = &s[..s.len() - 1];
     }
     s.to_string()
+}
+
+/// With the `parrot-verbatim` arm, this many of the label's words in a row are a copy even
+/// when the label is longer.
+pub const PARROT_RUN_WORDS: usize = 5;
+
+/// The words of `label` that `line_tokens` copies in a row, when it copies the whole label (of
+/// two words or more) or [`PARROT_RUN_WORDS`] or more of its words in a row. Words are compared
+/// lowercased and trimmed of punctuation, exactly (no stemming). A one-word label is never a
+/// copy: naming what the party did passes.
+pub fn verbatim_label_copy(line_tokens: &[String], label: &str) -> Option<String> {
+    let label_tokens: Vec<String> = label
+        .split_whitespace()
+        .map(clean_word_token)
+        .filter(|w| !w.is_empty())
+        .collect();
+    let line_tokens: Vec<String> = line_tokens
+        .iter()
+        .map(|w| clean_word_token(w))
+        .filter(|w| !w.is_empty())
+        .collect();
+    let run = label_tokens.len().min(PARROT_RUN_WORDS);
+    if run < 2 || line_tokens.len() < run {
+        return None;
+    }
+    for start in 0..=(label_tokens.len() - run) {
+        let want = &label_tokens[start..start + run];
+        if line_tokens.windows(run).any(|w| w == want) {
+            return Some(want.join(" "));
+        }
+    }
+    None
 }
 
 /// Content words of an option label: lowercase alphabetic tokens of three or more letters that
@@ -3039,7 +3117,14 @@ fn run_checks(line: &str, ctx: &CheckerContext, all: bool) -> Vec<CheckFailure> 
     // 12. ChoiceParroting: the label's first content word (its verb) and at least one of its
     // other content words (a noun) both reappear in the line, compared by crude stem.
     let label_words = label_content_words(&ctx.choice_label);
-    if label_words.len() >= 2 {
+    if ctx.parrot_verbatim {
+        if let Some(copied) = verbatim_label_copy(&tokens_lower, &ctx.choice_label) {
+            fail!(CheckFailure {
+                code: CheckReasonCode::ChoiceParroting,
+                detail: format!("line copies the choice label's words '{copied}'"),
+            });
+        }
+    } else if label_words.len() >= 2 {
         let line_stems: Vec<String> = tokens_lower.iter().map(|w| crude_stem(w)).collect();
         let verb_stem = crude_stem(&label_words[0]);
         if line_stems.contains(&verb_stem) {
@@ -4329,7 +4414,7 @@ impl LiveNarrator {
 
         self.successes.fetch_add(1, Ordering::SeqCst);
         if let Ok(mut previous) = self.previous_opening.lock() {
-            *previous = Some(crate::narrator_truth::opening_two_words(&candidate_prose));
+            *previous = Some(crate::narrator_truth::opening_words(&candidate_prose, 3));
         }
         self.push_record(
             is_scene,
@@ -4439,7 +4524,7 @@ impl Narrator for LiveNarrator {
             profile, length, ctx, rules, schema,
         ));
         let out_sys = if arms.outcome_lead {
-            crate::narrator_experiment::lead_outcome_system_prompt(&out_sys, ctx)
+            crate::narrator_experiment::lead_outcome_system_prompt_for(&out_sys, ctx, arms)
         } else {
             out_sys
         };
