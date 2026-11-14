@@ -127,6 +127,9 @@ impl PendingBlock {
     }
 }
 
+/// The v5 key that holds [`RunState::turns_stepped`].
+const TURNS_STEPPED_KEY: &str = "turns_stepped";
+
 /// A loaded v5 save: the run state and, when the player quit mid-event or mid-fork, the block.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SavedGame {
@@ -142,6 +145,7 @@ pub fn state_to_value_v5(state: &RunState, pending: Option<&PendingBlock>) -> Va
         .as_object_mut()
         .expect("state_to_value returns an object");
     obj.insert("save_version".to_string(), json!(SAVE_VERSION_V5));
+    obj.insert(TURNS_STEPPED_KEY.to_string(), json!(state.turns_stepped));
     if let Some(block) = pending.and_then(PendingBlock::to_value) {
         obj.insert(PENDING_KEY.to_string(), block);
     }
@@ -298,13 +302,20 @@ pub fn value_to_saved_game(
         });
     }
 
-    let state = parse_state_fields(obj, save_content_hash).map_err(|e| {
+    let mut state = parse_state_fields(obj, save_content_hash).map_err(|e| {
         if e.starts_with("seed_out_of_range:") {
             SaveLoadError::SeedOutOfRange(e)
         } else {
             SaveLoadError::Corrupt(e)
         }
     })?;
+    // A v5 save written before the counter existed reads it as 0.
+    state.turns_stepped = match obj.get(TURNS_STEPPED_KEY) {
+        None => 0,
+        Some(v) => v
+            .as_u64()
+            .ok_or_else(|| corrupt("turns_stepped is not a non-negative integer"))?,
+    };
     let pending = match obj.get(PENDING_KEY) {
         None | Some(Value::Null) => None,
         Some(v) => parse_pending(v, content)?,

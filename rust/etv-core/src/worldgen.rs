@@ -409,6 +409,7 @@ pub fn create_new_run_with_rng(
         journal: Vec::new(),
         map_nodes: nodes,
         rng_counter: rng.counter,
+        turns_stepped: 0,
         rng_state: None,
         recent_event_tags: Vec::new(),
         recent_event_ids: Default::default(),

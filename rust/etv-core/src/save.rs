@@ -1076,6 +1076,9 @@ pub(crate) fn parse_state_fields(
         journal,
         map_nodes,
         rng_counter,
+        // The v4 save does not carry the step counter (see `RunState::turns_stepped`); the
+        // v5 loader reads it on top.
+        turns_stepped: 0,
         rng_state,
         recent_event_tags,
         recent_event_ids: Default::default(),

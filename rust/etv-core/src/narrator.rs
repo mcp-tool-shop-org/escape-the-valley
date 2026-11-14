@@ -316,10 +316,11 @@ pub struct NarrationContext {
     /// no access to the engine's RNG. Never prompt material.
     #[serde(default)]
     run_seed: i128,
-    /// How many journal entries the run holds after this turn: a counter that grows with every
-    /// turn the engine steps. Used **only** in the sampling seed, so two turns with the same facts
-    /// (a rest repeated on the same day, say) ask for different samples. Never prompt material.
-    /// Turn sets written before it existed read it as 0.
+    /// The run's step counter after this turn ([`crate::model::RunState::turns_stepped`]): it
+    /// advances on every engine step, choice and fork turns included. Used **only** in the
+    /// sampling seed, so two turns with the same facts (a rest repeated on the same day, or two
+    /// choice turns that leave the journal unchanged) ask for different samples. Never prompt
+    /// material. Turn sets written before it existed read it as 0.
     #[serde(default)]
     turn_index: u64,
     /// Supply keys that stand at zero after the turn, sorted. Not prompt material: the
@@ -417,7 +418,7 @@ impl NarrationContext {
         self.run_seed
     }
 
-    /// Attach the turn's index (the run's journal length after the turn; see
+    /// Attach the turn's index (the run's step counter after the turn; see
     /// [`narration_call_seed`]).
     pub fn with_turn_index(mut self, turn_index: u64) -> Self {
         self.turn_index = turn_index;
@@ -1089,7 +1090,7 @@ pub fn build_narration_context_with_deltas(
     .with_event_facts(event_title, offered_labels, action)
     .with_ending(ending)
     .with_run_seed(state.seed)
-    .with_turn_index(state.journal.len() as u64)
+    .with_turn_index(state.turns_stepped)
     .with_supplies_at_zero(
         state
             .supplies
@@ -1772,7 +1773,7 @@ fn sentences_shape_text(length: NarratorLength, schema: FormatSchema) -> String 
 }
 
 /// The sampling seed sent with one narrator call: a number derived from the run's seed, the
-/// turn's index (the journal length after it) and the turn's own facts (day, time of day, game
+/// turn's index (the run's step counter after it) and the turn's own facts (day, time of day, game
 /// phase, action, event, choice, place and shown changes), the profile, the length and the slot. The same run,
 /// turn and settings always give the same seed, so a replay asks for the same samples; two turns
 /// with the same facts but different places in the run do not. It never touches the engine's

@@ -825,10 +825,12 @@ fn two_turns_with_the_same_facts_get_different_seeds_and_a_replay_the_same() {
 }
 
 #[test]
-fn the_turn_index_is_the_runs_journal_length_after_the_turn() {
-    // A fresh run has an empty journal; the context built from it carries that count.
+fn the_turn_index_is_the_runs_step_counter_after_the_turn() {
+    // A fresh run has stepped no turns; the context built from it carries that count. Every
+    // step advancing it is proved in `narrator_turn_counter.rs`.
     let ctx = context(42, 1);
     let mut state = create_new_run_with_content(42, embedded_content_pack());
     state.day = 1;
-    assert_eq!(ctx.turn_index(), state.journal.len() as u64);
+    assert_eq!(state.turns_stepped, 0);
+    assert_eq!(ctx.turn_index(), state.turns_stepped);
 }
