@@ -3560,7 +3560,22 @@ pub struct NarratorSettings {
     pub warmup_timeout_ms: u64,
     /// Per-call timeout during play (10,000 ms = 10s default).
     pub per_call_timeout_ms: u64,
+    /// Which service writes the narration: the local Ollama server by default. Written to the
+    /// settings file only when it is not the default, so a local player's file keeps its shape.
+    #[serde(skip_serializing_if = "crate::narrator_provider::NarratorProvider::is_local")]
+    pub provider: crate::narrator_provider::NarratorProvider,
+    /// The base URL of an OpenAI-compatible provider (OpenRouter, a LAN server). Unused by the
+    /// other providers.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub provider_url: String,
+    /// Where a hosted provider's key is read from: an environment variable's name or a key
+    /// file's path. The key itself is never stored here.
+    #[serde(skip_serializing_if = "crate::narrator_provider::KeySource::is_empty")]
+    pub key: crate::narrator_provider::KeySource,
 }
+
+/// The model the game narrates with by default: small and local.
+pub const DEFAULT_NARRATOR_MODEL: &str = "qwen3:4b-instruct-2507-q4_K_M";
 
 impl Default for NarratorSettings {
     fn default() -> Self {
@@ -3569,10 +3584,25 @@ impl Default for NarratorSettings {
             profile: GMProfile::Fireside,
             endpoint: DEFAULT_OLLAMA_ENDPOINT.to_string(),
             allow_non_loopback: false,
-            model: "llama3.2".to_string(),
-            length: NarratorLength::Standard,
+            model: DEFAULT_NARRATOR_MODEL.to_string(),
+            length: NarratorLength::Brief,
             warmup_timeout_ms: 30_000,
             per_call_timeout_ms: 10_000,
+            provider: crate::narrator_provider::NarratorProvider::Ollama,
+            provider_url: String::new(),
+            key: crate::narrator_provider::KeySource::default(),
+        }
+    }
+}
+
+impl NarratorSettings {
+    /// These settings with the cloud narrator chosen: Claude is preselected, on its default
+    /// model. The voice, the length and the key source are kept.
+    pub fn with_cloud(&self) -> Self {
+        Self {
+            provider: crate::narrator_provider::CLOUD_DEFAULT_PROVIDER,
+            model: crate::narrator_provider::CLOUD_DEFAULT_MODEL.to_string(),
+            ..self.clone()
         }
     }
 }
@@ -3585,6 +3615,7 @@ impl NarratorSettings {
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
             .map_err(|e| format!("endpoint rejected: {e:?}"))?;
         settings.endpoint = normalized;
+        crate::narrator_provider::validate_provider(&settings)?;
         Ok(settings)
     }
 

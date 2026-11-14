@@ -97,7 +97,7 @@ pub fn about_screen_lines(version: &str, content_hash_hex: &str) -> Vec<String> 
 
 /// Lines of the settings screen for the current `settings`.
 pub fn settings_screen_lines(settings: &NarratorSettings) -> Vec<String> {
-    vec![
+    let mut lines = vec![
         "SETTINGS".to_string(),
         format!("  1. Narrator  {}", on_off(settings.enabled)),
         format!(
@@ -111,10 +111,22 @@ pub fn settings_screen_lines(settings: &NarratorSettings) -> Vec<String> {
             length_description(settings.length)
         ),
         format!("  4. Model     {}", settings.model),
-        "  S. Save and leave    Q. Leave without saving".to_string(),
-        String::new(),
-        TITLE_DISCLOSURE.to_string(),
-    ]
+    ];
+    // A cloud provider is named, with the chosen Claude model's one line, so the player knows
+    // what it costs. The local default adds nothing.
+    use crate::narrator_provider::{claude_model_description, NarratorProvider};
+    if settings.provider != NarratorProvider::Ollama {
+        lines.push(format!("     Provider  {}", settings.provider.name()));
+        if settings.provider == NarratorProvider::Claude {
+            if let Some(line) = claude_model_description(&settings.model) {
+                lines.push(format!("     {line}"));
+            }
+        }
+    }
+    lines.push("  S. Save and leave    Q. Leave without saving".to_string());
+    lines.push(String::new());
+    lines.push(TITLE_DISCLOSURE.to_string());
+    lines
 }
 
 fn next_in<T: Copy + PartialEq>(order: &[T], current: T) -> T {

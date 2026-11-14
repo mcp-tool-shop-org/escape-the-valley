@@ -1,6 +1,8 @@
 //! Claude Messages API transport for the narrator measurement harness.
 //!
-//! Measurement only: the game never uses this. It lets `narrator_measure` send the same
+//! [`ClaudeTransport`] is measurement only: the game never uses it. (The game's own cloud
+//! narrator is `narrator_provider`, which shares this module's key holder, HTTPS seam and
+//! request translation, and has no ledger.) It lets `narrator_measure` send the same
 //! prompts the local narrator gets to a hosted Claude model, so the two can be compared on the
 //! same turns. [`ClaudeTransport`] implements [`NarratorTransport`], so the harness, the
 //! checker and the row format are untouched; the transport translates each Ollama-shaped
@@ -169,11 +171,22 @@ impl ApiKey {
         }
         let text =
             fs::read_to_string(&full).map_err(|_| "the key file cannot be read".to_string())?;
+        ApiKey::from_text(&text).map_err(|why| format!("the key file {why}"))
+    }
+
+    /// A key from text read elsewhere (an environment variable): trimmed, and it must be one
+    /// token of 20 characters or more with no spaces. Errors never include the text.
+    pub fn from_text(text: &str) -> Result<ApiKey, String> {
         let key = text.trim().trim_start_matches('\u{feff}').trim();
         if key.len() < 20 || key.chars().any(|c| c.is_whitespace() || c.is_control()) {
-            return Err("the key file does not hold one key".to_string());
+            return Err("does not hold one key".to_string());
         }
         Ok(ApiKey(key.to_string()))
+    }
+
+    /// The key, for a request header only.
+    pub(crate) fn expose_for_header(&self) -> &str {
+        &self.0
     }
 
     /// For tests only: a key from a literal.
@@ -1073,10 +1086,13 @@ mod tests {
 
     const TEST_KEY: &str = "test-key-0123456789-abcdefghij-KLMNOPQRST";
 
+    /// One request as the scripted client saw it: the URL, the headers and the body.
+    type SeenRequest = (String, Vec<(String, String)>, String);
+
     #[derive(Default)]
     struct Script {
         replies: Mutex<Vec<Result<HttpReply, TransportError>>>,
-        seen: Mutex<Vec<(String, Vec<(String, String)>, String)>>,
+        seen: Mutex<Vec<SeenRequest>>,
     }
 
     struct Scripted(Arc<Script>);

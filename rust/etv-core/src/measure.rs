@@ -825,6 +825,7 @@ fn run_measurement_on(
                 length,
                 warmup_timeout_ms: cfg.warmup_timeout_ms,
                 per_call_timeout_ms: cfg.per_call_timeout_ms,
+                ..NarratorSettings::default()
             };
             let narrator = LiveNarrator::with_transport(settings, transport.clone());
             narrator.set_prompt_rules(cfg.prompt_rules);
