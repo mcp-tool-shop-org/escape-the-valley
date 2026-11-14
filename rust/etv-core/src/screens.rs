@@ -8,7 +8,7 @@ use std::io::{BufRead, Write};
 
 use crate::model::GMProfile;
 use crate::narrator::{profile_interface_name, NarratorLength, NarratorSettings};
-use crate::settings::validate_model_name;
+use crate::settings::{model_for_display, validate_model_name, CONFIGURED_MODEL};
 
 /// AI disclosure shown on the title screen.
 pub const TITLE_DISCLOSURE: &str = "When a narrator model is running, the story is written and voiced by AI, live, as you play, and every telling is new. Without one, the game shows plain text lines instead.";
@@ -95,9 +95,15 @@ pub fn about_screen_lines(version: &str, content_hash_hex: &str) -> Vec<String> 
     ]
 }
 
-/// Lines of the settings screen for the current `settings`.
+/// Lines of the settings screen for the current `settings`. The model is named only when it is
+/// one the game knows ([`model_for_display`]); a model from the settings file otherwise reads
+/// "the configured model". [`SettingsScreen::lines`] also names one the player has just typed.
 pub fn settings_screen_lines(settings: &NarratorSettings) -> Vec<String> {
-    vec![
+    settings_lines_naming(settings, model_for_display(&settings.model, &[]))
+}
+
+fn settings_lines_naming(settings: &NarratorSettings, model: Option<&str>) -> Vec<String> {
+    let mut lines = vec![
         "SETTINGS".to_string(),
         format!("  1. Narrator  {}", on_off(settings.enabled)),
         format!(
@@ -110,11 +116,23 @@ pub fn settings_screen_lines(settings: &NarratorSettings) -> Vec<String> {
             settings.length.as_str(),
             length_description(settings.length)
         ),
-        format!("  4. Model     {}", settings.model),
-        "  S. Save and leave    Q. Leave without saving".to_string(),
-        String::new(),
-        TITLE_DISCLOSURE.to_string(),
-    ]
+        format!("  4. Model     {}", model.unwrap_or(CONFIGURED_MODEL)),
+    ];
+    // A cloud provider is named, with the chosen Claude model's one line, so the player knows
+    // what it costs. The local default adds nothing.
+    use crate::narrator_provider::{claude_model_description, NarratorProvider};
+    if settings.provider != NarratorProvider::Ollama {
+        lines.push(format!("     Provider  {}", settings.provider.name()));
+        if settings.provider == NarratorProvider::Claude {
+            if let Some(line) = claude_model_description(&settings.model) {
+                lines.push(format!("     {line}"));
+            }
+        }
+    }
+    lines.push("  S. Save and leave    Q. Leave without saving".to_string());
+    lines.push(String::new());
+    lines.push(TITLE_DISCLOSURE.to_string());
+    lines
 }
 
 fn next_in<T: Copy + PartialEq>(order: &[T], current: T) -> T {
@@ -161,6 +179,9 @@ pub enum SettingsEvent {
 pub struct SettingsScreen {
     pub settings: NarratorSettings,
     awaiting_model: bool,
+    /// A model name the player typed on this screen. It may be shown back while the screen is
+    /// open; a model that came from the settings file is shown only by [`model_for_display`].
+    typed_model: Option<String>,
 }
 
 impl SettingsScreen {
@@ -168,6 +189,20 @@ impl SettingsScreen {
         Self {
             settings,
             awaiting_model: false,
+            typed_model: None,
+        }
+    }
+
+    /// The screen's lines, naming the model when it is one the game knows or the one the player
+    /// just typed here.
+    pub fn lines(&self) -> Vec<String> {
+        settings_lines_naming(&self.settings, self.shown_model())
+    }
+
+    fn shown_model(&self) -> Option<&str> {
+        match &self.typed_model {
+            Some(typed) if *typed == self.settings.model => Some(typed.as_str()),
+            _ => model_for_display(&self.settings.model, &[]),
         }
     }
 
@@ -178,8 +213,20 @@ impl SettingsScreen {
 
     fn set_model(&mut self, raw: &str) -> SettingsEvent {
         match validate_model_name(raw) {
+            // The claude provider takes only its listed models: refused here as the loader
+            // would refuse it at the next start, without showing what was typed.
+            Ok(name)
+                if self.settings.provider == crate::narrator_provider::NarratorProvider::Claude
+                    && !crate::narrator_provider::is_claude_model(&name) =>
+            {
+                SettingsEvent::Rejected(format!(
+                    "Model not changed: {}.",
+                    crate::narrator_provider::claude_model_refusal()
+                ))
+            }
             Ok(name) => {
-                self.settings.model = name;
+                self.settings.model = name.clone();
+                self.typed_model = Some(name);
                 SettingsEvent::Changed(format!("Model is now {}.", self.settings.model))
             }
             Err(reason) => SettingsEvent::Rejected(format!("Model not changed: {reason}.")),
@@ -214,7 +261,10 @@ impl SettingsScreen {
         if self.awaiting_model {
             self.awaiting_model = false;
             if trimmed.is_empty() {
-                return SettingsEvent::Changed(format!("Model is still {}.", self.settings.model));
+                return SettingsEvent::Changed(match self.shown_model() {
+                    Some(m) => format!("Model is still {m}."),
+                    None => "The model is unchanged.".to_string(),
+                });
             }
             return self.set_model(trimmed);
         }
@@ -269,7 +319,7 @@ pub fn run_settings_screen<R: BufRead, W: Write>(
     let mut redraw = true;
     loop {
         if redraw {
-            for line in settings_screen_lines(&screen.settings) {
+            for line in screen.lines() {
                 writeln!(output, "{line}")?;
             }
         }

@@ -1544,7 +1544,6 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
         "https://api.example.com/v1",
         "http://0.0.0.0:11434",
         "http://localhost.evil.example:11434",
-        "http://127.0.0.1@evil.example:11434",
     ] {
         assert!(
             !is_loopback_endpoint(non_loopback),
@@ -1552,9 +1551,17 @@ fn step3_endpoint_safety_refuses_non_loopback_and_default_build_has_no_ureq() {
         );
         assert_eq!(
             validate_endpoint(non_loopback, false),
-            Err(EndpointError::NonLoopbackRefused(non_loopback.to_string()))
+            Err(EndpointError::NonLoopbackRefused)
         );
     }
+
+    // Userinfo is refused for its shape, before where it points is asked.
+    let userinfo = "http://127.0.0.1@evil.example:11434";
+    assert!(!is_loopback_endpoint(userinfo));
+    assert_eq!(
+        validate_endpoint(userinfo, false),
+        Err(EndpointError::InvalidAuthority)
+    );
 
     // Explicit opt-in in settings permits a valid non-loopback endpoint (still rejecting @ userinfo)
     assert!(validate_endpoint("http://192.168.1.50:11434", true).is_ok());
@@ -1756,11 +1763,14 @@ fn step3_timeouts_fake_slow_server_triggers_per_call_fallback_and_separate_warmu
 
     let turn_res = narrator.narrate_turn(&ctx);
     assert_eq!(turn_res.scene, None, "slow scene call must time out");
-    assert_eq!(turn_res.outcome, None, "slow outcome call must time out");
+    assert_eq!(
+        turn_res.outcome, None,
+        "the turn's outcome call is skipped after its scene call timed out"
+    );
     assert_eq!(
         narrator.stats().timeouts,
-        2,
-        "both scene and outcome timeouts must be recorded on the turn"
+        1,
+        "the scene call's timeout is recorded, and the skipped outcome call makes none"
     );
     assert_eq!(
         ctx.resolve_display_line(&narrator),

@@ -12,6 +12,7 @@
 //! - [`engine`]: Step-based deterministic turn engine (`StepEngine`), phase transitions (`Camp`, `Event`, `Route`, `GameOver`), route choices, town arrival trade, and graded endings (`compute_ending`).
 
 pub mod backpack;
+pub mod cloud_claude;
 pub mod content;
 pub mod content_diff;
 pub mod engine;
@@ -26,6 +27,7 @@ pub mod memory;
 pub mod model;
 pub mod narrator;
 pub mod narrator_experiment;
+pub mod narrator_provider;
 pub mod narrator_truth;
 pub mod notices;
 pub mod physics;

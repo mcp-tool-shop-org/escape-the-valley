@@ -1,0 +1,967 @@
+//! A key pasted into the wrong place in the settings file is never shown. No warning, connect
+//! line, turn line, session summary or log line carries free text from the settings file: a
+//! JSON error says only its kind and where, no variable name, key file path or provider URL is
+//! ever shown, a model name that looks like a key is refused unshown, and an endpoint is shown
+//! only as a loopback `scheme://host:port`.
+//!
+//! Each case writes a settings file holding a made-up key, loads it the way `etv play` and
+//! `etv tui` do, connects the narrator (through a hosted client that echoes the request URL
+//! back in its errors), plays turns when a narrator connected, and checks every line the player
+//! sees, the full-screen log and the drawn screen (before Enter, at camp, with the options view
+//! open, after a reconnect and after a turn) for the key: as written, JSON-escaped, and in short
+//! pieces, so a key wrapped across two screen rows is caught too.
+
+use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
+
+use ratatui::backend::TestBackend;
+use ratatui::Terminal;
+
+use etv_core::cloud_claude::{HttpReply, HttpsPost};
+use etv_core::content::embedded_content_pack;
+use etv_core::engine::StepEngine;
+use etv_core::model::{IntentAction, PlayerIntent};
+use etv_core::narrator::{
+    FallbackPhraseTable, Narrator, NarratorSettings, NarratorTransport, NullNarrator,
+    TransportError,
+};
+use etv_core::play::{
+    connect_narrator_with, endpoint_for_display, narrator_summary_line, narrator_transport,
+    play_turn,
+};
+use etv_core::settings::{load_settings_or_default, settings_path};
+use etv_core::tui::{view, App, Model, Reconnected, ViewData};
+use etv_core::worldgen::create_new_run_with_content;
+
+/// A made-up key. It has no character JSON escapes, so its escaped form is the same.
+const KEY: &str = "sk-ant-FAKE-0123456789abcdefghij";
+/// A second made-up key, holding a backslash and a quote, so its JSON-escaped form differs.
+const ODD_KEY: &str = "sk-ant-FAKE\\0123456789\"abcdefghij";
+/// A made-up key of letters and digits only, 64 characters or fewer: a valid variable name.
+const NAME_SHAPED_KEY: &str = "FAKEKEY0123456789abcdefghijABCDEFGHIJ";
+/// A well-formed key a test variable holds, so a hosted transport can be built.
+const GOOD_KEY: &str = "test-key-not-real-0123456789XYZxyz";
+
+/// How the hosted client answers: an error body that echoes the request URL, or a transport
+/// error that does.
+#[derive(Clone, Copy)]
+enum Echo {
+    ErrorBody,
+    TransportError,
+}
+
+/// Records every URL asked for, and fails every request with the URL in the failure.
+struct Echoing {
+    mode: Echo,
+    urls: Arc<Mutex<Vec<String>>>,
+}
+
+impl HttpsPost for Echoing {
+    fn post(
+        &self,
+        url: &str,
+        _headers: &[(&str, &str)],
+        _body: &str,
+        _timeout: Duration,
+    ) -> Result<HttpReply, TransportError> {
+        self.urls.lock().unwrap().push(url.to_string());
+        match self.mode {
+            Echo::ErrorBody => Ok(HttpReply {
+                status: 500,
+                body: serde_json::json!({"error": {"message": format!("bad request to {url}")}})
+                    .to_string(),
+                request_id: None,
+                retry_after_s: None,
+            }),
+            Echo::TransportError => Err(TransportError::ConnectionFailed(format!(
+                "cannot reach {url}"
+            ))),
+        }
+    }
+}
+
+/// A local narrator service that never answers, so the connect line names the endpoint.
+struct DeadLocal;
+
+impl NarratorTransport for DeadLocal {
+    fn get_tags(
+        &self,
+        _endpoint: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Err(TransportError::ConnectionFailed("refused".to_string()))
+    }
+    fn post_generate(
+        &self,
+        _endpoint: &str,
+        _body_json: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Err(TransportError::ConnectionFailed("refused".to_string()))
+    }
+}
+
+/// A local narrator service that answers, without the settings' model installed, so the connect
+/// line names the model ("The narrator model '…' is not installed").
+struct ListingLocal;
+
+impl NarratorTransport for ListingLocal {
+    fn get_tags(
+        &self,
+        _endpoint: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Ok((200, r#"{"models":[{"name":"qwen3:4b"}]}"#.to_string()))
+    }
+    fn post_generate(
+        &self,
+        _endpoint: &str,
+        _body_json: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Err(TransportError::ConnectionFailed("refused".to_string()))
+    }
+}
+
+/// A local narrator service that lists `0` as installed and answers every request, so a
+/// narrator connects and the connect line is "Narrator: …, model …".
+struct Answering(&'static str);
+
+impl NarratorTransport for Answering {
+    fn get_tags(
+        &self,
+        _endpoint: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Ok((
+            200,
+            serde_json::json!({"models": [{"name": self.0}]}).to_string(),
+        ))
+    }
+    fn post_generate(
+        &self,
+        _endpoint: &str,
+        _body_json: &str,
+        _timeout: Duration,
+    ) -> Result<(u16, String), TransportError> {
+        Ok((200, r#"{"response":""}"#.to_string()))
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Local {
+    Dead,
+    Listing,
+    /// A service that lists this name as installed and answers.
+    Lists(&'static str),
+}
+
+impl Local {
+    fn transport(self) -> Option<Arc<dyn NarratorTransport>> {
+        Some(match self {
+            Local::Dead => Arc::new(DeadLocal),
+            Local::Listing => Arc::new(ListingLocal),
+            Local::Lists(name) => Arc::new(Answering(name)),
+        })
+    }
+}
+
+fn table() -> &'static FallbackPhraseTable {
+    static TABLE: OnceLock<FallbackPhraseTable> = OnceLock::new();
+    TABLE.get_or_init(FallbackPhraseTable::embedded)
+}
+
+/// The forms of `key` that must never appear: as written, and JSON-escaped.
+fn forms(key: &str) -> Vec<String> {
+    let quoted = serde_json::to_string(key).unwrap();
+    vec![key.to_string(), quoted[1..quoted.len() - 1].to_string()]
+}
+
+/// `text` with every space, line break and box-drawing character taken out, so a key the
+/// screen wrapped across rows reads as one run of characters again.
+fn squeezed(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_whitespace() && !('\u{2500}'..='\u{257f}').contains(c))
+        .collect()
+}
+
+fn assert_clean(where_: &str, text: &str, key: &str) {
+    for form in forms(key) {
+        assert!(!text.contains(&form), "{where_} shows the key: {text}");
+        // No piece of ten characters or more, even across a wrapped row.
+        let flat = squeezed(text);
+        let chars: Vec<char> = squeezed(&form).chars().collect();
+        for piece in chars.windows(10) {
+            let piece: String = piece.iter().collect();
+            assert!(
+                !flat.contains(&piece),
+                "{where_} shows a piece of the key ({piece:?}): {text}"
+            );
+        }
+    }
+}
+
+fn draw(model: &Model, size: (u16, u16)) -> String {
+    let mut terminal = Terminal::new(TestBackend::new(size.0, size.1)).unwrap();
+    terminal.draw(|frame| view(model, frame)).unwrap();
+    let buffer = terminal.backend().buffer().clone();
+    let mut text = String::new();
+    for y in 0..buffer.area.height {
+        for x in 0..buffer.area.width {
+            text.push_str(buffer[(x, y)].symbol());
+        }
+        text.push('\n');
+    }
+    text
+}
+
+fn assert_screen_clean(where_: &str, model: &Model, key: &str) {
+    for size in [(80u16, 24u16), (120, 40)] {
+        assert_clean(&format!("{where_} at {size:?}"), &draw(model, size), key);
+    }
+}
+
+/// One case: a settings file, the key it hides, the local service, how the hosted client
+/// echoes, and the environment.
+struct Case {
+    body: String,
+    key: String,
+    local: Local,
+    echo: Echo,
+    env: BTreeMap<String, String>,
+}
+
+impl Case {
+    fn new(body: serde_json::Value, key: &str) -> Case {
+        Case::raw(&body.to_string(), key)
+    }
+
+    /// A settings file written as `body`, which need not be JSON at all.
+    fn raw(body: &str, key: &str) -> Case {
+        let mut env = BTreeMap::new();
+        env.insert("ETV_SET".to_string(), GOOD_KEY.to_string());
+        Case {
+            body: body.to_string(),
+            key: key.to_string(),
+            local: Local::Dead,
+            echo: Echo::ErrorBody,
+            env,
+        }
+    }
+
+    fn local(mut self, local: Local) -> Case {
+        self.local = local;
+        self
+    }
+
+    fn echo(mut self, echo: Echo) -> Case {
+        self.echo = echo;
+        self
+    }
+
+    fn env(mut self, name: &str, value: &str) -> Case {
+        self.env.insert(name.to_string(), value.to_string());
+        self
+    }
+
+    /// Load, connect, play and look, as `etv play` and `etv tui` do. Returns how many requests
+    /// reached the hosted client.
+    fn check(self) -> usize {
+        let key = self.key.as_str();
+        let dir = tempfile::tempdir().unwrap();
+        let path = settings_path(dir.path());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, &self.body).unwrap();
+        let loaded = load_settings_or_default(dir.path());
+
+        let urls = Arc::new(Mutex::new(Vec::new()));
+        let env = self.env.clone();
+        let lookup = move |name: &str| env.get(name).cloned();
+        let (local, echo) = (self.local, self.echo);
+        let transport_for = {
+            let urls = Arc::clone(&urls);
+            let lookup = lookup.clone();
+            move |s: &NarratorSettings| {
+                narrator_transport(
+                    s,
+                    local.transport(),
+                    Some(Box::new(Echoing {
+                        mode: echo,
+                        urls: Arc::clone(&urls),
+                    })),
+                    &lookup,
+                )
+            }
+        };
+        let connection = connect_narrator_with(&loaded.settings, &transport_for);
+
+        // Line mode prints the warning, then the connect lines.
+        let mut lines: Vec<String> = loaded.warning.iter().cloned().collect();
+        lines.extend(connection.lines.iter().cloned());
+        assert!(!lines.is_empty());
+        for line in &lines {
+            assert_clean("line mode", line, key);
+        }
+
+        // Line mode's options screen, with the empty model prompt (4, then Enter).
+        let mut shown_options = Vec::new();
+        etv_core::screens::run_settings_screen(
+            loaded.settings.clone(),
+            std::io::Cursor::new("4\n\nq\n"),
+            &mut shown_options,
+        )
+        .unwrap();
+        assert_clean(
+            "line mode's options screen",
+            &String::from_utf8(shown_options).unwrap(),
+            key,
+        );
+
+        // A connected narrator plays turns: every line they show, and the session summary.
+        let content = embedded_content_pack();
+        if let Some(live) = &connection.narrator {
+            let mut engine =
+                StepEngine::with_content(create_new_run_with_content(42, content), content);
+            for _ in 0..3 {
+                let shown = play_turn(
+                    &mut engine,
+                    live,
+                    Some(table()),
+                    &PlayerIntent::new(IntentAction::Travel),
+                    None,
+                );
+                assert_clean("a turn in line mode", &shown.join("\n"), key);
+            }
+            assert_clean(
+                "the session summary",
+                &narrator_summary_line(&live.stats()),
+                key,
+            );
+        }
+
+        // The full-screen interface: the same lines in its log, the real reconnect builder.
+        let engine = StepEngine::with_content(create_new_run_with_content(42, content), content);
+        let model = Model::new(
+            ViewData::from_engine(&engine),
+            loaded.settings.clone(),
+            "TEST",
+            "HASH",
+            lines.clone(),
+            false,
+        );
+        let narrator: &dyn Narrator = match &connection.narrator {
+            Some(live) => live,
+            None => &NullNarrator,
+        };
+        let reconnects = Arc::new(AtomicUsize::new(0));
+        let reconnects_for_hook = Arc::clone(&reconnects);
+        let mut app = App::new(
+            model,
+            engine,
+            narrator,
+            Some(table()),
+            dir.path().into(),
+            connection.narrator.is_some(),
+        )
+        .with_reconnect(move |settings: &NarratorSettings| {
+            reconnects_for_hook.fetch_add(1, Ordering::SeqCst);
+            Reconnected::from_connection(connect_narrator_with(settings, &transport_for))
+        });
+        if let Some(live) = &connection.narrator {
+            app = app.with_summary(|| narrator_summary_line(&live.stats()));
+        }
+        assert_screen_clean("the title screen", &app.model, key);
+        app.press_code(crossterm::event::KeyCode::Enter);
+        assert_screen_clean("the camp screen", &app.model, key);
+        app.press_char('o');
+        assert_screen_clean("the options view", &app.model, key);
+        // The empty model prompt: 4, then Enter, keeps the model and says so.
+        app.press_char('4');
+        assert_screen_clean("the model prompt", &app.model, key);
+        app.press_code(crossterm::event::KeyCode::Enter);
+        assert_screen_clean("the options view after an empty prompt", &app.model, key);
+        assert_clean("the options note", &app.model.settings_note, key);
+        // Saving changed settings in the interface reconnects with them, once.
+        app.press_char('2');
+        assert_screen_clean("the options view after a change", &app.model, key);
+        app.press_char('s');
+        assert_eq!(reconnects.load(Ordering::SeqCst), 1, "one reconnect");
+        assert_clean("the interface's log", &app.model.log.join("\n"), key);
+        assert_screen_clean("the screen after the reconnect", &app.model, key);
+        // A turn, and what it shows.
+        app.press_char('t');
+        while app.model.resolved.is_some() {
+            app.press_code(crossterm::event::KeyCode::Enter);
+        }
+        assert_clean(
+            "the interface's log after a turn",
+            &app.model.log.join("\n"),
+            key,
+        );
+        assert_screen_clean("the screen after a turn", &app.model, key);
+        if let Some(summary) = app.narrator_summary() {
+            assert_clean("the interface's summary", &summary, key);
+        }
+        let asked = urls.lock().unwrap().len();
+        asked
+    }
+}
+
+#[test]
+fn a_key_pasted_as_the_key_setting_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        Case::new(serde_json::json!({"provider": "claude", "key": key}), key).check();
+    }
+}
+
+#[test]
+fn a_key_pasted_as_the_provider_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        Case::new(serde_json::json!({"provider": key}), key).check();
+    }
+}
+
+#[test]
+fn a_key_pasted_as_the_variable_name_is_not_shown() {
+    // Looked up like any name (none is refused for its shape), and never named.
+    for key in [KEY, ODD_KEY, NAME_SHAPED_KEY] {
+        Case::new(
+            serde_json::json!({"provider": "claude", "key": {"env": key}}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_key_pasted_as_the_key_file_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        Case::new(
+            serde_json::json!({"provider": "claude", "key": {"file": key}}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_key_with_junk_in_the_key_file_or_the_variable_is_not_shown() {
+    // The file or variable holds the key plus something after it: not one key, and the
+    // refusal must not quote what it found.
+    for key in [KEY, ODD_KEY] {
+        let keys = tempfile::tempdir().unwrap();
+        let file = keys.path().join("narrator.key");
+        std::fs::write(&file, format!("{key} trailing junk")).unwrap();
+        Case::new(
+            serde_json::json!({"provider": "claude", "key": {"file": file.to_str().unwrap()}}),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"provider": "claude", "key": {"env": "ETV_JUNK"}}),
+            key,
+        )
+        .env("ETV_JUNK", &format!("{key} trailing junk"))
+        .check();
+    }
+}
+
+#[test]
+fn a_key_in_the_provider_url_is_not_shown_even_when_echoed_back() {
+    // A working key source, so the hosted client is called: its error body, or its transport
+    // error, carries the request URL with the key in its query. Nothing the player sees does.
+    for key in [KEY, ODD_KEY] {
+        for echo in [Echo::ErrorBody, Echo::TransportError] {
+            let asked = Case::new(
+                serde_json::json!({
+                    "provider": "openai-compatible",
+                    "model": "some-model",
+                    "provider_url": format!("https://example.com/v1?key={key}"),
+                    "key": {"env": "ETV_SET"},
+                }),
+                key,
+            )
+            .echo(echo)
+            .check();
+            assert!(asked > 0, "the hosted client was called");
+        }
+    }
+}
+
+#[test]
+fn a_key_as_an_invalid_provider_url_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        for url in [
+            format!("http://{key}"),
+            format!("ftp://{key}"),
+            key.to_string(),
+        ] {
+            Case::new(
+                serde_json::json!({
+                    "provider": "openai-compatible",
+                    "provider_url": url,
+                    "key": {"env": "ETV_SET"},
+                }),
+                key,
+            )
+            .check();
+        }
+    }
+}
+
+#[test]
+fn a_key_in_the_endpoint_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        // As the host, with another host allowed; as the port; as userinfo; in the query.
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://{key}:11434"), "allow_non_loopback": true}),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://{key}"), "allow_non_loopback": true}),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://127.0.0.1:{key}")}),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://{key}@127.0.0.1:11434")}),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://127.0.0.1:1/?key={key}")}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn only_a_loopback_endpoint_is_shown() {
+    assert_eq!(
+        endpoint_for_display("http://127.0.0.1:11434/api"),
+        "http://127.0.0.1:11434"
+    );
+    assert_eq!(
+        endpoint_for_display("http://localhost:11434/"),
+        "http://localhost:11434"
+    );
+    assert_eq!(
+        endpoint_for_display("https://[::1]:8443"),
+        "https://[::1]:8443"
+    );
+    assert_eq!(endpoint_for_display("http://127.1.2.3"), "http://127.1.2.3");
+    for hidden in [
+        format!("http://{KEY}"),
+        format!("http://{KEY}:11434"),
+        format!("http://127.0.0.1:{KEY}"),
+        format!("http://{KEY}@127.0.0.1:11434"),
+        "http://192.168.1.5:11434".to_string(),
+        "http://127.0.0.1:99999".to_string(),
+        "http://127.0.0.256:1".to_string(),
+        format!("http://[{KEY}]:11434"),
+        format!("ftp://{KEY}"),
+    ] {
+        assert_eq!(
+            endpoint_for_display(&hidden),
+            "the configured endpoint",
+            "{hidden}"
+        );
+    }
+}
+
+#[test]
+fn a_variable_name_is_never_named() {
+    // Even a valid name is not repeated: a key can look like one.
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        r#"{"provider": "claude", "model": "claude-haiku-5-5", "key": {"env": "ETV_UNSET"}}"#,
+    )
+    .unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    assert_eq!(loaded.warning, None);
+    let connection = connect_narrator_with(&loaded.settings, |s| {
+        narrator_transport(s, None, Some(Box::new(NoCall)), &|_| None)
+    });
+    assert_eq!(
+        connection.lines[0],
+        "The cloud narrator could not start: the environment variable named in the settings is not set."
+    );
+}
+
+/// A long or unusual variable name is looked up like any other.
+#[test]
+fn a_long_or_unusual_variable_name_is_still_looked_up() {
+    let long = "ETV_".repeat(30);
+    for name in [long.as_str(), "my-narrator.key", "1STARTS_WITH_A_DIGIT"] {
+        let settings = NarratorSettings {
+            provider: etv_core::narrator_provider::NarratorProvider::Claude,
+            model: "claude-haiku-5-5".to_string(),
+            key: etv_core::narrator_provider::KeySource {
+                env: Some(name.to_string()),
+                file: None,
+            },
+            ..NarratorSettings::default()
+        };
+        let looked = AtomicUsize::new(0);
+        let lookup = |n: &str| {
+            assert_eq!(n, name);
+            looked.fetch_add(1, Ordering::SeqCst);
+            Some(GOOD_KEY.to_string())
+        };
+        let transport = narrator_transport(&settings, None, Some(Box::new(NoCall)), &lookup);
+        assert!(transport.is_ok(), "{name}");
+        assert_eq!(looked.load(Ordering::SeqCst), 1, "{name}");
+    }
+    // Only an impossible name is refused, unread and unnamed.
+    for bad in ["", "A=B", "A\0B"] {
+        let s = etv_core::narrator_provider::KeySource {
+            env: Some(bad.to_string()),
+            file: None,
+        };
+        let err = s.resolve(&|_| panic!("looked up {bad:?}")).unwrap_err();
+        assert_eq!(
+            err,
+            "the environment variable named in the settings cannot be a variable's name"
+        );
+    }
+}
+
+/// An HTTPS client the test never expects to be called.
+struct NoCall;
+
+impl HttpsPost for NoCall {
+    fn post(
+        &self,
+        _url: &str,
+        _headers: &[(&str, &str)],
+        _body: &str,
+        _timeout: Duration,
+    ) -> Result<HttpReply, TransportError> {
+        panic!("no request expected")
+    }
+}
+
+#[test]
+fn a_key_pasted_as_the_model_is_not_shown() {
+    // The model name is shown back ("The narrator model '…' is not installed"), so a key there
+    // is refused first, with a reason that does not repeat it.
+    for key in [
+        KEY,
+        "sk-or-FAKE0123456789abcdefghij",
+        "AIzaFAKE0123456789abcdefghij",
+        "hf_FAKE0123456789abcdefghij",
+        "gsk_FAKE0123456789abcdefghij",
+        "xai-FAKE0123456789abcdefghij",
+        "ghp_FAKE0123456789abcdefghij",
+        "github_pat_FAKE0123456789abcdefghij",
+    ] {
+        Case::new(serde_json::json!({"model": key}), key)
+            .local(Local::Listing)
+            .check();
+    }
+}
+
+/// The lines a settings file gives at start, with `local` as the local service.
+fn connect_lines(body: &str, local: Local) -> (Option<String>, Vec<String>) {
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, body).unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    let lines = connect_narrator_with(&loaded.settings, |s| {
+        narrator_transport(s, local.transport(), None, &|_| None)
+    })
+    .lines;
+    (loaded.warning, lines)
+}
+
+/// A made-up key of 32 letters and digits, with no known prefix.
+const PLAIN_KEY: &str = "Q7xK2mN9pL4vR8tW1zY6bC3dF5gH0jAs";
+
+#[test]
+fn a_prefixless_key_as_the_model_is_not_shown() {
+    // A key of model-name characters passes the name check, so it is never shown as free text:
+    // for the local narrator (service listing other models, and service not answering), for an
+    // OpenAI-compatible provider, and for Claude (which refuses any model it does not list).
+    for key in [NAME_SHAPED_KEY, PLAIN_KEY] {
+        Case::new(serde_json::json!({"model": key}), key)
+            .local(Local::Listing)
+            .check();
+        Case::new(serde_json::json!({"model": key}), key).check();
+        Case::new(
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": key,
+                "provider_url": "https://example.com/v1",
+                "key": {"env": "ETV_SET"},
+            }),
+            key,
+        )
+        .check();
+        Case::new(
+            serde_json::json!({"provider": "claude", "model": key, "key": {"env": "ETV_SET"}}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_key_with_odd_characters_as_the_model_is_not_shown() {
+    Case::new(serde_json::json!({"model": ODD_KEY}), ODD_KEY)
+        .local(Local::Listing)
+        .check();
+}
+
+#[test]
+fn a_key_in_the_endpoint_path_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://127.0.0.1:11434/{key}")}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn malformed_json_holding_a_key_is_not_shown() {
+    // A syntax error (the key alone) and an unexpected end (an unclosed string).
+    for key in [KEY, NAME_SHAPED_KEY] {
+        Case::raw(key, key).check();
+        Case::raw(&format!("{{\"model\": \"{key}"), key).check();
+    }
+}
+
+#[test]
+fn a_known_model_is_still_named() {
+    // A model the local service lists as installed is named.
+    let (warning, lines) = connect_lines(r#"{"model": "qwen3:4b"}"#, Local::Listing);
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines[0],
+        "The narrator model 'qwen3:4b' did not load in time."
+    );
+    // The built-in default is named, with its pull hint, when it is not installed.
+    let (warning, lines) = connect_lines("{}", Local::Listing);
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines[0],
+        format!(
+            "The narrator model '{0}' is not installed in Ollama. Install it with: ollama pull {0}",
+            etv_core::narrator::DEFAULT_NARRATOR_MODEL
+        )
+    );
+    // A real model with a prefix once refused is accepted again, and, not installed, unnamed.
+    let (warning, lines) = connect_lines(r#"{"model": "xai-org/grok-1"}"#, Local::Listing);
+    assert_eq!(warning, None, "xai-org/grok-1 is a model name");
+    assert_eq!(
+        lines[0],
+        "The configured narrator model is not installed in Ollama."
+    );
+    // The options screen names a Claude model, and not a free-text one.
+    let claude = NarratorSettings::default().with_cloud();
+    let screen = etv_core::screens::settings_screen_lines(&claude).join(
+        "
+",
+    );
+    assert!(screen.contains("4. Model     claude-haiku-5-5"), "{screen}");
+    let custom = NarratorSettings {
+        model: "xai-org/grok-1".to_string(),
+        ..NarratorSettings::default()
+    };
+    let screen = etv_core::screens::settings_screen_lines(&custom).join(
+        "
+",
+    );
+    assert!(
+        screen.contains("4. Model     the configured model"),
+        "{screen}"
+    );
+    // A name the player types on the screen is shown back there.
+    let mut typed = etv_core::screens::SettingsScreen::new(custom);
+    typed.handle_line("4");
+    let said = typed.handle_line("mistral:7b");
+    assert_eq!(
+        said,
+        etv_core::screens::SettingsEvent::Changed("Model is now mistral:7b.".to_string())
+    );
+    assert!(typed
+        .lines()
+        .join(
+            "
+"
+        )
+        .contains("4. Model     mistral:7b"));
+}
+
+#[test]
+fn an_endpoint_error_carries_no_endpoint_text() {
+    use etv_core::narrator::{validate_endpoint, EndpointError};
+    let mut seen = std::collections::BTreeSet::new();
+    for key in [KEY, ODD_KEY, NAME_SHAPED_KEY] {
+        for endpoint in [
+            format!("ftp://{key}"),
+            format!("http://{key}:11434"),
+            format!("http://127.0.0.1:{key}"),
+            format!("http://{key}@127.0.0.1:11434"),
+            format!("http://127.0.0.1:11434/?key={key}"),
+            format!("http://[{key}]:11434"),
+        ] {
+            for allow in [false, true] {
+                let Err(e) = validate_endpoint(&endpoint, allow) else {
+                    continue;
+                };
+                seen.insert(format!("{e:?}"));
+                for text in [format!("{e:?}"), format!("{e}")] {
+                    assert_clean("an endpoint error", &text, key);
+                }
+            }
+        }
+    }
+    // Every variant was produced at least once.
+    for variant in [
+        EndpointError::InvalidScheme,
+        EndpointError::InvalidAuthority,
+        EndpointError::NonLoopbackRefused,
+    ] {
+        assert!(
+            seen.contains(&format!("{variant:?}")),
+            "{variant:?} never produced"
+        );
+    }
+}
+
+#[test]
+fn a_connected_narrator_names_a_model_the_local_service_lists() {
+    let (warning, lines) = connect_lines(r#"{"model": "qwen3:4b"}"#, Local::Lists("qwen3:4b"));
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines,
+        vec!["Narrator: Fireside, Brief, model qwen3:4b.".to_string()]
+    );
+}
+
+#[test]
+fn a_remote_services_listing_never_names_a_model() {
+    // A service on another host (allowed by the settings) may list anything, a pasted key
+    // included: its listing does not make the name showable.
+    let (warning, lines) = connect_lines(
+        r#"{"endpoint": "http://192.168.1.5:11434", "allow_non_loopback": true, "model": "qwen3:4b"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    assert_eq!(warning, None);
+    assert_eq!(
+        lines,
+        vec!["Narrator: Fireside, Brief, model the configured model.".to_string()]
+    );
+    Case::new(
+        serde_json::json!({
+            "endpoint": "http://192.168.1.5:11434",
+            "allow_non_loopback": true,
+            "model": NAME_SHAPED_KEY,
+        }),
+        NAME_SHAPED_KEY,
+    )
+    .local(Local::Lists(NAME_SHAPED_KEY))
+    .check();
+}
+
+#[test]
+fn a_claude_file_without_a_model_takes_the_claude_default() {
+    use etv_core::narrator_provider::CLOUD_DEFAULT_MODEL;
+    // No model named: the Claude default, and the file loads.
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        r#"{"provider": "claude", "key": {"env": "ETV_SET"}}"#,
+    )
+    .unwrap();
+    let loaded = load_settings_or_default(dir.path());
+    assert_eq!(loaded.warning, None);
+    assert!(loaded.from_file);
+    assert_eq!(loaded.settings.model, CLOUD_DEFAULT_MODEL);
+    // An explicit model the provider does not list is still refused, unshown.
+    for model in ["qwen3:4b", NAME_SHAPED_KEY] {
+        let body =
+            serde_json::json!({"provider": "claude", "model": model, "key": {"env": "ETV_SET"}})
+                .to_string();
+        std::fs::write(&path, &body).unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        let warning = loaded.warning.unwrap();
+        assert!(
+            warning.contains("the claude provider needs one of its models"),
+            "{warning}"
+        );
+        assert!(!warning.contains(model), "{warning}");
+        assert!(!loaded.from_file);
+    }
+    // Another provider without a model keeps the local default, as before.
+    std::fs::write(&path, r#"{"provider": "ollama"}"#).unwrap();
+    assert_eq!(
+        load_settings_or_default(dir.path()).settings.model,
+        etv_core::narrator::DEFAULT_NARRATOR_MODEL
+    );
+}
+
+#[test]
+fn the_options_screen_refuses_a_model_the_claude_provider_does_not_list() {
+    use etv_core::screens::{run_settings_screen, SettingsEvent, SettingsExit, SettingsScreen};
+    let claude = NarratorSettings::default().with_cloud();
+    let mut screen = SettingsScreen::new(claude.clone());
+    assert_eq!(screen.handle_line("4"), SettingsEvent::AskModel);
+    let said = screen.handle_line(NAME_SHAPED_KEY);
+    let SettingsEvent::Rejected(why) = said else {
+        panic!("not refused: {said:?}");
+    };
+    assert_eq!(
+        why,
+        format!(
+            "Model not changed: {}.",
+            etv_core::narrator_provider::claude_model_refusal()
+        )
+    );
+    assert!(!why.contains(NAME_SHAPED_KEY));
+    assert_eq!(
+        screen.settings.model, claude.model,
+        "the model is unchanged"
+    );
+    // A listed model is taken.
+    screen.handle_line("4");
+    assert!(matches!(
+        screen.handle_line("claude-opus-5-5"),
+        SettingsEvent::Changed(_)
+    ));
+    assert_eq!(screen.settings.model, "claude-opus-5-5");
+
+    // Typed and saved in line mode: what is saved is not the refused name.
+    let mut out = Vec::new();
+    let exit = run_settings_screen(
+        claude.clone(),
+        std::io::Cursor::new(format!("4\n{NAME_SHAPED_KEY}\ns\n")),
+        &mut out,
+    )
+    .unwrap();
+    let SettingsExit::Save(saved) = exit else {
+        panic!("expected a save");
+    };
+    assert_eq!(saved.model, claude.model);
+    assert_clean(
+        "line mode's options screen",
+        &String::from_utf8(out).unwrap(),
+        NAME_SHAPED_KEY,
+    );
+}

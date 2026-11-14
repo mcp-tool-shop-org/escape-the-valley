@@ -179,7 +179,7 @@ jobs:
 
   rust:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     concurrency:
       group: ${{ github.workflow }}-rust-${{ github.head_ref || github.ref }}
       cancel-in-progress: true
@@ -210,9 +210,20 @@ jobs:
       - name: Clippy
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
+      # Every feature as well as the defaults: the hosted narrator (narrator-claude) is not in
+      # the default build, so its code, its TLS stack and their licences are checked here.
+      - name: Clippy (all features)
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
       - name: Test
         run: cargo test --locked --workspace
 
+      - name: Test (all features)
+        run: cargo test --locked --workspace --all-features
+
       - name: License check
         run: cargo deny --locked check licenses
+
+      - name: License check (all features)
+        run: cargo deny --locked --all-features check licenses
 

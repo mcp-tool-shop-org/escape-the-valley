@@ -4,8 +4,13 @@ All notable changes to Escape the Valley are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **The narrator can run on a hosted service.** Settings gain a provider: the local Ollama server stays the default (now `qwen3:4b-instruct-2507-q4_K_M`, Brief length), and a player can choose Claude (preselected as `claude-haiku-5-5`) or any OpenAI-compatible endpoint. The key is read from an environment variable or a key file the settings name; it is never stored in the settings, logged or shown. A rejected key switches the hosted narrator off, and any failure shows the game's own line. A turn whose first narrator call times out skips its second call. Builds with the cloud narrator carry the TLS crates' notices.
+
 ### Changed
 
+- A turn whose scene narration times out no longer makes its outcome call; the game's own line is shown instead.
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
 - **Supplies and changes are named in words.** The camp status, the supplies panel, the line of numbers after a choice, a choice you cannot afford, the game's own lines ("-1 ammunition"), event text and choice hints, and the Trail Ledger now read "Lamp oil", "Spare parts", "Medicine", "Ammunition", "Days", "Wagon condition" and "Animals' health" instead of the game's internal names (`lantern_oil`, `parts`, `meds`, `ammo`, `time_days`, `wagon_condition`, `animals_health`). Each supply is named with the same words as the narrator's plain fallback lines ("uses lamp oil", "uses spare parts"). Saves and game rules are unchanged.
 - **A plural supply name's possessive follows its label.** "the meds' cost" now reads "the medicine's cost" rather than "the medicine' cost", while a quoted name keeps its quotes ("'meds'" reads "'medicine'") and a name in capitals reads in capitals ("AMMO'S GONE" reads "AMMUNITION'S GONE"). The checks that no internal name reaches the screen now also run under the V2 rules, catch a name in any case, and require every name the game uses to have its own label.

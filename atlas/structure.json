@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "242621382dcb66b31496dcff36eb262f9bef8a14ac9af585c6e649f89c4dcdb7",
+          "hash": "04978bf31def474c772c10cbf99dca7cd7edbb29f49f8c5b8705692b0df6f137",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -2222,7 +2222,7 @@
           "path": ".polyglot-terms.json"
         },
         {
-          "hash": "702de88479d661d3375489efb298ffb9e54e4dd2d258b314f3776b7fe2c8ec70",
+          "hash": "9e101b0764009eaa38b80f501d5a70ca4fb1659291d45402edb4687fc0c3032e",
           "path": "CHANGELOG.md"
         },
         {
@@ -8500,6 +8500,14 @@
           "programs": [
             "cargo"
           ],
+          "step": "Clippy (all features)"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
           "step": "Test"
         },
         {
@@ -8508,7 +8516,23 @@
           "programs": [
             "cargo"
           ],
+          "step": "Test (all features)"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
           "step": "License check"
+        },
+        {
+          "dir": "rust",
+          "job": "rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check (all features)"
         }
       ],
       "elsewhere": [],
@@ -8676,6 +8700,13 @@
         {
           "job": "rust",
           "matched": true,
+          "path": "rust/etv-core/src/cloud_claude.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
           "path": "rust/etv-core/src/engine.rs",
           "runKind": "executes",
           "via": "cargo test"
@@ -8768,7 +8799,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 20,
+      "runsCount": 21,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -8792,10 +8823,17 @@
         },
         {
           "dir": "rust",
-          "files": 46,
+          "files": 51,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test"
+        },
+        {
+          "dir": "rust",
+          "files": 51,
+          "job": "rust",
+          "runner": "cargo test",
+          "step": "Test (all features)"
         }
       ],
       "triggers": [
@@ -9474,6 +9512,14 @@
           "programs": [
             "cargo"
           ],
+          "step": "Clippy (all features)"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
           "step": "Test"
         },
         {
@@ -9482,7 +9528,23 @@
           "programs": [
             "cargo"
           ],
+          "step": "Test (all features)"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
           "step": "License check"
+        },
+        {
+          "dir": "rust",
+          "job": "gate/rust",
+          "programs": [
+            "cargo"
+          ],
+          "step": "License check (all features)"
         },
         {
           "dir": "",
@@ -9770,6 +9832,13 @@
         {
           "job": "gate/rust",
           "matched": true,
+          "path": "rust/etv-core/src/cloud_claude.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "gate/rust",
+          "matched": true,
           "path": "rust/etv-core/src/engine.rs",
           "runKind": "executes",
           "via": "cargo test"
@@ -9862,7 +9931,7 @@
           "runKind": "executes"
         }
       ],
-      "runsCount": 20,
+      "runsCount": 21,
       "secrets": [
         "GITHUB_TOKEN"
       ],
@@ -9900,10 +9969,20 @@
         },
         {
           "dir": "rust",
-          "files": 46,
+          "files": 51,
           "job": "gate/rust",
           "runner": "cargo test",
           "step": "Test",
+          "through": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "dir": "rust",
+          "files": 51,
+          "job": "gate/rust",
+          "runner": "cargo test",
+          "step": "Test (all features)",
           "through": [
             ".github/workflows/ci.yml"
           ]
@@ -10323,8 +10402,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "7a03cb325ad7871c0c9829b7cb83d8cc6847f30d",
-    "tracked": 848
+    "commit": "a27403ca5f49595d72f92c38b5c0b7557416bd8f",
+    "tracked": 854
   },
   "landings": [
     {
@@ -11204,10 +11283,10 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 95,
+  "testFiles": 99,
   "unassigned": [
     {
-      "hash": "1933527f3fdc9da74685c29d9d85b11224651a30af2343998615557ce4e7282c",
+      "hash": "0bf1fa7d7c0780c55853bf76e4c3a1a035618792e2aa420f1faa197e69b2114b",
       "path": "rust/Cargo.lock"
     },
     {
@@ -11215,11 +11294,11 @@
       "path": "rust/Cargo.toml"
     },
     {
-      "hash": "f88b1c9677291c24b21b8ae78fcc3181bd38a2b8847c8289be563f78ed0c83bb",
+      "hash": "b1eb1fcbb6f5394e7076183d1ffea213fc23bbf4a9486e23351069219c1b09cb",
       "path": "rust/deny.toml"
     },
     {
-      "hash": "50a5a8146d3f2e19d29679a106b4ac10e8b19459a2ba545b6b99e218a63b58a7",
+      "hash": "3832d1e3d20fb333bc0503233fe2de4820432e6adb77e0d05cde6227ee53c1fb",
       "path": "rust/etv-core/Cargo.toml"
     },
     {
@@ -11235,15 +11314,15 @@
       "path": "rust/etv-core/content/fallback_phrases.json"
     },
     {
-      "hash": "aa340a9dea32d62a7c8e218c85a5f68ffcbeb32df44fa7ac10492b998cef1414",
+      "hash": "c5fe7cf91267aa03efdb73f7e36a92664ac4fff7699e373fbd8958cb4c0082a3",
       "path": "rust/etv-core/notices/THIRD_PARTY_NOTICES.txt"
     },
     {
-      "hash": "58200feb7734529e9e12afc1f9576c8e16c0ccf5c19bcd11e5e81d13c12b1511",
+      "hash": "12a448a9ea755a5ac2d7bbdc0597617107d80aa802689e488ee39017689dff33",
       "path": "rust/etv-core/notices/license_allowlist.json"
     },
     {
-      "hash": "756103d33ba7b4e9dbca848cd154a39b550415a811d60d83dcd1fbb3480627e3",
+      "hash": "51bdb7319a25f98b26b05c7f81b2d2359e55134c59fe4db29f19821283e75141",
       "path": "rust/etv-core/notices/notices_manifest.json"
     },
     {
@@ -11381,17 +11460,7 @@
         {
           "in": "open_run",
           "kind": "err",
-          "line": 82
-        },
-        {
-          "in": "open_run",
-          "kind": "match-err",
-          "line": 86
-        },
-        {
-          "in": "open_run",
-          "kind": "err",
-          "line": 88
+          "line": 91
         },
         {
           "in": "open_run",
@@ -11401,47 +11470,62 @@
         {
           "in": "open_run",
           "kind": "err",
+          "line": 97
+        },
+        {
+          "in": "open_run",
+          "kind": "match-err",
           "line": 104
         },
         {
           "in": "open_run",
+          "kind": "err",
+          "line": 113
+        },
+        {
+          "in": "open_run",
           "kind": "match-err",
-          "line": 106
+          "line": 115
         },
         {
           "in": "open_run",
           "kind": "err",
-          "line": 108
+          "line": 117
         },
         {
           "in": "run_play_command",
           "kind": "match-err",
-          "line": 124
+          "line": 133
         },
         {
           "in": "run_play_command",
           "kind": "match-err",
-          "line": 157
+          "line": 166
         },
         {
           "in": "run_tui_command",
           "kind": "match-err",
-          "line": 178
+          "line": 187
         },
         {
           "in": "run_tui_command",
           "kind": "match-err",
-          "line": 245
+          "line": 237
         },
         {
           "in": "run_settings_command",
           "kind": "match-err",
-          "line": 264
+          "line": 256
         },
         {
           "in": "run_settings_command",
           "kind": "match-err",
-          "line": 275
+          "line": 267
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 283
         },
         {
           "in": "main",
@@ -11451,16 +11535,12 @@
         {
           "in": "main",
           "kind": "match-err",
-          "line": 299
-        },
-        {
-          "in": "main",
-          "kind": "match-err",
-          "line": 312
+          "line": 304
         }
       ],
-      "hash": "7e253b9a109251c8b471ab39a2230c2ab5552a04b75e263a301b32119dc916e9",
+      "hash": "66442270d16fe31df716ec019ac8385c8ec2941078f34199f609f17bc7b84bd3",
       "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/narrator.rs",
@@ -11503,35 +11583,57 @@
         {
           "calls": [
             {
-              "line": 73,
+              "line": 57,
+              "name": "default",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            },
+            {
+              "line": 61,
+              "name": "narrator_transport",
+              "target": {
+                "file": "rust/etv-core/src/play.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "build_transport"
+        },
+        {
+          "calls": [
+            {
+              "line": 82,
               "name": "has_save",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
               }
             },
             {
-              "line": 85,
+              "line": 94,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
               }
             },
             {
-              "line": 86,
+              "line": 95,
               "name": "save_game",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
               }
             },
             {
-              "line": 93,
+              "line": 102,
               "name": "load_game_checked_with_content_hash",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
               }
             },
             {
-              "line": 112,
+              "line": 121,
               "name": "with_options",
               "receiver": "StepEngine",
               "target": {
@@ -11547,7 +11649,7 @@
         {
           "calls": [
             {
-              "line": 73,
+              "line": 82,
               "name": "has_save",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11555,7 +11657,7 @@
               "via": "open_run"
             },
             {
-              "line": 85,
+              "line": 94,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -11563,7 +11665,7 @@
               "via": "open_run"
             },
             {
-              "line": 86,
+              "line": 95,
               "name": "save_game",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11571,7 +11673,7 @@
               "via": "open_run"
             },
             {
-              "line": 93,
+              "line": 102,
               "name": "load_game_checked_with_content_hash",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11579,7 +11681,7 @@
               "via": "open_run"
             },
             {
-              "line": 112,
+              "line": 121,
               "name": "with_options",
               "receiver": "StepEngine",
               "target": {
@@ -11588,7 +11690,7 @@
               "via": "open_run"
             },
             {
-              "line": 126,
+              "line": 135,
               "name": "embedded",
               "receiver": "FallbackPhraseTable",
               "target": {
@@ -11596,28 +11698,28 @@
               }
             },
             {
-              "line": 129,
+              "line": 138,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
               }
             },
             {
-              "line": 133,
-              "name": "connect_narrator",
+              "line": 142,
+              "name": "connect_narrator_with",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               }
             },
             {
-              "line": 141,
+              "line": 150,
               "name": "run_play",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               }
             },
             {
-              "line": 153,
+              "line": 162,
               "name": "narrator_summary_line",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
@@ -11632,7 +11734,7 @@
         {
           "calls": [
             {
-              "line": 73,
+              "line": 82,
               "name": "has_save",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11640,7 +11742,7 @@
               "via": "open_run"
             },
             {
-              "line": 85,
+              "line": 94,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -11648,7 +11750,7 @@
               "via": "open_run"
             },
             {
-              "line": 86,
+              "line": 95,
               "name": "save_game",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11656,7 +11758,7 @@
               "via": "open_run"
             },
             {
-              "line": 93,
+              "line": 102,
               "name": "load_game_checked_with_content_hash",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11664,7 +11766,7 @@
               "via": "open_run"
             },
             {
-              "line": 112,
+              "line": 121,
               "name": "with_options",
               "receiver": "StepEngine",
               "target": {
@@ -11673,7 +11775,7 @@
               "via": "open_run"
             },
             {
-              "line": 181,
+              "line": 190,
               "name": "embedded",
               "receiver": "FallbackPhraseTable",
               "target": {
@@ -11681,63 +11783,63 @@
               }
             },
             {
-              "line": 182,
+              "line": 191,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
               }
             },
             {
-              "line": 183,
-              "name": "connect_narrator",
+              "line": 192,
+              "name": "connect_narrator_with",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               }
             },
             {
-              "line": 193,
+              "line": 202,
               "name": "no_color_requested",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
               }
             },
             {
-              "line": 195,
+              "line": 204,
               "name": "from_engine",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
               }
             },
             {
-              "line": 194,
+              "line": 203,
               "name": "new",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
               }
             },
             {
-              "line": 211,
+              "line": 220,
               "name": "narrator_summary_line",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               }
             },
             {
-              "line": 215,
-              "name": "connect_narrator",
+              "line": 224,
+              "name": "connect_narrator_with",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               }
             },
             {
-              "line": 225,
-              "name": "narrator_summary_line",
+              "line": 224,
+              "name": "from_connection",
               "target": {
-                "file": "rust/etv-core/src/play.rs"
+                "file": "rust/etv-core/src/tui/mod.rs"
               }
             },
             {
-              "line": 237,
+              "line": 229,
               "name": "run_terminal",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
@@ -11752,21 +11854,21 @@
         {
           "calls": [
             {
-              "line": 256,
+              "line": 248,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
               }
             },
             {
-              "line": 262,
+              "line": 254,
               "name": "run_settings_screen",
               "target": {
                 "file": "rust/etv-core/src/screens.rs"
               }
             },
             {
-              "line": 270,
+              "line": 262,
               "name": "save_settings",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
@@ -11781,7 +11883,7 @@
         {
           "calls": [
             {
-              "line": 289,
+              "line": 281,
               "name": "parse_cli_args",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -11789,7 +11891,7 @@
             },
             {
               "branch": "opts.command == CliCommand::Notices",
-              "line": 298,
+              "line": 290,
               "name": "third_party_notices_text",
               "target": {
                 "file": "rust/etv-core/src/notices.rs"
@@ -11808,14 +11910,6 @@
                   }
                 },
                 {
-                  "line": 55,
-                  "name": "load_from_file",
-                  "receiver": "NarratorSettings",
-                  "target": {
-                    "file": "rust/etv-core/src/narrator.rs"
-                  }
-                },
-                {
                   "line": 36,
                   "name": "default",
                   "receiver": "NarratorSettings",
@@ -11823,9 +11917,17 @@
                     "file": "rust/etv-core/src/narrator.rs"
                   },
                   "via": "defaults_with_warning"
+                },
+                {
+                  "line": 63,
+                  "name": "from_json_str",
+                  "receiver": "NarratorSettings",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  }
                 }
               ],
-              "line": 256,
+              "line": 248,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
@@ -11834,17 +11936,7 @@
             },
             {
               "branch": "opts.command == CliCommand::Settings",
-              "inner": [
-                {
-                  "line": 105,
-                  "name": "profile_interface_name",
-                  "target": {
-                    "file": "rust/etv-core/src/narrator.rs"
-                  },
-                  "via": "settings_screen_lines"
-                }
-              ],
-              "line": 262,
+              "line": 254,
               "name": "run_settings_screen",
               "target": {
                 "file": "rust/etv-core/src/screens.rs"
@@ -11855,14 +11947,14 @@
               "branch": "opts.command == CliCommand::Settings",
               "inner": [
                 {
-                  "line": 84,
+                  "line": 99,
                   "name": "atomic_write_text",
                   "target": {
                     "file": "rust/etv-core/src/save.rs"
                   }
                 }
               ],
-              "line": 270,
+              "line": 262,
               "name": "save_settings",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
@@ -11887,14 +11979,14 @@
               "via": "load_selected_content"
             },
             {
-              "line": 320,
+              "line": 312,
               "name": "version_with_content_hash",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
               }
             },
             {
-              "line": 73,
+              "line": 82,
               "name": "has_save",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -11948,7 +12040,7 @@
                   "via": "create_new_run_with_rng"
                 }
               ],
-              "line": 85,
+              "line": 94,
               "name": "create_new_run_with_content",
               "target": {
                 "file": "rust/etv-core/src/worldgen.rs"
@@ -11956,7 +12048,7 @@
               "via": "open_run"
             },
             {
-              "line": 86,
+              "line": 95,
               "name": "save_game",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -12012,7 +12104,7 @@
                   "via": "load_backpack"
                 }
               ],
-              "line": 93,
+              "line": 102,
               "name": "load_game_checked_with_content_hash",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -12020,7 +12112,7 @@
               "via": "open_run"
             },
             {
-              "line": 112,
+              "line": 121,
               "name": "with_options",
               "receiver": "StepEngine",
               "target": {
@@ -12029,7 +12121,7 @@
               "via": "open_run"
             },
             {
-              "line": 126,
+              "line": 135,
               "name": "embedded",
               "receiver": "FallbackPhraseTable",
               "target": {
@@ -12049,14 +12141,6 @@
                   }
                 },
                 {
-                  "line": 55,
-                  "name": "load_from_file",
-                  "receiver": "NarratorSettings",
-                  "target": {
-                    "file": "rust/etv-core/src/narrator.rs"
-                  }
-                },
-                {
                   "line": 36,
                   "name": "default",
                   "receiver": "NarratorSettings",
@@ -12064,9 +12148,17 @@
                     "file": "rust/etv-core/src/narrator.rs"
                   },
                   "via": "defaults_with_warning"
+                },
+                {
+                  "line": 63,
+                  "name": "from_json_str",
+                  "receiver": "NarratorSettings",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  }
                 }
               ],
-              "line": 129,
+              "line": 138,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
@@ -12076,7 +12168,7 @@
             {
               "inner": [
                 {
-                  "line": 466,
+                  "line": 543,
                   "name": "with_transport",
                   "receiver": "LiveNarrator",
                   "target": {
@@ -12084,15 +12176,29 @@
                   }
                 },
                 {
-                  "line": 490,
+                  "line": 550,
+                  "name": "is_loopback_endpoint",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  }
+                },
+                {
+                  "line": 556,
+                  "name": "model_for_display",
+                  "target": {
+                    "file": "rust/etv-core/src/settings.rs"
+                  }
+                },
+                {
+                  "line": 583,
                   "name": "profile_interface_name",
                   "target": {
                     "file": "rust/etv-core/src/narrator.rs"
                   }
                 }
               ],
-              "line": 133,
-              "name": "connect_narrator",
+              "line": 142,
+              "name": "connect_narrator_with",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               },
@@ -12101,21 +12207,21 @@
             {
               "inner": [
                 {
-                  "line": 356,
+                  "line": 357,
                   "name": "title_screen_lines",
                   "target": {
                     "file": "rust/etv-core/src/screens.rs"
                   }
                 },
                 {
-                  "line": 361,
+                  "line": 362,
                   "name": "trail_ledger_for_player",
                   "target": {
                     "file": "rust/etv-core/src/ledger.rs"
                   }
                 },
                 {
-                  "line": 165,
+                  "line": 166,
                   "name": "current_node",
                   "target": {
                     "file": "rust/etv-core/src/physics.rs"
@@ -12123,7 +12229,7 @@
                   "via": "status_facts"
                 },
                 {
-                  "line": 218,
+                  "line": 219,
                   "name": "label",
                   "target": {
                     "file": "rust/etv-core/src/labels.rs"
@@ -12131,14 +12237,14 @@
                   "via": "status_lines"
                 },
                 {
-                  "line": 372,
+                  "line": 373,
                   "name": "relabel_text",
                   "target": {
                     "file": "rust/etv-core/src/labels.rs"
                   }
                 },
                 {
-                  "line": 126,
+                  "line": 127,
                   "name": "label_in_sentence",
                   "target": {
                     "file": "rust/etv-core/src/labels.rs"
@@ -12146,14 +12252,14 @@
                   "via": "choice_line"
                 },
                 {
-                  "line": 386,
+                  "line": 387,
                   "name": "route_offered_letters",
                   "target": {
                     "file": "rust/etv-core/src/engine.rs"
                   }
                 },
                 {
-                  "line": 42,
+                  "line": 43,
                   "name": "relabel_text",
                   "target": {
                     "file": "rust/etv-core/src/labels.rs"
@@ -12162,7 +12268,7 @@
                 },
                 {
                   "branch": "matches!(first, \"p\" | \"pace\")",
-                  "line": 67,
+                  "line": 68,
                   "name": "new",
                   "receiver": "PlayerIntent",
                   "target": {
@@ -12171,7 +12277,7 @@
                   "via": "parse_camp_input"
                 },
                 {
-                  "line": 81,
+                  "line": 82,
                   "name": "new",
                   "receiver": "PlayerIntent",
                   "target": {
@@ -12180,7 +12286,7 @@
                   "via": "parse_camp_input"
                 },
                 {
-                  "line": 270,
+                  "line": 271,
                   "name": "capture",
                   "receiver": "PreTurnObservation",
                   "target": {
@@ -12189,7 +12295,7 @@
                   "via": "play_turn"
                 },
                 {
-                  "line": 280,
+                  "line": 281,
                   "name": "evaluate_turn_matters",
                   "target": {
                     "file": "rust/etv-core/src/narrator.rs"
@@ -12198,7 +12304,7 @@
                 }
               ],
               "innerTruncated": true,
-              "line": 141,
+              "line": 150,
               "name": "run_play",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
@@ -12206,7 +12312,7 @@
               "via": "run_play_command"
             },
             {
-              "line": 153,
+              "line": 162,
               "name": "narrator_summary_line",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
@@ -12214,7 +12320,7 @@
               "via": "run_play_command"
             },
             {
-              "line": 181,
+              "line": 190,
               "name": "embedded",
               "receiver": "FallbackPhraseTable",
               "target": {
@@ -12234,14 +12340,6 @@
                   }
                 },
                 {
-                  "line": 55,
-                  "name": "load_from_file",
-                  "receiver": "NarratorSettings",
-                  "target": {
-                    "file": "rust/etv-core/src/narrator.rs"
-                  }
-                },
-                {
                   "line": 36,
                   "name": "default",
                   "receiver": "NarratorSettings",
@@ -12249,9 +12347,17 @@
                     "file": "rust/etv-core/src/narrator.rs"
                   },
                   "via": "defaults_with_warning"
+                },
+                {
+                  "line": 63,
+                  "name": "from_json_str",
+                  "receiver": "NarratorSettings",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  }
                 }
               ],
-              "line": 182,
+              "line": 191,
               "name": "load_settings_or_default",
               "target": {
                 "file": "rust/etv-core/src/settings.rs"
@@ -12261,7 +12367,7 @@
             {
               "inner": [
                 {
-                  "line": 466,
+                  "line": 543,
                   "name": "with_transport",
                   "receiver": "LiveNarrator",
                   "target": {
@@ -12269,22 +12375,36 @@
                   }
                 },
                 {
-                  "line": 490,
+                  "line": 550,
+                  "name": "is_loopback_endpoint",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  }
+                },
+                {
+                  "line": 556,
+                  "name": "model_for_display",
+                  "target": {
+                    "file": "rust/etv-core/src/settings.rs"
+                  }
+                },
+                {
+                  "line": 583,
                   "name": "profile_interface_name",
                   "target": {
                     "file": "rust/etv-core/src/narrator.rs"
                   }
                 }
               ],
-              "line": 183,
-              "name": "connect_narrator",
+              "line": 192,
+              "name": "connect_narrator_with",
               "target": {
                 "file": "rust/etv-core/src/play.rs"
               },
               "via": "run_tui_command"
             },
             {
-              "line": 193,
+              "line": 202,
               "name": "no_color_requested",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
@@ -12292,7 +12412,7 @@
               "via": "run_tui_command"
             },
             {
-              "line": 195,
+              "line": 204,
               "name": "from_engine",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
@@ -12300,7 +12420,7 @@
               "via": "run_tui_command"
             },
             {
-              "line": 194,
+              "line": 203,
               "name": "new",
               "target": {
                 "file": "rust/etv-core/src/tui/mod.rs"
@@ -12736,11 +12856,32 @@
         {
           "in": "main",
           "kind": "match-err",
-          "line": 14
+          "line": 20
+        },
+        {
+          "in": "main",
+          "kind": "match-err",
+          "line": 29
+        },
+        {
+          "in": "run_cloud",
+          "kind": "match-err",
+          "line": 53
+        },
+        {
+          "in": "run_cloud",
+          "kind": "match-err",
+          "line": 60
+        },
+        {
+          "in": "run_cloud",
+          "kind": "match-err",
+          "line": 79
         }
       ],
-      "hash": "f3eba10e33771f9fb633c8f739c198652c93485a1ef1c4abbf5331a366af4848",
+      "hash": "7165831e670611c0b2fc2164ec3227a3cad7df4cc0bdaab5c483a3c226afb41e",
       "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/measure.rs",
         "rust/etv-core/src/narrator.rs"
       ],
@@ -12749,6 +12890,13 @@
       "sequences": [
         {
           "calls": [
+            {
+              "line": 18,
+              "name": "split_cloud_args",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            },
             {
               "inner": [
                 {
@@ -12761,7 +12909,7 @@
                 },
                 {
                   "branch": "let Some(files) = summarise",
-                  "line": 1218,
+                  "line": 1245,
                   "name": "read_rows_files",
                   "target": {
                     "file": "rust/etv-core/src/measure_stats.rs"
@@ -12769,14 +12917,23 @@
                 },
                 {
                   "branch": "let Some(files) = summarise",
-                  "line": 1223,
+                  "line": 1250,
                   "name": "summarise_rows",
                   "target": {
                     "file": "rust/etv-core/src/measure_stats.rs"
                   }
                 },
                 {
-                  "line": 820,
+                  "line": 828,
+                  "name": "default",
+                  "receiver": "NarratorSettings",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  },
+                  "via": "run_measurement_on"
+                },
+                {
+                  "line": 830,
                   "name": "with_transport",
                   "receiver": "LiveNarrator",
                   "target": {
@@ -12785,7 +12942,7 @@
                   "via": "run_measurement_on"
                 },
                 {
-                  "line": 836,
+                  "line": 846,
                   "name": "profile_interface_name",
                   "target": {
                     "file": "rust/etv-core/src/narrator.rs"
@@ -12793,7 +12950,7 @@
                   "via": "run_measurement_on"
                 },
                 {
-                  "line": 959,
+                  "line": 969,
                   "name": "fill_slot_details",
                   "target": {
                     "file": "rust/etv-core/src/measure_stats.rs"
@@ -12801,7 +12958,7 @@
                   "via": "run_measurement_on"
                 },
                 {
-                  "line": 973,
+                  "line": 983,
                   "name": "fill_derived",
                   "target": {
                     "file": "rust/etv-core/src/measure_stats.rs"
@@ -12809,19 +12966,337 @@
                   "via": "run_measurement_on"
                 }
               ],
-              "line": 14,
+              "line": 27,
               "name": "run_cli",
               "target": {
                 "file": "rust/etv-core/src/measure.rs"
               }
+            },
+            {
+              "line": 51,
+              "name": "read_from_file",
+              "receiver": "ApiKey",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              },
+              "via": "run_cloud"
+            },
+            {
+              "line": 58,
+              "name": "default",
+              "receiver": "UreqHttpsPost",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              },
+              "via": "run_cloud"
+            },
+            {
+              "line": 58,
+              "name": "new",
+              "receiver": "ClaudeTransport",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              },
+              "via": "run_cloud"
+            },
+            {
+              "inner": [
+                {
+                  "line": 281,
+                  "name": "hex_encode_32",
+                  "target": {
+                    "file": "rust/etv-core/src/content.rs"
+                  },
+                  "via": "sha256_hex"
+                },
+                {
+                  "branch": "let Some(files) = summarise",
+                  "line": 1245,
+                  "name": "read_rows_files",
+                  "target": {
+                    "file": "rust/etv-core/src/measure_stats.rs"
+                  }
+                },
+                {
+                  "branch": "let Some(files) = summarise",
+                  "line": 1250,
+                  "name": "summarise_rows",
+                  "target": {
+                    "file": "rust/etv-core/src/measure_stats.rs"
+                  }
+                },
+                {
+                  "line": 828,
+                  "name": "default",
+                  "receiver": "NarratorSettings",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  },
+                  "via": "run_measurement_on"
+                },
+                {
+                  "line": 830,
+                  "name": "with_transport",
+                  "receiver": "LiveNarrator",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  },
+                  "via": "run_measurement_on"
+                },
+                {
+                  "line": 846,
+                  "name": "profile_interface_name",
+                  "target": {
+                    "file": "rust/etv-core/src/narrator.rs"
+                  },
+                  "via": "run_measurement_on"
+                },
+                {
+                  "line": 969,
+                  "name": "fill_slot_details",
+                  "target": {
+                    "file": "rust/etv-core/src/measure_stats.rs"
+                  },
+                  "via": "run_measurement_on"
+                },
+                {
+                  "line": 983,
+                  "name": "fill_derived",
+                  "target": {
+                    "file": "rust/etv-core/src/measure_stats.rs"
+                  },
+                  "via": "run_measurement_on"
+                }
+              ],
+              "line": 65,
+              "name": "run_cli",
+              "target": {
+                "file": "rust/etv-core/src/measure.rs"
+              },
+              "via": "run_cloud"
+            },
+            {
+              "line": 71,
+              "name": "nano_as_usd",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              },
+              "via": "run_cloud"
             }
           ],
           "exported": false,
           "invokedAtTopLevel": true,
           "isDefaultExport": false,
           "name": "main"
+        },
+        {
+          "calls": [
+            {
+              "line": 51,
+              "name": "read_from_file",
+              "receiver": "ApiKey",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            },
+            {
+              "line": 58,
+              "name": "default",
+              "receiver": "UreqHttpsPost",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            },
+            {
+              "line": 58,
+              "name": "new",
+              "receiver": "ClaudeTransport",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            },
+            {
+              "line": 65,
+              "name": "run_cli",
+              "target": {
+                "file": "rust/etv-core/src/measure.rs"
+              }
+            },
+            {
+              "line": 71,
+              "name": "nano_as_usd",
+              "target": {
+                "file": "rust/etv-core/src/cloud_claude.rs"
+              }
+            }
+          ],
+          "exported": false,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "run_cloud"
         }
       ]
+    },
+    {
+      "exports": [
+        "always_thinks",
+        "build_messages_request",
+        "gets_headroom",
+        "is_warmup",
+        "nano_as_usd",
+        "prices_for",
+        "response_text",
+        "split_cloud_args",
+        "usd_to_nano"
+      ],
+      "failurePaths": [
+        {
+          "in": "read_from_file",
+          "kind": "err",
+          "line": 168
+        },
+        {
+          "in": "from_text",
+          "kind": "err",
+          "line": 189
+        },
+        {
+          "in": "save",
+          "kind": "match-err",
+          "line": 342
+        },
+        {
+          "in": "save",
+          "kind": "err",
+          "line": 342
+        },
+        {
+          "in": "save",
+          "kind": "match-err",
+          "line": 343
+        },
+        {
+          "in": "others_beside",
+          "kind": "match-err",
+          "line": 373
+        },
+        {
+          "in": "others_beside",
+          "kind": "err",
+          "line": 373
+        },
+        {
+          "in": "others_beside",
+          "kind": "match-err",
+          "line": 374
+        },
+        {
+          "in": "usd_to_nano",
+          "kind": "err",
+          "line": 416
+        },
+        {
+          "in": "build_messages_request",
+          "kind": "err",
+          "line": 496
+        },
+        {
+          "in": "with_sleep",
+          "kind": "err",
+          "line": 645
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 750
+        },
+        {
+          "in": "post_generate",
+          "kind": "match-err",
+          "line": 759
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 761
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 781
+        },
+        {
+          "in": "post_generate",
+          "kind": "match-err",
+          "line": 785
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 787
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 799
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 804
+        },
+        {
+          "in": "post_generate",
+          "kind": "match-err",
+          "line": 807
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 809
+        },
+        {
+          "in": "post_generate",
+          "kind": "match-err",
+          "line": 824
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 838
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 848
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 867
+        },
+        {
+          "in": "post_generate",
+          "kind": "match-err",
+          "line": 896
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 898
+        },
+        {
+          "in": "split_cloud_args",
+          "kind": "err",
+          "line": 1000
+        }
+      ],
+      "hash": "967a7726288b1caf7e73c4ff0c083c3d83fc8fc3010d799f73f4f7c442ed810b",
+      "importsFiles": [
+        "rust/etv-core/src/narrator.rs"
+      ],
+      "path": "rust/etv-core/src/cloud_claude.rs",
+      "testsInside": true
     },
     {
       "exports": [
@@ -13127,9 +13602,10 @@
       "path": "rust/etv-core/src/ledger_proof.rs"
     },
     {
-      "hash": "10a10c20502e39cd1ab9762b2e0be1891a5672d58714e32a3cc3192acd56cb61",
+      "hash": "b0046d42ba8b6adde5338c49333563bbb41c8dc9f8d7587e85a4384c892bb2dc",
       "importsFiles": [
         "rust/etv-core/src/backpack.rs",
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/content_diff.rs",
         "rust/etv-core/src/engine.rs",
@@ -13144,6 +13620,7 @@
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/narrator.rs",
         "rust/etv-core/src/narrator_experiment.rs",
+        "rust/etv-core/src/narrator_provider.rs",
         "rust/etv-core/src/narrator_truth.rs",
         "rust/etv-core/src/notices.rs",
         "rust/etv-core/src/physics.rs",
@@ -13164,7 +13641,7 @@
       "path": "rust/etv-core/src/lib.rs"
     },
     {
-      "entry": "build_turn_context",
+      "entry": "run_cli",
       "entryRule": 4,
       "exports": [
         "build_turn_context",
@@ -13259,40 +13736,45 @@
         {
           "in": "run_measurement_on",
           "kind": "err",
-          "line": 829
+          "line": 839
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1112
+          "line": 1130
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1124
+          "line": 1139
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1152
+          "line": 1151
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1169
+          "line": 1179
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1189
+          "line": 1196
         },
         {
           "in": "run_cli",
           "kind": "err",
-          "line": 1233
+          "line": 1216
+        },
+        {
+          "in": "run_cli",
+          "kind": "err",
+          "line": 1260
         }
       ],
-      "hash": "e83fc980daf226b24ec5957cd23efdc4005c7433b3b7ac6eea0c23c6d5726a20",
+      "hash": "d96709d549a293e56c7f005990116fbb5586c8bf8f021251d15ef854c1ecd3ba",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -13432,7 +13914,16 @@
         {
           "calls": [
             {
-              "line": 820,
+              "line": 828,
+              "name": "default",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "run_measurement_on"
+            },
+            {
+              "line": 830,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -13441,7 +13932,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 836,
+              "line": 846,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -13449,7 +13940,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 959,
+              "line": 969,
               "name": "fill_slot_details",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13457,7 +13948,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 973,
+              "line": 983,
               "name": "fill_derived",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13473,7 +13964,16 @@
         {
           "calls": [
             {
-              "line": 820,
+              "line": 828,
+              "name": "default",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "run_measurement_on"
+            },
+            {
+              "line": 830,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -13482,7 +13982,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 836,
+              "line": 846,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -13490,7 +13990,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 959,
+              "line": 969,
               "name": "fill_slot_details",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13498,7 +13998,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 973,
+              "line": 983,
               "name": "fill_derived",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13514,7 +14014,16 @@
         {
           "calls": [
             {
-              "line": 820,
+              "line": 828,
+              "name": "default",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "run_measurement_on"
+            },
+            {
+              "line": 830,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -13523,7 +14032,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 836,
+              "line": 846,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -13531,7 +14040,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 959,
+              "line": 969,
               "name": "fill_slot_details",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13539,7 +14048,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 973,
+              "line": 983,
               "name": "fill_derived",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13555,7 +14064,15 @@
         {
           "calls": [
             {
-              "line": 820,
+              "line": 828,
+              "name": "default",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              }
+            },
+            {
+              "line": 830,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -13563,21 +14080,21 @@
               }
             },
             {
-              "line": 836,
+              "line": 846,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
               }
             },
             {
-              "line": 959,
+              "line": 969,
               "name": "fill_slot_details",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
               }
             },
             {
-              "line": 973,
+              "line": 983,
               "name": "fill_derived",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13601,7 +14118,7 @@
             },
             {
               "branch": "let Some(files) = summarise",
-              "line": 1218,
+              "line": 1245,
               "name": "read_rows_files",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13609,14 +14126,23 @@
             },
             {
               "branch": "let Some(files) = summarise",
-              "line": 1223,
+              "line": 1250,
               "name": "summarise_rows",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
               }
             },
             {
-              "line": 820,
+              "line": 828,
+              "name": "default",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "run_measurement_on"
+            },
+            {
+              "line": 830,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -13625,7 +14151,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 836,
+              "line": 846,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -13633,7 +14159,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 959,
+              "line": 969,
               "name": "fill_slot_details",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13641,7 +14167,7 @@
               "via": "run_measurement_on"
             },
             {
-              "line": 973,
+              "line": 983,
               "name": "fill_derived",
               "target": {
                 "file": "rust/etv-core/src/measure_stats.rs"
@@ -13796,12 +14322,7 @@
         {
           "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1907
-        },
-        {
-          "in": "parse_slot_prose",
-          "kind": "err",
-          "line": 1915
+          "line": 1916
         },
         {
           "in": "parse_slot_prose",
@@ -13809,188 +14330,209 @@
           "line": 1924
         },
         {
-          "in": "parse_scene_response_strict",
+          "in": "parse_slot_prose",
           "kind": "err",
-          "line": 1980
+          "line": 1933
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1988
+          "line": 1989
         },
         {
           "in": "parse_scene_response_strict",
           "kind": "err",
-          "line": 1993
+          "line": 1997
+        },
+        {
+          "in": "parse_scene_response_strict",
+          "kind": "err",
+          "line": 2002
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 2003
+          "line": 2012
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 2015
+          "line": 2024
         },
         {
           "in": "parse_outcome_response_strict",
           "kind": "err",
-          "line": 2020
+          "line": 2029
         },
         {
           "in": "check_generated_line",
           "kind": "err",
-          "line": 2785
+          "line": 2794
         },
         {
           "in": "from_json_str",
           "kind": "err",
-          "line": 3250
+          "line": 3259
         },
         {
           "in": "from_source_table_json",
           "kind": "err",
-          "line": 3274
+          "line": 3283
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 3474
+          "line": 3483
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 3477
+          "line": 3486
         },
         {
           "in": "try_start_with_mode",
           "kind": "err",
-          "line": 3481
+          "line": 3490
         },
         {
           "in": "resolve_fallback_line_with_mode",
           "kind": "match-err",
-          "line": 3638
+          "line": 3647
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3661
+          "line": 3686
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3666
+          "line": 3692
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3672
+          "line": 3701
         },
         {
           "in": "parse_endpoint_host",
           "kind": "err",
-          "line": 3678
+          "line": 3711
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 3717
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 3730
+        },
+        {
+          "in": "parse_endpoint_host",
+          "kind": "err",
+          "line": 3738
         },
         {
           "in": "is_loopback_endpoint",
           "kind": "match-err",
-          "line": 3688
+          "line": 3749
         },
         {
           "in": "validate_endpoint",
           "kind": "err",
-          "line": 3699
+          "line": 3763
         },
         {
           "in": "get_tags",
           "kind": "err",
-          "line": 3873
+          "line": 3989
         },
         {
           "in": "post_generate",
           "kind": "err",
-          "line": 3884
+          "line": 4000
         },
         {
           "in": "take_slot_records",
           "kind": "match-err",
-          "line": 4162
+          "line": 4286
         },
         {
-          "in": "check_startup",
+          "in": "check_startup_with",
           "kind": "match-err",
-          "line": 4245
+          "line": 4395
         },
         {
-          "in": "check_startup",
+          "in": "check_startup_with",
           "kind": "match-err",
-          "line": 4280
+          "line": 4431
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 4316
+          "line": 4467
         },
         {
           "in": "warmup",
           "kind": "match-err",
-          "line": 4317
-        },
-        {
-          "in": "warmup",
-          "kind": "err",
-          "line": 4317
-        },
-        {
-          "in": "warmup",
-          "kind": "match-err",
-          "line": 4318
+          "line": 4468
         },
         {
           "in": "warmup",
           "kind": "err",
-          "line": 4318
+          "line": 4468
+        },
+        {
+          "in": "warmup",
+          "kind": "match-err",
+          "line": 4469
+        },
+        {
+          "in": "warmup",
+          "kind": "err",
+          "line": 4469
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 4383
+          "line": 4535
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 4394
+          "line": 4545
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 4416
+          "line": 4574
         },
         {
           "in": "call_ollama_slot",
           "kind": "err",
-          "line": 4434
+          "line": 4592
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 4456
+          "line": 4614
         },
         {
           "in": "call_ollama_slot",
           "kind": "match-err",
-          "line": 4470
+          "line": 4628
         }
       ],
-      "hash": "8efd44e25f4545c37e63176cae0fd7c5b4c728722afeef08bd805aca2bb140b8",
+      "hash": "0ab552e33859e354dcaf97ad1e2f727d6c695df969e03789e2184b41f0dd2a41",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/memory.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/narrator_experiment.rs",
+        "rust/etv-core/src/narrator_provider.rs",
         "rust/etv-core/src/narrator_truth.rs",
         "rust/etv-core/src/physics.rs"
       ],
@@ -14140,7 +14682,7 @@
         {
           "calls": [
             {
-              "line": 3186,
+              "line": 3195,
               "name": "truth_failures",
               "target": {
                 "file": "rust/etv-core/src/narrator_truth.rs"
@@ -14156,7 +14698,7 @@
         {
           "calls": [
             {
-              "line": 3186,
+              "line": 3195,
               "name": "truth_failures",
               "target": {
                 "file": "rust/etv-core/src/narrator_truth.rs"
@@ -14172,7 +14714,7 @@
         {
           "calls": [
             {
-              "line": 3186,
+              "line": 3195,
               "name": "truth_failures",
               "target": {
                 "file": "rust/etv-core/src/narrator_truth.rs"
@@ -14207,6 +14749,55 @@
         "rust/etv-core/src/narrator_truth.rs"
       ],
       "path": "rust/etv-core/src/narrator_experiment.rs"
+    },
+    {
+      "exports": [
+        "build_chat_request",
+        "chat_response_text",
+        "claude_model_description",
+        "claude_model_refusal",
+        "hosted_transport",
+        "is_claude_model",
+        "validate_provider"
+      ],
+      "failurePaths": [
+        {
+          "in": "resolve",
+          "kind": "err",
+          "line": 148
+        },
+        {
+          "in": "resolve",
+          "kind": "err",
+          "line": 162
+        },
+        {
+          "in": "post_generate",
+          "kind": "err",
+          "line": 305
+        },
+        {
+          "in": "validate_provider",
+          "kind": "err",
+          "line": 393
+        },
+        {
+          "in": "validate_provider",
+          "kind": "err",
+          "line": 401
+        },
+        {
+          "in": "validate_provider",
+          "kind": "err",
+          "line": 406
+        }
+      ],
+      "hash": "9358a2e869428ccbe263010aca89f9699495495c056484ed884a18ffdf6b3898",
+      "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/narrator.rs"
+      ],
+      "path": "rust/etv-core/src/narrator_provider.rs"
     },
     {
       "exports": [
@@ -14263,20 +14854,20 @@
         {
           "in": "validate_notices_against_allowlist",
           "kind": "err",
-          "line": 523
+          "line": 542
         },
         {
           "in": "verify_manifest_coverage_against_cargo_lock",
           "kind": "err",
-          "line": 808
+          "line": 829
         },
         {
           "in": "generate_notices_from_workspace",
           "kind": "err",
-          "line": 994
+          "line": 1044
         }
       ],
-      "hash": "e40ce6ca1f8f95535644c4295260677112f17c86037032be99ce93c3deceaaa4",
+      "hash": "c6629e9c72b014be8467695c17cacf788e1af988fa564dd1bb86ad7d4de1844d",
       "importsFiles": [
         "rust/etv-core/src/content.rs"
       ],
@@ -14285,7 +14876,7 @@
         {
           "calls": [
             {
-              "line": 165,
+              "line": 178,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -14300,7 +14891,7 @@
         {
           "calls": [
             {
-              "line": 165,
+              "line": 178,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -14316,7 +14907,7 @@
         {
           "calls": [
             {
-              "line": 165,
+              "line": 178,
               "name": "hex_encode_32",
               "target": {
                 "file": "rust/etv-core/src/content.rs"
@@ -14376,8 +14967,11 @@
       "exports": [
         "choice_line",
         "connect_narrator",
+        "connect_narrator_with",
         "deltas_line",
+        "endpoint_for_display",
         "narrator_summary_line",
+        "narrator_transport",
         "parse_camp_input",
         "parse_choice_input",
         "play_turn",
@@ -14386,22 +14980,47 @@
         "status_facts",
         "status_lines"
       ],
-      "hash": "bfd5376ffe4fe4f5138f2d5f9b8a47eb432f47388dd14467f5bc1ffb2c464447",
+      "failurePaths": [
+        {
+          "in": "connect_narrator_with",
+          "kind": "match-err",
+          "line": 541
+        },
+        {
+          "in": "narrator_transport",
+          "kind": "err",
+          "line": 613
+        },
+        {
+          "in": "narrator_transport",
+          "kind": "match-err",
+          "line": 621
+        },
+        {
+          "in": "narrator_transport",
+          "kind": "err",
+          "line": 621
+        }
+      ],
+      "hash": "b582ff008ffdf0bf1b3abe0e7018cc81c017ca00496f00fca1db41e806f9ac82",
       "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/labels.rs",
         "rust/etv-core/src/ledger.rs",
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
         "rust/etv-core/src/physics.rs",
-        "rust/etv-core/src/screens.rs"
+        "rust/etv-core/src/screens.rs",
+        "rust/etv-core/src/settings.rs"
       ],
       "path": "rust/etv-core/src/play.rs",
       "sequences": [
         {
           "calls": [
             {
-              "line": 42,
+              "line": 43,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14417,7 +15036,7 @@
           "calls": [
             {
               "branch": "matches!(first, \"p\" | \"pace\")",
-              "line": 67,
+              "line": 68,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14425,7 +15044,7 @@
               }
             },
             {
-              "line": 81,
+              "line": 82,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14441,14 +15060,14 @@
         {
           "calls": [
             {
-              "line": 119,
+              "line": 120,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
               }
             },
             {
-              "line": 126,
+              "line": 127,
               "name": "label_in_sentence",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14463,7 +15082,7 @@
         {
           "calls": [
             {
-              "line": 165,
+              "line": 166,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -14478,7 +15097,7 @@
         {
           "calls": [
             {
-              "line": 165,
+              "line": 166,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -14486,7 +15105,7 @@
               "via": "status_facts"
             },
             {
-              "line": 218,
+              "line": 219,
               "name": "label",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14501,7 +15120,7 @@
         {
           "calls": [
             {
-              "line": 247,
+              "line": 248,
               "name": "label",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14516,7 +15135,7 @@
         {
           "calls": [
             {
-              "line": 270,
+              "line": 271,
               "name": "capture",
               "receiver": "PreTurnObservation",
               "target": {
@@ -14524,28 +15143,28 @@
               }
             },
             {
-              "line": 280,
+              "line": 281,
               "name": "evaluate_turn_matters",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
               }
             },
             {
-              "line": 281,
+              "line": 282,
               "name": "build_narration_context_with_phase",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
               }
             },
             {
-              "line": 303,
+              "line": 304,
               "name": "resolve_fallback_line",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
               }
             },
             {
-              "line": 247,
+              "line": 248,
               "name": "label",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14553,7 +15172,7 @@
               "via": "deltas_line"
             },
             {
-              "line": 323,
+              "line": 324,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14568,21 +15187,21 @@
         {
           "calls": [
             {
-              "line": 356,
+              "line": 357,
               "name": "title_screen_lines",
               "target": {
                 "file": "rust/etv-core/src/screens.rs"
               }
             },
             {
-              "line": 361,
+              "line": 362,
               "name": "trail_ledger_for_player",
               "target": {
                 "file": "rust/etv-core/src/ledger.rs"
               }
             },
             {
-              "line": 165,
+              "line": 166,
               "name": "current_node",
               "target": {
                 "file": "rust/etv-core/src/physics.rs"
@@ -14590,7 +15209,7 @@
               "via": "status_facts"
             },
             {
-              "line": 218,
+              "line": 219,
               "name": "label",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14598,14 +15217,14 @@
               "via": "status_lines"
             },
             {
-              "line": 372,
+              "line": 373,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
               }
             },
             {
-              "line": 126,
+              "line": 127,
               "name": "label_in_sentence",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14613,14 +15232,14 @@
               "via": "choice_line"
             },
             {
-              "line": 386,
+              "line": 387,
               "name": "route_offered_letters",
               "target": {
                 "file": "rust/etv-core/src/engine.rs"
               }
             },
             {
-              "line": 42,
+              "line": 43,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14629,7 +15248,7 @@
             },
             {
               "branch": "matches!(first, \"p\" | \"pace\")",
-              "line": 67,
+              "line": 68,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14638,7 +15257,7 @@
               "via": "parse_camp_input"
             },
             {
-              "line": 81,
+              "line": 82,
               "name": "new",
               "receiver": "PlayerIntent",
               "target": {
@@ -14647,7 +15266,7 @@
               "via": "parse_camp_input"
             },
             {
-              "line": 270,
+              "line": 271,
               "name": "capture",
               "receiver": "PreTurnObservation",
               "target": {
@@ -14656,7 +15275,7 @@
               "via": "play_turn"
             },
             {
-              "line": 280,
+              "line": 281,
               "name": "evaluate_turn_matters",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -14664,7 +15283,7 @@
               "via": "play_turn"
             },
             {
-              "line": 281,
+              "line": 282,
               "name": "build_narration_context_with_phase",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -14672,7 +15291,7 @@
               "via": "play_turn"
             },
             {
-              "line": 303,
+              "line": 304,
               "name": "resolve_fallback_line",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -14680,7 +15299,7 @@
               "via": "play_turn"
             },
             {
-              "line": 247,
+              "line": 248,
               "name": "label",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14688,7 +15307,7 @@
               "via": "deltas_line"
             },
             {
-              "line": 323,
+              "line": 324,
               "name": "relabel_text",
               "target": {
                 "file": "rust/etv-core/src/labels.rs"
@@ -14704,7 +15323,48 @@
         {
           "calls": [
             {
-              "line": 466,
+              "line": 543,
+              "name": "with_transport",
+              "receiver": "LiveNarrator",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "connect_narrator_with"
+            },
+            {
+              "line": 550,
+              "name": "is_loopback_endpoint",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "connect_narrator_with"
+            },
+            {
+              "line": 556,
+              "name": "model_for_display",
+              "target": {
+                "file": "rust/etv-core/src/settings.rs"
+              },
+              "via": "connect_narrator_with"
+            },
+            {
+              "line": 583,
+              "name": "profile_interface_name",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              },
+              "via": "connect_narrator_with"
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "connect_narrator"
+        },
+        {
+          "calls": [
+            {
+              "line": 543,
               "name": "with_transport",
               "receiver": "LiveNarrator",
               "target": {
@@ -14712,7 +15372,21 @@
               }
             },
             {
-              "line": 490,
+              "line": 550,
+              "name": "is_loopback_endpoint",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              }
+            },
+            {
+              "line": 556,
+              "name": "model_for_display",
+              "target": {
+                "file": "rust/etv-core/src/settings.rs"
+              }
+            },
+            {
+              "line": 583,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
@@ -14722,7 +15396,22 @@
           "exported": true,
           "invokedAtTopLevel": false,
           "isDefaultExport": false,
-          "name": "connect_narrator"
+          "name": "connect_narrator_with"
+        },
+        {
+          "calls": [
+            {
+              "line": 618,
+              "name": "hosted_transport",
+              "target": {
+                "file": "rust/etv-core/src/narrator_provider.rs"
+              }
+            }
+          ],
+          "exported": true,
+          "invokedAtTopLevel": false,
+          "isDefaultExport": false,
+          "name": "narrator_transport"
         }
       ]
     },
@@ -15517,7 +16206,7 @@
       "path": "rust/etv-core/src/save_v5.rs"
     },
     {
-      "entry": "about_screen_lines",
+      "entry": "settings_screen_lines",
       "entryRule": 4,
       "exports": [
         "about_screen_lines",
@@ -15531,13 +16220,14 @@
         {
           "in": "set_model",
           "kind": "match-err",
-          "line": 185
+          "line": 232
         }
       ],
-      "hash": "27138775b221be059d193c95dbef93dd2c6bc56d2ee6670fa0a5f8453c5123ac",
+      "hash": "3c1be438dda5af063d41ec1705dd4f16e640f24d9b4d1a5b7b60b01981d9711f",
       "importsFiles": [
         "rust/etv-core/src/model.rs",
         "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
         "rust/etv-core/src/settings.rs"
       ],
       "path": "rust/etv-core/src/screens.rs",
@@ -15560,11 +16250,27 @@
         {
           "calls": [
             {
-              "line": 105,
+              "line": 102,
+              "name": "model_for_display",
+              "target": {
+                "file": "rust/etv-core/src/settings.rs"
+              }
+            },
+            {
+              "line": 111,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
-              }
+              },
+              "via": "settings_lines_naming"
+            },
+            {
+              "line": 127,
+              "name": "claude_model_description",
+              "target": {
+                "file": "rust/etv-core/src/narrator_provider.rs"
+              },
+              "via": "settings_lines_naming"
             }
           ],
           "exported": true,
@@ -15575,18 +16281,24 @@
         {
           "calls": [
             {
-              "line": 105,
+              "line": 111,
               "name": "profile_interface_name",
               "target": {
                 "file": "rust/etv-core/src/narrator.rs"
-              },
-              "via": "settings_screen_lines"
+              }
+            },
+            {
+              "line": 127,
+              "name": "claude_model_description",
+              "target": {
+                "file": "rust/etv-core/src/narrator_provider.rs"
+              }
             }
           ],
-          "exported": true,
+          "exported": false,
           "invokedAtTopLevel": false,
           "isDefaultExport": false,
-          "name": "run_settings_screen"
+          "name": "settings_lines_naming"
         }
       ]
     },
@@ -15595,6 +16307,7 @@
       "entryRule": 4,
       "exports": [
         "load_settings_or_default",
+        "model_for_display",
         "save_settings",
         "settings_path",
         "settings_to_json",
@@ -15604,25 +16317,30 @@
         {
           "in": "load_settings_or_default",
           "kind": "match-err",
-          "line": 66
+          "line": 65
+        },
+        {
+          "in": "load_settings_or_default",
+          "kind": "match-err",
+          "line": 77
         },
         {
           "in": "validate_model_name",
           "kind": "err",
-          "line": 94
+          "line": 109
         },
         {
           "in": "validate_model_name",
           "kind": "err",
-          "line": 97
+          "line": 112
         },
         {
           "in": "validate_model_name",
           "kind": "err",
-          "line": 105
+          "line": 120
         }
       ],
-      "hash": "67e7268860102c6084f9fb359b39a0ef79a05f06e16a0c2c5a753ba0f3e3ad31",
+      "hash": "00c267db2f094a3679822364ab39aeb9d8d03f5c26ac68c70d1751713a710063",
       "importsFiles": [
         "rust/etv-core/src/narrator.rs",
         "rust/etv-core/src/save.rs"
@@ -15657,14 +16375,6 @@
               }
             },
             {
-              "line": 55,
-              "name": "load_from_file",
-              "receiver": "NarratorSettings",
-              "target": {
-                "file": "rust/etv-core/src/narrator.rs"
-              }
-            },
-            {
               "line": 36,
               "name": "default",
               "receiver": "NarratorSettings",
@@ -15672,6 +16382,14 @@
                 "file": "rust/etv-core/src/narrator.rs"
               },
               "via": "defaults_with_warning"
+            },
+            {
+              "line": 63,
+              "name": "from_json_str",
+              "receiver": "NarratorSettings",
+              "target": {
+                "file": "rust/etv-core/src/narrator.rs"
+              }
             }
           ],
           "exported": true,
@@ -15682,7 +16400,7 @@
         {
           "calls": [
             {
-              "line": 84,
+              "line": 99,
               "name": "atomic_write_text",
               "target": {
                 "file": "rust/etv-core/src/save.rs"
@@ -16064,7 +16782,7 @@
       "exports": [
         "run_terminal"
       ],
-      "hash": "6823cea9528b341d97a546a98ba6813aac9954b5984d0a1aa639e5c6dc48485f",
+      "hash": "7c777dd183dbd0ef3da17a3a246572308a6b2dff2e69828aef60b132eb7d8798",
       "importsFiles": [
         "rust/etv-core/src/engine.rs",
         "rust/etv-core/src/model.rs",
@@ -16165,7 +16883,7 @@
       "exports": [
         "view"
       ],
-      "hash": "2a748fcb40bae39c455b4c0fd9bf968c6aa26aa0d52d7c6b16549ed87d60ab51",
+      "hash": "9e734b95ae7d38bd1177a4ac096383259f87731dddabe09d638776797006820e",
       "importOrder": [
         "rust/etv-core/src/play.rs",
         "rust/etv-core/src/screens.rs",
@@ -16907,15 +17625,15 @@
       "path": "rust/etv-core/tests/fixtures/tui/help_80x24.txt"
     },
     {
-      "hash": "4943851de794c1926bdaf9c4546f9611aca890a25bbb9b1dad2f179366ad8901",
+      "hash": "eeea1e9e677ef1d193ab24280994a16fbc013a25840db6842d2981caa90750b6",
       "path": "rust/etv-core/tests/fixtures/tui/settings_100x30.txt"
     },
     {
-      "hash": "4a583a59904f139f93c7f57f8173967f0c8e52ee6c4d8617b219194a20721418",
+      "hash": "ba7b28d72f301904a9318b391d25c40c2e67a2659a9b2fad1685da8962ecdb8f",
       "path": "rust/etv-core/tests/fixtures/tui/settings_120x40.txt"
     },
     {
-      "hash": "1864bc42abaac273f554230551fdb2d8c6344c709491a18fcf0b09377a0cbc62",
+      "hash": "dae6d672d103e69d3d0128c2a04851c7c5595222950929136f4ea7a606279ab3",
       "path": "rust/etv-core/tests/fixtures/tui/settings_80x24.txt"
     },
     {
@@ -17003,7 +17721,7 @@
       "testsInside": true
     },
     {
-      "hash": "129dbaa53e9621dfa0425fd097c4a0ee6f399aa0e053132193488d8805fc75a1",
+      "hash": "7e00f9213db32d6584fc474a92df652d52a33c99f41ba178f1781137d4785b16",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -17027,7 +17745,7 @@
       "testsInside": true
     },
     {
-      "hash": "5d961060eeaebce3cdf6e6523b6d73beff16867d9703a6699e2c1000ca9e11ca",
+      "hash": "f78f50c2d3dc3f2e74c2b19f5c0c21bddd70ffff404aee1dc145316cf0ee188f",
       "importsFiles": [
         "rust/etv-core/src/measure.rs",
         "rust/etv-core/src/model.rs",
@@ -17064,6 +17782,18 @@
       "testsInside": true
     },
     {
+      "hash": "a6362bab93e9516661057f06d502bf9de44fdc4bdcf1925e30fcadf54fd2edc3",
+      "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
+        "rust/etv-core/src/screens.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/narrator_providers.rs",
+      "testsInside": true
+    },
+    {
       "hash": "dbb05e10439d601585410e40065a9fe72d4d9dc30d7bbda85e99f5e7aad6e095",
       "importsFiles": [
         "rust/etv-core/src/measure.rs",
@@ -17075,6 +17805,22 @@
       ],
       "library": "rust/etv-core/src/lib.rs",
       "path": "rust/etv-core/tests/narrator_says_what_happened.rs",
+      "testsInside": true
+    },
+    {
+      "hash": "f52a7facffbb911fa05b99e240a1c6dab4664e3e60c6ce61aa5f86abea5b8421",
+      "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
+        "rust/etv-core/src/play.rs",
+        "rust/etv-core/src/tui/mod.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/narrator_settings_diagnostics.rs",
       "testsInside": true
     },
     {
@@ -17147,6 +17893,15 @@
       "testsInside": true
     },
     {
+      "hash": "0aa030c7d3c486662370377dce21d2189bfe3ad660965e808770444d997de69d",
+      "importsFiles": [
+        "rust/etv-core/src/notices.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/notices_crate_exceptions.rs",
+      "testsInside": true
+    },
+    {
       "hash": "a4404241f51776e77d27e96e90fc68720724d427809d41fb07fbc8a205245459",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -17190,7 +17945,7 @@
       "testsInside": true
     },
     {
-      "hash": "07120400b1f59739caa1241c49bfb29c046b9502fa76526d8941e8106bbad61d",
+      "hash": "bae60dac35681062404e32f4e8b3d924c652a21fd4e11b7148e73af4e4d67bac",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -17228,7 +17983,7 @@
       "testsInside": true
     },
     {
-      "hash": "405ad89805bd730823c4b3562379f9380a49893ec5dc9def9fc39c85a18a419b",
+      "hash": "af8adcc22a222edd65bf4ad2d34e3ecbeff5f1871ba5bdf13d444859f9303794",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -17281,7 +18036,7 @@
       "testsInside": true
     },
     {
-      "hash": "e6885c7c0e5de15136dadaabed239b747666020a47bfc17c300f1ef82628c767",
+      "hash": "a8d285ba217b983cc894b019b24fd0c83277e59248e7aac23c79623ac8c5feb6",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/model.rs",
@@ -17432,6 +18187,40 @@
       "testsInside": true
     },
     {
+      "hash": "89a635f2b0daa530496aaf6a79ddc7e7e2d7ce693a86fe579379d5812519abfc",
+      "importOrder": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/play.rs",
+        "rust/etv-core/src/settings.rs",
+        "rust/etv-core/src/tui/view.rs",
+        "rust/etv-core/src/tui/mod.rs",
+        "rust/etv-core/src/worldgen.rs",
+        "rust/etv-core/src/screens.rs",
+        "rust/etv-core/src/narrator_provider.rs"
+      ],
+      "importsFiles": [
+        "rust/etv-core/src/cloud_claude.rs",
+        "rust/etv-core/src/content.rs",
+        "rust/etv-core/src/engine.rs",
+        "rust/etv-core/src/model.rs",
+        "rust/etv-core/src/narrator.rs",
+        "rust/etv-core/src/narrator_provider.rs",
+        "rust/etv-core/src/play.rs",
+        "rust/etv-core/src/screens.rs",
+        "rust/etv-core/src/settings.rs",
+        "rust/etv-core/src/tui/mod.rs",
+        "rust/etv-core/src/tui/view.rs",
+        "rust/etv-core/src/worldgen.rs"
+      ],
+      "library": "rust/etv-core/src/lib.rs",
+      "path": "rust/etv-core/tests/settings_never_echo_a_key.rs",
+      "testsInside": true
+    },
+    {
       "hash": "e6834da8a0c93ccfb93448bd83c505c6f4030f578960edc226a82267b6028f7b",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
@@ -17457,7 +18246,7 @@
       "testsInside": true
     },
     {
-      "hash": "1fa965c909b27b8949a0d371a94f1fe974d1fa92faba2da3a9f2801dcb7671ec",
+      "hash": "aef7a8356fdf16eb93569fae5672ebabeb9c5a8b6623a5f495f6e845e4bca52d",
       "importsFiles": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",
@@ -17487,7 +18276,7 @@
       "testsInside": true
     },
     {
-      "hash": "d48f4eab647d9993dc27f969b7bcea26a818e274025ed5d3e2bb5854947dffac",
+      "hash": "2cc51efd090333c81fef316e741195313ec9cac88cb9b8aa16aeb82133249845",
       "importOrder": [
         "rust/etv-core/src/content.rs",
         "rust/etv-core/src/engine.rs",

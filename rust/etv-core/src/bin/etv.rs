@@ -8,7 +8,7 @@ use etv_core::engine::StepEngine;
 use etv_core::narrator::{FallbackPhraseTable, Narrator, NarratorTransport, NullNarrator};
 use etv_core::notices::third_party_notices_text;
 use etv_core::play::{
-    connect_narrator, narrator_summary_line, run_play, PlayExit, QUIT_SAVED_LINE,
+    connect_narrator_with, narrator_summary_line, run_play, PlayExit, QUIT_SAVED_LINE,
 };
 use etv_core::save::{has_save, load_game_checked_with_content_hash, save_game};
 use etv_core::screens::{about_screen_lines, run_settings_screen, SettingsExit};
@@ -39,17 +39,26 @@ fn random_seed() -> i128 {
     i128::from(u32::from_le_bytes(bytes) >> 1)
 }
 
-/// The narrator transport this build was compiled with: a local Ollama connection with the
-/// `narrator-ollama` feature, none without it.
-fn build_transport() -> Option<std::sync::Arc<dyn NarratorTransport>> {
+/// The narrator transport for the settings' provider, from what this build has: the local
+/// Ollama connection with the `narrator-ollama` feature, and a hosted provider (Claude,
+/// OpenAI-compatible) with the `narrator-claude` feature, its key read from the variable or file
+/// the settings name. When it cannot give one, the reason is a line for the player; nothing is
+/// written to the terminal here, so the full-screen interface's raw screen is never written on.
+fn build_transport(
+    settings: &etv_core::narrator::NarratorSettings,
+) -> Result<std::sync::Arc<dyn NarratorTransport>, String> {
     #[cfg(feature = "narrator-ollama")]
-    {
-        Some(std::sync::Arc::new(etv_core::narrator::UreqTransport))
-    }
+    let local: Option<std::sync::Arc<dyn NarratorTransport>> =
+        Some(std::sync::Arc::new(etv_core::narrator::UreqTransport));
     #[cfg(not(feature = "narrator-ollama"))]
-    {
-        None
-    }
+    let local: Option<std::sync::Arc<dyn NarratorTransport>> = None;
+    #[cfg(feature = "narrator-claude")]
+    let hosted: Option<Box<dyn etv_core::cloud_claude::HttpsPost>> =
+        Some(Box::new(etv_core::cloud_claude::UreqHttpsPost::default()));
+    #[cfg(not(feature = "narrator-claude"))]
+    let hosted: Option<Box<dyn etv_core::cloud_claude::HttpsPost>> = None;
+    let lookup = |name: &str| std::env::var(name).ok();
+    etv_core::play::narrator_transport(settings, local, hosted, &lookup)
 }
 
 /// Which front end is asking for a run, so a refusal names the commands that front end has.
@@ -130,7 +139,7 @@ fn run_play_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>
     if let Some(warning) = &loaded.warning {
         let _ = writeln!(out, "{warning}");
     }
-    let connection = connect_narrator(&loaded.settings, build_transport());
+    let connection = connect_narrator_with(&loaded.settings, build_transport);
     for line in &connection.lines {
         let _ = writeln!(out, "{line}");
     }
@@ -180,7 +189,7 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
     let base = std::path::PathBuf::from(".");
     let table = FallbackPhraseTable::embedded();
     let loaded = load_settings_or_default(&base);
-    let connection = connect_narrator(&loaded.settings, build_transport());
+    let connection = connect_narrator_with(&loaded.settings, build_transport);
     let mut log: Vec<String> = Vec::new();
     if let Some(warning) = &loaded.warning {
         log.push(warning.clone());
@@ -212,27 +221,10 @@ fn run_tui_command(content: &ContentPack, new_run: Option<(Option<i128>, bool)>)
     }
     // Settings saved in the interface rebuild the narrator, so the next turn uses them.
     app = app.with_reconnect(|settings| {
-        let connection = connect_narrator(settings, build_transport());
-        match connection.narrator {
-            Some(live) => {
-                let live = std::rc::Rc::new(live);
-                let for_summary = std::rc::Rc::clone(&live);
-                etv_core::tui::Reconnected {
-                    narrator: live,
-                    live: true,
-                    lines: connection.lines,
-                    summary: Some(Box::new(move || {
-                        narrator_summary_line(&for_summary.stats())
-                    })),
-                }
-            }
-            None => etv_core::tui::Reconnected {
-                narrator: std::rc::Rc::new(NullNarrator),
-                live: false,
-                lines: connection.lines,
-                summary: None,
-            },
-        }
+        etv_core::tui::Reconnected::from_connection(connect_narrator_with(
+            settings,
+            build_transport,
+        ))
     });
     let result = etv_core::tui::run_terminal(&mut app);
     let mut out = std::io::stdout();

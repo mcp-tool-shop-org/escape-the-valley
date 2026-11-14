@@ -305,8 +305,8 @@ fn golden_settings_screen() {
         assert!(flat_text.contains("SETTINGS"));
         assert!(flat_text.contains("1. Narrator on"));
         assert!(flat_text.contains("2. Profile Fireside"));
-        assert!(flat_text.contains("3. Length Standard"));
-        assert!(flat_text.contains("4. Model llama3.2"));
+        assert!(flat_text.contains("3. Length Brief"));
+        assert!(flat_text.contains("4. Model qwen3:4b-instruct-2507-q4_K_M"));
         assert!(flat_text.contains(&flat(TITLE_DISCLOSURE)));
         assert!(flat_text.contains("S Save and leave"));
     }
@@ -568,6 +568,7 @@ fn settings_changed_by_keys_are_saved_exactly_as_line_mode_saves_them() {
     app.press_char('1'); // narrator off
     app.press_char('2'); // fireside -> lantern
     app.press_char('2'); // lantern -> chronicler
+    app.press_char('3'); // brief -> standard
     app.press_char('3'); // standard -> rich
     app.press_char('3'); // rich -> brief
     app.press_char('4'); // the model name comes next
@@ -599,7 +600,8 @@ fn settings_changed_by_keys_are_saved_exactly_as_line_mode_saves_them() {
     let mut out = Vec::new();
     let exit = run_settings_screen(
         NarratorSettings::default(),
-        Cursor::new("1\n2\n2\n3\n3\n4\nqwen3:4b\ns\n"),
+        // Three length presses, as above: the default is Brief, so they come back to it.
+        Cursor::new("1\n2\n2\n3\n3\n3\n4\nqwen3:4b\ns\n"),
         &mut out,
     )
     .unwrap();
@@ -627,7 +629,8 @@ fn settings_can_be_left_without_saving_and_a_bad_model_name_is_refused() {
     assert!(flat(&screen_text(&app.model, (80, 24))).contains("Model not changed"));
     app.press_char('4');
     app.press_code(KeyCode::Esc); // keeps the current one
-    assert!(flat(&screen_text(&app.model, (80, 24))).contains("Model is still llama3.2."));
+    assert!(flat(&screen_text(&app.model, (80, 24)))
+        .contains("Model is still qwen3:4b-instruct-2507-q4_K_M."));
     app.press_char('q');
     assert_eq!(app.model.screen, Screen::Camp);
     assert_eq!(app.model.notice.as_deref(), Some("Settings not saved."));
