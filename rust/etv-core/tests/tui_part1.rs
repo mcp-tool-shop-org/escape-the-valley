@@ -1280,6 +1280,20 @@ impl etv_core::narrator::Narrator for CountingNarrator {
     }
 }
 
+/// A rebuilt narrator that counts its own calls and the calls of every rebuilt narrator.
+struct RebuiltNarrator {
+    total: Arc<AtomicUsize>,
+    own: Arc<AtomicUsize>,
+}
+
+impl etv_core::narrator::Narrator for RebuiltNarrator {
+    fn narrate(&self, _ctx: &etv_core::narrator::NarrationContext) -> Option<String> {
+        self.total.fetch_add(1, Ordering::SeqCst);
+        self.own.fetch_add(1, Ordering::SeqCst);
+        Some("The rebuilt narrator speaks.".to_string())
+    }
+}
+
 #[test]
 fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
     let dir = tempfile::tempdir().unwrap();
@@ -1304,6 +1318,9 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
     let (rebuilt_for_hook, reconnects_for_hook) =
         (Arc::clone(&rebuilt_calls), Arc::clone(&reconnects));
     let last_for_hook = Arc::clone(&last_reconnect);
+    // One counter per narrator the hook builds, in the order built.
+    let built: Arc<std::sync::Mutex<Vec<Arc<AtomicUsize>>>> = Arc::default();
+    let built_for_hook = Arc::clone(&built);
     let mut app = App::new(
         model,
         engine,
@@ -1317,10 +1334,12 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
         reconnects_for_hook.fetch_add(1, Ordering::SeqCst);
         *last_for_hook.lock().unwrap() = Some(settings.clone());
         if settings.enabled {
+            let own = Arc::new(AtomicUsize::new(0));
+            built_for_hook.lock().unwrap().push(Arc::clone(&own));
             etv_core::tui::Reconnected {
-                narrator: std::rc::Rc::new(CountingNarrator {
-                    calls: Arc::clone(&rebuilt_for_hook),
-                    line: "The rebuilt narrator speaks.",
+                narrator: std::rc::Rc::new(RebuiltNarrator {
+                    total: Arc::clone(&rebuilt_for_hook),
+                    own,
                 }),
                 live: true,
                 lines: vec!["Narrator: rebuilt.".to_string()],
@@ -1433,8 +1452,37 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
             _ => assert_eq!(used.model, "test-model"),
         }
         let asked = rebuilt_calls.load(Ordering::SeqCst);
+        let counts_before: Vec<usize> = built
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|c| c.load(Ordering::SeqCst))
+            .collect();
         play_one_turn(&mut app);
         assert!(rebuilt_calls.load(Ordering::SeqCst) > asked, "{field}");
         assert_eq!(first_calls.load(Ordering::SeqCst), after_first);
+        // The turn was asked of the narrator this edit built, and of no earlier one.
+        let counts_after: Vec<usize> = built
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|c| c.load(Ordering::SeqCst))
+            .collect();
+        let newest = counts_after.len() - 1;
+        assert_eq!(
+            counts_before[newest], 0,
+            "{field}: the new narrator is fresh"
+        );
+        assert!(
+            counts_after[newest] > 0,
+            "{field}: the new narrator was asked"
+        );
+        assert_eq!(
+            counts_after[..newest],
+            counts_before[..newest],
+            "{field}: an earlier narrator was asked"
+        );
     }
+    // Enabled twice (the first switch back on, then the three edits): four narrators built.
+    assert_eq!(built.lock().unwrap().len(), 4);
 }

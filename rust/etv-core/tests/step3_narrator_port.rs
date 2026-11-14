@@ -369,7 +369,7 @@ fn step3_fallback_composer_464_choices_and_release_build_behavior() {
     let pack = embedded_content_pack();
     let table = FallbackPhraseTable::embedded();
 
-    let composed = compose_all_464_choice_fallbacks(pack, &table);
+    let composed = compose_all_464_choice_fallbacks(pack, &table).unwrap();
     assert_eq!(
         composed.len(),
         464,
@@ -524,12 +524,13 @@ fn step3_zero_effect_choice_composes_table_none_entry() {
         tpl.time_cost = 0;
         tpl.distance_delta = 0;
     }
-    let all_embedded = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &table);
+    let all_embedded = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &table).unwrap();
     assert_eq!(
         all_embedded.get(&(first_event_id.clone(), first_choice_id.clone())),
         Some(&expected_none_sentence)
     );
-    let all_custom = compose_all_464_choice_fallbacks(&pack_with_zero_choice, &custom_table);
+    let all_custom =
+        compose_all_464_choice_fallbacks(&pack_with_zero_choice, &custom_table).unwrap();
     assert_eq!(
         all_custom.get(&(first_event_id, first_choice_id)),
         Some(&expected_custom_sentence)
@@ -751,7 +752,7 @@ fn step3_fallback_composer_uses_applied_deltas_clamped_at_zero_and_upper_cap() {
 fn step3_fallback_composer_464_choices_reproduce_word_and_distinct_counts() {
     let pack = embedded_content_pack();
     let table = FallbackPhraseTable::embedded();
-    let composed = compose_all_464_choice_fallbacks(pack, &table);
+    let composed = compose_all_464_choice_fallbacks(pack, &table).unwrap();
     assert_eq!(composed.len(), 464);
 
     let mut min_words = usize::MAX;
