@@ -1,14 +1,14 @@
 # escape-the-valley: how it works
 
-Mapped at 2026-11-14 from commit c88fbf0 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit f0e72b7 by Atlas 1.26.0.
 
 ## What this is
 
 10 parts, in Rust (81 files), Python (70 files), shell (13 files), CSS (2 files), JavaScript (2 files), TypeScript (2 files) and HTML (1 file). Work enters through 14 doors; CI and Release each reach 4 parts, and CI is followed because a pull request goes through it. It publishes to npm and PyPI. It deploys a site to GitHub Pages. People run escape-the-valley and trail. etv, etv_content_diff, etv_simulate, etv_turn_set, etv_turn_set_v2 and narrator_measure are commands built from rust/etv-core (nothing ships them).
 
-## What changed since 2026-11-14 (dc234d8)
+## What changed since 2026-11-14 (c88fbf0)
 
-Nothing structural changed since 2026-11-14; 13 files changed content.
+Nothing structural changed since 2026-11-14; 2 files changed content.
 
 ## What comes in
 

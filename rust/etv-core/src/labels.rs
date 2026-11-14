@@ -68,10 +68,12 @@ pub fn label_in_sentence(key: &str) -> String {
     }
 }
 
-/// The phrase table's short name for lantern oil. It names no supply of its own and the engine
-/// never writes it in a line, while the word "oil" is ordinary prose ("uses lamp oil"), so
-/// [`relabel_text`] leaves it alone.
-pub const PHRASE_ONLY_KEYS: [&str; 1] = ["oil"];
+/// Keys that [`relabel_text`] never rewrites in prose, because each is also an ordinary English
+/// word: `oil`, the phrase table's short name for lantern oil ("uses lamp oil"), and `parts`
+/// ("in these parts", "the fog parts at dawn"). Wherever a supply is named (the supplies panel,
+/// the supply line, a turn's changes, the cannot-afford tag, the player's ledger) its label is
+/// used directly, "Lamp oil" and "Spare parts" included; only free text is left as written.
+pub const PHRASE_ONLY_KEYS: [&str; 2] = ["oil", "parts"];
 
 /// Whether [`relabel_text`] renames `word` (written in lowercase) when it stands alone: a key of
 /// the table whose label is a different word (`ammo`, `meds`, `lantern_oil`, `time_days`, ...).
@@ -82,29 +84,29 @@ fn renamed_in_prose(word: &str) -> bool {
         && label(word).to_lowercase() != word
 }
 
-/// Whether the text before a word (`before`) already ends with the words that open `key`'s
-/// label, so the word completes the label: "spare " before "parts". Case is ignored.
-fn label_already_written(before: &[char], key: &str) -> bool {
-    let shown = label(key).to_lowercase();
-    let Some(opening) = shown.strip_suffix(key).filter(|o| !o.is_empty()) else {
-        return false;
-    };
-    let opening: Vec<char> = opening.chars().collect();
-    let n = opening.len();
-    if before.len() < n {
-        return false;
-    }
-    let tail = &before[before.len() - n..];
-    let same = tail
+/// Whether a single quote opened before position `at` is still open there, on the same line:
+/// an opening quote is a `'` that starts a word (nothing alphanumeric before it, something
+/// after it), and a closing one ends a word. An apostrophe inside a word ("don't") is neither.
+fn inside_single_quotes(chars: &[char], at: usize) -> bool {
+    let line_start = chars[..at]
         .iter()
-        .zip(&opening)
-        .all(|(a, b)| a.to_lowercase().eq(b.to_lowercase()));
-    // The opening must start a word of its own ("spare", not "unspare").
-    let starts_a_word = before.len() == n || {
-        let c = before[before.len() - n - 1];
-        !(c.is_alphanumeric() || c == '_')
-    };
-    same && starts_a_word
+        .rposition(|c| *c == '\n')
+        .map_or(0, |p| p + 1);
+    let word_char = |c: Option<&char>| c.is_some_and(|c| c.is_alphanumeric() || *c == '_');
+    let mut open = false;
+    for k in line_start..at {
+        if chars[k] != '\'' {
+            continue;
+        }
+        let before = k.checked_sub(1).and_then(|b| chars.get(b));
+        let after = chars.get(k + 1);
+        if !word_char(before) && word_char(after) {
+            open = true;
+        } else if word_char(before) && !word_char(after) {
+            open = false;
+        }
+    }
+    open
 }
 
 /// `text` with every key that [`renamed_in_prose`] names replaced by its label, as a whole word,
@@ -112,16 +114,12 @@ fn label_already_written(before: &[char], key: &str) -> bool {
 /// lantern_oil"` reads `"ran out of lamp oil"`, and `"No Lantern_oil Left"` reads `"No Lamp oil
 /// Left"`. Any case of the key is caught (`"AMMO"`, `"Meds"`); the label keeps a capital first
 /// letter if the key had one, and is written in capitals if the key was (`"AMMO'S GONE"` reads
-/// `"AMMUNITION'S GONE"`).
+/// `"AMMUNITION'S GONE"`). The words in [`PHRASE_ONLY_KEYS`] are left as written.
 ///
 /// A plural key's possessive follows the label: `"the meds' cost"` reads `"the medicine's
 /// cost"`, since "medicine" is not a plural. A key that is not plural keeps its apostrophe as
-/// it was, and so does a key opened by a quote mark: `"'meds'"` reads `"'medicine'"`, a quoted
-/// word and not a possessive.
-///
-/// A key whose label ends with the key itself ("Spare parts" for `parts`) is left alone where
-/// the text already writes the whole label: "uses spare parts" stays as it is, while "No parts
-/// for repairs" reads "No spare parts for repairs".
+/// it was, and so does a key inside a single-quoted span on its line: `"'the meds'"` reads
+/// `"'the medicine'"`, the span's closing quote and not a possessive.
 ///
 /// For text the player reads that was written with keys in it: the engine's own lines, event
 /// text and choice hints from the content pack, a remembered card's saved text, and the
@@ -143,7 +141,7 @@ pub fn relabel_text(text: &str) -> String {
         }
         let word: String = chars[start..i].iter().collect();
         let lower = word.to_lowercase();
-        if !renamed_in_prose(&lower) || label_already_written(&chars[..start], &lower) {
+        if !renamed_in_prose(&lower) {
             out.push_str(&word);
             continue;
         }
@@ -160,10 +158,9 @@ pub fn relabel_text(text: &str) -> String {
         };
         out.push_str(&shown);
         // "meds'" (the plural possessive, an apostrophe not followed by a letter) reads
-        // "medicine's" when the label is not a plural. A word opened by a quote mark ("'meds'")
-        // is quoted, and its closing quote stays a quote.
-        let opened_by_quote = start > 0 && chars[start - 1] == '\'';
-        let plural_possessive = !opened_by_quote
+        // "medicine's" when the label is not a plural. Inside a single-quoted span ("'the
+        // meds'"), the apostrophe closes the span and stays a quote.
+        let plural_possessive = !inside_single_quotes(&chars, start)
             && chars.get(i) == Some(&'\'')
             && !chars.get(i + 1).is_some_and(|c| c.is_alphanumeric())
             && lower.ends_with('s')

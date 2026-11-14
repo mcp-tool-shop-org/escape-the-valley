@@ -18,7 +18,7 @@ use ratatui::Terminal;
 
 use etv_core::content::embedded_content_pack;
 use etv_core::engine::{EventChoiceInfo, StepEngine};
-use etv_core::labels::{label, label_in_sentence, relabel_text, LABELS};
+use etv_core::labels::{label, label_in_sentence, relabel_text, LABELS, PHRASE_ONLY_KEYS};
 use etv_core::memory::emit_resource_crisis_card;
 use etv_core::model::{GamePhase, RunState, RESOURCE_CATALOG};
 use etv_core::narrator::{
@@ -44,8 +44,11 @@ fn renamed_keys() -> &'static Vec<String> {
             RESOURCE_CATALOG.iter().map(|r| r.key.to_string()).collect();
         keys.extend(table().ordered_keys().iter().map(|k| k.to_string()));
         keys.remove("none");
+        // `oil` and `parts` are ordinary words too ("lamp oil", "in these parts"): prose keeps
+        // them as written, so only the places that name a supply are checked for them (the
+        // supplies panel and supply line tests below).
         keys.into_iter()
-            .filter(|k| label(k).to_lowercase() != *k)
+            .filter(|k| label(k).to_lowercase() != *k && !PHRASE_ONLY_KEYS.contains(&k.as_str()))
             .collect()
     })
 }
@@ -631,7 +634,6 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
     for k in [
         "ammo",
         "meds",
-        "oil",
         "lantern_oil",
         "time_days",
         "wagon_condition",
@@ -641,12 +643,16 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
     for k in ["food", "water", "health", "distance", "morale"] {
         assert!(!keys.iter().any(|x| x == k), "{k} is its own label");
     }
+    // Ordinary words that prose keeps as written.
+    for k in PHRASE_ONLY_KEYS {
+        assert!(!keys.iter().any(|x| x == k), "{k} is prose");
+    }
     for raw in [
         "Hunt successful! -1 ammo.",
         "Meds.",
         "AMMO LOW",
         "  meds -1",
-        "Supplies: oil 3",
+        "Supplies: meds 3",
         "The party uses lantern_oil.",
         "Days +1, time_days +1",
     ] {
@@ -658,6 +664,7 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
         "LAMP OIL 3",
         "Food -2, Days +1, Wagon condition -2, Animals' health -1",
         "Gammon and ammonia; oiled boots.",
+        "In these parts the fog parts at dawn.",
         "The party uses lamp oil and spends ammunition.",
         "AMMUNITION 20, LAMP OIL 6",
     ] {
@@ -671,17 +678,13 @@ fn the_raw_key_check_catches_single_word_keys_and_spares_labels() {
 
 #[test]
 fn a_label_wrapped_across_rows_is_still_a_label() {
-    // Two boxes side by side, the right one wrapping "Lamp oil" over two rows.
+    // Two boxes side by side, the right one wrapping "Lamp oil" over two rows: joined box by
+    // box, the label reads as one again.
     let screen = "\u{2502} Party   \u{2502}\u{2502} Lamp     \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
-    assert!(
-        !key_tokens(screen).is_empty(),
-        "row by row, the wrapped \"oil\" looks like the key"
-    );
-    assert!(
-        key_tokens(&screen_boxes(screen)).is_empty(),
-        "{}",
-        screen_boxes(screen)
-    );
+    let boxes = screen_boxes(screen);
+    assert!(boxes.lines().any(|l| l == "Lamp oil 6"), "{boxes}");
+    assert!(boxes.lines().any(|l| l == "Party Ruth 90"), "{boxes}");
+    assert!(key_tokens(&boxes).is_empty(), "{boxes}");
     // A real key in a box is still caught.
     let leak = "\u{2502} Party   \u{2502}\u{2502} ammo 20  \u{2502}\n\u{2502} Ruth 90 \u{2502}\u{2502} oil 6    \u{2502}\n";
     assert!(!key_tokens(&screen_boxes(leak)).is_empty());
@@ -736,12 +739,15 @@ fn every_supply_label_uses_the_phrase_tables_word() {
             .take_while(|(a, b)| a == b)
             .count();
         let name = neg[neg.len() - common..].join(" ");
+        // The label is that name, capitalised as a list item is: "Lamp oil", "Spare parts".
+        let mut expected = name.clone();
+        if let Some(first) = expected.get(0..1) {
+            expected = first.to_uppercase() + &expected[1..];
+        }
         assert_eq!(
-            shown.to_lowercase(),
-            name,
+            shown, expected,
             "{key} is labelled {shown:?}, but its phrases ({:?}, {:?}) name it {name:?}",
-            dirs["neg"],
-            dirs["pos"]
+            dirs["neg"], dirs["pos"]
         );
         checked += 1;
     }
@@ -752,28 +758,62 @@ fn every_supply_label_uses_the_phrase_tables_word() {
 }
 
 #[test]
-fn spare_parts_is_written_once() {
-    // A bare "parts" gains its label; text that already says "spare parts" is left alone.
-    assert_eq!(
-        relabel_text("No parts for repairs."),
-        "No spare parts for repairs."
+fn parts_in_prose_is_left_as_written() {
+    // "parts" is an ordinary word as well as a key: free text keeps it, the narrator's included.
+    for prose in [
+        "in these parts",
+        "The fog parts at dawn.",
+        "parts of the wagon",
+        "spare-parts",
+        "spare
+parts",
+        "No parts for repairs.",
+        "Wagon breakdown! No parts. Damage: 3",
+        "The wagon broke down. Damage: 9. No spare parts on hand.",
+        "PARTS",
+    ] {
+        assert_eq!(relabel_text(prose), prose);
+    }
+    // Where a supply is named, it is "Spare parts".
+    let state = create_new_run_with_content(42, embedded_content_pack());
+    let status = status_lines(&state).join(
+        "
+",
     );
-    assert_eq!(relabel_text("Parts."), "Spare parts.");
-    assert_eq!(
-        relabel_text("The wagon broke down. Damage: 9. No spare parts on hand."),
-        "The wagon broke down. Damage: 9. No spare parts on hand."
-    );
-    assert_eq!(relabel_text("uses spare parts"), "uses spare parts");
-    assert_eq!(relabel_text("SPARE PARTS LOW"), "SPARE PARTS LOW");
-    assert_eq!(relabel_text("Spare Parts"), "Spare Parts");
-    // "spare" must be a word of its own.
-    assert_eq!(relabel_text("unspare parts"), "unspare spare parts");
+    assert!(status.contains("Spare parts 4"), "{status}");
+    let deltas: std::collections::BTreeMap<String, i32> =
+        [("parts".to_string(), -1)].into_iter().collect();
+    assert_eq!(deltas_line(&deltas).unwrap(), "Spare parts -1");
+    assert_eq!(label_in_sentence("parts"), "spare parts");
 }
 
 #[test]
 fn relabel_keeps_quotes_and_capitals() {
-    // A quoted key is a quoted word, not a possessive.
+    // A quoted key is a quoted word, not a possessive, however many words the quote holds.
     assert_eq!(relabel_text("'meds'"), "'medicine'");
+    assert_eq!(relabel_text("'the meds'"), "'the medicine'");
+    assert_eq!(
+        relabel_text("they said 'no meds'"),
+        "they said 'no medicine'"
+    );
+    // A quote closed earlier on the line, or on another line, leaves a possessive a possessive.
+    assert_eq!(
+        relabel_text("'done', and the meds' cost"),
+        "'done', and the medicine's cost"
+    );
+    assert_eq!(
+        relabel_text(
+            "'open
+the meds' cost"
+        ),
+        "'open
+the medicine's cost"
+    );
+    // An apostrophe inside a word opens nothing.
+    assert_eq!(
+        relabel_text("don't count the meds' cost"),
+        "don't count the medicine's cost"
+    );
     assert_eq!(
         relabel_text("they said 'meds' twice"),
         "they said 'medicine' twice"
