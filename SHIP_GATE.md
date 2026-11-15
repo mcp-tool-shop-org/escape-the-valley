@@ -54,6 +54,7 @@
 - [x] `[pypi]` Clean wheel + sdist build (2026-06-15) — `python -m build` produces `escape_the_valley-1.1.0-py3-none-any.whl` + `.tar.gz` with no errors; lockfile N/A for hatchling app
 - [ ] `[vsix]` SKIP: not a VS Code extension
 - [ ] `[desktop]` SKIP: PyInstaller binaries are an additive distribution; primary artifact is the PyPI wheel, which builds and installs cleanly (`release-binaries.yml` handles binary builds on release)
+- [ ] `[all]` **2.0 blocker: the Testnet-reset fix in the legacy Python, with Rust ledger-proof parity.** `main` shipped it in #101 (2026-11-15): every ledger read checks its reply; a save that contradicts itself reads FAIL first; a missing account (a Testnet reset) reads INCONCLUSIVE with its reason; unread memos are unverified, never "no memo". The `rust-2.0` port is held in draft #102, because the legacy Python here is the parity oracle. Before 2.0 is tagged, land it as one change: the legacy-Python fix; `rust/etv-core/src/ledger_proof.rs` matched to it; the oracle vectors regenerated and parity checked; the pin moved; then a review. #102's description records what a re-pin changes (only `ledger_reference`, the notes in proof cases 5 and 6) and the vectors' reference environment.
 
 ## E. Identity (soft gate — does not block ship)
 
