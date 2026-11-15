@@ -50,6 +50,35 @@ const GOOD_KEY: &str = "test-key-not-real-0123456789XYZxyz";
 enum Echo {
     ErrorBody,
     TransportError,
+    /// An HTTP-status error whose text holds the request URL and every header sent, the key's
+    /// header included.
+    StatusError,
+    /// A 200 answer whose narration names the request URL.
+    UrlReply,
+    /// A 200 answer whose narration names the key sent in the `authorization` header, its first
+    /// letter written as a JSON `\uXXXX` escape inside the narration's JSON.
+    EscapedKeyReply,
+}
+
+/// An OpenAI-compatible 200 answer whose message content is `content`.
+fn chat_reply(content: &str) -> HttpReply {
+    HttpReply {
+        status: 200,
+        body: serde_json::json!({"choices": [{"message": {"content": content}}]}).to_string(),
+        request_id: None,
+        retry_after_s: None,
+    }
+}
+
+/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
+fn escaped_key_narration(key: &str) -> String {
+    let mut chars = key.chars();
+    let first = chars.next().unwrap();
+    format!(
+        r#"{{"sentences": ["Rain beads on the canvas near \u{:04x}{}."]}}"#,
+        first as u32,
+        chars.as_str()
+    )
 }
 
 /// Records every URL asked for, and fails every request with the URL in the failure.
@@ -62,7 +91,7 @@ impl HttpsPost for Echoing {
     fn post(
         &self,
         url: &str,
-        _headers: &[(&str, &str)],
+        headers: &[(&str, &str)],
         _body: &str,
         _timeout: Duration,
     ) -> Result<HttpReply, TransportError> {
@@ -78,6 +107,21 @@ impl HttpsPost for Echoing {
             Echo::TransportError => Err(TransportError::ConnectionFailed(format!(
                 "cannot reach {url}"
             ))),
+            Echo::StatusError => Err(TransportError::HttpStatus(
+                502,
+                format!("bad gateway for {url} with {headers:?}"),
+            )),
+            Echo::UrlReply => Ok(chat_reply(&format!(
+                r#"{{"sentences": ["Rain beads on the canvas near {url}."]}}"#
+            ))),
+            Echo::EscapedKeyReply => {
+                let key = headers
+                    .iter()
+                    .find(|(n, _)| *n == "authorization")
+                    .and_then(|(_, v)| v.strip_prefix("Bearer "))
+                    .unwrap_or("");
+                Ok(chat_reply(&escaped_key_narration(key)))
+            }
         }
     }
 }
@@ -350,7 +394,8 @@ impl Case {
             "HASH",
             lines.clone(),
             false,
-        );
+        )
+        .with_installed(connection.installed.clone());
         let narrator: &dyn Narrator = match &connection.narrator {
             Some(live) => live,
             None => &NullNarrator,
@@ -471,14 +516,20 @@ fn a_key_with_junk_in_the_key_file_or_the_variable_is_not_shown() {
 #[test]
 fn a_key_in_the_provider_url_is_not_shown_even_when_echoed_back() {
     // A working key source, so the hosted client is called: its error body, or its transport
-    // error, carries the request URL with the key in its query. Nothing the player sees does.
+    // error, carries the request URL with the key in its path (a query is refused at load).
+    // Nothing the player sees does.
     for key in [KEY, ODD_KEY] {
-        for echo in [Echo::ErrorBody, Echo::TransportError] {
+        for echo in [
+            Echo::ErrorBody,
+            Echo::TransportError,
+            Echo::StatusError,
+            Echo::UrlReply,
+        ] {
             let asked = Case::new(
                 serde_json::json!({
                     "provider": "openai-compatible",
                     "model": "some-model",
-                    "provider_url": format!("https://example.com/v1?key={key}"),
+                    "provider_url": format!("https://example.com/v1/{key}"),
                     "key": {"env": "ETV_SET"},
                 }),
                 key,
@@ -964,4 +1015,662 @@ fn the_options_screen_refuses_a_model_the_claude_provider_does_not_list() {
         &String::from_utf8(out).unwrap(),
         NAME_SHAPED_KEY,
     );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Follow-ups from the #97 reviews: one loopback rule, real IPv6 and IPv4 hosts, `_` in host
+// names, the endpoint path, provider_url checked whole, every hosted error redacted, and the
+// options screen naming a model the local service lists.
+// ---------------------------------------------------------------------------------------------
+
+/// The settings a file gives, with its warning.
+fn load(body: &str) -> etv_core::settings::LoadedSettings {
+    let dir = tempfile::tempdir().unwrap();
+    let path = settings_path(dir.path());
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, body).unwrap();
+    load_settings_or_default(dir.path())
+}
+
+#[test]
+fn loopback_hosts_load_by_default_and_are_shown_in_normal_form() {
+    for (endpoint, shown) in [
+        ("http://LOCALHOST:11434", "http://localhost:11434"),
+        ("http://LocalHost:11434/api", "http://localhost:11434"),
+        ("http://127.1.2.3:11434", "http://127.1.2.3:11434"),
+        ("http://[0:0:0:0:0:0:0:1]:11434", "http://[::1]:11434"),
+        ("https://[::1]:8443/", "https://[::1]:8443"),
+    ] {
+        let body = serde_json::json!({ "endpoint": endpoint }).to_string();
+        let loaded = load(&body);
+        assert_eq!(loaded.warning, None, "{endpoint} loads by default");
+        assert!(loaded.from_file, "{endpoint}");
+        assert!(
+            etv_core::narrator::is_loopback_endpoint(endpoint),
+            "{endpoint}"
+        );
+        assert_eq!(endpoint_for_display(endpoint), shown, "{endpoint}");
+        let (_, lines) = connect_lines(&body, Local::Dead);
+        assert_eq!(
+            lines[0],
+            format!("The narrator service did not answer at {shown}. Start it with: ollama serve"),
+            "{endpoint}"
+        );
+    }
+}
+
+/// The 32-hex-digit made-up key used as a bracketed host.
+const HEX_KEY: &str = "0123456789abcdef0123456789abcdef";
+
+#[test]
+fn malformed_addresses_are_refused_with_fixed_text() {
+    let refused = "The settings file was not used: the endpoint is not valid (a host, an optional numeric port and an optional path only; no user name, query or fragment). Using the default settings: the local narrator (Ollama), until the settings are fixed.";
+    for endpoint in [
+        "http://127.008.0.1:11434".to_string(),
+        "http://127.0.0.999:11434".to_string(),
+        "http://999.999.999.999:11434".to_string(),
+        "http://[::::::]:11434".to_string(),
+        "http://[.]:11434".to_string(),
+        "http://[fe80::1%eth0]:11434".to_string(),
+        format!("http://[{HEX_KEY}]:11434"),
+        "http://127.0.0.1:0".to_string(),
+        "http://127.0.0.1:".to_string(),
+        "http://:11434".to_string(),
+        "http://".to_string(),
+    ] {
+        for allow in [false, true] {
+            let loaded = load(
+                &serde_json::json!({ "endpoint": endpoint, "allow_non_loopback": allow })
+                    .to_string(),
+            );
+            assert_eq!(
+                loaded.warning.as_deref(),
+                Some(refused),
+                "{endpoint} (allow_non_loopback {allow})"
+            );
+            assert!(!loaded.from_file);
+            assert!(!etv_core::narrator::is_loopback_endpoint(&endpoint));
+            assert_eq!(endpoint_for_display(&endpoint), "the configured endpoint");
+        }
+    }
+    // An IPv4-mapped address is not the IPv6 loopback: refused without the setting, and with
+    // it loaded but never shown.
+    let mapped = "http://[::ffff:127.0.0.1]:11434";
+    assert!(!etv_core::narrator::is_loopback_endpoint(mapped));
+    assert_eq!(endpoint_for_display(mapped), "the configured endpoint");
+    let loaded = load(&serde_json::json!({ "endpoint": mapped }).to_string());
+    assert!(loaded
+        .warning
+        .unwrap()
+        .contains("the endpoint is not on this computer"));
+    let loaded =
+        load(&serde_json::json!({ "endpoint": mapped, "allow_non_loopback": true }).to_string());
+    assert_eq!(loaded.warning, None);
+    let (_, lines) = connect_lines(
+        &serde_json::json!({ "endpoint": mapped, "allow_non_loopback": true }).to_string(),
+        Local::Dead,
+    );
+    assert_eq!(
+        lines[0],
+        "The narrator service did not answer at the configured endpoint. Start it with: ollama serve"
+    );
+    // The bracketed key, through every line, the log and every screen.
+    for allow in [false, true] {
+        Case::new(
+            serde_json::json!({
+                "endpoint": format!("http://[{HEX_KEY}]:11434"),
+                "allow_non_loopback": allow,
+            }),
+            HEX_KEY,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_host_name_with_an_underscore_loads_when_allowed_and_is_never_shown() {
+    let body = r#"{"endpoint": "http://ollama_box:11434", "allow_non_loopback": true}"#;
+    let loaded = load(body);
+    assert_eq!(loaded.warning, None);
+    assert!(loaded.from_file);
+    assert_eq!(loaded.settings.endpoint, "http://ollama_box:11434");
+    assert_eq!(
+        endpoint_for_display("http://ollama_box:11434"),
+        "the configured endpoint"
+    );
+    let (_, lines) = connect_lines(body, Local::Dead);
+    assert_eq!(
+        lines[0],
+        "The narrator service did not answer at the configured endpoint. Start it with: ollama serve"
+    );
+    // Not loopback, so refused without the setting.
+    let loaded = load(r#"{"endpoint": "http://ollama_box:11434"}"#);
+    assert!(loaded
+        .warning
+        .unwrap()
+        .contains("the endpoint is not on this computer"));
+    // A key-shaped host name with an underscore is never shown either.
+    let key = "sk_FAKE_0123456789abcdefghij";
+    Case::new(
+        serde_json::json!({"endpoint": format!("http://{key}:11434"), "allow_non_loopback": true}),
+        key,
+    )
+    .check();
+}
+
+#[test]
+fn an_endpoint_path_with_whitespace_or_a_control_character_is_refused() {
+    for endpoint in [
+        "http://127.0.0.1:11434/a b",
+        "http://127.0.0.1:11434/a\tb",
+        "http://127.0.0.1:11434/a\u{7}b",
+        "http://127.0.0.1:11434/a\u{a0}b",
+    ] {
+        let loaded = load(&serde_json::json!({ "endpoint": endpoint }).to_string());
+        assert!(
+            loaded
+                .warning
+                .as_deref()
+                .is_some_and(|w| w.contains("the endpoint is not valid")),
+            "{endpoint:?}: {:?}",
+            loaded.warning
+        );
+    }
+    // A path of ordinary characters still loads.
+    let loaded = load(r#"{"endpoint": "http://127.0.0.1:11434/ollama/v1"}"#);
+    assert_eq!(loaded.warning, None);
+    // A key after a space in the path: refused, never shown.
+    for key in [KEY, ODD_KEY] {
+        Case::new(
+            serde_json::json!({"endpoint": format!("http://127.0.0.1:11434/x {key}")}),
+            key,
+        )
+        .check();
+    }
+}
+
+#[test]
+fn a_key_in_the_path_of_a_non_loopback_endpoint_is_not_shown() {
+    for key in [KEY, ODD_KEY] {
+        let body = serde_json::json!({
+            "endpoint": format!("http://192.168.1.5:11434/{key}"),
+            "allow_non_loopback": true,
+        });
+        // Allowed by the settings, and it loads.
+        assert_eq!(load(&body.to_string()).warning, None);
+        for local in [Local::Dead, Local::Listing, Local::Lists("qwen3:4b")] {
+            Case::new(body.clone(), key).local(local).check();
+        }
+    }
+}
+
+#[test]
+fn a_key_as_the_provider_urls_user_name_query_or_fragment_is_refused_unshown() {
+    use etv_core::narrator_provider::PROVIDER_URL_REFUSAL;
+    for key in [KEY, ODD_KEY] {
+        for url in [
+            format!("https://{key}@example.com/v1"),
+            format!("https://user:{key}@example.com/v1"),
+            format!("https://example.com/v1?key={key}"),
+            format!("https://example.com/v1#{key}"),
+            format!("https://example.com:{key}/v1"),
+            format!("https://example.com/v1 {key}"),
+        ] {
+            let body = serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "some-model",
+                "provider_url": url,
+                "key": {"env": "ETV_SET"},
+            });
+            let loaded = load(&body.to_string());
+            assert_eq!(
+                loaded.warning,
+                Some(format!(
+                    "The settings file was not used: {PROVIDER_URL_REFUSAL}. Using the default settings: the local narrator (Ollama), until the settings are fixed."
+                )),
+                "{url}"
+            );
+            let asked = Case::new(body, key).check();
+            assert_eq!(asked, 0, "a refused provider_url is never asked: {url}");
+        }
+    }
+    // An empty host, port 0, an empty port and an IPv6 host that is not an address.
+    for url in [
+        "https://",
+        "https:///v1",
+        "https://:443/v1",
+        "https://example.com:0/v1",
+        "https://example.com:/v1",
+        "https://[::::::]/v1",
+    ] {
+        let loaded = load(
+            &serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "m",
+                "provider_url": url,
+                "key": {"env": "ETV_SET"},
+            })
+            .to_string(),
+        );
+        assert_eq!(
+            loaded.warning,
+            Some(format!(
+                "The settings file was not used: {PROVIDER_URL_REFUSAL}. Using the default settings: the local narrator (Ollama), until the settings are fixed."
+            )),
+            "{url}"
+        );
+    }
+    // A plain URL, with a port and a path, still loads.
+    let loaded = load(
+        r#"{"provider": "openai-compatible", "model": "m", "provider_url": "https://openrouter.ai:443/api/v1", "key": {"env": "ETV_SET"}}"#,
+    );
+    assert_eq!(loaded.warning, None);
+}
+
+/// An HTTPS client that fails every request with one kind of error, its text holding every
+/// header it was sent (the key's header included).
+struct EchoesHeaders(fn(String) -> TransportError);
+
+impl HttpsPost for EchoesHeaders {
+    fn post(
+        &self,
+        url: &str,
+        headers: &[(&str, &str)],
+        _body: &str,
+        _timeout: Duration,
+    ) -> Result<HttpReply, TransportError> {
+        Err((self.0)(format!("{url} {headers:?}")))
+    }
+}
+
+#[test]
+fn every_hosted_error_with_text_has_the_key_taken_out() {
+    use etv_core::cloud_claude::ApiKey;
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+    let kinds: [fn(String) -> TransportError; 2] = [TransportError::ConnectionFailed, |text| {
+        TransportError::HttpStatus(500, text)
+    }];
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+    for api in [
+        HostedApi::Claude,
+        HostedApi::OpenaiCompatible {
+            base_url: "https://example.com/v1".to_string(),
+        },
+    ] {
+        for kind in kinds {
+            let transport = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::from_text(GOOD_KEY).unwrap(),
+                Box::new(EchoesHeaders(kind)),
+            );
+            let err = transport
+                .post_generate("", &request, Duration::from_secs(1))
+                .unwrap_err();
+            let text = format!("{err:?}");
+            assert!(text.contains("[redacted]"), "{text}");
+            assert_clean("a hosted error", &text, GOOD_KEY);
+        }
+    }
+    // And through every line, the log and every screen, with the key's header echoed.
+    Case::new(
+        serde_json::json!({
+            "provider": "openai-compatible",
+            "model": "some-model",
+            "provider_url": "https://example.com/v1",
+            "key": {"env": "ETV_SET"},
+        }),
+        GOOD_KEY,
+    )
+    .echo(Echo::StatusError)
+    .check();
+}
+
+/// The full-screen interface's model for `body`, connected over `local`, as `etv tui` builds it.
+fn interface(dir: &std::path::Path, body: &str, local: Local) -> Model {
+    let path = settings_path(dir);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, body).unwrap();
+    let loaded = load_settings_or_default(dir);
+    let connection = connect_narrator_with(&loaded.settings, |s| {
+        narrator_transport(s, local.transport(), None, &|_| None)
+    });
+    let content = embedded_content_pack();
+    let engine = StepEngine::with_content(create_new_run_with_content(42, content), content);
+    Model::new(
+        ViewData::from_engine(&engine),
+        loaded.settings.clone(),
+        "TEST",
+        "HASH",
+        connection.lines.clone(),
+        false,
+    )
+    .with_installed(connection.installed.clone())
+}
+
+/// The model line of the options view as drawn.
+fn drawn_model_line(model: &Model) -> String {
+    draw(model, (120, 40))
+        .lines()
+        .find(|l| l.contains("4. Model"))
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn app_for<'a>(model: Model, dir: &std::path::Path, local: Local) -> App<'a> {
+    let content = embedded_content_pack();
+    let engine = StepEngine::with_content(create_new_run_with_content(42, content), content);
+    App::new(
+        model,
+        engine,
+        &NullNarrator,
+        Some(table()),
+        dir.into(),
+        false,
+    )
+    .with_reconnect(move |settings: &NarratorSettings| {
+        Reconnected::from_connection(connect_narrator_with(settings, |s| {
+            narrator_transport(s, local.transport(), None, &|_| None)
+        }))
+    })
+}
+
+#[test]
+fn the_options_screen_names_a_model_the_local_service_lists() {
+    // Loopback, local provider, the model listed: the connect line and the options view both
+    // name it.
+    let dir = tempfile::tempdir().unwrap();
+    let model = interface(
+        dir.path(),
+        r#"{"model": "qwen3:4b"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    assert_eq!(model.log[0], "Narrator: Fireside, Brief, model qwen3:4b.");
+    let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+    app.press_code(crossterm::event::KeyCode::Enter);
+    app.press_char('o');
+    assert!(app
+        .model
+        .settings
+        .lines()
+        .contains(&"  4. Model     qwen3:4b".to_string()));
+    assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
+    // After a save that reconnects, the new connection's listing is used.
+    app.press_char('2');
+    app.press_char('s');
+    app.press_char('o');
+    assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
+
+    // The model missing from the listing, or a remote service listing it: "the configured
+    // model".
+    for (body, local) in [
+        (r#"{"model": "qwen3:4b"}"#, Local::Lists("llama3.2:3b")),
+        (
+            r#"{"model": "qwen3:4b", "endpoint": "http://192.168.1.5:11434", "allow_non_loopback": true}"#,
+            Local::Lists("qwen3:4b"),
+        ),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let model = interface(dir.path(), body, local);
+        let mut app = app_for(model, dir.path(), local);
+        app.press_code(crossterm::event::KeyCode::Enter);
+        app.press_char('o');
+        assert!(
+            drawn_model_line(&app.model).contains("4. Model     the configured model"),
+            "{body}"
+        );
+    }
+
+    // The screen itself uses a listing only for the local provider on a loopback endpoint.
+    use etv_core::screens::SettingsScreen;
+    let listed = vec!["qwen3:4b".to_string()];
+    let local = NarratorSettings {
+        model: "qwen3:4b".to_string(),
+        ..NarratorSettings::default()
+    };
+    let named = SettingsScreen::with_installed(local.clone(), listed.clone()).lines();
+    assert!(named.contains(&"  4. Model     qwen3:4b".to_string()));
+    let remote = NarratorSettings {
+        endpoint: "http://192.168.1.5:11434".to_string(),
+        allow_non_loopback: true,
+        ..local.clone()
+    };
+    let hosted = NarratorSettings {
+        provider: etv_core::narrator_provider::NarratorProvider::OpenaiCompatible,
+        provider_url: "https://example.com/v1".to_string(),
+        ..local.clone()
+    };
+    for settings in [remote, hosted] {
+        let lines = SettingsScreen::with_installed(settings, listed.clone()).lines();
+        assert!(lines.contains(&"  4. Model     the configured model".to_string()));
+    }
+    // With no listing it behaves as before.
+    assert!(SettingsScreen::new(local)
+        .lines()
+        .contains(&"  4. Model     the configured model".to_string()));
+}
+
+/// Types `name` as the model on the options view (4, the name, Enter).
+fn type_model(app: &mut App<'_>, name: &str) {
+    app.press_char('4');
+    for c in name.chars() {
+        app.press_char(c);
+    }
+    app.press_code(crossterm::event::KeyCode::Enter);
+}
+
+#[test]
+fn a_typed_model_is_unnamed_after_save_discard_and_reopen() {
+    for typed in ["mistral:7b", PLAIN_KEY] {
+        // Typed and saved: named while the view is open, "the configured model" once reopened.
+        let dir = tempfile::tempdir().unwrap();
+        let model = interface(
+            dir.path(),
+            r#"{"model": "xai-org/grok-1"}"#,
+            Local::Lists("qwen3:4b"),
+        );
+        let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+        app.press_code(crossterm::event::KeyCode::Enter);
+        app.press_char('o');
+        type_model(&mut app, typed);
+        assert!(
+            drawn_model_line(&app.model).contains(&format!("4. Model     {typed}")),
+            "the typed name is shown back while the view is open"
+        );
+        app.press_char('s');
+        assert_eq!(app.model.saved_settings.model, typed);
+        assert_clean("the log after a save", &app.model.log.join("\n"), typed);
+        assert_screen_clean("the screen after a save", &app.model, typed);
+        app.press_char('o');
+        assert!(
+            drawn_model_line(&app.model).contains("4. Model     the configured model"),
+            "after save and reopen: {}",
+            drawn_model_line(&app.model)
+        );
+        assert_screen_clean("the options view reopened after a save", &app.model, typed);
+
+        // Another name typed and discarded: the saved model again, unnamed.
+        type_model(&mut app, "llama3.2:3b");
+        app.press_char('q');
+        app.press_char('o');
+        assert!(
+            drawn_model_line(&app.model).contains("4. Model     the configured model"),
+            "after discard and reopen"
+        );
+        assert_eq!(app.model.settings.settings.model, typed);
+        assert_screen_clean(
+            "the options view reopened after a discard",
+            &app.model,
+            typed,
+        );
+    }
+
+    // A key-shaped name typed, then discarded, over a saved model the service does not list.
+    let dir = tempfile::tempdir().unwrap();
+    let model = interface(
+        dir.path(),
+        r#"{"model": "xai-org/grok-1"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+    app.press_code(crossterm::event::KeyCode::Enter);
+    app.press_char('o');
+    type_model(&mut app, PLAIN_KEY);
+    app.press_char('q');
+    app.press_char('o');
+    assert!(drawn_model_line(&app.model).contains("4. Model     the configured model"));
+    assert_eq!(app.model.settings.settings.model, "xai-org/grok-1");
+    assert_screen_clean("the options view after a discard", &app.model, PLAIN_KEY);
+
+    // A typed name that the service lists is named after a reopen, by the listing (a rule
+    // names it).
+    let dir = tempfile::tempdir().unwrap();
+    let model = interface(dir.path(), "{}", Local::Lists("qwen3:4b"));
+    let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+    app.press_code(crossterm::event::KeyCode::Enter);
+    app.press_char('o');
+    type_model(&mut app, "qwen3:4b");
+    app.press_char('s');
+    app.press_char('o');
+    assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
+}
+
+#[test]
+fn the_one_line_model_command() {
+    use etv_core::screens::{run_settings_screen, SettingsEvent, SettingsExit, SettingsScreen};
+    // An accepted name: changed, and shown back while the screen is open.
+    let mut screen = SettingsScreen::new(NarratorSettings::default());
+    assert_eq!(
+        screen.handle_line("model mistral:7b"),
+        SettingsEvent::Changed("Model is now mistral:7b.".to_string())
+    );
+    assert!(screen
+        .lines()
+        .contains(&"  4. Model     mistral:7b".to_string()));
+    // A refused character: one character named, never the name, and the model unchanged.
+    for name in [format!("{KEY}!"), format!("{PLAIN_KEY}$")] {
+        let mut screen = SettingsScreen::new(NarratorSettings::default());
+        let said = screen.handle_line(&format!("model {name}"));
+        let SettingsEvent::Rejected(why) = said else {
+            panic!("not refused: {said:?}");
+        };
+        assert!(
+            why.starts_with("Model not changed: the model name contains "),
+            "{why}"
+        );
+        assert_clean("a refused model command", &why, &name);
+        assert_eq!(
+            screen.settings.model,
+            etv_core::narrator::DEFAULT_NARRATOR_MODEL
+        );
+    }
+    // A name the claude provider does not list: refused with fixed text, unshown.
+    let claude = NarratorSettings::default().with_cloud();
+    for name in ["mistral:7b", NAME_SHAPED_KEY, PLAIN_KEY] {
+        let mut screen = SettingsScreen::new(claude.clone());
+        let said = screen.handle_line(&format!("model {name}"));
+        assert_eq!(
+            said,
+            SettingsEvent::Rejected(format!(
+                "Model not changed: {}.",
+                etv_core::narrator_provider::claude_model_refusal()
+            ))
+        );
+        assert_eq!(screen.settings.model, claude.model);
+        // In line mode, saved: the refused name is neither shown nor saved.
+        let mut out = Vec::new();
+        let exit = run_settings_screen(
+            claude.clone(),
+            std::io::Cursor::new(format!("model {name}\ns\n")),
+            &mut out,
+        )
+        .unwrap();
+        let SettingsExit::Save(saved) = exit else {
+            panic!("expected a save");
+        };
+        assert_eq!(saved.model, claude.model);
+        assert_clean(
+            "line mode's options screen",
+            &String::from_utf8(out).unwrap(),
+            name,
+        );
+    }
+    // Through every line, the log and every screen, with a key-shaped model in the file.
+    Case::new(serde_json::json!({"model": PLAIN_KEY}), PLAIN_KEY)
+        .local(Local::Lists("qwen3:4b"))
+        .check();
+}
+
+/// A made-up key of lower-case letters and `-` only, the shape the narration checker passes.
+const LOWER_KEY: &str = "test-key-not-real-abcdefghijxyz";
+
+#[test]
+fn a_key_escaped_in_a_hosted_reply_is_taken_out_after_decoding() {
+    use etv_core::cloud_claude::ApiKey;
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+    struct Replies(String);
+    impl HttpsPost for Replies {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+    // A key of lower-case letters, and one with digits and capitals: what the transport hands
+    // the narrator holds neither, once its JSON escapes are decoded.
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(key).unwrap(),
+            Box::new(Replies(escaped_key_narration(key))),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let inner: serde_json::Value =
+            serde_json::from_str(outer["response"].as_str().unwrap()).unwrap();
+        let decoded = inner["sentences"][0].as_str().unwrap();
+        assert!(decoded.contains("[redacted]"), "{decoded}");
+        assert_clean("the decoded narration", decoded, key);
+        assert_clean("the transport's answer", &body, key);
+    }
+    // Through every line, the log and every screen: the narration checker would pass the
+    // lower-case key, so only the redaction keeps it off the screen.
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let asked = Case::new(
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "some-model",
+                "provider_url": "https://example.com/v1",
+                "key": {"env": "ETV_SET"},
+            }),
+            key,
+        )
+        .env("ETV_SET", key)
+        .echo(Echo::EscapedKeyReply)
+        .check();
+        assert!(asked > 0, "the hosted client was called");
+    }
 }

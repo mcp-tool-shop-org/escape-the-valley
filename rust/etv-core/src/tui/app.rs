@@ -34,6 +34,9 @@ pub struct Reconnected<'a> {
     pub lines: Vec<String>,
     /// The narrator's one-line summary, for a connected narrator.
     pub summary: Option<Box<dyn Fn() -> String + 'a>>,
+    /// The models the local service listed as installed at the startup check
+    /// ([`crate::play::NarratorConnection::installed`]), for the options screen to name.
+    pub installed: Vec<String>,
 }
 
 impl Reconnected<'static> {
@@ -52,6 +55,7 @@ impl Reconnected<'static> {
                     summary: Some(Box::new(move || {
                         crate::play::narrator_summary_line(&for_summary.stats())
                     })),
+                    installed: connection.installed,
                 }
             }
             None => Reconnected {
@@ -59,6 +63,7 @@ impl Reconnected<'static> {
                 live: false,
                 lines: connection.lines,
                 summary: None,
+                installed: connection.installed,
             },
         }
     }
@@ -150,6 +155,7 @@ impl<'a> App<'a> {
         Some(Msg::NarratorReconnected {
             lines: rebuilt.lines,
             narrator_summary: self.narrator_summary(),
+            installed: rebuilt.installed,
         })
     }
 

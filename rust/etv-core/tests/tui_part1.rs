@@ -1352,6 +1352,7 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
                 live: true,
                 lines: vec!["Narrator: rebuilt.".to_string()],
                 summary: Some(Box::new(|| "Narrator: the rebuilt one.".to_string())),
+                installed: Vec::new(),
             }
         } else {
             etv_core::tui::Reconnected {
@@ -1359,6 +1360,7 @@ fn settings_saved_in_the_interface_change_the_next_turn_without_a_restart() {
                 live: false,
                 lines: vec!["The narrator is switched off in the settings.".to_string()],
                 summary: None,
+                installed: Vec::new(),
             }
         }
     });

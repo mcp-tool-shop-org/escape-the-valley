@@ -213,7 +213,7 @@ impl ApiKey {
 
     /// `value` with the key replaced in every string it holds, object keys included, so the key
     /// is gone before the value is written out as JSON (which would escape a `"` or `\`).
-    fn redact_value(&self, value: &mut Value) {
+    pub(crate) fn redact_value(&self, value: &mut Value) {
         match value {
             Value::String(s) => {
                 if s.contains(self.0.as_str()) {

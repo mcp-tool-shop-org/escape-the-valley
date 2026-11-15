@@ -438,6 +438,11 @@ pub struct NarratorConnection {
     pub narrator: Option<LiveNarrator>,
     /// What to tell the player about it, in plain words.
     pub lines: Vec<String>,
+    /// The models the local Ollama service listed as installed at the startup check, for the
+    /// options screen to name ([`crate::settings::model_for_display`]). Empty unless the
+    /// provider is the local `ollama` one on a loopback endpoint: a hosted provider's listing is
+    /// its own setting repeated back, and a service on another host could list anything.
+    pub installed: Vec<String>,
 }
 
 /// Line shown when the narrator is off or could not be used.
@@ -459,59 +464,14 @@ pub fn connect_narrator(
     })
 }
 
-/// An endpoint as it may be shown: `scheme://host[:port]`, and only for a loopback host
-/// (`localhost`, `127.x.y.z`, `[::1]`) with a numeric port. Anything else, a remote host
-/// included, reads "the configured endpoint": a host name is text from the settings that could
-/// hold anything, a pasted key included. A path, query or fragment is never shown.
+/// An endpoint as it may be shown: `scheme://host[:port]`, only for a valid endpoint whose host
+/// the one loopback rule ([`crate::narrator::is_loopback_endpoint`]) accepts, with the host in
+/// normal form. Anything else, a remote host included, reads "the configured endpoint": a host
+/// name is text from the settings that could hold anything, a pasted key included. A path is
+/// never shown.
 pub fn endpoint_for_display(endpoint: &str) -> String {
-    const HIDDEN: &str = "the configured endpoint";
-    let trimmed = endpoint.trim();
-    let (scheme, rest) = match trimmed.split_once("://") {
-        Some((s, r)) if s == "http" || s == "https" => (s, r),
-        _ => return HIDDEN.to_string(),
-    };
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    let (host, port) = if let Some(after) = authority.strip_prefix("[::1]") {
-        if after.is_empty() {
-            ("[::1]", None)
-        } else if let Some(p) = after.strip_prefix(':') {
-            ("[::1]", Some(p))
-        } else {
-            return HIDDEN.to_string();
-        }
-    } else {
-        match authority.split_once(':') {
-            Some((h, p)) => (h, Some(p)),
-            None => (authority, None),
-        }
-    };
-    let loopback = host == "localhost" || host == "[::1]" || is_loopback_ipv4(host);
-    let port_ok = port.is_none_or(|p| {
-        !p.is_empty()
-            && p.len() <= 5
-            && p.chars().all(|c| c.is_ascii_digit())
-            && (1..=65535).contains(&p.parse::<u32>().unwrap_or(0))
-    });
-    if !loopback || !port_ok {
-        return HIDDEN.to_string();
-    }
-    match port {
-        Some(p) => format!("{scheme}://{host}:{p}"),
-        None => format!("{scheme}://{host}"),
-    }
-}
-
-/// `127.x.y.z`, each part a number from 0 to 255.
-fn is_loopback_ipv4(host: &str) -> bool {
-    let parts: Vec<&str> = host.split('.').collect();
-    parts.len() == 4
-        && parts[0] == "127"
-        && parts.iter().all(|p| {
-            !p.is_empty()
-                && p.len() <= 3
-                && p.chars().all(|c| c.is_ascii_digit())
-                && p.parse::<u32>().is_ok_and(|n| n <= 255)
-        })
+    crate::narrator::loopback_endpoint_for_display(endpoint)
+        .unwrap_or_else(|| "the configured endpoint".to_string())
 }
 
 /// Line shown when this build has no narrator connection compiled in at all.
@@ -529,31 +489,35 @@ pub fn connect_narrator_with(
     settings: &NarratorSettings,
     transport: impl FnOnce(&NarratorSettings) -> Result<Arc<dyn NarratorTransport>, String>,
 ) -> NarratorConnection {
-    let off = |reason: String| NarratorConnection {
+    let off = |reason: String, installed: Vec<String>| NarratorConnection {
         narrator: None,
         lines: vec![reason, NARRATOR_OFF_LINE.to_string()],
+        installed,
     };
     if !settings.enabled {
-        return off("The narrator is switched off in the settings.".to_string());
+        return off(
+            "The narrator is switched off in the settings.".to_string(),
+            Vec::new(),
+        );
     }
     let transport = match transport(settings) {
         Ok(t) => t,
-        Err(reason) => return off(reason),
+        Err(reason) => return off(reason, Vec::new()),
     };
     let narrator = LiveNarrator::with_transport(settings.clone(), transport);
     let (status, listed) = narrator.check_startup_listing();
     // Only the local Ollama service's own listing says what is installed: a hosted provider's
     // listing is just its setting repeated back, and a service on another host could list
     // anything, so its listing never makes a model name showable.
-    let installed: &[String] = if settings.provider
+    let installed: Vec<String> = if settings.provider
         == crate::narrator_provider::NarratorProvider::Ollama
         && crate::narrator::is_loopback_endpoint(&settings.endpoint)
     {
-        &listed
+        listed
     } else {
-        &[]
+        Vec::new()
     };
-    let shown = model_for_display(&settings.model, installed);
+    let shown = model_for_display(&settings.model, &installed).map(str::to_string);
     if !status.available {
         let reason = if status.installed {
             if settings.model == crate::narrator::DEFAULT_NARRATOR_MODEL {
@@ -570,23 +534,25 @@ pub fn connect_narrator_with(
                 endpoint_for_display(&settings.endpoint)
             )
         };
-        return off(reason);
+        return off(reason, installed);
     }
     if narrator.warmup().is_err() {
-        return off(match shown {
+        let reason = match &shown {
             Some(m) => format!("The narrator model '{m}' did not load in time."),
             None => "The configured narrator model did not load in time.".to_string(),
-        });
+        };
+        return off(reason, installed);
     }
     let line = format!(
         "Narrator: {}, {}, model {}.",
         profile_interface_name(settings.profile),
         settings.length.as_str(),
-        shown.unwrap_or(CONFIGURED_MODEL)
+        shown.as_deref().unwrap_or(CONFIGURED_MODEL)
     );
     NarratorConnection {
         narrator: Some(narrator),
         lines: vec![line],
+        installed,
     }
 }
 

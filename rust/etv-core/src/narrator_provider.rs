@@ -273,6 +273,38 @@ impl HostedTransport {
         self.switched_off.load(Ordering::SeqCst)
     }
 
+    /// `error` with the key taken out of every text it carries, whatever its kind.
+    fn redact_error(&self, error: TransportError) -> TransportError {
+        match error {
+            TransportError::ConnectionFailed(text) => {
+                TransportError::ConnectionFailed(self.key.redact(&text))
+            }
+            TransportError::HttpStatus(status, text) => {
+                TransportError::HttpStatus(status, self.key.redact(&text))
+            }
+            TransportError::Timeout => TransportError::Timeout,
+            TransportError::EndpointRejected(e) => TransportError::EndpointRejected(e),
+        }
+    }
+
+    /// `text`, a provider's answer, with the key taken out after any JSON escape is decoded.
+    /// The narrator parses a JSON answer, which turns `\uXXXX` back into the character, so a
+    /// key written with an escape would pass a search of the raw text. A JSON object or array
+    /// is parsed, the key is taken out of every string it holds, and it is written back; the
+    /// result, and any other answer, is then searched as text too.
+    fn redacted_reply(&self, text: &str) -> String {
+        let trimmed = text.trim();
+        let decoded = if trimmed.starts_with(['{', '[']) {
+            serde_json::from_str::<Value>(trimmed).ok().map(|mut v| {
+                self.key.redact_value(&mut v);
+                v.to_string()
+            })
+        } else {
+            None
+        };
+        self.key.redact(decoded.as_deref().unwrap_or(text))
+    }
+
     fn url(&self) -> String {
         match &self.api {
             HostedApi::Claude => CLAUDE_MESSAGES_URL.to_string(),
@@ -317,7 +349,7 @@ impl NarratorTransport for HostedTransport {
         let (body, headers): (Value, Vec<(&str, String)>) = match &self.api {
             HostedApi::Claude => {
                 let built = build_messages_request(&ollama, &self.model, false, None)
-                    .map_err(TransportError::ConnectionFailed)?;
+                    .map_err(|e| self.redact_error(TransportError::ConnectionFailed(e)))?;
                 (
                     built.body,
                     vec![
@@ -330,7 +362,7 @@ impl NarratorTransport for HostedTransport {
             HostedApi::OpenaiCompatible { base_url } => {
                 let openrouter = base_url.trim_end_matches('/') == OPENROUTER_BASE_URL;
                 let body = build_chat_request(&ollama, &self.model, openrouter)
-                    .map_err(TransportError::ConnectionFailed)?;
+                    .map_err(|e| self.redact_error(TransportError::ConnectionFailed(e)))?;
                 (
                     body,
                     vec![
@@ -348,12 +380,7 @@ impl NarratorTransport for HostedTransport {
         let reply = self
             .http
             .post(&self.url(), &header_refs, &body.to_string(), timeout)
-            .map_err(|e| match e {
-                TransportError::ConnectionFailed(text) => {
-                    TransportError::ConnectionFailed(self.key.redact(&text))
-                }
-                other => other,
-            })?;
+            .map_err(|e| self.redact_error(e))?;
         if matches!(reply.status, 401..=403) {
             self.switched_off.store(true, Ordering::SeqCst);
         }
@@ -376,10 +403,13 @@ impl NarratorTransport for HostedTransport {
         };
         Ok((
             200,
-            json!({ "response": self.key.redact(&text) }).to_string(),
+            json!({ "response": self.redacted_reply(&text) }).to_string(),
         ))
     }
 }
+
+/// Why a `provider_url` with the wrong shape is refused. Fixed text: the value is never shown.
+pub const PROVIDER_URL_REFUSAL: &str = "the provider_url is not valid (https://, a host, an optional numeric port and an optional path only; no user name, query or fragment)";
 
 /// Checks the provider part of the settings: an OpenAI-compatible provider needs an `https://`
 /// base URL (a key is never sent over plain HTTP; a LAN Ollama host is reached with the
@@ -401,12 +431,19 @@ pub fn validate_provider(settings: &crate::narrator::NarratorSettings) -> Result
                 return Err(claude_model_refusal());
             }
             if settings.provider == NarratorProvider::OpenaiCompatible {
+                // Checked whole, by the endpoint's host rule: https://, a host, an optional
+                // numeric port and an optional path. A user name, a query or a fragment could
+                // carry a key into the request URL, so each is refused. The refusal is fixed
+                // text: it never shows the value.
                 let url = settings.provider_url.trim();
-                if !url.starts_with("https://") || url.len() <= "https://".len() {
+                if !url.starts_with("https://") {
                     return Err(
                         "the openai-compatible provider needs an https:// provider_url (for example https://openrouter.ai/api/v1)"
                             .to_string(),
                     );
+                }
+                if !crate::narrator::is_valid_provider_url(url) {
+                    return Err(PROVIDER_URL_REFUSAL.to_string());
                 }
             }
             Ok(())

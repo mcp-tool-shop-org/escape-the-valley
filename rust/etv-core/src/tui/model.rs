@@ -211,6 +211,8 @@ pub enum Msg {
     NarratorReconnected {
         lines: Vec<String>,
         narrator_summary: Option<String>,
+        /// The new connection's installed listing, for the options screen.
+        installed: Vec<String>,
     },
 }
 
@@ -245,6 +247,10 @@ pub struct Model {
     /// The settings as last saved or loaded.
     pub saved_settings: NarratorSettings,
     pub settings: SettingsScreen,
+    /// The models the local Ollama service listed as installed at the current connection's
+    /// startup check, so the options screen names a model as the connect line does. Empty when
+    /// there is no such listing (a hosted provider, a remote service, the narrator off).
+    pub installed_models: Vec<String>,
     /// What the settings screen last said (a change made, a refusal).
     pub settings_note: String,
     /// The model name being typed, while the settings screen waits for one.
@@ -285,6 +291,7 @@ impl Model {
             pending_choice: None,
             saved_settings: settings.clone(),
             settings: SettingsScreen::new(settings),
+            installed_models: Vec::new(),
             settings_note: String::new(),
             settings_entry: None,
             version: version.to_string(),
@@ -295,6 +302,15 @@ impl Model {
             size: (MIN_WIDTH, MIN_HEIGHT),
             color,
         }
+    }
+
+    /// This model with `installed`, the current connection's installed listing
+    /// ([`crate::play::NarratorConnection::installed`]), for the options screen.
+    pub fn with_installed(mut self, installed: Vec<String>) -> Self {
+        self.settings =
+            SettingsScreen::with_installed(self.saved_settings.clone(), installed.clone());
+        self.installed_models = installed;
+        self
     }
 
     /// The screen the run itself is on, by the engine's phase.
@@ -534,7 +550,9 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Effect> {
         Msg::NarratorReconnected {
             lines,
             narrator_summary,
+            installed,
         } => {
+            model.installed_models = installed;
             model.push_log(lines);
             model.log_scroll = 0;
             model.narrator_summary = narrator_summary;
@@ -706,7 +724,10 @@ fn update_intent(model: &mut Model, intent: Intent) -> Vec<Effect> {
 
 fn open_settings(model: &mut Model) {
     model.back = model.screen;
-    model.settings = SettingsScreen::new(model.saved_settings.clone());
+    model.settings = SettingsScreen::with_installed(
+        model.saved_settings.clone(),
+        model.installed_models.clone(),
+    );
     model.settings_note.clear();
     model.settings_entry = None;
     model.screen = Screen::Settings;
