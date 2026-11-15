@@ -10,6 +10,11 @@ All notable changes to Escape the Valley are documented here.
 
 ### Changed
 
+- **Narrator endpoint rules (2.0 settings file).** One loopback rule decides both whether an endpoint loads by default and whether it is shown: `localhost` in any case, an IPv4 address in `127.0.0.0/8`, or the IPv6 loopback. IPv4 and bracketed IPv6 hosts must parse as real addresses and are shown in normal form (`http://[0:0:0:0:0:0:0:1]:11434` reads `http://[::1]:11434`). Host names may contain `_`. Whitespace and control characters are refused anywhere in the endpoint, path included, as are a user name, a query and a fragment. A non-loopback endpoint needs `allow_non_loopback` and is never shown.
+- **`provider_url` is checked whole:** `https://`, a host, an optional numeric port and an optional path; a user name, query or fragment is refused, with a message that does not repeat the value.
+- **The options screen names a model only when it is a known name** (the default or a Claude model), one typed there, or one the local Ollama service on a loopback endpoint lists as installed; otherwise it reads "the configured model".
+- A settings file that is refused falls back to the defaults, which use the local Ollama service at its default address (`http://127.0.0.1:11434`). This is by design.
+- The README and the handbook still describe the 1.x game; the 2.0 settings file is described here until they are updated.
 - A turn whose scene narration times out no longer makes its outcome call; the game's own line is shown instead.
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.
 - **Supplies and changes are named in words.** The camp status, the supplies panel, the line of numbers after a choice, a choice you cannot afford, the game's own lines ("-1 ammunition"), event text and choice hints, and the Trail Ledger now read "Lamp oil", "Spare parts", "Medicine", "Ammunition", "Days", "Wagon condition" and "Animals' health" instead of the game's internal names (`lantern_oil`, `parts`, `meds`, `ammo`, `time_days`, `wagon_condition`, `animals_health`). Each supply is named with the same words as the narrator's plain fallback lines ("uses lamp oil", "uses spare parts"). Saves and game rules are unchanged.
