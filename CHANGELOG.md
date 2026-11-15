@@ -14,6 +14,7 @@ All notable changes to Escape the Valley are documented here.
 - **`provider_url` is checked whole:** `https://`, a host, an optional numeric port and an optional path; a user name, query or fragment is refused, with a message that does not repeat the value.
 - **The options screen names a model only when it is a known name** (the default or a Claude model), one typed there, or one the local Ollama service on a loopback endpoint lists as installed; otherwise it reads "the configured model".
 - A settings file that is refused falls back to the defaults, which use the local Ollama service at its default address (`http://127.0.0.1:11434`). This is by design.
+- **A hosted narrator's answer has the key taken out after its JSON is decoded**, so a key the provider writes back with an escape (`\u0074…`) is removed too, not only one written plainly.
 - The README and the handbook still describe the 1.x game; the 2.0 settings file is described here until they are updated.
 - A turn whose scene narration times out no longer makes its outcome call; the game's own line is shown instead.
 - linux-x64 built in an ubuntu:22.04 container; smoke on 22.04 and 24.04; glibc floor check.

@@ -287,6 +287,24 @@ impl HostedTransport {
         }
     }
 
+    /// `text`, a provider's answer, with the key taken out after any JSON escape is decoded.
+    /// The narrator parses a JSON answer, which turns `\uXXXX` back into the character, so a
+    /// key written with an escape would pass a search of the raw text. A JSON object or array
+    /// is parsed, the key is taken out of every string it holds, and it is written back; the
+    /// result, and any other answer, is then searched as text too.
+    fn redacted_reply(&self, text: &str) -> String {
+        let trimmed = text.trim();
+        let decoded = if trimmed.starts_with(['{', '[']) {
+            serde_json::from_str::<Value>(trimmed).ok().map(|mut v| {
+                self.key.redact_value(&mut v);
+                v.to_string()
+            })
+        } else {
+            None
+        };
+        self.key.redact(decoded.as_deref().unwrap_or(text))
+    }
+
     fn url(&self) -> String {
         match &self.api {
             HostedApi::Claude => CLAUDE_MESSAGES_URL.to_string(),
@@ -385,7 +403,7 @@ impl NarratorTransport for HostedTransport {
         };
         Ok((
             200,
-            json!({ "response": self.key.redact(&text) }).to_string(),
+            json!({ "response": self.redacted_reply(&text) }).to_string(),
         ))
     }
 }

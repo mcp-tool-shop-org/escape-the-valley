@@ -53,6 +53,32 @@ enum Echo {
     /// An HTTP-status error whose text holds the request URL and every header sent, the key's
     /// header included.
     StatusError,
+    /// A 200 answer whose narration names the request URL.
+    UrlReply,
+    /// A 200 answer whose narration names the key sent in the `authorization` header, its first
+    /// letter written as a JSON `\uXXXX` escape inside the narration's JSON.
+    EscapedKeyReply,
+}
+
+/// An OpenAI-compatible 200 answer whose message content is `content`.
+fn chat_reply(content: &str) -> HttpReply {
+    HttpReply {
+        status: 200,
+        body: serde_json::json!({"choices": [{"message": {"content": content}}]}).to_string(),
+        request_id: None,
+        retry_after_s: None,
+    }
+}
+
+/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
+fn escaped_key_narration(key: &str) -> String {
+    let mut chars = key.chars();
+    let first = chars.next().unwrap();
+    format!(
+        r#"{{"sentences": ["Rain beads on the canvas near \u{:04x}{}."]}}"#,
+        first as u32,
+        chars.as_str()
+    )
 }
 
 /// Records every URL asked for, and fails every request with the URL in the failure.
@@ -85,6 +111,17 @@ impl HttpsPost for Echoing {
                 502,
                 format!("bad gateway for {url} with {headers:?}"),
             )),
+            Echo::UrlReply => Ok(chat_reply(&format!(
+                r#"{{"sentences": ["Rain beads on the canvas near {url}."]}}"#
+            ))),
+            Echo::EscapedKeyReply => {
+                let key = headers
+                    .iter()
+                    .find(|(n, _)| *n == "authorization")
+                    .and_then(|(_, v)| v.strip_prefix("Bearer "))
+                    .unwrap_or("");
+                Ok(chat_reply(&escaped_key_narration(key)))
+            }
         }
     }
 }
@@ -482,7 +519,12 @@ fn a_key_in_the_provider_url_is_not_shown_even_when_echoed_back() {
     // error, carries the request URL with the key in its path (a query is refused at load).
     // Nothing the player sees does.
     for key in [KEY, ODD_KEY] {
-        for echo in [Echo::ErrorBody, Echo::TransportError, Echo::StatusError] {
+        for echo in [
+            Echo::ErrorBody,
+            Echo::TransportError,
+            Echo::StatusError,
+            Echo::UrlReply,
+        ] {
             let asked = Case::new(
                 serde_json::json!({
                     "provider": "openai-compatible",
@@ -1031,6 +1073,10 @@ fn malformed_addresses_are_refused_with_fixed_text() {
         "http://[.]:11434".to_string(),
         "http://[fe80::1%eth0]:11434".to_string(),
         format!("http://[{HEX_KEY}]:11434"),
+        "http://127.0.0.1:0".to_string(),
+        "http://127.0.0.1:".to_string(),
+        "http://:11434".to_string(),
+        "http://".to_string(),
     ] {
         for allow in [false, true] {
             let loaded = load(
@@ -1047,6 +1093,27 @@ fn malformed_addresses_are_refused_with_fixed_text() {
             assert_eq!(endpoint_for_display(&endpoint), "the configured endpoint");
         }
     }
+    // An IPv4-mapped address is not the IPv6 loopback: refused without the setting, and with
+    // it loaded but never shown.
+    let mapped = "http://[::ffff:127.0.0.1]:11434";
+    assert!(!etv_core::narrator::is_loopback_endpoint(mapped));
+    assert_eq!(endpoint_for_display(mapped), "the configured endpoint");
+    let loaded = load(&serde_json::json!({ "endpoint": mapped }).to_string());
+    assert!(loaded
+        .warning
+        .unwrap()
+        .contains("the endpoint is not on this computer"));
+    let loaded =
+        load(&serde_json::json!({ "endpoint": mapped, "allow_non_loopback": true }).to_string());
+    assert_eq!(loaded.warning, None);
+    let (_, lines) = connect_lines(
+        &serde_json::json!({ "endpoint": mapped, "allow_non_loopback": true }).to_string(),
+        Local::Dead,
+    );
+    assert_eq!(
+        lines[0],
+        "The narrator service did not answer at the configured endpoint. Start it with: ollama serve"
+    );
     // The bracketed key, through every line, the log and every screen.
     for allow in [false, true] {
         Case::new(
@@ -1166,6 +1233,32 @@ fn a_key_as_the_provider_urls_user_name_query_or_fragment_is_refused_unshown() {
             let asked = Case::new(body, key).check();
             assert_eq!(asked, 0, "a refused provider_url is never asked: {url}");
         }
+    }
+    // An empty host, port 0, an empty port and an IPv6 host that is not an address.
+    for url in [
+        "https://",
+        "https:///v1",
+        "https://:443/v1",
+        "https://example.com:0/v1",
+        "https://example.com:/v1",
+        "https://[::::::]/v1",
+    ] {
+        let loaded = load(
+            &serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "m",
+                "provider_url": url,
+                "key": {"env": "ETV_SET"},
+            })
+            .to_string(),
+        );
+        assert_eq!(
+            loaded.warning,
+            Some(format!(
+                "The settings file was not used: {PROVIDER_URL_REFUSAL}. Using the default settings: the local narrator (Ollama), until the settings are fixed."
+            )),
+            "{url}"
+        );
     }
     // A plain URL, with a port and a path, still loads.
     let loaded = load(
@@ -1512,4 +1605,72 @@ fn the_one_line_model_command() {
     Case::new(serde_json::json!({"model": PLAIN_KEY}), PLAIN_KEY)
         .local(Local::Lists("qwen3:4b"))
         .check();
+}
+
+/// A made-up key of lower-case letters and `-` only, the shape the narration checker passes.
+const LOWER_KEY: &str = "test-key-not-real-abcdefghijxyz";
+
+#[test]
+fn a_key_escaped_in_a_hosted_reply_is_taken_out_after_decoding() {
+    use etv_core::cloud_claude::ApiKey;
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+    struct Replies(String);
+    impl HttpsPost for Replies {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+    // A key of lower-case letters, and one with digits and capitals: what the transport hands
+    // the narrator holds neither, once its JSON escapes are decoded.
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(key).unwrap(),
+            Box::new(Replies(escaped_key_narration(key))),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let inner: serde_json::Value =
+            serde_json::from_str(outer["response"].as_str().unwrap()).unwrap();
+        let decoded = inner["sentences"][0].as_str().unwrap();
+        assert!(decoded.contains("[redacted]"), "{decoded}");
+        assert_clean("the decoded narration", decoded, key);
+        assert_clean("the transport's answer", &body, key);
+    }
+    // Through every line, the log and every screen: the narration checker would pass the
+    // lower-case key, so only the redaction keeps it off the screen.
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let asked = Case::new(
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "some-model",
+                "provider_url": "https://example.com/v1",
+                "key": {"env": "ETV_SET"},
+            }),
+            key,
+        )
+        .env("ETV_SET", key)
+        .echo(Echo::EscapedKeyReply)
+        .check();
+        assert!(asked > 0, "the hosted client was called");
+    }
 }
