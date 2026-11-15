@@ -91,7 +91,7 @@ The XRPL Testnet is a test network, and it is wiped from time to time. A reset d
 
 After a reset, a save made before it names an issuer and a player account that no longer exist:
 
-- **`trail ledger proof`** reports **INCONCLUSIVE** and names the missing account. It never reports FAIL for this: your save's own record of supplies and settlement transaction IDs is unchanged, but the Testnet can no longer confirm it.
+- **`trail ledger proof`** reports **INCONCLUSIVE** and names the missing account, when the save agrees with itself: its starting mint plus its settlements add up to its last settled supplies, and its memos name this run. A reset alone never makes it report FAIL. A save whose own totals or memos don't add up still reports **FAIL**, ledger or no ledger.
 - **`trail ledger reconcile`** stops before sending anything and says why. Pending checkpoints can't be settled on accounts that are gone, so retrying later won't help.
 - **`trail ledger wallet`** and the backpack screen say the account is not on the ledger, instead of showing an empty pack.
 - **The transaction IDs** in your trail ledger no longer resolve on the Testnet or in an explorer.

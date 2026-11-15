@@ -11,10 +11,10 @@ All notable changes to Escape the Valley are documented here.
 ### Fixed
 
 - **A Testnet reset no longer turns an honest save into a FAIL.** The XRPL Testnet is wiped from time to time (next on 2026-11-25), which deletes every account. The backpack read the server's "account not found" reply as an empty wallet, so after a reset the backpack screen showed an empty pack and `trail ledger proof` reported **FAIL** (drift) on every older save. Every ledger read now checks the reply:
-  - `trail ledger proof` reports **INCONCLUSIVE** and names the missing account;
+  - `trail ledger proof` reports **INCONCLUSIVE** and names the missing account (the player's or the issuer's), as long as the save agrees with itself; a save whose own totals or memos don't add up still reports FAIL;
   - `trail ledger reconcile` stops before sending anything and says the account is gone, instead of "network may be down";
   - `trail ledger wallet` and the backpack screen say the account is not on the ledger.
-- **A failed memo read no longer reads as missing memos.** If the on-chain memos couldn't be read, the proof used to treat every settlement as having no memo, a drift FAIL. It now reports INCONCLUSIVE when the balances agree. Real drift still reports FAIL.
+- **A failed memo read no longer reads as missing memos.** If the on-chain memos couldn't be read, or the server returned no history at all for a save with settled transactions, the proof used to treat every settlement as having no memo, a drift FAIL. It now reports INCONCLUSIVE when the balances agree. Real drift still reports FAIL.
 - README and handbook: the Testnet is wiped periodically, and transaction IDs can be looked up only until the next reset.
 
 ### Changed
