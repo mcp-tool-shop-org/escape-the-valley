@@ -8,6 +8,15 @@ All notable changes to Escape the Valley are documented here.
 
 - **The narrator can run on a hosted service.** Settings gain a provider: the local Ollama server stays the default (now `qwen3:4b-instruct-2507-q4_K_M`, Brief length), and a player can choose Claude (preselected as `claude-haiku-5-5`) or any OpenAI-compatible endpoint. The key is read from an environment variable or a key file the settings name; it is never stored in the settings, logged or shown. A rejected key switches the hosted narrator off, and any failure shows the game's own line. A turn whose first narrator call times out skips its second call. Builds with the cloud narrator carry the TLS crates' notices.
 
+### Fixed
+
+- **A Testnet reset no longer turns an honest save into a FAIL.** The XRPL Testnet is wiped from time to time (next on 2026-11-25), which deletes every account. The backpack read the server's "account not found" reply as an empty wallet, so after a reset the backpack screen showed an empty pack and `trail ledger proof` reported **FAIL** (drift) on every older save. Every ledger read now checks the reply:
+  - `trail ledger proof` reports **INCONCLUSIVE** and names the missing account;
+  - `trail ledger reconcile` stops before sending anything and says the account is gone, instead of "network may be down";
+  - `trail ledger wallet` and the backpack screen say the account is not on the ledger.
+- **A failed memo read no longer reads as missing memos.** If the on-chain memos couldn't be read, the proof used to treat every settlement as having no memo, a drift FAIL. It now reports INCONCLUSIVE when the balances agree. Real drift still reports FAIL.
+- README and handbook: the Testnet is wiped periodically, and transaction IDs can be looked up only until the next reset.
+
 ### Changed
 
 - **Narrator endpoint rules (2.0 settings file).** One loopback rule decides both whether an endpoint loads by default and whether it is shown: `localhost` in any case, an IPv4 address in `127.0.0.0/8`, or the IPv6 loopback. IPv4 and bracketed IPv6 hosts must parse as real addresses and are shown in normal form (`http://[0:0:0:0:0:0:0:1]:11434` reads `http://[::1]:11434`). Host names may contain `_`. Whitespace and control characters are refused anywhere in the endpoint, path included, as are a user name, a query and a fragment. A non-loopback endpoint needs `allow_non_loopback` and is never shown.

@@ -353,6 +353,7 @@ def report_to_markdown(
     report: ReconcileReport,
     *,
     verdict: ProofVerdict | None = None,
+    note: str | None = None,
 ) -> str:
     """Render a human-readable reconciliation report.
 
@@ -361,6 +362,7 @@ def report_to_markdown(
     FAIL — ANDON is preserved. ``verdict`` overrides the derived banner when
     the player-save path has an extra inconclusive reason (missing mint
     snapshot, network miss) that reconcile() itself does not encode.
+    ``note``, when given, is the banner, in place of the derived one.
     """
     inconclusive = _is_inconclusive(report)
     if verdict is None:
@@ -372,7 +374,9 @@ def report_to_markdown(
         f"# Ledger Reconciliation Proof — {verdict}",
         "",
     ]
-    if verdict == "INCONCLUSIVE" and inconclusive:
+    if note is not None:
+        lines += [f"> {note}", ""]
+    elif verdict == "INCONCLUSIVE" and inconclusive:
         lines += [
             f"> **INCONCLUSIVE — {report.pending_count} checkpoint(s) could not "
             f"settle (testnet unreachable). Re-run when the ledger is healthy. "
@@ -483,6 +487,22 @@ class PlayerProofResult:
         }
 
 
+_RESET_BANNER = (
+    "**INCONCLUSIVE: this save's account `{account}` is not on the XRPL "
+    "Testnet.** The Testnet is wiped from time to time, and a wipe deletes "
+    "every account, so the ledger can no longer confirm this run. This is not "
+    "drift: the save's own record (its supplies and settlement transaction IDs) "
+    "is unchanged, but those IDs no longer resolve on the Testnet."
+)
+
+_MEMO_UNREAD = (
+    "**INCONCLUSIVE: the on-chain memos could not be read (AccountTx).** "
+    "Balances and totals reconciled, but without the memos the proof can't "
+    "confirm each settlement's run and day on the ledger. Not a drift FAIL. "
+    "Re-run `trail ledger proof` when the testnet is healthy."
+)
+
+
 def _banner(verdict: ProofVerdict, body: str) -> str:
     return (
         f"# Ledger Reconciliation Proof — {verdict}\n\n"
@@ -559,6 +579,23 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
             )
 
         info = mgr.wallet_info(state)
+        if info.get("account_missing"):
+            # The save's account is gone from the ledger (a Testnet reset).
+            # Nothing on the ledger can be compared, so reconcile() doesn't
+            # run: the verdict is INCONCLUSIVE, with the reason, never FAIL.
+            reset_note = (
+                f"account {info['account_missing']} is not on the ledger "
+                "(actNotFound): the Testnet was most likely reset"
+            )
+            return PlayerProofResult(
+                verdict="INCONCLUSIVE",
+                report=None,
+                markdown=_banner(
+                    "INCONCLUSIVE",
+                    _RESET_BANNER.format(account=info["account_missing"]),
+                ),
+                notes=[*notes, reset_note],
+            )
         network_error = bool(
             info.get("balances_error") or info.get("extra_missing")
         )
@@ -570,6 +607,13 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
             onchain_memos = None
         else:
             onchain_memos = mgr.fetch_onchain_memos(state)
+        # None: the memos could not be read. reconcile() then checks the
+        # memos locally only, which can't support a PASS on its own.
+        memo_unread = not network_error and onchain_memos is None
+        if memo_unread:
+            notes.append(
+                "could not read the on-chain memos (AccountTx); not a drift FAIL"
+            )
 
         last_settled = {
             key: int(bp.last_settled_supplies.get(key, 0))
@@ -594,10 +638,17 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
             network_error=network_error,
             minted_missing=minted_missing,
         )
+        note = None
+        if memo_unread and verdict == "PASS":
+            # Balances and totals agree, but the external memo check didn't
+            # run. A drift FAIL still reads FAIL (ANDON); only a would-be
+            # PASS is held back.
+            verdict = "INCONCLUSIVE"
+            note = _MEMO_UNREAD
         return PlayerProofResult(
             verdict=verdict,
             report=report,
-            markdown=report_to_markdown(report, verdict=verdict),
+            markdown=report_to_markdown(report, verdict=verdict, note=note),
             notes=list(report.notes),
         )
     finally:

@@ -120,7 +120,7 @@ The 5 core supplies (food, water, meds, ammo, parts) are the most critical. Exte
 
 ## Ledger Backpack (Optional)
 
-The Ledger Backpack tracks your 5 core supplies (food, water, meds, ammo, parts) as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can verify.
+The Ledger Backpack tracks your 5 core supplies (food, water, meds, ammo, parts) as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can look up on the Testnet, until it is next wiped: the Testnet is reset from time to time, which deletes every account on it. After a reset, `trail ledger proof` on an older save reports INCONCLUSIVE and names the missing account; it never reports FAIL for that ([handbook](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/xrpl-ledger/#when-the-testnet-is-reset)).
 
 Completely optional. The game plays identically with it off (the default). Enable it from the L menu in the TUI or via CLI:
 
@@ -178,6 +178,7 @@ trail new --callouts minimal
 |---------|-------|-----|
 | **Generic / no narration** | Ollama isn't running (the GM is optional and falls back, never bricks) | Start Ollama (`ollama serve`), or play deterministically with `--gm-off`. Run `trail self-check` to confirm. |
 | **Ledger pending / settlement failed** | XRPL Testnet is a public test network and is sometimes flaky | `trail ledger reconcile` retries the failed settlements; run it again when the network recovers. Supplies are correct locally either way. |
+| **"Not on the XRPL Testnet"** | The Testnet was reset, which deletes every account on it | Nothing is wrong with your save, and supplies are correct locally. The proof reads INCONCLUSIVE, and reconcile can't settle on the old accounts. |
 | **Save won't resume** | `run.json` was truncated or corrupted mid-write | The engine quarantines it as `run.json.corrupt-<timestamp>` before refusing it, so your next save can't clobber the evidence. Recover from that backup, or start a fresh run from a seed. |
 
 The first narrated turn loads the model and can take 10-30s — that's normal, not a hang. Full details: [Troubleshooting handbook](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/troubleshooting/).

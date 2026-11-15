@@ -622,3 +622,88 @@ def test_overlay_dict_has_no_secrets():
     assert "wallet_secret" not in blob
     assert "issuer_secret" not in blob
     assert data["verdict"] == "PASS"
+
+
+# ── Testnet reset: the proof of a save whose accounts are gone ────────────
+#
+# After a Testnet wipe a save's accounts answer actNotFound. The proof must
+# say so and read INCONCLUSIVE; it used to see an empty pack and read FAIL.
+
+
+def test_proof_after_a_reset_is_inconclusive_with_the_reason():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Reset(_ProofMgr):
+        def wallet_info(self, state):
+            return {
+                "address": state.backpack.wallet_address,
+                "balances": {},
+                "balances_error": True,
+                "account_missing": state.backpack.wallet_address,
+            }
+
+        def fetch_onchain_memos(self, state):  # pragma: no cover - must not run
+            raise AssertionError("no memo read when the account is gone")
+
+    result = proof_player_save(_player_state(), manager=_Reset())
+    assert result.verdict == "INCONCLUSIVE"
+    assert result.report is None
+    head = result.markdown.split("\n", 1)[0]
+    assert "INCONCLUSIVE" in head and "FAIL" not in head
+    assert "not on the XRPL Testnet" in result.markdown
+    assert "wiped" in result.markdown
+    assert any("actNotFound" in n for n in result.notes)
+
+
+def test_proof_after_a_reset_end_to_end_with_the_real_manager(monkeypatch):
+    """The real BackpackManager against a ledger where every account is gone."""
+    import pytest
+
+    pytest.importorskip("xrpl")
+    from escape_the_valley.backpack import BackpackManager
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Resp:
+        def __init__(self, result):
+            self.result = result
+
+    class _GoneClient:
+        def request(self, _req):
+            return _Resp({"error": "actNotFound", "status": "error"})
+
+        def close(self):
+            pass
+
+    mgr = BackpackManager()
+    monkeypatch.setattr(mgr, "_get_client", lambda: _GoneClient())
+    result = proof_player_save(_player_state(), manager=mgr)
+    assert result.verdict == "INCONCLUSIVE"
+    assert "not on the XRPL Testnet" in result.markdown
+
+
+def test_proof_with_unread_memos_is_not_a_pass():
+    """Balances agree but the memo read failed: INCONCLUSIVE, never PASS."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _MemoUnread(_ProofMgr):
+        def fetch_onchain_memos(self, state):
+            return None
+
+    result = proof_player_save(_player_state(), manager=_MemoUnread())
+    assert result.verdict == "INCONCLUSIVE"
+    assert "on-chain memos could not be read" in result.markdown
+    assert any("could not read the on-chain memos" in n for n in result.notes)
+
+
+def test_proof_with_unread_memos_and_drift_still_fails():
+    """A memo read failure must never hide real drift (ANDON)."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _DriftMemoUnread(_ProofMgr):
+        balances = dict(LEDGER_OK, FOD=1)
+
+        def fetch_onchain_memos(self, state):
+            return None
+
+    result = proof_player_save(_player_state(), manager=_DriftMemoUnread())
+    assert result.verdict == "FAIL"
