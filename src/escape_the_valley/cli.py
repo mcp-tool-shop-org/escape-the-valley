@@ -930,6 +930,19 @@ def ledger_reconcile() -> None:
     )
     mgr.close()
 
+    if mgr.missing_account:
+        # The save's account is gone from the ledger: a Testnet reset. Nothing
+        # was sent, and retrying later won't help, so say why instead of
+        # "network may be down".
+        save_game(state)
+        console.print(
+            f"[yellow]This save's account {mgr.missing_account} is not on the "
+            "XRPL Testnet any more. The Testnet is wiped from time to time, and "
+            "a wipe deletes every account, so these checkpoints can't be settled "
+            "there. Nothing was sent; your supplies are correct locally.[/yellow]"
+        )
+        raise typer.Exit(1)
+
     remaining = len(state.backpack.pending_settlements)
     settled = pending_count - remaining
     save_game(state)
@@ -994,6 +1007,11 @@ def ledger_wallet() -> None:
         console.print("  Balances:")
         for code, amount in balances.items():
             console.print(f"    {code}: {amount}")
+    elif info.get("account_missing"):
+        console.print(
+            "  Balances: this account is not on the XRPL Testnet any more "
+            "(the Testnet was most likely reset)."
+        )
 
 
 # ── Parcel subcommands ──────────────────────────────────────────

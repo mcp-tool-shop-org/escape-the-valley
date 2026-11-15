@@ -3861,3 +3861,297 @@ class TestPersistOrderingAtomicity:
         )
         assert final["pending_deltas"] == [{"water": -6}]
         assert final["settlement_deltas"] == [{"food": -10}]
+
+
+# ── Testnet reset: a saved account gone from the ledger (actNotFound) ─────
+#
+# The XRPL Testnet is wiped from time to time. Afterwards every account a save
+# names answers ``actNotFound``, as an error reply: xrpl-py's client.request
+# does not raise, and the reply has no ``lines`` or ``transactions``. Read
+# naively, that looked like an empty pack, and the proof read a drift FAIL.
+
+_ACT_NOT_FOUND = {
+    "error": "actNotFound",
+    "error_code": 19,
+    "error_message": "Account not found.",
+    "status": "error",
+}
+
+
+class _GoneClient(_FakeClient):
+    """Every account is gone: the ledger after a reset."""
+
+    def __init__(self, *a, **k):
+        self.requests: list = []
+
+    def request(self, req):
+        self.requests.append(type(req).__name__)
+        return _FakeResp(dict(_ACT_NOT_FOUND))
+
+
+class _ErrorClient(_FakeClient):
+    """An error reply that isn't actNotFound (the server refused the read)."""
+
+    def request(self, _req):
+        return _FakeResp({"error": "tooBusy", "status": "error"})
+
+
+class TestTestnetReset:
+    @requires_xrpl
+    def test_wallet_info_names_a_missing_account(self, monkeypatch):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _GoneClient())
+
+        info = mgr.wallet_info(state)
+        # Not an empty pack: an error, and the missing account is named.
+        assert info["balances"] == {}
+        assert info["balances_error"] is True
+        assert info["account_missing"] == "rPlayerAddr"
+
+    @requires_xrpl
+    def test_wallet_info_other_error_is_an_error_not_an_empty_pack(self, monkeypatch):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _ErrorClient())
+
+        info = mgr.wallet_info(state)
+        assert info["balances_error"] is True
+        assert "account_missing" not in info
+
+    @requires_xrpl
+    def test_memo_read_of_a_missing_account_is_unread_not_empty(self, monkeypatch):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _GoneClient())
+
+        # None means "could not read"; {} would mean "no memos on chain".
+        assert mgr.fetch_onchain_memos(state) is None
+
+    @requires_xrpl
+    def test_memo_read_error_reply_is_unread(self, monkeypatch):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _ErrorClient())
+
+        assert mgr.fetch_onchain_memos(state) is None
+
+    @requires_xrpl
+    def test_check_parcels_of_a_missing_account_finds_none(self, monkeypatch):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _GoneClient())
+
+        assert mgr.check_parcels(state) == []
+        assert state.backpack.parcels == []
+
+    @requires_xrpl
+    def test_reconcile_stops_before_any_payment(self, monkeypatch):
+        state = _enabled_state()
+        pending = SettlementRecord(
+            day=4, location="Earlier", deltas={"water": -5},
+            status="pending", memo=_settlement_memo_text(
+                state.run_id, 4, {"water": -5},
+            ),
+        )
+        state.backpack.pending_settlements = [pending]
+        client = _GoneClient()
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: client)
+        calls = _patch_signing(monkeypatch)
+
+        mgr._retry_pending(state)
+
+        # The account check ran, found the player gone, and nothing was sent.
+        assert client.requests == ["AccountInfo"]
+        assert calls["submit"] == []
+        assert mgr.missing_account == "rPlayerAddr"
+        # The queue is kept as it was, and the degraded flag is set.
+        assert state.backpack.pending_settlements == [pending]
+        assert state.backpack.settlements == []
+        assert state.backpack.last_settle_failed is True
+
+    @requires_xrpl
+    def test_reconcile_finds_a_missing_issuer(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"water": -5},
+                status="pending", memo=_settlement_memo_text(
+                    state.run_id, 4, {"water": -5},
+                ),
+            ),
+        ]
+
+        class _IssuerGone(_FakeClient):
+            def request(self, req):
+                if getattr(req, "account", None) == "rIssuerAddr":
+                    return _FakeResp(dict(_ACT_NOT_FOUND))
+                return _FakeResp({"account_data": {"Account": "rPlayerAddr"}})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _IssuerGone())
+        calls = _patch_signing(monkeypatch)
+
+        mgr._retry_pending(state)
+        assert calls["submit"] == []
+        assert mgr.missing_account == "rIssuerAddr"
+
+    @requires_xrpl
+    def test_reconcile_with_both_accounts_present_still_retries(self, monkeypatch):
+        state = _enabled_state()
+        state.backpack.pending_settlements = [
+            SettlementRecord(
+                day=4, location="Earlier", deltas={"water": -5},
+                status="pending", memo=_settlement_memo_text(
+                    state.run_id, 4, {"water": -5},
+                ),
+            ),
+        ]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        _patch_signing(monkeypatch, submit_hashes=["RETRYHASH"])
+
+        mgr._retry_pending(state)
+        assert mgr.missing_account is None
+        assert state.backpack.pending_settlements == []
+        assert len(state.backpack.settlements) == 1
+
+    @requires_xrpl
+    def test_reconcile_account_check_error_is_a_network_failure(self, monkeypatch):
+        state = _enabled_state()
+        pending = SettlementRecord(
+            day=4, location="Earlier", deltas={"water": -5},
+            status="pending", memo=_settlement_memo_text(
+                state.run_id, 4, {"water": -5},
+            ),
+        )
+        state.backpack.pending_settlements = [pending]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _ErrorClient())
+        calls = _patch_signing(monkeypatch)
+
+        mgr._retry_pending(state)
+        # Not a reset: the queue stays for a later retry, as on any outage.
+        assert mgr.missing_account is None
+        assert calls["submit"] == []
+        assert state.backpack.pending_settlements == [pending]
+        assert state.backpack.last_settle_failed is True
+
+
+    @requires_xrpl
+    def test_wallet_info_names_a_missing_issuer(self, monkeypatch):
+        state = _enabled_state()
+
+        class _IssuerGone(_FakeClient):
+            def request(self, req):
+                if getattr(req, "account", None) == "rIssuerAddr":
+                    return _FakeResp(dict(_ACT_NOT_FOUND))
+                return _FakeResp({"lines": [], "account_data": {}})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _IssuerGone())
+        info = mgr.wallet_info(state)
+        assert info["account_missing"] == "rIssuerAddr"
+        assert info["balances_error"] is True
+
+    @requires_xrpl
+    def test_memo_read_with_settled_txids_but_no_history_is_unread(self, monkeypatch):
+        """A server that answers a wiped address with an empty history (Clio)."""
+        state = _enabled_state()
+        state.backpack.settlements = [
+            SettlementRecord(
+                day=3, location="Fort", deltas={"food": -1}, txids=["TX1"],
+                status="settled",
+                memo=_settlement_memo_text(state.run_id, 3, {"food": -1}),
+            ),
+        ]
+
+        class _Empty(_FakeClient):
+            def request(self, _req):
+                return _FakeResp({"transactions": [], "status": "success"})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _Empty())
+        assert mgr.fetch_onchain_memos(state) is None
+
+    @requires_xrpl
+    def test_memo_read_of_a_fresh_pack_with_no_history_is_empty(self, monkeypatch):
+        """No settled txids and no history: genuinely nothing, not unread."""
+        state = _enabled_state()
+
+        class _Empty(_FakeClient):
+            def request(self, _req):
+                return _FakeResp({"transactions": []})
+
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _Empty())
+        assert mgr.fetch_onchain_memos(state) == {}
+
+    @requires_xrpl
+    def test_missing_account_does_not_carry_over_on_a_reused_manager(self, monkeypatch):
+        state = _enabled_state()
+        record = SettlementRecord(
+            day=4, location="Earlier", deltas={"water": -5},
+            status="pending", memo=_settlement_memo_text(
+                state.run_id, 4, {"water": -5},
+            ),
+        )
+        state.backpack.pending_settlements = [record]
+        mgr = BackpackManager()
+        monkeypatch.setattr(mgr, "_get_client", lambda: _GoneClient())
+        _patch_signing(monkeypatch, submit_hashes=["RETRYHASH"])
+        mgr._retry_pending(state)
+        assert mgr.missing_account == "rPlayerAddr"
+
+        # The same manager, the ledger healthy again: the old finding is gone.
+        monkeypatch.setattr(mgr, "_get_client", lambda: _FakeClient())
+        mgr._retry_pending(state)
+        assert mgr.missing_account is None
+        assert state.backpack.pending_settlements == []
+
+    def test_disable_forgets_a_missing_account(self):
+        state = _enabled_state()
+        mgr = BackpackManager()
+        mgr.missing_account = "rPlayerAddr"
+        mgr.disable(state)
+        assert mgr.missing_account is None
+
+
+class TestLedgerResult:
+    """_ledger_result: anything but a good reply is a failure, never "empty"."""
+
+    def test_a_good_reply_is_its_result(self):
+        from escape_the_valley.backpack import _ledger_result
+        assert _ledger_result(_FakeResp({"lines": []}), "rA") == {"lines": []}
+
+    def test_act_not_found_names_the_account(self):
+        from escape_the_valley.backpack import LedgerAccountMissingError, _ledger_result
+        with pytest.raises(LedgerAccountMissingError) as exc:
+            _ledger_result(_FakeResp(dict(_ACT_NOT_FOUND)), "rGone")
+        assert exc.value.account == "rGone"
+
+    @pytest.mark.parametrize("result", [None, [], "oops"])
+    def test_a_missing_or_non_dict_result_is_an_error(self, result):
+        from escape_the_valley.backpack import LedgerReadError, _ledger_result
+        with pytest.raises(LedgerReadError):
+            _ledger_result(_FakeResp(result), "rA")
+
+    def test_a_status_only_error_is_an_error(self):
+        from escape_the_valley.backpack import LedgerReadError, _ledger_result
+        with pytest.raises(LedgerReadError):
+            _ledger_result(_FakeResp({"status": "error", "error_code": 73}), "rA")
+
+    def test_an_error_status_on_the_response_is_an_error(self):
+        from escape_the_valley.backpack import LedgerReadError, _ledger_result
+
+        class _StatusResp(_FakeResp):
+            status = "error"
+
+        with pytest.raises(LedgerReadError):
+            _ledger_result(_StatusResp({"error_exception": "boom"}), "rA")
+
+    def test_no_response_at_all_is_an_error(self):
+        from escape_the_valley.backpack import LedgerReadError, _ledger_result
+        with pytest.raises(LedgerReadError):
+            _ledger_result(None, "rA")
