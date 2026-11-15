@@ -126,9 +126,12 @@ fn key_tokens(text: &str) -> Vec<String> {
             let signed_before = {
                 let t = before.strip_suffix(' ').unwrap_or("");
                 let digits = t.trim_end_matches(|c: char| c.is_ascii_digit());
+                // As the relabeller reads it: the sign follows neither a word character nor
+                // another sign (`--3 parts water` is a dash).
                 digits.len() < t.len()
                     && (digits.ends_with('+') || digits.ends_with('-'))
-                    && !digits[..digits.len() - 1].ends_with(|c: char| is_word_char(c))
+                    && !digits[..digits.len() - 1]
+                        .ends_with(|c: char| is_word_char(c) || c == '+' || c == '-')
             };
             let count_after = {
                 let a = after.trim_start_matches(' ');
@@ -993,6 +996,8 @@ fn the_raw_key_check_catches_a_key_first_parts_listing() {
     }
     for fine in [
         "3 parts water",
+        "--3 parts water",
+        "snapped--2 parts fell",
         "in these parts",
         "parts of the wagon",
         "In these parts, 3 days on.",
@@ -1023,6 +1028,39 @@ fn relabel_quote_rule_edges() {
 }
 
 #[test]
+fn an_abbreviations_possessive_opens_no_quote() {
+    for (text, shown) in [
+        (
+            "Hale Jr.'s mule carried the meds' crate.",
+            "Hale Jr.'s mule carried the medicine's crate.",
+        ),
+        (
+            "The Dr.'s bag sat by the meds' crate.",
+            "The Dr.'s bag sat by the medicine's crate.",
+        ),
+        (
+            "St.'s bell rang over the meds' crate.",
+            "St.'s bell rang over the medicine's crate.",
+        ),
+        // Once documented limits, now read right by the same rule.
+        (
+            "the end.') and the meds' crate",
+            "the end.') and the medicine's crate",
+        ),
+        (
+            "(the scout)'s meds' crate",
+            "(the scout)'s medicine's crate",
+        ),
+        (
+            "\"Go.\"'s echo and the meds' crate",
+            "\"Go.\"'s echo and the medicine's crate",
+        ),
+    ] {
+        assert_eq!(relabel_text(text), shown, "{text}");
+    }
+}
+
+#[test]
 fn a_sign_after_another_sign_is_not_a_change() {
     // A double hyphen is a dash, not a sign.
     assert_eq!(relabel_text("--3 parts water"), "--3 parts water");
@@ -1033,6 +1071,9 @@ fn a_sign_after_another_sign_is_not_a_change() {
     // A spaced sum or range is not a signed number (as the code already read it).
     assert_eq!(relabel_text("1 - 2 parts"), "1 - 2 parts");
     assert_eq!(relabel_text("1 + 2 parts"), "1 + 2 parts");
+    // Either sign before the sign blocks it.
+    assert_eq!(relabel_text("+-3 parts"), "+-3 parts");
+    assert_eq!(relabel_text("++3 parts"), "++3 parts");
     // A signed change still reads as one.
     assert_eq!(relabel_text("-1 parts"), "-1 spare parts");
     assert_eq!(relabel_text("(+3 parts)"), "(+3 spare parts)");

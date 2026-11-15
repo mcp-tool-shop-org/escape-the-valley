@@ -95,17 +95,15 @@ fn renamed_in_prose(word: &str) -> bool {
 /// - while no quote is open, it opens one when the character before it is not a word character
 ///   (or it starts the line) and the character after it exists and is not whitespace (`'meds'`,
 ///   `'-1 meds'`, `Wait...'meds'`); otherwise nothing changes (a trailing possessive such as
-///   `drivers'`).
+///   `drivers'`). Two exceptions open nothing: a `'s` with no word character after it, a
+///   possessive (`Jr.'s`, `Dr.'s`, `(the scout)'s`, `"Go."'s`); and a `'` after `.` `,` `!` or
+///   `?` with no word character after it (`the end.')`), a closing quote.
 ///
 /// Known limits, left as they are: a word-initial elision (`'tis`, `'em`) reads as an opening
 /// quote; curly quotes are not quotes here; nested quotes are not tracked; a plural possessive
-/// inside a quoted span reads as the span's closing quote; and a quote opened on an earlier
-/// line is not seen. Two more were there before and are now written down: an open quote is not
-/// closed by a `'` that a word character follows (`'no meds'x`), and a `'` right after a bracket
-/// or other mark, with a word after it, opens a quote even when it is a possessive
-/// (`(the scout)'s`). One comes with this rule, since a quote may now open after `.` `,` `!` or
-/// `?`: the closing quote of a quote opened on an earlier line, when a mark follows it, opens
-/// one instead (`the end.') and the meds' crate` keeps `meds'` as a quote).
+/// inside a quoted span reads as the span's closing quote; a quote opened on an earlier line is
+/// not seen; and an open quote is not closed by a `'` that a word character follows
+/// (`'no meds'x`).
 fn inside_single_quotes(chars: &[char], at: usize) -> bool {
     let line_start = chars[..at]
         .iter()
@@ -127,7 +125,11 @@ fn inside_single_quotes(chars: &[char], at: usize) -> bool {
                 open = false;
             }
         } else if !word_char(before) && after.is_some_and(|c| !c.is_whitespace()) {
-            open = true;
+            let clause_mark = before.is_some_and(|c| matches!(c, ',' | '.' | '!' | '?'));
+            let possessive_s = matches!(after, Some('s' | 'S')) && !word_char(chars.get(k + 2));
+            if !possessive_s && !(clause_mark && !word_char(after)) {
+                open = true;
+            }
         }
     }
     open
