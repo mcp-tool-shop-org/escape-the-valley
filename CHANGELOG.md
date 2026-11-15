@@ -11,6 +11,8 @@ All notable changes to Escape the Valley are documented here.
   - `trail ledger reconcile` stops before sending anything and says the account is gone, instead of "network may be down";
   - `trail ledger wallet` and the backpack screen say the account is not on the ledger.
 - **A failed memo read no longer reads as missing memos.** If the on-chain memos couldn't be read, or the server returned no history at all for a save with settled transactions, the proof used to treat every settlement as having no memo, a drift FAIL. It now reports INCONCLUSIVE when the balances agree. Real drift still reports FAIL.
+- **A save that contradicts itself reads FAIL, whatever the ledger says.** `trail ledger proof` checks the save against itself first: its starting mint plus its settlements must add up to its last settled supplies, and its memos must name the run. A save that fails that used to read INCONCLUSIVE when the ledger couldn't be reached; it now reads FAIL.
+- The ledger-proof harness (`scripts/ledger_proof.py`) stops with an error when it can't read the run's balances or memos back, instead of reporting on a local-only memo check.
 - README and handbook: the Testnet is wiped periodically, and transaction IDs can be looked up only until the next reset.
 
 ### Changed

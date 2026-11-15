@@ -327,6 +327,13 @@ def _is_inconclusive(report: ReconcileReport) -> bool:
     return resources_ok and report.memo_ok and report.pending_count > 0
 
 
+def _save_consistent(report: ReconcileReport) -> bool:
+    """The checks that need no ledger: conservation and the stored memos."""
+    return report.memo_local_ok and all(
+        r.conservation_ok for r in report.resources
+    )
+
+
 def proof_verdict(
     report: ReconcileReport,
     *,
@@ -339,7 +346,14 @@ def proof_verdict(
     INCONCLUSIVE when the only blocker is unsettled checkpoints, an
     unreachable testnet, or a missing enable-time mint snapshot (legacy
     save) — never a green-washed drift, never a FAIL over a gap.
+
+    The save is checked against itself first: its mint plus its
+    settlements must add up to its last settled supplies, and its stored
+    memos must name the run. That needs no ledger, so a save that fails
+    it is FAIL even when the ledger couldn't be read.
     """
+    if not _save_consistent(report):
+        return "FAIL"
     if network_error:
         return "INCONCLUSIVE"
     if report.passed:
@@ -393,10 +407,15 @@ def report_to_markdown(
             "",
         ]
     elif verdict == "INCONCLUSIVE":
+        ran = (
+            "Live balance and on-chain memo checks still ran; they did not "
+            "report drift."
+            if report.onchain_memo_ok is not None
+            else "Live balances matched; the on-chain memos were not read."
+        )
         lines += [
             "> **INCONCLUSIVE — conservation cannot be claimed for this save "
-            "(enable-time mint snapshot missing).** Live balance and on-chain "
-            "memo checks still ran; they did not report drift.",
+            f"(enable-time mint snapshot missing).** {ran}",
             "",
         ]
     lines += [
@@ -491,10 +510,21 @@ _RESET_BANNER = (
     "**INCONCLUSIVE: this save's account `{account}` is not on the XRPL "
     "Testnet.** The Testnet is wiped from time to time, and a wipe deletes "
     "every account, so the ledger can no longer confirm this run. This is not "
-    "drift: the save agrees with itself (its starting mint plus its settlements "
-    "add up to its last settled supplies, and its memos name this run), but "
-    "its transaction IDs no longer resolve on the Testnet."
+    "drift: the save agrees with itself ({checked}), but its transaction IDs "
+    "no longer resolve on the Testnet."
 )
+
+
+def _reset_banner(account: str, minted_missing: bool) -> str:
+    """The reset banner, naming only the self-checks that could run."""
+    checked = (
+        "its memos name this run; it has no full starting-mint snapshot, so "
+        "its totals can't be checked against one"
+        if minted_missing
+        else "its starting mint plus its settlements add up to its last "
+        "settled supplies, and its memos name this run"
+    )
+    return _RESET_BANNER.format(account=account, checked=checked)
 
 _MEMO_UNREAD = (
     "**INCONCLUSIVE: the on-chain memos could not be read (AccountTx).** "
@@ -569,14 +599,21 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
                 for key, val in rec.deltas.items():
                     if key in sum_deltas:
                         sum_deltas[key] += val
+            # Rebuild only the keys the snapshot lacks; a key it has keeps
+            # its recorded value, so conservation stays a real check there.
+            rebuilt = sorted(k for k in XRPL_RESOURCES if k not in minted)
             minted = {
-                key: int(bp.last_settled_supplies.get(key, 0)) - sum_deltas[key]
+                key: (
+                    int(minted[key]) if key in minted
+                    else int(bp.last_settled_supplies.get(key, 0)) - sum_deltas[key]
+                )
                 for key in XRPL_RESOURCES
             }
             notes.append(
-                "mint snapshot missing from this save — conservation is "
-                "reconstructed (tautological); live balance + on-chain memo "
-                "checks still apply"
+                "mint snapshot missing from this save for "
+                + ", ".join(rebuilt)
+                + " — conservation is reconstructed there (tautological); "
+                "the ledger checks apply where they can run"
             )
 
         info = mgr.wallet_info(state)
@@ -591,9 +628,11 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
         )
         ledger_balances = info.get("balances") or {}
         if network_error:
-            notes.append(
-                "could not reach the ledger (AccountLines); not a drift FAIL"
-            )
+            if not account_missing:
+                notes.append(
+                    "could not reach the ledger (AccountLines); the ledger "
+                    "checks did not run"
+                )
             onchain_memos = None
         else:
             onchain_memos = mgr.fetch_onchain_memos(state)
@@ -602,7 +641,8 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
         memo_unread = not network_error and onchain_memos is None
         if memo_unread:
             notes.append(
-                "could not read the on-chain memos (AccountTx); not a drift FAIL"
+                "could not read the on-chain memos (AccountTx); the external "
+                "memo check did not run"
             )
 
         last_settled = {
@@ -623,39 +663,25 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
         )
         report.notes[0:0] = notes
 
-        if account_missing:
-            # The ledger can't be compared, but the save can still be checked
-            # against itself: its mint plus settlements must add up to its
-            # last settled supplies, and its memos must name this run. A save
-            # that fails that is drift whatever the ledger says (ANDON), so
-            # a missing account can never turn a tampered save into
-            # INCONCLUSIVE. Only a consistent save reads the reset verdict.
-            internal_ok = report.memo_local_ok and all(
-                r.conservation_ok for r in report.resources
-            )
-            if not internal_ok:
-                return PlayerProofResult(
-                    verdict="FAIL",
-                    report=report,
-                    markdown=report_to_markdown(report, verdict="FAIL"),
-                    notes=list(report.notes),
-                )
+        verdict = proof_verdict(
+            report,
+            network_error=network_error,
+            minted_missing=minted_missing,
+        )
+        if account_missing and verdict != "FAIL":
+            # The save agrees with itself (proof_verdict checked that first,
+            # so a tampered save is already FAIL), but the ledger can't be
+            # compared: the reset verdict, with its reason.
             return PlayerProofResult(
                 verdict="INCONCLUSIVE",
                 report=report,
                 markdown=report_to_markdown(
                     report,
                     verdict="INCONCLUSIVE",
-                    note=_RESET_BANNER.format(account=account_missing),
+                    note=_reset_banner(account_missing, minted_missing),
                 ),
                 notes=list(report.notes),
             )
-
-        verdict = proof_verdict(
-            report,
-            network_error=network_error,
-            minted_missing=minted_missing,
-        )
         note = None
         if memo_unread and verdict == "PASS":
             # Balances and totals agree, but the external memo check didn't
@@ -796,6 +822,16 @@ def run_proof(
     # them externally — the engine cannot fake bytes it signed (ledger-003).
     onchain_memos = mgr.fetch_onchain_memos(state)
     mgr.close()
+
+    # This harness verifies a live run end to end. If the balances or the
+    # memos couldn't be read back, it can't: refuse rather than hand None
+    # to reconcile(), which would check the memos locally and could PASS.
+    if info.get("balances_error") or onchain_memos is None:
+        raise RuntimeError(
+            "could not read the run back from the ledger "
+            + ("(balances)" if info.get("balances_error") else "(memos)")
+            + "; re-run when the testnet is healthy"
+        )
 
     return reconcile(
         run_id=state.run_id,
