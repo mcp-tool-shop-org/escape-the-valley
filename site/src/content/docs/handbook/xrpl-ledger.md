@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-The Ledger Backpack tracks your 5 core supplies as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can verify.
+The Ledger Backpack tracks your 5 core supplies as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can look up on the Testnet, until the Testnet is next wiped (see [When the Testnet is reset](#when-the-testnet-is-reset)).
 
 Completely optional. The game plays identically with it off (the default).
 
@@ -81,9 +81,22 @@ The TUI **R** key on the ledger menu is the same proof: it calls `proof_player_s
 
 The proof reads the ledger itself, not only the save. It makes three checks: the token balances on the XRPL Testnet equal the supplies the save says were settled; the starting mint plus every saved settlement adds up to that final total; and each settlement's on-chain memo, read back through `AccountTx`, begins with this run's id and day.
 
-**What it does not check.** The proof does not compare the amounts written in each on-chain memo with the per-checkpoint amounts in the save, so it shows that the save and the ledger agree in total, not that every saved entry is untouched. A save edited so that its totals still add up can pass. Treat a PASS as a consistency check between your save and the ledger, not as tamper-proofing. Anyone with the transaction IDs can still read the memos on the Testnet and compare them by hand.
+**What it does not check.** The proof does not compare the amounts written in each on-chain memo with the per-checkpoint amounts in the save, so it shows that the save and the ledger agree in total, not that every saved entry is untouched. A save edited so that its totals still add up can pass. Treat a PASS as a consistency check between your save and the ledger, not as tamper-proofing. Until the Testnet is next reset, anyone with the transaction IDs can read the memos on the Testnet and compare them by hand.
 
-If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed. **INCONCLUSIVE** means pending checkpoints, not supply drift — re-run `trail ledger proof` after reconcile when the Testnet recovers. Do not confuse the two: `reconcile` retries pending Payments; `proof` audits the loaded save.
+If a settlement failed and left the chain incomplete, `trail ledger reconcile` retries the pending settlements first; the proof is only as complete as the receipts that actually landed. **INCONCLUSIVE** means the ledger couldn't confirm the run, not supply drift: pending checkpoints, a read that failed, or accounts the Testnet no longer has (see below). Re-run `trail ledger proof` after reconcile when the Testnet recovers. Do not confuse the two: `reconcile` retries pending Payments; `proof` audits the loaded save.
+
+## When the Testnet is reset
+
+The XRPL Testnet is a test network, and it is wiped from time to time. A reset deletes every account, balance and transaction on it; the network's address stays the same. Resets are announced in advance on the [xrpl.org blog](https://xrpl.org/blog/); the one on 2026-11-25 was announced on 2026-11-09.
+
+After a reset, a save made before it names an issuer and a player account that no longer exist:
+
+- **`trail ledger proof`** reports **INCONCLUSIVE** and names the missing account. It never reports FAIL for this: your save's own record of supplies and settlement transaction IDs is unchanged, but the Testnet can no longer confirm it.
+- **`trail ledger reconcile`** stops before sending anything and says why. Pending checkpoints can't be settled on accounts that are gone, so retrying later won't help.
+- **`trail ledger wallet`** and the backpack screen say the account is not on the ledger, instead of showing an empty pack.
+- **The transaction IDs** in your trail ledger no longer resolve on the Testnet or in an explorer.
+
+Your run itself is untouched: supplies are kept locally, and the game plays the same with the backpack's ledger gone.
 
 ## Run Artifacts
 

@@ -70,7 +70,7 @@ _HAS_XRPL = False
 try:
     from xrpl.clients import JsonRpcClient
     from xrpl.models.amounts import IssuedCurrencyAmount
-    from xrpl.models.requests import AccountLines, AccountTx
+    from xrpl.models.requests import AccountInfo, AccountLines, AccountTx
     from xrpl.models.transactions import Memo, Payment, TrustSet
     from xrpl.transaction import submit_and_wait
     from xrpl.wallet import Wallet, generate_faucet_wallet
@@ -291,6 +291,41 @@ class WriteTimeoutError(Exception):
     """
 
 
+class LedgerAccountMissingError(LookupError):
+    """A saved account isn't on the XRPL Testnet: the server says ``actNotFound``.
+
+    The usual cause is a Testnet reset. The network is wiped from time to time,
+    and a wipe deletes every account, so a save made before it names accounts
+    that no longer exist. That is neither a network outage nor drift.
+    """
+
+    def __init__(self, account: str) -> None:
+        super().__init__(f"account {account} is not on the ledger (actNotFound)")
+        self.account = account
+
+
+class LedgerReadError(RuntimeError):
+    """The ledger answered a read with an error reply."""
+
+
+def _ledger_result(resp, account: str) -> dict:
+    """The result of a ledger read, or an exception if the server refused it.
+
+    xrpl-py's ``client.request`` does not raise on an error reply. A missing
+    account comes back as ``{"error": "actNotFound", ...}`` with no ``lines`` or
+    ``transactions``, which, read naively, looks like an empty wallet or an
+    account with no history. Every read goes through here instead.
+    """
+    result = getattr(resp, "result", None) or {}
+    error = result.get("error")
+    if error == "actNotFound":
+        raise LedgerAccountMissingError(account)
+    if error:
+        message = result.get("error_message") or ""
+        raise LedgerReadError(f"{error}: {message}" if message else str(error))
+    return result
+
+
 def _submit_and_wait_bounded(tx, client, signer, *, deadline: float | None = None):
     """Run ``submit_and_wait`` with a wall-clock deadline (ledger-B02 WRITE).
 
@@ -402,6 +437,9 @@ class BackpackManager:
         self._url = url
         self._client: JsonRpcClient | None = None
         self._persist = persist
+        # Set by _retry_pending when a saved account is gone from the
+        # ledger (a Testnet reset), so `trail ledger reconcile` can say why.
+        self.missing_account: str | None = None
 
     def _persist_state(self, state: RunState) -> None:
         """Invoke the ``persist`` hook, if any, tolerating its failure.
@@ -816,6 +854,23 @@ class BackpackManager:
             record=pending_record,
         )
 
+    def _find_missing_account(self, client, bp) -> str | None:
+        """The first saved account (player, then issuer) the ledger doesn't know.
+
+        ``None`` when both exist. Any other error reply raises, and the
+        caller treats it like any other network failure.
+        """
+        for account in (bp.wallet_address, bp.issuer_address):
+            if not account:
+                continue
+            try:
+                _ledger_result(client.request(AccountInfo(
+                    account=account, ledger_index="validated",
+                )), account)
+            except LedgerAccountMissingError:
+                return account
+        return None
+
     def _retry_pending(self, state: RunState) -> None:
         """Retry all pending settlements. Move successful ones to settled.
 
@@ -878,8 +933,22 @@ class BackpackManager:
             client = self._get_client()
             player = Wallet.from_seed(bp.wallet_secret)
             issuer = Wallet.from_seed(bp.issuer_secret)
+            missing = self._find_missing_account(client, bp)
         except Exception as e:  # noqa: BLE001 - degrade; retry later
             log.warning("Retry settlement setup failed: %s", e)
+            bp.last_settle_failed = True
+            return
+
+        if missing:
+            # A saved account is gone from the ledger: the Testnet was most
+            # likely reset. Retrying can't settle anything there, so stop
+            # before sending a Payment, keep the queue as it is, and let the
+            # caller say why.
+            log.warning(
+                "Retry stopped: %s is not on the ledger (Testnet reset?)",
+                _shorten_address(missing),
+            )
+            self.missing_account = missing
             bp.last_settle_failed = True
             return
 
@@ -1172,7 +1241,7 @@ class BackpackManager:
                     marker=marker,
                 ))
                 pages += 1
-                result = resp.result
+                result = _ledger_result(resp, bp.wallet_address)
 
                 for tx_entry in result.get("transactions", []):
                     tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
@@ -1294,7 +1363,7 @@ class BackpackManager:
         parcel.parcel_id = f"refused:{parcel.parcel_id}"
         return True
 
-    def fetch_onchain_memos(self, state: RunState) -> dict[str, str]:
+    def fetch_onchain_memos(self, state: RunState) -> dict[str, str] | None:
         """Read settlement memos back OFF the chain, keyed by txid (ledger-003).
 
         The external-verifier half of the memo check: scans the issuer and
@@ -1310,9 +1379,12 @@ class BackpackManager:
         proof failure). A page cap bounds the loop against a server that keeps
         echoing a marker.
 
-        Returns ``{txid: decoded_memo_text}``. Empty on any error or when xrpl
-        is unavailable; the proof then reports memo integrity as unverified
-        rather than crashing.
+        Returns ``{txid: decoded_memo_text}``. Returns ``None`` when the memos
+        could not be read (an error reply, such as ``actNotFound`` after a
+        Testnet reset, or a network failure): the proof then reports memo
+        integrity as unverified. An empty dict would read as "the chain has
+        no memo for these transactions", which is a drift FAIL. Empty when
+        xrpl is unavailable or the backpack is off.
         """
         bp = state.backpack
         if not _HAS_XRPL or not bp.enabled or not bp.wallet_address:
@@ -1332,7 +1404,7 @@ class BackpackManager:
                         account=account, limit=200, marker=marker,
                     ))
                     pages += 1
-                    result = resp.result
+                    result = _ledger_result(resp, account)
                     for tx_entry in result.get("transactions", []):
                         tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
                         tx_hash = tx_entry.get("hash") or tx.get("hash", "")
@@ -1362,7 +1434,7 @@ class BackpackManager:
 
         except Exception as e:
             log.warning("On-chain memo fetch failed: %s", e)
-            return {}
+            return None
 
     def disable(self, state: RunState) -> None:
         """Disable the Ledger Backpack. Keep wallet for potential re-enable."""
@@ -1398,8 +1470,9 @@ class BackpackManager:
                 resp = client.request(AccountLines(
                     account=bp.wallet_address,
                 ))
+                result = _ledger_result(resp, bp.wallet_address)
                 balances = {}
-                for line in resp.result.get("lines", []):
+                for line in result.get("lines", []):
                     if line.get("account") == bp.issuer_address:
                         currency = line.get("currency", "")
                         balance = line.get("balance", "0")
@@ -1412,6 +1485,13 @@ class BackpackManager:
                             )
                 info["balances"] = balances
                 info["balances_error"] = False
+            except LedgerAccountMissingError as e:
+                # The account is gone from the ledger (a Testnet reset):
+                # not an empty pack and not an outage. Name it.
+                log.warning("wallet_info: %s", e)
+                info["balances"] = {}
+                info["balances_error"] = True
+                info["account_missing"] = e.account
             except Exception as e:
                 # ledger-B08: distinguish "couldn't reach the ledger" from a
                 # genuinely empty wallet. An empty {} could mean either; the
