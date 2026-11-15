@@ -778,3 +778,117 @@ def test_proof_with_only_the_issuer_gone_is_inconclusive(monkeypatch):
     result = proof_player_save(_player_state(), manager=mgr)
     assert result.verdict == "INCONCLUSIVE"
     assert "rIssuer" in result.markdown
+
+
+class _Down(_ProofMgr):
+    """An ordinary outage: the balances read failed, no account named."""
+
+    balances = {}
+    balances_error = True
+
+
+def test_an_outage_still_fails_a_save_whose_totals_drift():
+    """ANDON on any path: the save's own totals don't need the ledger."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    state = _player_state()
+    state.backpack.last_settled_supplies["food"] += 7
+    result = proof_player_save(state, manager=_Down())
+    assert result.verdict == "FAIL"
+    assert "Not a drift FAIL" not in result.markdown
+
+
+def test_an_outage_still_fails_a_save_whose_memo_drifts():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    state = _player_state()
+    state.backpack.settlements[0].memo = "TRAIL|RUN:IMPOSTER|DAY:0|DELTA:FOD-1"
+    result = proof_player_save(state, manager=_Down())
+    assert result.verdict == "FAIL"
+
+
+def test_proof_verdict_checks_the_save_before_the_outage():
+    from escape_the_valley.ledger_proof import proof_verdict, reconcile
+
+    state = _player_state()
+    bp = state.backpack
+    report = reconcile(
+        run_id=state.run_id, seed=state.seed,
+        minted_initial=dict(MINTED),
+        ledger_balances={},
+        last_settled_supplies=dict(bp.last_settled_supplies, food=99),
+        settlements=list(bp.settlements), pending=[],
+        player_address="rPlayer", issuer_address="rIssuer",
+        onchain_memos=None,
+    )
+    assert proof_verdict(report, network_error=True) == "FAIL"
+
+
+def test_run_proof_refuses_when_the_memos_cannot_be_read(monkeypatch):
+    """The faucet harness must not PASS on a local-only memo check."""
+    import pytest
+
+    import escape_the_valley.backpack as backpack_mod
+    from escape_the_valley.ledger_proof import run_proof
+
+    class _Unread(_FakeMgr):
+        def fetch_onchain_memos(self, state):
+            return None
+
+    _Unread.onchain_memos = {}
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _Unread)
+    with pytest.raises(RuntimeError, match="memos"):
+        run_proof(13, max_steps=40, isolate_save=True)
+
+
+def test_run_proof_refuses_when_the_balances_cannot_be_read(monkeypatch):
+    import pytest
+
+    import escape_the_valley.backpack as backpack_mod
+    from escape_the_valley.ledger_proof import run_proof
+
+    class _NoBalances(_FakeMgr):
+        def wallet_info(self, state):
+            return {"address": state.backpack.wallet_address,
+                    "balances": {}, "balances_error": True}
+
+    _NoBalances.onchain_memos = {}
+    monkeypatch.setattr(backpack_mod, "BackpackManager", _NoBalances)
+    with pytest.raises(RuntimeError, match="balances"):
+        run_proof(13, max_steps=40, isolate_save=True)
+
+
+def test_reset_banner_without_a_mint_snapshot_claims_no_totals_check():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    result = proof_player_save(_player_state(minted=False), manager=_reset_mgr())
+    assert result.verdict == "INCONCLUSIVE"
+    assert "can't be checked against one" in result.markdown
+    assert "starting mint plus its settlements add up" not in result.markdown
+
+
+def test_mint_banner_with_unread_memos_does_not_claim_the_memo_check_ran():
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _MemoUnread(_ProofMgr):
+        def fetch_onchain_memos(self, state):
+            return None
+
+    result = proof_player_save(_player_state(minted=False), manager=_MemoUnread())
+    assert result.verdict == "INCONCLUSIVE"
+    assert "on-chain memos were not read" in result.markdown
+    assert "memo checks still ran" not in result.markdown
+
+
+def test_a_partial_mint_snapshot_keeps_the_keys_it_has(monkeypatch):
+    """Only missing keys are rebuilt, so conservation stays real for the rest."""
+    import escape_the_valley.ledger_proof as lp
+
+    partial = {k: v for k, v in MINTED.items() if k != "parts"}
+    monkeypatch.setattr(lp, "minted_snapshot_of", lambda bp: dict(partial))
+    state = _player_state(minted=False)
+    # Tamper a key the snapshot has: a full rebuild would have hidden this.
+    state.backpack.last_settled_supplies["food"] += 7
+    result = lp.proof_player_save(state, manager=_ProofMgr())
+    assert result.verdict == "FAIL"
+    assert any("parts" in n and "reconstructed" in n for n in result.notes)
