@@ -491,8 +491,9 @@ _RESET_BANNER = (
     "**INCONCLUSIVE: this save's account `{account}` is not on the XRPL "
     "Testnet.** The Testnet is wiped from time to time, and a wipe deletes "
     "every account, so the ledger can no longer confirm this run. This is not "
-    "drift: the save's own record (its supplies and settlement transaction IDs) "
-    "is unchanged, but those IDs no longer resolve on the Testnet."
+    "drift: the save agrees with itself (its starting mint plus its settlements "
+    "add up to its last settled supplies, and its memos name this run), but "
+    "its transaction IDs no longer resolve on the Testnet."
 )
 
 _MEMO_UNREAD = (
@@ -579,22 +580,11 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
             )
 
         info = mgr.wallet_info(state)
-        if info.get("account_missing"):
-            # The save's account is gone from the ledger (a Testnet reset).
-            # Nothing on the ledger can be compared, so reconcile() doesn't
-            # run: the verdict is INCONCLUSIVE, with the reason, never FAIL.
-            reset_note = (
-                f"account {info['account_missing']} is not on the ledger "
+        account_missing = info.get("account_missing")
+        if account_missing:
+            notes.append(
+                f"account {account_missing} is not on the ledger "
                 "(actNotFound): the Testnet was most likely reset"
-            )
-            return PlayerProofResult(
-                verdict="INCONCLUSIVE",
-                report=None,
-                markdown=_banner(
-                    "INCONCLUSIVE",
-                    _RESET_BANNER.format(account=info["account_missing"]),
-                ),
-                notes=[*notes, reset_note],
             )
         network_error = bool(
             info.get("balances_error") or info.get("extra_missing")
@@ -632,6 +622,34 @@ def proof_player_save(state, *, manager=None) -> PlayerProofResult:
             onchain_memos=onchain_memos,
         )
         report.notes[0:0] = notes
+
+        if account_missing:
+            # The ledger can't be compared, but the save can still be checked
+            # against itself: its mint plus settlements must add up to its
+            # last settled supplies, and its memos must name this run. A save
+            # that fails that is drift whatever the ledger says (ANDON), so
+            # a missing account can never turn a tampered save into
+            # INCONCLUSIVE. Only a consistent save reads the reset verdict.
+            internal_ok = report.memo_local_ok and all(
+                r.conservation_ok for r in report.resources
+            )
+            if not internal_ok:
+                return PlayerProofResult(
+                    verdict="FAIL",
+                    report=report,
+                    markdown=report_to_markdown(report, verdict="FAIL"),
+                    notes=list(report.notes),
+                )
+            return PlayerProofResult(
+                verdict="INCONCLUSIVE",
+                report=report,
+                markdown=report_to_markdown(
+                    report,
+                    verdict="INCONCLUSIVE",
+                    note=_RESET_BANNER.format(account=account_missing),
+                ),
+                notes=list(report.notes),
+            )
 
         verdict = proof_verdict(
             report,

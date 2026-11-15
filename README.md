@@ -118,7 +118,7 @@ The 5 core supplies (food, water, meds, ammo, parts) are the most critical. Exte
 
 ## Ledger Backpack (Optional)
 
-The Ledger Backpack tracks your 5 core supplies (food, water, meds, ammo, parts) as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can look up on the Testnet, until it is next wiped: the Testnet is reset from time to time, which deletes every account on it. After a reset, `trail ledger proof` on an older save reports INCONCLUSIVE and names the missing account; it never reports FAIL for that ([handbook](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/xrpl-ledger/#when-the-testnet-is-reset)).
+The Ledger Backpack tracks your 5 core supplies (food, water, meds, ammo, parts) as tokens on the XRPL Testnet. Every town checkpoint records a settlement receipt on-chain. At the end of your run, your trail ledger includes transaction IDs anyone can look up on the Testnet, until it is next wiped: the Testnet is reset from time to time, which deletes every account on it. After a reset, `trail ledger proof` on an older save reports INCONCLUSIVE and names the missing account; the reset alone never makes it report FAIL ([handbook](https://mcp-tool-shop-org.github.io/escape-the-valley/handbook/xrpl-ledger/#when-the-testnet-is-reset)).
 
 Completely optional. The game plays identically with it off (the default). Enable it from the L menu in the TUI or via CLI:
 

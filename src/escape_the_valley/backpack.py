@@ -316,13 +316,20 @@ def _ledger_result(resp, account: str) -> dict:
     ``transactions``, which, read naively, looks like an empty wallet or an
     account with no history. Every read goes through here instead.
     """
-    result = getattr(resp, "result", None) or {}
+    result = getattr(resp, "result", None)
+    if not isinstance(result, dict):
+        # No result, or not the object every read returns: never "empty".
+        raise LedgerReadError("missing or non-dict ledger result")
     error = result.get("error")
     if error == "actNotFound":
         raise LedgerAccountMissingError(account)
-    if error:
-        message = result.get("error_message") or ""
-        raise LedgerReadError(f"{error}: {message}" if message else str(error))
+    # xrpl-py's Response carries ``status`` ("success" / "error"); test
+    # doubles may not, and some replies put it in the result instead.
+    status = getattr(resp, "status", None) or result.get("status")
+    if error or status == "error":
+        message = result.get("error_message") or result.get("error_exception") or ""
+        code = error or result.get("error_code") or "error"
+        raise LedgerReadError(f"{code}: {message}" if message else str(code))
     return result
 
 
@@ -903,6 +910,9 @@ class BackpackManager:
         before.
         """
         bp = state.backpack
+        # Only this pass's finding counts: a reused manager must not carry
+        # an earlier pass's missing account.
+        self.missing_account = None
         if not bp.pending_settlements:
             return
 
@@ -1391,6 +1401,7 @@ class BackpackManager:
             return {}
 
         memos: dict[str, str] = {}
+        seen = 0  # transactions returned across both accounts
         accounts = [a for a in (bp.wallet_address, bp.issuer_address) if a]
         max_pages = 100  # safety bound: 100 * 200 = 20k txns/account
 
@@ -1405,6 +1416,7 @@ class BackpackManager:
                     ))
                     pages += 1
                     result = _ledger_result(resp, account)
+                    seen += len(result.get("transactions", []))
                     for tx_entry in result.get("transactions", []):
                         tx = tx_entry.get("tx", tx_entry.get("tx_json", {}))
                         tx_hash = tx_entry.get("hash") or tx.get("hash", "")
@@ -1430,6 +1442,15 @@ class BackpackManager:
                     "fetch_onchain_memos: account=%s pages=%d",
                     _shorten_address(account), pages,
                 )
+            if seen == 0 and any(rec.txids for rec in bp.settlements):
+                # The save has settled transactions, but the server returned
+                # no history at all for either account. Some servers (Clio)
+                # answer a wiped address that way instead of actNotFound.
+                # That's "couldn't read", not "the chain has no memos".
+                log.warning(
+                    "On-chain memo fetch: settled txids but no history returned"
+                )
+                return None
             return memos
 
         except Exception as e:
@@ -1439,6 +1460,7 @@ class BackpackManager:
     def disable(self, state: RunState) -> None:
         """Disable the Ledger Backpack. Keep wallet for potential re-enable."""
         state.backpack.enabled = False
+        self.missing_account = None
 
     def wallet_info(self, state: RunState) -> dict:
         """Return wallet details for display."""
@@ -1467,6 +1489,13 @@ class BackpackManager:
         elif bp.enabled:
             try:
                 client = self._get_client()
+                # Both accounts, by AccountInfo (a state-tree read every
+                # server answers with actNotFound when the account is gone).
+                # The player alone isn't enough: the faucet can re-fund a
+                # player address after a reset, while the issuer stays gone.
+                missing = self._find_missing_account(client, bp)
+                if missing:
+                    raise LedgerAccountMissingError(missing)
                 resp = client.request(AccountLines(
                     account=bp.wallet_address,
                 ))

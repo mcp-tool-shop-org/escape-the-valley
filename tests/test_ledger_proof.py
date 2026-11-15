@@ -647,7 +647,9 @@ def test_proof_after_a_reset_is_inconclusive_with_the_reason():
 
     result = proof_player_save(_player_state(), manager=_Reset())
     assert result.verdict == "INCONCLUSIVE"
-    assert result.report is None
+    # reconcile() still ran: the save was checked against itself.
+    assert result.report is not None
+    assert result.report.memo_local_ok is True
     head = result.markdown.split("\n", 1)[0]
     assert "INCONCLUSIVE" in head and "FAIL" not in head
     assert "not on the XRPL Testnet" in result.markdown
@@ -707,3 +709,72 @@ def test_proof_with_unread_memos_and_drift_still_fails():
 
     result = proof_player_save(_player_state(), manager=_DriftMemoUnread())
     assert result.verdict == "FAIL"
+
+
+def _reset_mgr():
+    class _Reset(_ProofMgr):
+        def wallet_info(self, state):
+            return {
+                "address": state.backpack.wallet_address,
+                "balances": {},
+                "balances_error": True,
+                "account_missing": state.backpack.wallet_address,
+            }
+
+        def fetch_onchain_memos(self, state):  # pragma: no cover - must not run
+            raise AssertionError("no memo read when the account is gone")
+
+    return _Reset()
+
+
+def test_proof_after_a_reset_still_fails_a_save_whose_totals_drift():
+    """A missing account can't hide local tampering (ANDON): totals that don't add up FAIL."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    state = _player_state()
+    # Tamper: the last settled food no longer equals mint + settlements.
+    state.backpack.last_settled_supplies["food"] += 7
+    result = proof_player_save(state, manager=_reset_mgr())
+    assert result.verdict == "FAIL"
+    assert "FAIL" in result.markdown.split("\n", 1)[0]
+    assert any("actNotFound" in n for n in result.notes)
+
+
+def test_proof_after_a_reset_still_fails_a_save_whose_memo_drifts():
+    """A stored memo that doesn't name this run FAILs, account missing or not."""
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    state = _player_state()
+    state.backpack.settlements[0].memo = "TRAIL|RUN:IMPOSTER|DAY:0|DELTA:FOD-1"
+    result = proof_player_save(state, manager=_reset_mgr())
+    assert result.verdict == "FAIL"
+
+
+def test_proof_with_only_the_issuer_gone_is_inconclusive(monkeypatch):
+    """The faucet can re-fund the player's address after a reset; the issuer stays gone."""
+    import pytest
+
+    pytest.importorskip("xrpl")
+    from escape_the_valley.backpack import BackpackManager
+    from escape_the_valley.ledger_proof import proof_player_save
+
+    class _Resp:
+        def __init__(self, result):
+            self.result = result
+
+    class _IssuerGone:
+        def request(self, req):
+            if getattr(req, "account", None) == "rIssuer":
+                return _Resp({"error": "actNotFound", "status": "error"})
+            if type(req).__name__ == "AccountLines":
+                return _Resp({"lines": []})  # a re-funded player: no trust lines
+            return _Resp({"account_data": {"Account": "rPlayer"}})
+
+        def close(self):
+            pass
+
+    mgr = BackpackManager()
+    monkeypatch.setattr(mgr, "_get_client", lambda: _IssuerGone())
+    result = proof_player_save(_player_state(), manager=mgr)
+    assert result.verdict == "INCONCLUSIVE"
+    assert "rIssuer" in result.markdown
