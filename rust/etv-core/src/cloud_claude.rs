@@ -206,9 +206,10 @@ impl ApiKey {
         &self.0
     }
 
-    /// `text` with every occurrence of the key replaced.
+    /// `text` with every occurrence of the key (ASCII case-insensitive) and every contiguous
+    /// key substring of at least [`REDACT_SUBSTRING_MIN_CHARS`] characters replaced.
     pub fn redact(&self, text: &str) -> String {
-        text.replace(self.0.as_str(), "[redacted]")
+        redact_secret_spans(text, &[(&self.0, REDACT_SUBSTRING_MIN_CHARS)])
     }
 
     /// `value` with the key replaced in every string it holds, object keys included, so the key
@@ -216,9 +217,7 @@ impl ApiKey {
     pub(crate) fn redact_value(&self, value: &mut Value) {
         match value {
             Value::String(s) => {
-                if s.contains(self.0.as_str()) {
-                    *s = self.redact(s);
-                }
+                *s = self.redact(s);
             }
             Value::Array(items) => items.iter_mut().for_each(|v| self.redact_value(v)),
             Value::Object(map) => {
@@ -231,6 +230,71 @@ impl ApiKey {
             _ => {}
         }
     }
+}
+
+/// Shortest contiguous piece of a key (or other secret redacted like one) that
+/// [`ApiKey::redact`] strips on its own, in characters.
+///
+/// Every accepted key is at least 20 characters ([`ApiKey::from_text`]), so 16 catches
+/// truncated, prefix/suffix or space-split echoes while staying above ordinary English
+/// words in trail prose and short model tags or URL path segments (`qwen3:4b`, `api`, `v1`).
+pub const REDACT_SUBSTRING_MIN_CHARS: usize = 16;
+
+/// Replaces every ASCII case-insensitive match of any `(secret, min_len)` in `secrets` with
+/// `[redacted]`, merging overlapping spans so partial tails cannot remain.
+pub(crate) fn redact_secret_spans(text: &str, secrets: &[(&str, usize)]) -> String {
+    let t_chars: Vec<char> = text.chars().collect();
+    if t_chars.is_empty() {
+        return String::new();
+    }
+    let mut mask = vec![false; t_chars.len()];
+    for &(secret, min_len) in secrets {
+        let s_chars: Vec<char> = secret.chars().collect();
+        if s_chars.is_empty() {
+            continue;
+        }
+        let threshold = min_len.min(s_chars.len());
+        if t_chars.len() < threshold {
+            continue;
+        }
+        for i in 0..=t_chars.len() - threshold {
+            let mut best = 0usize;
+            for j in 0..=s_chars.len() - threshold {
+                let limit = (t_chars.len() - i).min(s_chars.len() - j);
+                if limit <= best {
+                    break;
+                }
+                let k = t_chars[i..i + limit]
+                    .iter()
+                    .zip(&s_chars[j..j + limit])
+                    .take_while(|(a, b)| a.eq_ignore_ascii_case(b))
+                    .count();
+                if k >= threshold && k > best {
+                    best = k;
+                }
+            }
+            if best >= threshold {
+                mask[i..i + best].fill(true);
+            }
+        }
+    }
+    if !mask.iter().any(|&b| b) {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut idx = 0;
+    while idx < t_chars.len() {
+        if mask[idx] {
+            out.push_str("[redacted]");
+            while idx < t_chars.len() && mask[idx] {
+                idx += 1;
+            }
+        } else {
+            out.push(t_chars[idx]);
+            idx += 1;
+        }
+    }
+    out
 }
 
 /// One HTTP answer, reduced to what the transport needs. No other header is ever read.
@@ -1890,5 +1954,60 @@ mod tests {
             .contains("is required with --cloud"));
         let wrong: Vec<String> = ["--cloud", "other"].iter().map(|s| s.to_string()).collect();
         assert!(split_cloud_args(&wrong).is_err());
+    }
+
+    #[test]
+    fn redact_catches_upper_and_lower_cased_keys_and_substrings_at_threshold() {
+        let mixed = "Test-Key-Not-Real-Abcdefghijxyz";
+        let upper = mixed.to_ascii_uppercase();
+        let lower = mixed.to_ascii_lowercase();
+        let api_key = ApiKey::from_text(mixed).unwrap();
+
+        // Case-changed full keys are redacted both as text and inside JSON values/keys.
+        assert_eq!(
+            api_key.redact(&format!("bad key {upper}")),
+            "bad key [redacted]"
+        );
+        assert_eq!(
+            api_key.redact(&format!("bad key {lower}")),
+            "bad key [redacted]"
+        );
+        let mut val = json!({ upper.clone(): format!("near {lower}") });
+        api_key.redact_value(&mut val);
+        assert_eq!(val, json!({ "[redacted]": "near [redacted]" }));
+
+        // Lower-cased stored key redacts an upper-cased echo, and vice versa.
+        let lower_key = ApiKey::from_text(&lower).unwrap();
+        assert_eq!(lower_key.redact(&upper), "[redacted]");
+        let upper_key = ApiKey::from_text(&upper).unwrap();
+        assert_eq!(upper_key.redact(&lower), "[redacted]");
+
+        // Contiguous substrings at the threshold (prefix, middle, suffix, case-altered) are
+        // redacted, leaving no partial tail behind.
+        let n = REDACT_SUBSTRING_MIN_CHARS;
+        let len = lower.len();
+        for piece in [
+            &lower[..n],
+            &lower[4..4 + n],
+            &lower[len - n..],
+            &upper[..n],
+            &lower[..len - 1],
+        ] {
+            assert_eq!(
+                api_key.redact(&format!("echo {piece}.")),
+                "echo [redacted].",
+                "piece={piece}"
+            );
+        }
+
+        // Substrings one character shorter than the threshold are not redacted.
+        for short in [
+            &lower[..n - 1],
+            &lower[4..4 + n - 1],
+            &lower[len - (n - 1)..],
+        ] {
+            let input = format!("echo {short}.");
+            assert_eq!(api_key.redact(&input), input, "short={short}");
+        }
     }
 }

@@ -1788,3 +1788,117 @@ fn a_json_shaped_reply_that_fails_to_parse_cannot_pass_an_escaped_key_through() 
         }
     }
 }
+
+#[test]
+fn key_redaction_catches_case_changes_and_substrings_at_the_threshold() {
+    use etv_core::cloud_claude::{ApiKey, REDACT_SUBSTRING_MIN_CHARS};
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+
+    struct FixedReply(String);
+    impl HttpsPost for FixedReply {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+
+    let upper_key = LOWER_KEY.to_ascii_uppercase();
+    let lower_key = LOWER_KEY.to_string();
+    let at_threshold = &LOWER_KEY[..REDACT_SUBSTRING_MIN_CHARS];
+    let below_threshold = &LOWER_KEY[..REDACT_SUBSTRING_MIN_CHARS - 1];
+
+    // 1. Upper-cased stored key vs lower-cased reply, and lower-cased stored key vs upper-cased
+    //    reply: both are redacted at the transport and never reach `play_turn` output.
+    for (stored_key, echoed_text) in [(&upper_key, &lower_key), (&lower_key, &upper_key)] {
+        let narration =
+            format!(r#"{{"sentences": ["Rain beads on the canvas near {echoed_text}."]}}"#);
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(stored_key).unwrap(),
+            Box::new(FixedReply(narration.clone())),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.to_ascii_lowercase().contains(&lower_key), "{resp}");
+
+        let settings = NarratorSettings {
+            provider: etv_core::narrator_provider::NarratorProvider::OpenaiCompatible,
+            provider_url: "https://example.com/v1".to_string(),
+            model: "some-model".to_string(),
+            key: etv_core::narrator_provider::KeySource {
+                env: Some("ETV_SET".to_string()),
+                file: None,
+            },
+            ..NarratorSettings::default()
+        };
+        let env_val = stored_key.clone();
+        let connection = connect_narrator_with(&settings, |s| {
+            narrator_transport(s, None, Some(Box::new(FixedReply(narration))), &|name| {
+                (name == "ETV_SET").then(|| env_val.clone())
+            })
+        });
+        let live = connection.narrator.expect("hosted narrator connected");
+        let content = embedded_content_pack();
+        let mut engine =
+            StepEngine::with_content(create_new_run_with_content(42, content), content);
+        let shown = play_turn(
+            &mut engine,
+            &live,
+            Some(table()),
+            &PlayerIntent::new(IntentAction::Travel),
+            None,
+        )
+        .join("\n");
+        assert!(
+            !shown.to_ascii_lowercase().contains(&lower_key),
+            "turn output leaked case-changed key: {shown}"
+        );
+    }
+
+    // 2. Contiguous substring at threshold is redacted; one char shorter is left alone.
+    for (snippet, should_redact) in [(at_threshold, true), (below_threshold, false)] {
+        let narration = format!(r#"{{"sentences": ["Rain beads on the canvas near {snippet}."]}}"#);
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(LOWER_KEY).unwrap(),
+            Box::new(FixedReply(narration)),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        if should_redact {
+            assert!(resp.contains("[redacted]"), "{resp}");
+            assert!(!resp.contains(snippet), "{resp}");
+        } else {
+            assert!(!resp.contains("[redacted]"), "{resp}");
+            assert!(resp.contains(snippet), "{resp}");
+        }
+    }
+}
