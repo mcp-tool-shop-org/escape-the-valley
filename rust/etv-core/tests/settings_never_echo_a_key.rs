@@ -1337,6 +1337,23 @@ fn every_hosted_error_with_text_has_the_key_taken_out() {
             assert!(text.contains("[redacted]"), "{text}");
             assert_clean("a hosted error", &text, GOOD_KEY);
         }
+        // Forced request-build failures (missing prompt, missing num_predict) never leak the key.
+        for bad_request in [r#"{}"#, r#"{"prompt":"A turn."}"#] {
+            let transport = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::from_text(GOOD_KEY).unwrap(),
+                Box::new(EchoesHeaders(TransportError::ConnectionFailed)),
+            );
+            let err = transport
+                .post_generate("", bad_request, Duration::from_secs(1))
+                .unwrap_err();
+            assert_clean(
+                "a hosted request-build error",
+                &format!("{err:?}"),
+                GOOD_KEY,
+            );
+        }
     }
     // And through every line, the log and every screen, with the key's header echoed.
     Case::new(

@@ -473,3 +473,72 @@ pub fn hosted_transport(
     let key = settings.key.resolve(lookup)?;
     Ok(Some(HostedTransport::new(api, &settings.model, key, http)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cloud_claude::HttpReply;
+
+    struct NeverCalledHttps;
+
+    impl HttpsPost for NeverCalledHttps {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            panic!("HTTP client must not be called when request building fails");
+        }
+    }
+
+    fn assert_request_build_error_redacts_key(api: HostedApi) {
+        let regular_key = "test-key-not-real-0123456789XYZxyz";
+        for (bad_body, matching_key) in [
+            (r#"{}"#, "the request has no prompt"),
+            (r#"{"prompt":"A turn."}"#, "the request has no num_predict"),
+        ] {
+            let t_match = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::for_tests(matching_key),
+                Box::new(NeverCalledHttps),
+            );
+            let err = t_match
+                .post_generate("", bad_body, Duration::from_secs(1))
+                .unwrap_err();
+            let TransportError::ConnectionFailed(msg) = err else {
+                panic!("expected ConnectionFailed, got {err:?}");
+            };
+            assert!(
+                !msg.contains(matching_key),
+                "request-build error leaked key: {msg}"
+            );
+            assert_eq!(msg, "[redacted]");
+
+            let t_regular = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::from_text(regular_key).unwrap(),
+                Box::new(NeverCalledHttps),
+            );
+            let err = t_regular
+                .post_generate("", bad_body, Duration::from_secs(1))
+                .unwrap_err();
+            assert!(!format!("{err:?}").contains(regular_key));
+        }
+    }
+
+    #[test]
+    fn claude_request_build_error_has_the_key_redacted() {
+        assert_request_build_error_redacts_key(HostedApi::Claude);
+    }
+
+    #[test]
+    fn chat_request_build_error_has_the_key_redacted() {
+        assert_request_build_error_redacts_key(HostedApi::OpenaiCompatible {
+            base_url: "https://example.com/v1".to_string(),
+        });
+    }
+}
