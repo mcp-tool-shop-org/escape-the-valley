@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 
 use crate::cloud_claude::{
     build_messages_request, is_warmup, response_text, ApiKey, HttpsPost, ANTHROPIC_VERSION,
-    CLAUDE_MESSAGES_URL,
+    CLAUDE_MESSAGES_URL, REDACT_SUBSTRING_MIN_CHARS,
 };
 use crate::narrator::{NarratorTransport, TransportError};
 
@@ -243,9 +243,31 @@ pub struct HostedTransport {
     api: HostedApi,
     model: String,
     key: ApiKey,
+    /// `provider_url` path segments and configured model name at or above
+    /// [`REDACT_SUBSTRING_MIN_CHARS`], redacted from 200 replies alongside the key.
+    reply_secrets: Vec<String>,
     http: Box<dyn HttpsPost>,
     /// Set on an authentication, permission or billing answer: no further call is made.
     switched_off: AtomicBool,
+}
+
+fn reply_secrets_for(api: &HostedApi, model: &str) -> Vec<String> {
+    let mut secrets = Vec::new();
+    if let HostedApi::OpenaiCompatible { base_url } = api {
+        if let Some((_, rest)) = base_url.split_once("://") {
+            if let Some((_, path)) = rest.split_once('/') {
+                for segment in path.split('/') {
+                    if segment.chars().count() >= REDACT_SUBSTRING_MIN_CHARS {
+                        secrets.push(segment.to_string());
+                    }
+                }
+            }
+        }
+    }
+    if model.chars().count() >= REDACT_SUBSTRING_MIN_CHARS {
+        secrets.push(model.to_string());
+    }
+    secrets
 }
 
 impl std::fmt::Debug for HostedTransport {
@@ -259,10 +281,18 @@ impl std::fmt::Debug for HostedTransport {
 
 impl HostedTransport {
     pub fn new(api: HostedApi, model: &str, key: ApiKey, http: Box<dyn HttpsPost>) -> Self {
+        let api = match api {
+            HostedApi::Claude => HostedApi::Claude,
+            HostedApi::OpenaiCompatible { base_url } => HostedApi::OpenaiCompatible {
+                base_url: crate::narrator::normalize_provider_url(&base_url),
+            },
+        };
+        let reply_secrets = reply_secrets_for(&api, model);
         Self {
             api,
             model: model.to_string(),
             key,
+            reply_secrets,
             http,
             switched_off: AtomicBool::new(false),
         }
@@ -290,27 +320,28 @@ impl HostedTransport {
     /// `text`, a provider's answer, with the key taken out after any JSON escape is decoded.
     /// The narrator parses a JSON answer, which turns `\uXXXX` back into the character, so a
     /// key written with an escape would pass a search of the raw text. A JSON object or array
-    /// is parsed, the key is taken out of every string it holds, and it is written back; the
-    /// result, and any other answer, is then searched as text too.
+    /// is parsed, the key is taken out of every string it holds, and it is written back; one
+    /// that starts with `{` or `[` and does not parse as JSON is dropped (an empty reply)
+    /// rather than passed on with escapes undecoded. Plain text is searched as text.
     fn redacted_reply(&self, text: &str) -> String {
         let trimmed = text.trim();
-        let decoded = if trimmed.starts_with(['{', '[']) {
-            serde_json::from_str::<Value>(trimmed).ok().map(|mut v| {
-                self.key.redact_value(&mut v);
-                v.to_string()
-            })
-        } else {
-            None
-        };
-        self.key.redact(decoded.as_deref().unwrap_or(text))
+        if trimmed.starts_with(['{', '[']) {
+            let Ok(mut v) = serde_json::from_str::<Value>(trimmed) else {
+                return String::new();
+            };
+            self.key
+                .redact_value_with_extras(&mut v, &self.reply_secrets);
+            return self
+                .key
+                .redact_with_extras(&v.to_string(), &self.reply_secrets);
+        }
+        self.key.redact_with_extras(text, &self.reply_secrets)
     }
 
     fn url(&self) -> String {
         match &self.api {
             HostedApi::Claude => CLAUDE_MESSAGES_URL.to_string(),
-            HostedApi::OpenaiCompatible { base_url } => {
-                format!("{}/chat/completions", base_url.trim_end_matches('/'))
-            }
+            HostedApi::OpenaiCompatible { base_url } => format!("{base_url}/chat/completions"),
         }
     }
 }
@@ -360,7 +391,7 @@ impl NarratorTransport for HostedTransport {
                 )
             }
             HostedApi::OpenaiCompatible { base_url } => {
-                let openrouter = base_url.trim_end_matches('/') == OPENROUTER_BASE_URL;
+                let openrouter = base_url == OPENROUTER_BASE_URL;
                 let body = build_chat_request(&ollama, &self.model, openrouter)
                     .map_err(|e| self.redact_error(TransportError::ConnectionFailed(e)))?;
                 (
@@ -435,7 +466,7 @@ pub fn validate_provider(settings: &crate::narrator::NarratorSettings) -> Result
                 // numeric port and an optional path. A user name, a query or a fragment could
                 // carry a key into the request URL, so each is refused. The refusal is fixed
                 // text: it never shows the value.
-                let url = settings.provider_url.trim();
+                let url = settings.provider_url.as_str();
                 if !url.starts_with("https://") {
                     return Err(
                         "the openai-compatible provider needs an https:// provider_url (for example https://openrouter.ai/api/v1)"
@@ -463,13 +494,78 @@ pub fn hosted_transport(
         NarratorProvider::Ollama => return Ok(None),
         NarratorProvider::Claude => HostedApi::Claude,
         NarratorProvider::OpenaiCompatible => HostedApi::OpenaiCompatible {
-            base_url: settings
-                .provider_url
-                .trim()
-                .trim_end_matches('/')
-                .to_string(),
+            base_url: settings.provider_url.clone(),
         },
     };
     let key = settings.key.resolve(lookup)?;
     Ok(Some(HostedTransport::new(api, &settings.model, key, http)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cloud_claude::HttpReply;
+
+    struct NeverCalledHttps;
+
+    impl HttpsPost for NeverCalledHttps {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            panic!("HTTP client must not be called when request building fails");
+        }
+    }
+
+    fn assert_request_build_error_redacts_key(api: HostedApi) {
+        let regular_key = "test-key-not-real-0123456789XYZxyz";
+        for (bad_body, matching_key) in [
+            (r#"{}"#, "the request has no prompt"),
+            (r#"{"prompt":"A turn."}"#, "the request has no num_predict"),
+        ] {
+            let t_match = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::for_tests(matching_key),
+                Box::new(NeverCalledHttps),
+            );
+            let err = t_match
+                .post_generate("", bad_body, Duration::from_secs(1))
+                .unwrap_err();
+            let TransportError::ConnectionFailed(msg) = err else {
+                panic!("expected ConnectionFailed, got {err:?}");
+            };
+            assert!(
+                !msg.contains(matching_key),
+                "request-build error leaked key: {msg}"
+            );
+            assert_eq!(msg, "[redacted]");
+
+            let t_regular = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::from_text(regular_key).unwrap(),
+                Box::new(NeverCalledHttps),
+            );
+            let err = t_regular
+                .post_generate("", bad_body, Duration::from_secs(1))
+                .unwrap_err();
+            assert!(!format!("{err:?}").contains(regular_key));
+        }
+    }
+
+    #[test]
+    fn claude_request_build_error_has_the_key_redacted() {
+        assert_request_build_error_redacts_key(HostedApi::Claude);
+    }
+
+    #[test]
+    fn chat_request_build_error_has_the_key_redacted() {
+        assert_request_build_error_redacts_key(HostedApi::OpenaiCompatible {
+            base_url: "https://example.com/v1".to_string(),
+        });
+    }
 }

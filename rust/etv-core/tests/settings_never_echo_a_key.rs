@@ -44,8 +44,8 @@ const NAME_SHAPED_KEY: &str = "FAKEKEY0123456789abcdefghijABCDEFGHIJ";
 /// A well-formed key a test variable holds, so a hosted transport can be built.
 const GOOD_KEY: &str = "test-key-not-real-0123456789XYZxyz";
 
-/// How the hosted client answers: an error body that echoes the request URL, or a transport
-/// error that does.
+/// How the hosted client answers: errors carrying the request URL/headers, or 200 replies
+/// naming the request URL, its path segment, or the key.
 #[derive(Clone, Copy)]
 enum Echo {
     ErrorBody,
@@ -53,11 +53,19 @@ enum Echo {
     /// An HTTP-status error whose text holds the request URL and every header sent, the key's
     /// header included.
     StatusError,
-    /// A 200 answer whose narration names the request URL.
+    /// A 200 answer whose narration names the full request URL.
     UrlReply,
+    /// A 200 answer whose narration names only the final base-URL path segment (so a
+    /// lowercase secret there matches the narration checker's prose rules unless redacted).
+    UrlPathReply,
     /// A 200 answer whose narration names the key sent in the `authorization` header, its first
     /// letter written as a JSON `\uXXXX` escape inside the narration's JSON.
     EscapedKeyReply,
+    /// A 200 answer with `{"extra": 1e400, ...}` carrying a `\uXXXX`-escaped key.
+    HugeNumberEscapedKeyReply,
+    /// A 200 answer that starts with `{` (`{"extra": NaN, ...}`) so it is JSON-shaped but fails
+    /// to parse as JSON while carrying a `\uXXXX`-escaped key.
+    MalformedJsonEscapedKeyReply,
 }
 
 /// An OpenAI-compatible 200 answer whose message content is `content`.
@@ -70,18 +78,28 @@ fn chat_reply(content: &str) -> HttpReply {
     }
 }
 
-/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
-fn escaped_key_narration(key: &str) -> String {
+/// `key` with its first character written as a JSON `\uXXXX` escape.
+fn escaped_first_char_key(key: &str) -> String {
     let mut chars = key.chars();
     let first = chars.next().unwrap();
-    format!(
-        r#"{{"sentences": ["Rain beads on the canvas near \u{:04x}{}."]}}"#,
-        first as u32,
-        chars.as_str()
-    )
+    format!(r"\u{:04x}{}", first as u32, chars.as_str())
 }
 
-/// Records every URL asked for, and fails every request with the URL in the failure.
+/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
+fn escaped_key_narration(key: &str) -> String {
+    let escaped = escaped_first_char_key(key);
+    format!(r#"{{"sentences": ["Rain beads on the canvas near {escaped}."]}}"#)
+}
+
+fn bearer_key<'a>(headers: &'a [(&str, &str)]) -> &'a str {
+    headers
+        .iter()
+        .find(|(n, _)| *n == "authorization")
+        .and_then(|(_, v)| v.strip_prefix("Bearer "))
+        .unwrap_or("")
+}
+
+/// Records every URL asked for, and replies according to `mode` (errors or 200 echoes).
 struct Echoing {
     mode: Echo,
     urls: Arc<Mutex<Vec<String>>>,
@@ -114,13 +132,31 @@ impl HttpsPost for Echoing {
             Echo::UrlReply => Ok(chat_reply(&format!(
                 r#"{{"sentences": ["Rain beads on the canvas near {url}."]}}"#
             ))),
-            Echo::EscapedKeyReply => {
-                let key = headers
-                    .iter()
-                    .find(|(n, _)| *n == "authorization")
-                    .and_then(|(_, v)| v.strip_prefix("Bearer "))
+            Echo::UrlPathReply => {
+                let base = url.strip_suffix("/chat/completions").unwrap_or(url);
+                let segment = base
+                    .split_once("://")
+                    .and_then(|(_, rest)| rest.split_once('/'))
+                    .and_then(|(_, path)| path.rsplit('/').next())
                     .unwrap_or("");
-                Ok(chat_reply(&escaped_key_narration(key)))
+                let inner = serde_json::json!({
+                    "sentences": [format!("Rain beads on the canvas near {segment}.")]
+                })
+                .to_string();
+                Ok(chat_reply(&inner))
+            }
+            Echo::EscapedKeyReply => Ok(chat_reply(&escaped_key_narration(bearer_key(headers)))),
+            Echo::HugeNumberEscapedKeyReply => {
+                let escaped = escaped_first_char_key(bearer_key(headers));
+                Ok(chat_reply(&format!(
+                    r#"{{"extra": 1e400, "sentences": ["Rain beads on the canvas near {escaped}."]}}"#
+                )))
+            }
+            Echo::MalformedJsonEscapedKeyReply => {
+                let escaped = escaped_first_char_key(bearer_key(headers));
+                Ok(chat_reply(&format!(
+                    r#"{{"extra": NaN, "sentences": ["Rain beads on the canvas near {escaped}."]}}"#
+                )))
             }
         }
     }
@@ -515,15 +551,16 @@ fn a_key_with_junk_in_the_key_file_or_the_variable_is_not_shown() {
 
 #[test]
 fn a_key_in_the_provider_url_is_not_shown_even_when_echoed_back() {
-    // A working key source, so the hosted client is called: its error body, or its transport
-    // error, carries the request URL with the key in its path (a query is refused at load).
-    // Nothing the player sees does.
-    for key in [KEY, ODD_KEY] {
+    // A working key source, so the hosted client is called: its error body, transport error,
+    // or 200 narration echo carries the request URL or its final path segment (a query is
+    // refused at load). Nothing the player sees does.
+    for key in [KEY, ODD_KEY, LOWER_KEY] {
         for echo in [
             Echo::ErrorBody,
             Echo::TransportError,
             Echo::StatusError,
             Echo::UrlReply,
+            Echo::UrlPathReply,
         ] {
             let asked = Case::new(
                 serde_json::json!({
@@ -1317,6 +1354,23 @@ fn every_hosted_error_with_text_has_the_key_taken_out() {
             assert!(text.contains("[redacted]"), "{text}");
             assert_clean("a hosted error", &text, GOOD_KEY);
         }
+        // Forced request-build failures (missing prompt, missing num_predict) never leak the key.
+        for bad_request in [r#"{}"#, r#"{"prompt":"A turn."}"#] {
+            let transport = HostedTransport::new(
+                api.clone(),
+                "claude-haiku-5-5",
+                ApiKey::from_text(GOOD_KEY).unwrap(),
+                Box::new(EchoesHeaders(TransportError::ConnectionFailed)),
+            );
+            let err = transport
+                .post_generate("", bad_request, Duration::from_secs(1))
+                .unwrap_err();
+            assert_clean(
+                "a hosted request-build error",
+                &format!("{err:?}"),
+                GOOD_KEY,
+            );
+        }
     }
     // And through every line, the log and every screen, with the key's header echoed.
     Case::new(
@@ -1383,8 +1437,8 @@ fn app_for<'a>(model: Model, dir: &std::path::Path, local: Local) -> App<'a> {
 
 #[test]
 fn the_options_screen_names_a_model_the_local_service_lists() {
-    // Loopback, local provider, the model listed: the connect line and the options view both
-    // name it.
+    // Loopback, local provider, the model listed at startup -> reconnect returns a different
+    // listing that drops it: the reopened options view drops the old name.
     let dir = tempfile::tempdir().unwrap();
     let model = interface(
         dir.path(),
@@ -1392,7 +1446,7 @@ fn the_options_screen_names_a_model_the_local_service_lists() {
         Local::Lists("qwen3:4b"),
     );
     assert_eq!(model.log[0], "Narrator: Fireside, Brief, model qwen3:4b.");
-    let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+    let mut app = app_for(model, dir.path(), Local::Lists("llama3.2:3b"));
     app.press_code(crossterm::event::KeyCode::Enter);
     app.press_char('o');
     assert!(app
@@ -1401,11 +1455,29 @@ fn the_options_screen_names_a_model_the_local_service_lists() {
         .lines()
         .contains(&"  4. Model     qwen3:4b".to_string()));
     assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
-    // After a save that reconnects, the new connection's listing is used.
+    // After a save that reconnects, the new connection's listing replaces the startup one.
     app.press_char('2');
     app.press_char('s');
     app.press_char('o');
-    assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
+    let line = drawn_model_line(&app.model);
+    assert!(line.contains("4. Model     the configured model"), "{line}");
+    assert!(!line.contains("qwen3:4b"), "{line}");
+
+    // And the opposite transition: missing at startup, listed by the reconnect service.
+    let dir2 = tempfile::tempdir().unwrap();
+    let model2 = interface(
+        dir2.path(),
+        r#"{"model": "llama3.2:3b"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    let mut app2 = app_for(model2, dir2.path(), Local::Lists("llama3.2:3b"));
+    app2.press_code(crossterm::event::KeyCode::Enter);
+    app2.press_char('o');
+    assert!(drawn_model_line(&app2.model).contains("4. Model     the configured model"));
+    app2.press_char('2');
+    app2.press_char('s');
+    app2.press_char('o');
+    assert!(drawn_model_line(&app2.model).contains("4. Model     llama3.2:3b"));
 
     // The model missing from the listing, or a remote service listing it: "the configured
     // model".
@@ -1672,5 +1744,520 @@ fn a_key_escaped_in_a_hosted_reply_is_taken_out_after_decoding() {
         .echo(Echo::EscapedKeyReply)
         .check();
         assert!(asked > 0, "the hosted client was called");
+    }
+}
+
+#[test]
+fn a_json_shaped_reply_that_fails_to_parse_cannot_pass_an_escaped_key_through() {
+    use etv_core::cloud_claude::ApiKey;
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+    struct Replies(String);
+    impl HttpsPost for Replies {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let escaped = escaped_first_char_key(key);
+        let huge_number =
+            format!(r#"{{"extra": 1e400, "sentences": ["Rain beads near {escaped}."]}}"#);
+        let bad_object =
+            format!(r#"{{"extra": NaN, "sentences": ["Rain beads near {escaped}."]}}"#);
+        let bad_array = format!(r#"["Rain beads near {escaped}""#);
+
+        // `1e400` with arbitrary_precision parses and redacts; without it, fails closed to "".
+        // In either case neither the key nor its escaped form can remain in the response.
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(key).unwrap(),
+            Box::new(Replies(huge_number)),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.is_empty() || resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.contains(&escaped), "{resp}");
+        assert!(!body.contains(&escaped), "{body}");
+        assert_clean("the transport's 1e400 answer", &body, key);
+
+        // Unparseable JSON starting with `{` or `[` fails closed to an empty response.
+        for bad in [bad_object, bad_array] {
+            let transport = HostedTransport::new(
+                HostedApi::OpenaiCompatible {
+                    base_url: "https://example.com/v1".to_string(),
+                },
+                "some-model",
+                ApiKey::from_text(key).unwrap(),
+                Box::new(Replies(bad)),
+            );
+            let (status, body) = transport
+                .post_generate("", &request, Duration::from_secs(1))
+                .unwrap();
+            assert_eq!(status, 200);
+            let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+            assert_eq!(outer["response"], "");
+            assert!(!body.contains(&escaped), "{body}");
+            assert_clean("the transport's unparseable JSON answer", &body, key);
+        }
+
+        // End-to-end through `play_turn` and the screens.
+        for echo in [
+            Echo::HugeNumberEscapedKeyReply,
+            Echo::MalformedJsonEscapedKeyReply,
+        ] {
+            let asked = Case::new(
+                serde_json::json!({
+                    "provider": "openai-compatible",
+                    "model": "some-model",
+                    "provider_url": "https://example.com/v1",
+                    "key": {"env": "ETV_SET"},
+                }),
+                key,
+            )
+            .env("ETV_SET", key)
+            .echo(echo)
+            .check();
+            assert!(asked > 0, "the hosted client was called");
+        }
+    }
+}
+
+#[test]
+fn key_redaction_catches_case_changes_and_substrings_at_the_threshold() {
+    use etv_core::cloud_claude::{ApiKey, REDACT_SUBSTRING_MIN_CHARS};
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+
+    struct FixedReply(String);
+    impl HttpsPost for FixedReply {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+
+    let upper_key = LOWER_KEY.to_ascii_uppercase();
+    let lower_key = LOWER_KEY.to_string();
+    let at_threshold = &LOWER_KEY[..REDACT_SUBSTRING_MIN_CHARS];
+    let below_threshold = &LOWER_KEY[..REDACT_SUBSTRING_MIN_CHARS - 1];
+
+    // 1. Upper-cased stored key vs lower-cased reply, and lower-cased stored key vs upper-cased
+    //    reply: both are redacted at the transport and never reach `play_turn` output.
+    for (stored_key, echoed_text) in [(&upper_key, &lower_key), (&lower_key, &upper_key)] {
+        let narration =
+            format!(r#"{{"sentences": ["Rain beads on the canvas near {echoed_text}."]}}"#);
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(stored_key).unwrap(),
+            Box::new(FixedReply(narration.clone())),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.to_ascii_lowercase().contains(&lower_key), "{resp}");
+
+        let settings = NarratorSettings {
+            provider: etv_core::narrator_provider::NarratorProvider::OpenaiCompatible,
+            provider_url: "https://example.com/v1".to_string(),
+            model: "some-model".to_string(),
+            key: etv_core::narrator_provider::KeySource {
+                env: Some("ETV_SET".to_string()),
+                file: None,
+            },
+            ..NarratorSettings::default()
+        };
+        let env_val = stored_key.clone();
+        let connection = connect_narrator_with(&settings, |s| {
+            narrator_transport(s, None, Some(Box::new(FixedReply(narration))), &|name| {
+                (name == "ETV_SET").then(|| env_val.clone())
+            })
+        });
+        let live = connection.narrator.expect("hosted narrator connected");
+        let content = embedded_content_pack();
+        let mut engine =
+            StepEngine::with_content(create_new_run_with_content(42, content), content);
+        let shown = play_turn(
+            &mut engine,
+            &live,
+            Some(table()),
+            &PlayerIntent::new(IntentAction::Travel),
+            None,
+        )
+        .join("\n");
+        assert!(
+            !shown.to_ascii_lowercase().contains(&lower_key),
+            "turn output leaked case-changed key: {shown}"
+        );
+    }
+
+    // 2. Contiguous substring at threshold is redacted; one char shorter is left alone.
+    for (snippet, should_redact) in [(at_threshold, true), (below_threshold, false)] {
+        let narration = format!(r#"{{"sentences": ["Rain beads on the canvas near {snippet}."]}}"#);
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(LOWER_KEY).unwrap(),
+            Box::new(FixedReply(narration)),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        if should_redact {
+            assert!(resp.contains("[redacted]"), "{resp}");
+            assert!(!resp.contains(snippet), "{resp}");
+        } else {
+            assert!(!resp.contains("[redacted]"), "{resp}");
+            assert!(resp.contains(snippet), "{resp}");
+        }
+    }
+}
+
+#[test]
+fn surrounding_spaces_on_endpoint_and_provider_url_are_trimmed_once_and_used() {
+    struct RecordingLocal(Arc<Mutex<Vec<String>>>);
+    impl NarratorTransport for RecordingLocal {
+        fn get_tags(
+            &self,
+            endpoint: &str,
+            _timeout: Duration,
+        ) -> Result<(u16, String), TransportError> {
+            self.0.lock().unwrap().push(endpoint.to_string());
+            Ok((200, r#"{"models":[{"name":"qwen3:4b"}]}"#.to_string()))
+        }
+        fn post_generate(
+            &self,
+            endpoint: &str,
+            _body_json: &str,
+            _timeout: Duration,
+        ) -> Result<(u16, String), TransportError> {
+            self.0.lock().unwrap().push(endpoint.to_string());
+            Ok((200, r#"{"response":""}"#.to_string()))
+        }
+    }
+
+    struct RecordingHttps(Arc<Mutex<Vec<(String, String)>>>);
+    impl HttpsPost for RecordingHttps {
+        fn post(
+            &self,
+            url: &str,
+            _headers: &[(&str, &str)],
+            body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            self.seen_push(url, body);
+            Ok(chat_reply("Rain beads on the canvas."))
+        }
+    }
+    impl RecordingHttps {
+        fn seen_push(&self, url: &str, body: &str) {
+            self.0
+                .lock()
+                .unwrap()
+                .push((url.to_string(), body.to_string()));
+        }
+    }
+
+    // Leading space and trailing space on `endpoint` are trimmed once when loaded, and the
+    // normalised value is what `LiveNarrator` passes to the transport.
+    for raw_endpoint in [" http://127.0.0.1:11434", "http://127.0.0.1:11434 "] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = settings_path(dir.path());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            serde_json::json!({
+                "model": "qwen3:4b",
+                "endpoint": raw_endpoint,
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        assert_eq!(loaded.warning, None, "{raw_endpoint:?}");
+        assert_eq!(loaded.settings.endpoint, "http://127.0.0.1:11434");
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let transport: Arc<dyn NarratorTransport> = Arc::new(RecordingLocal(Arc::clone(&seen)));
+        let conn = connect_narrator_with(&loaded.settings, |_| Ok(Arc::clone(&transport)));
+        assert!(conn.narrator.is_some());
+        let recorded = seen.lock().unwrap();
+        assert!(!recorded.is_empty());
+        assert!(
+            recorded.iter().all(|ep| ep == "http://127.0.0.1:11434"),
+            "{recorded:?}"
+        );
+    }
+
+    // Leading space and trailing space on `provider_url` are trimmed once when loaded, and the
+    // normalised value is what `HostedTransport` posts to (including OpenRouter matching).
+    for raw_url in [
+        " https://openrouter.ai/api/v1",
+        "https://openrouter.ai/api/v1 ",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = settings_path(dir.path());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "some-model",
+                "provider_url": raw_url,
+                "key": {"env": "ETV_SET"},
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        assert_eq!(loaded.warning, None, "{raw_url:?}");
+        assert_eq!(loaded.settings.provider_url, "https://openrouter.ai/api/v1");
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let lookup = |name: &str| (name == "ETV_SET").then(|| GOOD_KEY.to_string());
+        let transport = etv_core::narrator_provider::hosted_transport(
+            &loaded.settings,
+            Box::new(RecordingHttps(Arc::clone(&seen))),
+            &lookup,
+        )
+        .unwrap()
+        .unwrap();
+        let request = serde_json::json!({
+            "model": "m",
+            "system": "You narrate.",
+            "prompt": "A turn.",
+            "options": {"num_predict": 40},
+        })
+        .to_string();
+        let (status, _) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let calls = seen.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, "https://openrouter.ai/api/v1/chat/completions");
+        let sent_body: serde_json::Value = serde_json::from_str(&calls[0].1).unwrap();
+        assert_eq!(sent_body["provider"]["data_collection"], "deny");
+    }
+}
+
+#[test]
+fn hosted_replies_redact_long_provider_url_paths_and_models_but_keep_short_models() {
+    use etv_core::cloud_claude::{ApiKey, REDACT_SUBSTRING_MIN_CHARS};
+    use etv_core::narrator_provider::{HostedApi, HostedTransport, KeySource, NarratorProvider};
+
+    struct FixedReply(String);
+    impl HttpsPost for FixedReply {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+
+    let play_with = |provider_url: &str, model: &str, reply_json: &str| -> String {
+        let settings = NarratorSettings {
+            provider: NarratorProvider::OpenaiCompatible,
+            provider_url: provider_url.to_string(),
+            model: model.to_string(),
+            key: KeySource {
+                env: Some("ETV_SET".to_string()),
+                file: None,
+            },
+            ..NarratorSettings::default()
+        };
+        let reply_owned = reply_json.to_string();
+        let conn = connect_narrator_with(&settings, |s| {
+            narrator_transport(
+                s,
+                None,
+                Some(Box::new(FixedReply(reply_owned.clone()))),
+                &|name| (name == "ETV_SET").then(|| GOOD_KEY.to_string()),
+            )
+        });
+        let live = conn.narrator.expect("hosted narrator connected");
+        let content = embedded_content_pack();
+        let mut engine =
+            StepEngine::with_content(create_new_run_with_content(42, content), content);
+        let mut outputs = Vec::new();
+        for _ in 0..4 {
+            let shown = play_turn(
+                &mut engine,
+                &live,
+                Some(table()),
+                &PlayerIntent::new(IntentAction::Travel),
+                None,
+            );
+            outputs.extend(shown);
+        }
+        outputs.join("\n")
+    };
+
+    // 1. Pin the Opus #99 F2 probe: a long lowercase path segment named in the 200 narration
+    //    (plain or JSON-escaped) is redacted and must never reach `play_turn` output.
+    let path_secret = "pathsecretqxkmnplvrtwzybcdfghjas";
+    assert!(path_secret.chars().count() >= REDACT_SUBSTRING_MIN_CHARS);
+    let path_url = format!("https://example.com/v1/{path_secret}");
+    for narration in [
+        format!(r#"{{"sentences": ["Rain beads on the canvas near {path_secret}."]}}"#),
+        format!(
+            r#"{{"sentences": ["Rain beads on the canvas near {}."]}}"#,
+            escaped_first_char_key(path_secret)
+        ),
+    ] {
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: path_url.clone(),
+            },
+            "some-model",
+            ApiKey::from_text(GOOD_KEY).unwrap(),
+            Box::new(FixedReply(narration.clone())),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.contains(path_secret), "{resp}");
+
+        let shown = play_with(&path_url, "some-model", &narration);
+        assert_clean(
+            "play_turn output for provider_url path probe",
+            &shown,
+            path_secret,
+        );
+    }
+
+    // 2. Model name at or above the threshold (16 chars) is redacted when echoed in narration.
+    let model_at_threshold = "modelsecretabcde";
+    assert_eq!(
+        model_at_threshold.chars().count(),
+        REDACT_SUBSTRING_MIN_CHARS
+    );
+    let long_model = "modelsecretabcdefghijklm";
+    assert!(long_model.chars().count() > REDACT_SUBSTRING_MIN_CHARS);
+    for (configured_model, echoed_text) in [
+        (model_at_threshold, model_at_threshold),
+        (long_model, long_model),
+        (long_model, &long_model[..REDACT_SUBSTRING_MIN_CHARS]),
+    ] {
+        let narration =
+            format!(r#"{{"sentences": ["Rain beads on the canvas near {echoed_text}."]}}"#);
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            configured_model,
+            ApiKey::from_text(GOOD_KEY).unwrap(),
+            Box::new(FixedReply(narration.clone())),
+        );
+        let (_, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.contains(echoed_text), "{resp}");
+
+        let shown = play_with("https://example.com/v1", configured_model, &narration);
+        assert!(
+            !shown.contains(echoed_text),
+            "model name leaked to play_turn: {shown}"
+        );
+    }
+
+    // 3. Short model names (3-4 char tag, common word, or one char below the threshold) are NOT
+    //    redacted, and narration containing them comes through unchanged.
+    let below_threshold = "modelsecretabcd";
+    assert_eq!(
+        below_threshold.chars().count(),
+        REDACT_SUBSTRING_MIN_CHARS - 1
+    );
+    for (short_model, sentence) in [
+        ("mist", "Rain beads on the canvas near mist."),
+        ("canvas", "Rain beads on the canvas."),
+        (
+            below_threshold,
+            "Rain beads on the canvas near modelsecretabcd.",
+        ),
+    ] {
+        let narration = serde_json::json!({ "sentences": [sentence] }).to_string();
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            short_model,
+            ApiKey::from_text(GOOD_KEY).unwrap(),
+            Box::new(FixedReply(narration.clone())),
+        );
+        let (_, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(!resp.contains("[redacted]"), "{resp}");
+        assert!(resp.contains(sentence), "{resp}");
+
+        let shown = play_with("https://example.com/v1", short_model, &narration);
+        assert!(
+            shown.contains(sentence),
+            "short model {short_model:?} was mangled or dropped: {shown}"
+        );
     }
 }
