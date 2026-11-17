@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 
 use crate::cloud_claude::{
     build_messages_request, is_warmup, response_text, ApiKey, HttpsPost, ANTHROPIC_VERSION,
-    CLAUDE_MESSAGES_URL,
+    CLAUDE_MESSAGES_URL, REDACT_SUBSTRING_MIN_CHARS,
 };
 use crate::narrator::{NarratorTransport, TransportError};
 
@@ -243,9 +243,31 @@ pub struct HostedTransport {
     api: HostedApi,
     model: String,
     key: ApiKey,
+    /// `provider_url` path segments and configured model name at or above
+    /// [`REDACT_SUBSTRING_MIN_CHARS`], redacted from 200 replies alongside the key.
+    reply_secrets: Vec<String>,
     http: Box<dyn HttpsPost>,
     /// Set on an authentication, permission or billing answer: no further call is made.
     switched_off: AtomicBool,
+}
+
+fn reply_secrets_for(api: &HostedApi, model: &str) -> Vec<String> {
+    let mut secrets = Vec::new();
+    if let HostedApi::OpenaiCompatible { base_url } = api {
+        if let Some((_, rest)) = base_url.split_once("://") {
+            if let Some((_, path)) = rest.split_once('/') {
+                for segment in path.split('/') {
+                    if segment.chars().count() >= REDACT_SUBSTRING_MIN_CHARS {
+                        secrets.push(segment.to_string());
+                    }
+                }
+            }
+        }
+    }
+    if model.chars().count() >= REDACT_SUBSTRING_MIN_CHARS {
+        secrets.push(model.to_string());
+    }
+    secrets
 }
 
 impl std::fmt::Debug for HostedTransport {
@@ -265,10 +287,12 @@ impl HostedTransport {
                 base_url: crate::narrator::normalize_provider_url(&base_url),
             },
         };
+        let reply_secrets = reply_secrets_for(&api, model);
         Self {
             api,
             model: model.to_string(),
             key,
+            reply_secrets,
             http,
             switched_off: AtomicBool::new(false),
         }
@@ -305,10 +329,13 @@ impl HostedTransport {
             let Ok(mut v) = serde_json::from_str::<Value>(trimmed) else {
                 return String::new();
             };
-            self.key.redact_value(&mut v);
-            return self.key.redact(&v.to_string());
+            self.key
+                .redact_value_with_extras(&mut v, &self.reply_secrets);
+            return self
+                .key
+                .redact_with_extras(&v.to_string(), &self.reply_secrets);
         }
-        self.key.redact(text)
+        self.key.redact_with_extras(text, &self.reply_secrets)
     }
 
     fn url(&self) -> String {

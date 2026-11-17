@@ -209,22 +209,42 @@ impl ApiKey {
     /// `text` with every occurrence of the key (ASCII case-insensitive) and every contiguous
     /// key substring of at least [`REDACT_SUBSTRING_MIN_CHARS`] characters replaced.
     pub fn redact(&self, text: &str) -> String {
-        redact_secret_spans(text, &[(&self.0, REDACT_SUBSTRING_MIN_CHARS)])
+        self.redact_with_extras(text, &[])
+    }
+
+    /// `text` with the key and every string in `extras` (each at or above
+    /// [`REDACT_SUBSTRING_MIN_CHARS`]) replaced in the same way as [`ApiKey::redact`].
+    pub(crate) fn redact_with_extras(&self, text: &str, extras: &[String]) -> String {
+        let mut patterns: Vec<(&str, usize)> = Vec::with_capacity(1 + extras.len());
+        patterns.push((&self.0, REDACT_SUBSTRING_MIN_CHARS));
+        for extra in extras {
+            if extra.chars().count() >= REDACT_SUBSTRING_MIN_CHARS {
+                patterns.push((extra.as_str(), REDACT_SUBSTRING_MIN_CHARS));
+            }
+        }
+        redact_secret_spans(text, &patterns)
     }
 
     /// `value` with the key replaced in every string it holds, object keys included, so the key
     /// is gone before the value is written out as JSON (which would escape a `"` or `\`).
     pub(crate) fn redact_value(&self, value: &mut Value) {
+        self.redact_value_with_extras(value, &[]);
+    }
+
+    /// `value` with the key and every string in `extras` replaced in every string and object key.
+    pub(crate) fn redact_value_with_extras(&self, value: &mut Value, extras: &[String]) {
         match value {
             Value::String(s) => {
-                *s = self.redact(s);
+                *s = self.redact_with_extras(s, extras);
             }
-            Value::Array(items) => items.iter_mut().for_each(|v| self.redact_value(v)),
+            Value::Array(items) => items
+                .iter_mut()
+                .for_each(|v| self.redact_value_with_extras(v, extras)),
             Value::Object(map) => {
                 let old = std::mem::take(map);
                 for (k, mut v) in old {
-                    self.redact_value(&mut v);
-                    map.insert(self.redact(&k), v);
+                    self.redact_value_with_extras(&mut v, extras);
+                    map.insert(self.redact_with_extras(&k, extras), v);
                 }
             }
             _ => {}
