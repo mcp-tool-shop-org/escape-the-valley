@@ -208,6 +208,10 @@ class WalletInfoOverlay(Static):
                 f"Balances: unavailable (xrpl extra missing). "
                 f"Install with: {XRPL_EXTRA_PIP}"
             )
+        elif info.get("account_missing"):
+            # The account is gone from the ledger: a Testnet reset, not an
+            # empty pack and not an outage.
+            balances_text = "Balances: not on the ledger (Testnet reset?)"
         elif info.get("balances_error"):
             # ledger-B08: an empty balances dict alone is ambiguous — it could be
             # a genuinely empty wallet OR an unreachable ledger. The error flag

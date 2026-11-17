@@ -449,6 +449,35 @@ class TestLedgerExitCodes:
         assert "All clear" in result.output
 
 
+    def test_reconcile_after_a_testnet_reset_says_why(self, monkeypatch):
+        """A save whose account is gone (a Testnet reset): exit 1 with the reason,
+        not "network may be down", and nothing is retried."""
+        from escape_the_valley.backpack_models import SettlementRecord
+
+        state = _enabled_state()
+        state.backpack.pending_settlements.append(
+            SettlementRecord(day=2, location="Millford", status="pending"),
+        )
+        monkeypatch.setattr("escape_the_valley.cli.load_game", lambda: state)
+        monkeypatch.setattr("escape_the_valley.save.save_game", lambda s: None)
+
+        from escape_the_valley.backpack import BackpackManager
+
+        def _gone(self, st):
+            self.missing_account = st.backpack.wallet_address
+
+        monkeypatch.setattr(BackpackManager, "_retry_pending", _gone)
+        monkeypatch.setattr(BackpackManager, "close", lambda self: None)
+
+        result = runner.invoke(app, ["ledger", "reconcile"])
+        out = " ".join(result.output.split())
+        assert result.exit_code == 1
+        assert "is not on the XRPL Testnet any more" in out
+        assert "wiped from time to time" in out
+        assert "Nothing was sent" in out
+        assert "Network may be down" not in out
+
+
 class TestNetworkHints:
     """cli-tui-B-04: a failed network round-trip prints a structured hint."""
 
