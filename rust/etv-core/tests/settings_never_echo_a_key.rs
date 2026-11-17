@@ -1403,8 +1403,8 @@ fn app_for<'a>(model: Model, dir: &std::path::Path, local: Local) -> App<'a> {
 
 #[test]
 fn the_options_screen_names_a_model_the_local_service_lists() {
-    // Loopback, local provider, the model listed: the connect line and the options view both
-    // name it.
+    // Loopback, local provider, the model listed at startup -> reconnect returns a different
+    // listing that drops it: the reopened options view drops the old name.
     let dir = tempfile::tempdir().unwrap();
     let model = interface(
         dir.path(),
@@ -1412,7 +1412,7 @@ fn the_options_screen_names_a_model_the_local_service_lists() {
         Local::Lists("qwen3:4b"),
     );
     assert_eq!(model.log[0], "Narrator: Fireside, Brief, model qwen3:4b.");
-    let mut app = app_for(model, dir.path(), Local::Lists("qwen3:4b"));
+    let mut app = app_for(model, dir.path(), Local::Lists("llama3.2:3b"));
     app.press_code(crossterm::event::KeyCode::Enter);
     app.press_char('o');
     assert!(app
@@ -1421,11 +1421,29 @@ fn the_options_screen_names_a_model_the_local_service_lists() {
         .lines()
         .contains(&"  4. Model     qwen3:4b".to_string()));
     assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
-    // After a save that reconnects, the new connection's listing is used.
+    // After a save that reconnects, the new connection's listing replaces the startup one.
     app.press_char('2');
     app.press_char('s');
     app.press_char('o');
-    assert!(drawn_model_line(&app.model).contains("4. Model     qwen3:4b"));
+    let line = drawn_model_line(&app.model);
+    assert!(line.contains("4. Model     the configured model"), "{line}");
+    assert!(!line.contains("qwen3:4b"), "{line}");
+
+    // And the opposite transition: missing at startup, listed by the reconnect service.
+    let dir2 = tempfile::tempdir().unwrap();
+    let model2 = interface(
+        dir2.path(),
+        r#"{"model": "llama3.2:3b"}"#,
+        Local::Lists("qwen3:4b"),
+    );
+    let mut app2 = app_for(model2, dir2.path(), Local::Lists("llama3.2:3b"));
+    app2.press_code(crossterm::event::KeyCode::Enter);
+    app2.press_char('o');
+    assert!(drawn_model_line(&app2.model).contains("4. Model     the configured model"));
+    app2.press_char('2');
+    app2.press_char('s');
+    app2.press_char('o');
+    assert!(drawn_model_line(&app2.model).contains("4. Model     llama3.2:3b"));
 
     // The model missing from the listing, or a remote service listing it: "the configured
     // model".
