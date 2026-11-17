@@ -259,6 +259,12 @@ impl std::fmt::Debug for HostedTransport {
 
 impl HostedTransport {
     pub fn new(api: HostedApi, model: &str, key: ApiKey, http: Box<dyn HttpsPost>) -> Self {
+        let api = match api {
+            HostedApi::Claude => HostedApi::Claude,
+            HostedApi::OpenaiCompatible { base_url } => HostedApi::OpenaiCompatible {
+                base_url: crate::narrator::normalize_provider_url(&base_url),
+            },
+        };
         Self {
             api,
             model: model.to_string(),
@@ -308,9 +314,7 @@ impl HostedTransport {
     fn url(&self) -> String {
         match &self.api {
             HostedApi::Claude => CLAUDE_MESSAGES_URL.to_string(),
-            HostedApi::OpenaiCompatible { base_url } => {
-                format!("{}/chat/completions", base_url.trim_end_matches('/'))
-            }
+            HostedApi::OpenaiCompatible { base_url } => format!("{base_url}/chat/completions"),
         }
     }
 }
@@ -360,7 +364,7 @@ impl NarratorTransport for HostedTransport {
                 )
             }
             HostedApi::OpenaiCompatible { base_url } => {
-                let openrouter = base_url.trim_end_matches('/') == OPENROUTER_BASE_URL;
+                let openrouter = base_url == OPENROUTER_BASE_URL;
                 let body = build_chat_request(&ollama, &self.model, openrouter)
                     .map_err(|e| self.redact_error(TransportError::ConnectionFailed(e)))?;
                 (
@@ -435,7 +439,7 @@ pub fn validate_provider(settings: &crate::narrator::NarratorSettings) -> Result
                 // numeric port and an optional path. A user name, a query or a fragment could
                 // carry a key into the request URL, so each is refused. The refusal is fixed
                 // text: it never shows the value.
-                let url = settings.provider_url.trim();
+                let url = settings.provider_url.as_str();
                 if !url.starts_with("https://") {
                     return Err(
                         "the openai-compatible provider needs an https:// provider_url (for example https://openrouter.ai/api/v1)"
@@ -463,11 +467,7 @@ pub fn hosted_transport(
         NarratorProvider::Ollama => return Ok(None),
         NarratorProvider::Claude => HostedApi::Claude,
         NarratorProvider::OpenaiCompatible => HostedApi::OpenaiCompatible {
-            base_url: settings
-                .provider_url
-                .trim()
-                .trim_end_matches('/')
-                .to_string(),
+            base_url: settings.provider_url.clone(),
         },
     };
     let key = settings.key.resolve(lookup)?;

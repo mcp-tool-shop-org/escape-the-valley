@@ -3733,6 +3733,22 @@ struct ParsedUrl {
     https: bool,
     host: UrlHost,
     port: Option<u16>,
+    path: String,
+}
+
+impl ParsedUrl {
+    fn authority_url(&self) -> String {
+        let scheme = if self.https { "https" } else { "http" };
+        let host = self.host.normal_form();
+        match self.port {
+            Some(p) => format!("{scheme}://{host}:{p}"),
+            None => format!("{scheme}://{host}"),
+        }
+    }
+
+    fn normal_form(&self) -> String {
+        format!("{}{}", self.authority_url(), self.path)
+    }
 }
 
 /// Reads an endpoint or a provider URL: `http://` or `https://`, a host by [`UrlHost::parse`],
@@ -3753,7 +3769,10 @@ fn parse_url(text: &str) -> Result<ParsedUrl, EndpointError> {
     if rest.contains(['?', '#']) || rest.chars().any(|c| c.is_whitespace() || c.is_control()) {
         return Err(bad);
     }
-    let authority = rest.split('/').next().unwrap_or("");
+    let (authority, raw_path) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, ""),
+    };
     if authority.contains('@') {
         return Err(bad);
     }
@@ -3784,7 +3803,12 @@ fn parse_url(text: &str) -> Result<ParsedUrl, EndpointError> {
             }
         }
     };
-    Ok(ParsedUrl { https, host, port })
+    Ok(ParsedUrl {
+        https,
+        host,
+        port,
+        path: raw_path.trim_end_matches('/').to_string(),
+    })
 }
 
 /// Returns `true` if `endpoint` is a valid endpoint whose host is loopback: `localhost` in any
@@ -3804,18 +3828,24 @@ pub fn loopback_endpoint_for_display(endpoint: &str) -> Option<String> {
     if !url.host.is_loopback() {
         return None;
     }
-    let scheme = if url.https { "https" } else { "http" };
-    let host = url.host.normal_form();
-    Some(match url.port {
-        Some(p) => format!("{scheme}://{host}:{p}"),
-        None => format!("{scheme}://{host}"),
-    })
+    Some(url.authority_url())
 }
 
 /// `true` when `url` is a valid `https://` provider URL by the same host rule as an endpoint:
 /// a host, an optional numeric port and an optional path, with no user name, query or fragment.
 pub fn is_valid_provider_url(url: &str) -> bool {
-    parse_url(url).is_ok_and(|u| u.https)
+    !url.chars().any(char::is_whitespace) && parse_url(url).is_ok_and(|u| u.https)
+}
+
+/// `url` normalised once for storage and use: surrounding whitespace is trimmed, and a valid
+/// `https://` provider URL has its host and port put in normal form and any trailing `/`
+/// stripped. An invalid URL is only trimmed so [`crate::narrator_provider::validate_provider`]
+/// still refuses it.
+pub fn normalize_provider_url(url: &str) -> String {
+    match parse_url(url) {
+        Ok(parsed) if parsed.https => parsed.normal_form(),
+        _ => url.trim().to_string(),
+    }
 }
 
 /// Validate `endpoint`, refusing any non-loopback endpoint unless `allow_non_loopback` is
@@ -3830,7 +3860,7 @@ pub fn validate_endpoint(
     if !allow_non_loopback && !url.host.is_loopback() {
         return Err(EndpointError::NonLoopbackRefused);
     }
-    Ok(endpoint.trim().trim_end_matches('/').to_string())
+    Ok(url.normal_form())
 }
 
 /// Player narrator settings (`profile`, `endpoint`, `model`, `length`, and timeouts).
@@ -3917,6 +3947,7 @@ impl NarratorSettings {
         let normalized = validate_endpoint(&settings.endpoint, settings.allow_non_loopback)
             .map_err(|e| e.to_string())?;
         settings.endpoint = normalized;
+        settings.provider_url = normalize_provider_url(&settings.provider_url);
         // A claude file that names no model takes the Claude default; the local default name
         // would be refused for the claude provider. An explicit model is checked as written.
         if settings.provider == crate::narrator_provider::NarratorProvider::Claude {
@@ -4832,5 +4863,53 @@ impl Narrator for LiveNarrator {
         let outcome = attempt(&out_sys, &out_user, false);
 
         TurnNarration { scene, outcome }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn endpoint_and_provider_url_normalise_leading_and_trailing_spaces_once() {
+        for raw in [
+            " http://127.0.0.1:11434",
+            "http://127.0.0.1:11434 ",
+            " http://127.0.0.1:11434/ ",
+        ] {
+            let json = serde_json::json!({ "endpoint": raw }).to_string();
+            let s = NarratorSettings::from_json_str(&json).unwrap();
+            assert_eq!(s.endpoint, "http://127.0.0.1:11434", "{raw:?}");
+        }
+
+        let ipv6 =
+            NarratorSettings::from_json_str(r#"{"endpoint": " http://[0:0:0:0:0:0:0:1]:01143/ "}"#)
+                .unwrap();
+        assert_eq!(ipv6.endpoint, "http://[::1]:1143");
+
+        for raw in [
+            " https://openrouter.ai/api/v1",
+            "https://openrouter.ai/api/v1 ",
+            " https://openrouter.ai/api/v1/ ",
+        ] {
+            let json = serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "m",
+                "provider_url": raw,
+                "key": { "env": "ETV_TEST_KEY" },
+            })
+            .to_string();
+            let s = NarratorSettings::from_json_str(&json).unwrap();
+            assert_eq!(s.provider_url, "https://openrouter.ai/api/v1", "{raw:?}");
+        }
+
+        // Spaces inside the path before a trailing slash remain refused.
+        assert!(
+            NarratorSettings::from_json_str(r#"{"endpoint": "http://127.0.0.1:11434 /"}"#).is_err()
+        );
+        assert!(NarratorSettings::from_json_str(
+            r#"{"provider": "openai-compatible", "model": "m", "provider_url": "https://openrouter.ai/api/v1 /", "key": {"env": "ETV_TEST_KEY"}}"#
+        )
+        .is_err());
     }
 }

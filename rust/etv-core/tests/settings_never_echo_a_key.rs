@@ -1920,3 +1920,131 @@ fn key_redaction_catches_case_changes_and_substrings_at_the_threshold() {
         }
     }
 }
+
+#[test]
+fn surrounding_spaces_on_endpoint_and_provider_url_are_trimmed_once_and_used() {
+    struct RecordingLocal(Arc<Mutex<Vec<String>>>);
+    impl NarratorTransport for RecordingLocal {
+        fn get_tags(
+            &self,
+            endpoint: &str,
+            _timeout: Duration,
+        ) -> Result<(u16, String), TransportError> {
+            self.0.lock().unwrap().push(endpoint.to_string());
+            Ok((200, r#"{"models":[{"name":"qwen3:4b"}]}"#.to_string()))
+        }
+        fn post_generate(
+            &self,
+            endpoint: &str,
+            _body_json: &str,
+            _timeout: Duration,
+        ) -> Result<(u16, String), TransportError> {
+            self.0.lock().unwrap().push(endpoint.to_string());
+            Ok((200, r#"{"response":""}"#.to_string()))
+        }
+    }
+
+    struct RecordingHttps(Arc<Mutex<Vec<(String, String)>>>);
+    impl HttpsPost for RecordingHttps {
+        fn post(
+            &self,
+            url: &str,
+            _headers: &[(&str, &str)],
+            body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            self.seen_push(url, body);
+            Ok(chat_reply("Rain beads on the canvas."))
+        }
+    }
+    impl RecordingHttps {
+        fn seen_push(&self, url: &str, body: &str) {
+            self.0
+                .lock()
+                .unwrap()
+                .push((url.to_string(), body.to_string()));
+        }
+    }
+
+    // Leading space and trailing space on `endpoint` are trimmed once when loaded, and the
+    // normalised value is what `LiveNarrator` passes to the transport.
+    for raw_endpoint in [" http://127.0.0.1:11434", "http://127.0.0.1:11434 "] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = settings_path(dir.path());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            serde_json::json!({
+                "model": "qwen3:4b",
+                "endpoint": raw_endpoint,
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        assert_eq!(loaded.warning, None, "{raw_endpoint:?}");
+        assert_eq!(loaded.settings.endpoint, "http://127.0.0.1:11434");
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let transport: Arc<dyn NarratorTransport> = Arc::new(RecordingLocal(Arc::clone(&seen)));
+        let conn = connect_narrator_with(&loaded.settings, |_| Ok(Arc::clone(&transport)));
+        assert!(conn.narrator.is_some());
+        let recorded = seen.lock().unwrap();
+        assert!(!recorded.is_empty());
+        assert!(
+            recorded.iter().all(|ep| ep == "http://127.0.0.1:11434"),
+            "{recorded:?}"
+        );
+    }
+
+    // Leading space and trailing space on `provider_url` are trimmed once when loaded, and the
+    // normalised value is what `HostedTransport` posts to (including OpenRouter matching).
+    for raw_url in [
+        " https://openrouter.ai/api/v1",
+        "https://openrouter.ai/api/v1 ",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = settings_path(dir.path());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            serde_json::json!({
+                "provider": "openai-compatible",
+                "model": "some-model",
+                "provider_url": raw_url,
+                "key": {"env": "ETV_SET"},
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let loaded = load_settings_or_default(dir.path());
+        assert_eq!(loaded.warning, None, "{raw_url:?}");
+        assert_eq!(loaded.settings.provider_url, "https://openrouter.ai/api/v1");
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let lookup = |name: &str| (name == "ETV_SET").then(|| GOOD_KEY.to_string());
+        let transport = etv_core::narrator_provider::hosted_transport(
+            &loaded.settings,
+            Box::new(RecordingHttps(Arc::clone(&seen))),
+            &lookup,
+        )
+        .unwrap()
+        .unwrap();
+        let request = serde_json::json!({
+            "model": "m",
+            "system": "You narrate.",
+            "prompt": "A turn.",
+            "options": {"num_predict": 40},
+        })
+        .to_string();
+        let (status, _) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let calls = seen.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, "https://openrouter.ai/api/v1/chat/completions");
+        let sent_body: serde_json::Value = serde_json::from_str(&calls[0].1).unwrap();
+        assert_eq!(sent_body["provider"]["data_collection"], "deny");
+    }
+}
