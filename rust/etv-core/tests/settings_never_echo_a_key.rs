@@ -58,6 +58,11 @@ enum Echo {
     /// A 200 answer whose narration names the key sent in the `authorization` header, its first
     /// letter written as a JSON `\uXXXX` escape inside the narration's JSON.
     EscapedKeyReply,
+    /// A 200 answer with `{"extra": 1e400, ...}` carrying a `\uXXXX`-escaped key.
+    HugeNumberEscapedKeyReply,
+    /// A 200 answer that starts with `{` (`{"extra": NaN, ...}`) so it is JSON-shaped but fails
+    /// to parse as JSON while carrying a `\uXXXX`-escaped key.
+    MalformedJsonEscapedKeyReply,
 }
 
 /// An OpenAI-compatible 200 answer whose message content is `content`.
@@ -70,15 +75,25 @@ fn chat_reply(content: &str) -> HttpReply {
     }
 }
 
-/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
-fn escaped_key_narration(key: &str) -> String {
+/// `key` with its first character written as a JSON `\uXXXX` escape.
+fn escaped_first_char_key(key: &str) -> String {
     let mut chars = key.chars();
     let first = chars.next().unwrap();
-    format!(
-        r#"{{"sentences": ["Rain beads on the canvas near \u{:04x}{}."]}}"#,
-        first as u32,
-        chars.as_str()
-    )
+    format!(r"\u{:04x}{}", first as u32, chars.as_str())
+}
+
+/// The narration JSON naming `key`, with the key's first character escaped as `\uXXXX`.
+fn escaped_key_narration(key: &str) -> String {
+    let escaped = escaped_first_char_key(key);
+    format!(r#"{{"sentences": ["Rain beads on the canvas near {escaped}."]}}"#)
+}
+
+fn bearer_key<'a>(headers: &'a [(&str, &str)]) -> &'a str {
+    headers
+        .iter()
+        .find(|(n, _)| *n == "authorization")
+        .and_then(|(_, v)| v.strip_prefix("Bearer "))
+        .unwrap_or("")
 }
 
 /// Records every URL asked for, and fails every request with the URL in the failure.
@@ -114,13 +129,18 @@ impl HttpsPost for Echoing {
             Echo::UrlReply => Ok(chat_reply(&format!(
                 r#"{{"sentences": ["Rain beads on the canvas near {url}."]}}"#
             ))),
-            Echo::EscapedKeyReply => {
-                let key = headers
-                    .iter()
-                    .find(|(n, _)| *n == "authorization")
-                    .and_then(|(_, v)| v.strip_prefix("Bearer "))
-                    .unwrap_or("");
-                Ok(chat_reply(&escaped_key_narration(key)))
+            Echo::EscapedKeyReply => Ok(chat_reply(&escaped_key_narration(bearer_key(headers)))),
+            Echo::HugeNumberEscapedKeyReply => {
+                let escaped = escaped_first_char_key(bearer_key(headers));
+                Ok(chat_reply(&format!(
+                    r#"{{"extra": 1e400, "sentences": ["Rain beads on the canvas near {escaped}."]}}"#
+                )))
+            }
+            Echo::MalformedJsonEscapedKeyReply => {
+                let escaped = escaped_first_char_key(bearer_key(headers));
+                Ok(chat_reply(&format!(
+                    r#"{{"extra": NaN, "sentences": ["Rain beads on the canvas near {escaped}."]}}"#
+                )))
             }
         }
     }
@@ -1672,5 +1692,99 @@ fn a_key_escaped_in_a_hosted_reply_is_taken_out_after_decoding() {
         .echo(Echo::EscapedKeyReply)
         .check();
         assert!(asked > 0, "the hosted client was called");
+    }
+}
+
+#[test]
+fn a_json_shaped_reply_that_fails_to_parse_cannot_pass_an_escaped_key_through() {
+    use etv_core::cloud_claude::ApiKey;
+    use etv_core::narrator_provider::{HostedApi, HostedTransport};
+    struct Replies(String);
+    impl HttpsPost for Replies {
+        fn post(
+            &self,
+            _url: &str,
+            _headers: &[(&str, &str)],
+            _body: &str,
+            _timeout: Duration,
+        ) -> Result<HttpReply, TransportError> {
+            Ok(chat_reply(&self.0))
+        }
+    }
+    let request = serde_json::json!({
+        "model": "m",
+        "system": "You narrate.",
+        "prompt": "A turn.",
+        "options": {"num_predict": 40},
+    })
+    .to_string();
+    for key in [LOWER_KEY, GOOD_KEY] {
+        let escaped = escaped_first_char_key(key);
+        let huge_number =
+            format!(r#"{{"extra": 1e400, "sentences": ["Rain beads near {escaped}."]}}"#);
+        let bad_object =
+            format!(r#"{{"extra": NaN, "sentences": ["Rain beads near {escaped}."]}}"#);
+        let bad_array = format!(r#"["Rain beads near {escaped}""#);
+
+        // `1e400` with arbitrary_precision parses and redacts; without it, fails closed to "".
+        // In either case neither the key nor its escaped form can remain in the response.
+        let transport = HostedTransport::new(
+            HostedApi::OpenaiCompatible {
+                base_url: "https://example.com/v1".to_string(),
+            },
+            "some-model",
+            ApiKey::from_text(key).unwrap(),
+            Box::new(Replies(huge_number)),
+        );
+        let (status, body) = transport
+            .post_generate("", &request, Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(status, 200);
+        let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let resp = outer["response"].as_str().unwrap();
+        assert!(resp.is_empty() || resp.contains("[redacted]"), "{resp}");
+        assert!(!resp.contains(&escaped), "{resp}");
+        assert!(!body.contains(&escaped), "{body}");
+        assert_clean("the transport's 1e400 answer", &body, key);
+
+        // Unparseable JSON starting with `{` or `[` fails closed to an empty response.
+        for bad in [bad_object, bad_array] {
+            let transport = HostedTransport::new(
+                HostedApi::OpenaiCompatible {
+                    base_url: "https://example.com/v1".to_string(),
+                },
+                "some-model",
+                ApiKey::from_text(key).unwrap(),
+                Box::new(Replies(bad)),
+            );
+            let (status, body) = transport
+                .post_generate("", &request, Duration::from_secs(1))
+                .unwrap();
+            assert_eq!(status, 200);
+            let outer: serde_json::Value = serde_json::from_str(&body).unwrap();
+            assert_eq!(outer["response"], "");
+            assert!(!body.contains(&escaped), "{body}");
+            assert_clean("the transport's unparseable JSON answer", &body, key);
+        }
+
+        // End-to-end through `play_turn` and the screens.
+        for echo in [
+            Echo::HugeNumberEscapedKeyReply,
+            Echo::MalformedJsonEscapedKeyReply,
+        ] {
+            let asked = Case::new(
+                serde_json::json!({
+                    "provider": "openai-compatible",
+                    "model": "some-model",
+                    "provider_url": "https://example.com/v1",
+                    "key": {"env": "ETV_SET"},
+                }),
+                key,
+            )
+            .env("ETV_SET", key)
+            .echo(echo)
+            .check();
+            assert!(asked > 0, "the hosted client was called");
+        }
     }
 }
